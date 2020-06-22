@@ -37,7 +37,10 @@ class EELS_SPEC_Device(Observable.Observable):
         self.communicating_event = Event.Event()
         #self.property_changed_event_listener = self.property_changed_event.listen(self.computeCalibration)
         self.busy_event=Event.Event()
-        
+      
+        self.__sendmessage = spec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
+        self.__eels_spec = spec.espec(self.__sendmessage)
+	    
         self.__fx=0.
         self.__fy=0.
         self.__sx=0.
@@ -50,8 +53,26 @@ class EELS_SPEC_Device(Observable.Observable):
         self.__dx=0.
         self.__dmx=0.
 		
-        self.__sendmessage = spec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        self.__eels_spec = spec.espec(self.__sendmessage)
+        try:
+            inst_dir=os.path.dirname(__file__)
+            abs_path=os.path.join(inst_dir, 'eels_settings.txt')
+            savfile=open(abs_path, 'r')
+            values=savfile.readlines() 
+            self.fx_edit_f=float((values[0])[4:])
+            self.fy_edit_f=float((values[1])[4:])
+            self.sx_edit_f=float((values[2])[4:])
+            self.sy_edit_f=float((values[3])[4:])
+            self.dy_edit_f=float((values[4])[4:])
+            self.q1_edit_f=float((values[5])[4:])
+            self.q2_edit_f=float((values[6])[4:])
+            self.q3_edit_f=float((values[7])[4:])
+            self.q4_edit_f=float((values[8])[4:])
+            self.dx_edit_f=float((values[9])[4:])
+            self.dmx_edit_f=float((values[10])[5:])
+        except:
+            logging.info('***EELS SPEC***: No saved values.')		
+		
+
 
 
     def sendMessageFactory(self):
