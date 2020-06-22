@@ -1,5 +1,6 @@
 # standard libraries
 import os
+import json
 import math
 import numpy
 import os
@@ -28,7 +29,12 @@ from nion.swift.model import ImportExportManager
 import logging
 import time
 
-from . import lens_ps as lens_ps
+DEBUG=1
+
+if DEBUG:
+    from . import lens_ps_vi as lens_ps
+else:
+    from . import lens_ps as lens_ps
 
 class probeDevice(Observable.Observable):
 
@@ -57,12 +63,13 @@ class probeDevice(Observable.Observable):
 		
         try:
             inst_dir=os.path.dirname(__file__)
-            abs_path=os.path.join(inst_dir, 'lenses_settings.txt')
-            savfile=open(abs_path, 'r')
-            values=savfile.readlines() 
-            self.obj_edit_f=float((values[0])[4:])
-            self.c1_edit_f=float((values[1])[4:])
-            self.c2_edit_f=float((values[2])[4:])
+            abs_path=os.path.join(inst_dir, 'lenses_settings.json')
+            with open(abs_path) as savfile:
+                data=json.load(savfile) #data is load json
+            logging.info(json.dumps(data, indent=4))
+            self.obj_edit_f=data['100']['obj']
+            self.c1_edit_f=data['100']['c1']
+            self.c2_edit_f=data['100']['c2']
         except:
             logging.info('***LENS***: No saved values.')
 

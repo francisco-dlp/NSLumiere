@@ -1,6 +1,7 @@
 # standard libraries
 import gettext
 import os
+import json
 
 # local libraries
 from nion.swift import Panel
@@ -56,13 +57,18 @@ class gainhandler:
     
 
     def save_lenses(self, widget):
+        l_dict={"100": {"obj": self.obj_value.text, "c1": self.c1_value.text, "c2": self.c2_value.text}}
+
         panel_dir=os.path.dirname(__file__)
-        abs_path=os.path.join(panel_dir, 'lenses_settings.txt')
-        savfile=open(abs_path, 'w+')
-        savfile.write('<OB>'+self.obj_value.text+'\n')
-        savfile.write('<C1>'+self.c1_value.text+'\n')
-        savfile.write('<C2>'+self.c2_value.text+'\n')
-        savfile.close()
+        abs_path=os.path.join(panel_dir, 'lenses_settings.json')
+        with open(abs_path, 'w') as json_file:
+            json.dump(l_dict, json_file)
+        #savfile=open(abs_path, 'w+')
+        #savfile.write('<OB>'+self.obj_value.text+'\n')
+        #savfile.write('<C1>'+self.c1_value.text+'\n')
+        #savfile.write('<C2>'+self.c2_value.text+'\n')
+        #savfile.close()
+
 
 
 class gainView:
