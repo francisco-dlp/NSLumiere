@@ -1,2 +1,2 @@
-# swift_lumiere
-Running VG Lumiere using NionSwift
+# yvorsay-instrument
+Instrumentation for Laser / Blanker / Gain usage in Nionswift
