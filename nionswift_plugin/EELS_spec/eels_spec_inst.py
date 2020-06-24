@@ -1,5 +1,6 @@
 # standard libraries
 import math
+import json
 import numpy
 import os
 import random
@@ -27,7 +28,7 @@ from nion.swift.model import ImportExportManager
 import logging
 import time
 
-DEBUG=1
+DEBUG=0
 
 if DEBUG:
     from . import eels_spec_vi as spec
@@ -60,20 +61,21 @@ class EELS_SPEC_Device(Observable.Observable):
 		
         try:
             inst_dir=os.path.dirname(__file__)
-            abs_path=os.path.join(inst_dir, 'eels_settings.txt')
-            savfile=open(abs_path, 'r')
-            values=savfile.readlines() 
-            self.fx_edit_f=float((values[0])[4:])
-            self.fy_edit_f=float((values[1])[4:])
-            self.sx_edit_f=float((values[2])[4:])
-            self.sy_edit_f=float((values[3])[4:])
-            self.dy_edit_f=float((values[4])[4:])
-            self.q1_edit_f=float((values[5])[4:])
-            self.q2_edit_f=float((values[6])[4:])
-            self.q3_edit_f=float((values[7])[4:])
-            self.q4_edit_f=float((values[8])[4:])
-            self.dx_edit_f=float((values[9])[4:])
-            self.dmx_edit_f=float((values[10])[5:])
+            abs_path=os.path.join(inst_dir, 'eels_settings.json')
+            with open(abs_path) as savfile:
+                data=json.load(savfile)
+            logging.info(json.dumps(data, indent=4))
+            self.fx_edit_f=data['50']['fx']
+            self.fy_edit_f=data['50']['fy']
+            self.sx_edit_f=data['50']['sx']
+            self.sy_edit_f=data['50']['sy']
+            self.dy_edit_f=data['50']['dx']
+            self.q1_edit_f=data['50']['q1']
+            self.q2_edit_f=data['50']['q2']
+            self.q3_edit_f=data['50']['q3']
+            self.q4_edit_f=data['50']['q4']
+            self.dx_edit_f=data['50']['dx']
+            self.dmx_edit_f=data['50']['dmx']
         except:
             logging.info('***EELS SPEC***: No saved values.')		
 		

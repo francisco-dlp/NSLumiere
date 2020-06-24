@@ -15,13 +15,13 @@ def _isPython3():
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
-class espec:
+class Diafs:
 
     def __init__(self, sendmessage):
         self.sendmessage=sendmessage
         self.ser = serial.Serial()
         self.ser.baudrate=9600
-        self.ser.port='COM4'
+        self.ser.port='COM7'
         self.ser.parity = serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
         self.ser.bytesize=serial.EIGHTBITS
@@ -33,11 +33,23 @@ class espec:
                 time.sleep(0.5)
         except:
             self.sendmessage(1)
+		
+        self.ser.readline()
 
-    def set_val(self, val, which):
-        if val<0: val=0xffff+val
-        string = which+' 0,'+hex(val)[2:6]+'\r'	
-        logging.info(string)
-        time.sleep(0.01)
-        self.ser.write(string.encode())
-        return self.ser.read(6)
+    def pos_to_bytes(self, pos):
+        rem = pos
+        val = numpy.zeros(4, dtype=int)
+        for j in range(4): #4 bytes
+            val[j] = rem % 256
+            rem = rem - val[j]
+            rem = rem / 256
+        return val
+
+		
+    def set_val(self, motor, value):
+        byt=self.pos_to_bytes(value)
+        message=[motor, 20, byt[0], byt[1], byt[2], byt[3]]
+        byt_array=bytearray(message)
+        self.ser.write(byt_array)
+        self.ser.read(6)
+		

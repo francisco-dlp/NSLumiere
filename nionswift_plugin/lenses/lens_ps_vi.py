@@ -34,3 +34,18 @@ class Lenses:
         time.sleep(0.01)
         return None
 		
+    def wobbler_loop(self, current, intensity, frequency, which):
+        self.wobbler_thread=threading.currentThread()
+        while getattr(self.wobbler_thread, "do_run", True):
+            self.set_val(current+intensity, which)
+            time.sleep(1./frequency)
+            logging.info(frequency)
+            self.set_val(current-intensity, which)
+            time.sleep(1./frequency)
+			
+    def wobbler_on(self, current, intensity, frequency, which):
+        self.wobbler_thread=threading.Thread(target=self.wobbler_loop, args=(current, intensity, frequency, which),)
+        self.wobbler_thread.start()
+		
+    def wobbler_off(self):
+        self.wobbler_thread.do_run=False

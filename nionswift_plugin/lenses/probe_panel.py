@@ -57,17 +57,15 @@ class gainhandler:
     
 
     def save_lenses(self, widget):
-        l_dict={"100": {"obj": self.obj_value.text, "c1": self.c1_value.text, "c2": self.c2_value.text}}
+        l_dict={\
+		"100": {"obj": self.obj_value.text, "c1": self.c1_value.text, "c2": self.c2_value.text}\
+		}
 
         panel_dir=os.path.dirname(__file__)
         abs_path=os.path.join(panel_dir, 'lenses_settings.json')
         with open(abs_path, 'w') as json_file:
             json.dump(l_dict, json_file)
-        #savfile=open(abs_path, 'w+')
-        #savfile.write('<OB>'+self.obj_value.text+'\n')
-        #savfile.write('<C1>'+self.c1_value.text+'\n')
-        #savfile.write('<C2>'+self.c2_value.text+'\n')
-        #savfile.close()
+
 
 
 
@@ -81,16 +79,17 @@ class gainView:
         self.obj_value = ui.create_line_edit(name='obj_value', text='@binding(instrument.obj_edit_f)')
         self.obj_row = ui.create_row(self.obj_cb, self.obj_value)
 		
-        self.obj_slider = ui.create_slider(name='obj_slider', value='@binding(instrument.obj_slider_f)', maximum=1000000)
+        self.obj_slider = ui.create_slider(name='obj_slider', value='@binding(instrument.obj_slider_f)', minimum=8000000, maximum=9000000)
 		
-        self.obj_wobbler_cb = ui.create_check_box(text='W O: ', name='obj_wobbler_label')
+        self.obj_wobbler_cb = ui.create_check_box(text='Wobbler [Obj]: ', name='obj_wobbler_label', checked='@binding(instrument.obj_wobbler_f)')
         self.obj_wobbler_value = ui.create_line_edit(name='obj_wobbler_value', width=150)
+        self.obj_wobbler_slider_frequency=ui.create_slider(name='obj_wobbler_slider_frequency', value='@binding(instrument.wobbler_frequency_f)', minimum=25, maximum=100)
 		
         self.save_pb=ui.create_push_button(text='Save Settings', name='save_pb', on_clicked="save_lenses")
 		
         self.obj_wobbler_row = ui.create_row(self.obj_wobbler_cb, self.obj_wobbler_value)
 		
-        self.objective_tab = ui.create_tab(label='Objective', content=ui.create_column(ui.create_spacing(10), self.obj_row, self.obj_slider, ui.create_spacing(50), self.obj_wobbler_row, ui.create_spacing(10), self.save_pb))
+        self.objective_tab = ui.create_tab(label='Objective', content=ui.create_column(ui.create_spacing(10), self.obj_row, self.obj_slider, ui.create_spacing(50), self.obj_wobbler_row, self.obj_wobbler_slider_frequency, ui.create_spacing(10), self.save_pb))
 		
 		
 		
@@ -101,7 +100,7 @@ class gainView:
 		
         self.c1_slider = ui.create_slider(name='c1_slider', value='@binding(instrument.c1_slider_f)', maximum=1000000)
 		
-        self.c1_wobbler_cb = ui.create_check_box(text='W C1: ', name='c1_wobbler_label')
+        self.c1_wobbler_cb = ui.create_check_box(text='Wobbler [C1]: ', name='c1_wobbler_label')
         self.c1_wobbler_value = ui.create_line_edit(name='c1_wobbler_value', width=150)
         self.c1_wobbler_row = ui.create_row(self.c1_wobbler_cb, self.c1_wobbler_value)
 		
@@ -111,7 +110,7 @@ class gainView:
 		
         self.c2_slider = ui.create_slider(name='c2_slider', value='@binding(instrument.c2_slider_f)', maximum=1000000)
 		
-        self.c2_wobbler_cb = ui.create_check_box(text='W C2: ', name='c2_wobbler_label')
+        self.c2_wobbler_cb = ui.create_check_box(text='Wobbler [C2]: ', name='c2_wobbler_label')
         self.c2_wobbler_value = ui.create_line_edit(name='c2_wobbler_value', width=150)
         self.c2_wobbler_row = ui.create_row(self.c2_wobbler_cb, self.c2_wobbler_value)
 

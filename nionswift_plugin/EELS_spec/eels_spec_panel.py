@@ -1,6 +1,7 @@
 # standard libraries
 import gettext
 import os
+import json
 
 # local libraries
 from nion.swift import Panel
@@ -57,21 +58,15 @@ class eels_spec_handler:
         self.event_loop.create_task(self.do_enable(True, ["init_pb"]))
     
     def save_spec(self, widget):
+        spec_dict={'50': {'fx': self.fx_value.text, 'fy': self.fy_value.text, 'sx': self.sx_value.text,
+        'sy': self.sy_value.text, 'dy': self.dy_value.text, 'q1': self.q1_value.text, \
+        'q2': self.q2_value.text, 'q3': self.q3_value.text, 'q4': self.q4_value.text, \
+        'dx': self.dx_value.text, 'dmx': self.dmx_value.text, }}
         panel_dir=os.path.dirname(__file__)
-        abs_path=os.path.join(panel_dir, 'eels_settings.txt')
-        savfile=open(abs_path, 'w+')
-        savfile.write('<fx>'+self.fx_value.text+'\n')
-        savfile.write('<fy>'+self.fy_value.text+'\n')
-        savfile.write('<sx>'+self.sx_value.text+'\n')
-        savfile.write('<sy>'+self.sy_value.text+'\n')
-        savfile.write('<dy>'+self.dy_value.text+'\n')
-        savfile.write('<q1>'+self.q1_value.text+'\n')
-        savfile.write('<q2>'+self.q2_value.text+'\n')
-        savfile.write('<q3>'+self.q3_value.text+'\n')
-        savfile.write('<q4>'+self.q4_value.text+'\n')
-        savfile.write('<dx>'+self.dx_value.text+'\n')
-        savfile.write('<dmx>'+self.dmx_value.text+'\n')
-        savfile.close()
+        abs_path=os.path.join(panel_dir, 'eels_settings.json')
+        with open(abs_path, 'w') as json_file:
+            json.dump(spec_dict, json_file)
+
 
 
 class eels_spec_View:
