@@ -29,7 +29,7 @@ from nion.swift.model import ImportExportManager
 import logging
 import time
 
-DEBUG=0
+DEBUG=1
 
 if DEBUG:
     from . import lens_ps_vi as lens_ps
@@ -59,7 +59,10 @@ class probeDevice(Observable.Observable):
         self.__c1_global=True
         self.__c2_global=True
         self.__obj_wobbler=False
-        self.__wobbler_frequency=0
+        self.__c1_wobbler=False
+        self.__c2_wobbler=False
+        self.wobbler_frequency_f=5
+        self.__wobbler_intensity=0.2
 
 		
         #try:
@@ -94,14 +97,29 @@ class probeDevice(Observable.Observable):
 		
     @wobbler_frequency_f.setter
     def wobbler_frequency_f(self, value):
-        self.__wobbler_frequency=value/10.
-        print(self.__wobbler_frequency)
+        self.__wobbler_frequency=value
+        if self.__obj_wobbler: self.obj_wobbler_f=False
+        if self.__c1_wobbler: self.c1_wobbler_f=False  
+        if self.__c2_wobbler: self.c2_wobbler_f=False   
+        self.property_changed_event.fire("wobbler_frequency_f")
+
+    @property
+    def wobbler_intensity_f(self):
+        return self.__wobbler_intensity
+
+    @wobbler_intensity_f.setter
+    def wobbler_intensity_f(self, value):
+        self.__wobbler_intensity = float(value)
         if self.__obj_wobbler:
             self.obj_wobbler_f=False
-            time.sleep(3./self.__wobbler_frequency)
             self.obj_wobbler_f=True
-            time.sleep(3./self.__wobbler_frequency)
-        #self.property_changed_event.fire("wobbler_frequency_f")        
+        if self.__c1_wobbler:
+            self.c1_wobbler_f=False
+            self.c1_wobbler_f=True
+        if self.__c2_wobbler:
+            self.c2_wobbler_f=False
+            self.c2_wobbler_f=True
+        self.property_changed_event.fire("wobbler_intensity_f")
 
 
 ### OBJ ###
@@ -126,11 +144,13 @@ class probeDevice(Observable.Observable):
     def obj_wobbler_f(self, value):
         self.__obj_wobbler=value
         if value:
-            logging.info('wobbler on')
-            self.__lenses_ps.wobbler_on(self.__obj, 0.1, self.__wobbler_frequency, 'OBJ')
+            if self.__c1_wobbler: self.c1_wobbler_f=False
+            if self.__c2_wobbler: self.c2_wobbler_f=False
+            self.__lenses_ps.wobbler_on(self.__obj, self.__wobbler_intensity, self.__wobbler_frequency, 'OBJ')
         else:
-            logging.info('wobbler off')
             self.__lenses_ps.wobbler_off()
+            time.sleep(2.5/self.__wobbler_frequency)
+        self.property_changed_event.fire('obj_wobbler_f')
 
     @property
     def obj_slider_f(self):
@@ -150,7 +170,7 @@ class probeDevice(Observable.Observable):
     @obj_edit_f.setter
     def obj_edit_f(self, value):
         self.__obj=float(value)
-        if self.__obj_global: self.__lenses_ps.set_val(self.__obj, 'OBJ')
+        #if self.__obj_global: self.__lenses_ps.set_val(self.__obj, 'OBJ')
         self.property_changed_event.fire("obj_slider_f")
         self.property_changed_event.fire("obj_edit_f")
 		
@@ -167,6 +187,24 @@ class probeDevice(Observable.Observable):
             self.__lenses_ps.set_val(self.__c1, 'C1')
         else:
             self.__lenses_ps.set_val(0.0, 'C1')
+        self.property_changed_event.fire('c1_global_f')
+    
+    @property
+    def c1_wobbler_f(self):
+        return self.__c1_wobbler
+		
+    @c1_wobbler_f.setter
+    def c1_wobbler_f(self, value):
+        self.__c1_wobbler=value
+        if value:
+            if self.__obj_wobbler: self.obj_wobbler_f=False
+            if self.__c2_wobbler: self.c2_wobbler_f=False
+            self.__lenses_ps.wobbler_on(self.__c1, self.__wobbler_intensity, self.__wobbler_frequency, 'C1')
+        else:
+            self.__lenses_ps.wobbler_off()
+            time.sleep(2.5/self.__wobbler_frequency)
+        self.property_changed_event.fire('c1_wobbler_f')
+
 		
     @property
     def c1_slider_f(self):
@@ -186,7 +224,7 @@ class probeDevice(Observable.Observable):
     @c1_edit_f.setter
     def c1_edit_f(self, value):
         self.__c1=float(value)
-        if self.__c1_global: self.__lenses_ps.set_val(self.__c1, 'C1')
+        #if self.__c1_global: self.__lenses_ps.set_val(self.__c1, 'C1')
         self.property_changed_event.fire("c1_slider_f")
         self.property_changed_event.fire("c1_edit_f")
 	
@@ -203,6 +241,24 @@ class probeDevice(Observable.Observable):
             self.__lenses_ps.set_val(self.__c2, 'C2')
         else:
             self.__lenses_ps.set_val(0.0, 'C2')
+        self.property_changed_event.fire('c2_global_setter')
+    
+    @property
+    def c2_wobbler_f(self):
+        return self.__c2_wobbler
+		
+    @c2_wobbler_f.setter
+    def c2_wobbler_f(self, value):
+        self.__c2_wobbler=value
+        if value:
+            if self.__obj_wobbler: self.obj_wobbler_f=False
+            if self.__c1_wobbler: self.c1_wobbler_f=False
+            self.__lenses_ps.wobbler_on(self.__c2, self.__wobbler_intensity, self.__wobbler_frequency, 'C2')
+        else:
+            self.__lenses_ps.wobbler_off()
+            time.sleep(2.5/self.__wobbler_frequency)
+        self.property_changed_event.fire('c2_wobbler_f')
+
 		
     @property
     def c2_slider_f(self):
@@ -222,7 +278,6 @@ class probeDevice(Observable.Observable):
     @c2_edit_f.setter
     def c2_edit_f(self, value):
         self.__c2=float(value)
-        logging.info('setter c2')
-        self.__c2_global: self.__lenses_ps.set_val(self.__c2, 'C2')
+        #self.__c2_global: self.__lenses_ps.set_val(self.__c2, 'C2')
         self.property_changed_event.fire("c2_slider_f")
         self.property_changed_event.fire("c2_edit_f")

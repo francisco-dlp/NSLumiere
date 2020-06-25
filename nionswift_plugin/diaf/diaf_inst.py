@@ -29,7 +29,12 @@ from nion.swift.model import ImportExportManager
 import logging
 import time
 
-from . import diaf as diaf
+DEBUG=1
+
+if DEBUG:
+    from . import diaf_vi as diaf
+else:
+    from . import diaf as diaf
 
 class diafDevice(Observable.Observable):
 

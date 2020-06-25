@@ -66,7 +66,35 @@ class gainhandler:
         with open(abs_path, 'w') as json_file:
             json.dump(l_dict, json_file)
 
+    def adj_values(self, widget):
+        if widget==self.obj_slider:
+            self.obj_slider.maximum=self.obj_slider.value+25000
+            self.obj_slider.minimum=max(self.obj_slider.value-25000, 0)
+        
+        if widget==self.c1_slider:
+            self.c1_slider.maximum=self.c1_slider.value+10000
+            self.c1_slider.minimum=max(self.c1_slider.value-10000, 0)
+        
+        if widget==self.c2_slider:
+            self.c2_slider.maximum=self.c2_slider.value+10000
+            self.c2_slider.minimum=max(self.c2_slider.value-10000, 0)
 
+    def line_update(self, widget, text):
+        if widget==self.obj_value:
+            if text:
+                value=int(float(text)*1000000)
+                self.obj_slider.maximum=value+1000000
+                self.obj_slider.minimum=max(value-1000000, 0)
+        if widget==self.c1_value:
+            if text:
+                value=int(float(text)*1000000)
+                self.c1_slider.maximum=value+500000
+                self.c1_slider.minimum=max(value-500000, 0)
+        if widget==self.c2_value:
+            if text:
+                value=int(float(text)*1000000)
+                self.c2_slider.maximum=value+500000
+                self.c2_slider.minimum=max(value-500000, 0)
 
 
 class gainView:
@@ -74,55 +102,61 @@ class gainView:
 
     def __init__(self, instrument:probe_inst.probeDevice):
         ui = Declarative.DeclarativeUI()
+        
+        # fine adjustment #
+
+
+        ## wobbler ##
+        self.wobbler_value = ui.create_line_edit(name='wobbler_value', width=150, text='@binding(instrument.wobbler_intensity_f)')
+        self.wobbler_slider_label=ui.create_label(name='wobbler_slider_label', text='Frequency [Hz]: ')
+        self.wobbler_value_label=ui.create_label(name='wobbler_value_label', text='@binding(instrument.wobbler_frequency_f)')
+        self.wobbler_slider_frequency=ui.create_slider(name='wobbler_slider_frequency', value='@binding(instrument.wobbler_frequency_f)', minimum=1, maximum=10)
+        self.wobbler_freq_row = ui.create_row(self.wobbler_slider_label, self.wobbler_value_label)
 		
+        ## objetive ##
+
         self.obj_cb = ui.create_check_box(text='Obj:', name='obj_label', checked='@binding(instrument.obj_global_f)')
-        self.obj_value = ui.create_line_edit(name='obj_value', text='@binding(instrument.obj_edit_f)')
+        self.obj_value = ui.create_line_edit(name='obj_value', text='@binding(instrument.obj_edit_f)', on_text_edited='line_update')
         self.obj_row = ui.create_row(self.obj_cb, self.obj_value)
 		
-        self.obj_slider = ui.create_slider(name='obj_slider', value='@binding(instrument.obj_slider_f)', minimum=8000000, maximum=9000000)
+        self.obj_slider = ui.create_slider(name='obj_slider', value='@binding(instrument.obj_slider_f)', minimum=5000000, maximum=9000000, on_slider_released='adj_values')
 		
         self.obj_wobbler_cb = ui.create_check_box(text='Wobbler [Obj]: ', name='obj_wobbler_label', checked='@binding(instrument.obj_wobbler_f)')
-        self.obj_wobbler_value = ui.create_line_edit(name='obj_wobbler_value', width=150)
-        self.obj_wobbler_slider_frequency=ui.create_slider(name='obj_wobbler_slider_frequency', value='@binding(instrument.wobbler_frequency_f)', minimum=25, maximum=100)
 		
         self.save_pb=ui.create_push_button(text='Save Settings', name='save_pb', on_clicked="save_lenses")
 		
-        self.obj_wobbler_row = ui.create_row(self.obj_wobbler_cb, self.obj_wobbler_value)
+        self.obj_wobbler_row = ui.create_row(self.obj_wobbler_cb, self.wobbler_value)
 		
-        self.objective_tab = ui.create_tab(label='Objective', content=ui.create_column(ui.create_spacing(10), self.obj_row, self.obj_slider, ui.create_spacing(50), self.obj_wobbler_row, self.obj_wobbler_slider_frequency, ui.create_spacing(10), self.save_pb))
+        self.objective_tab = ui.create_tab(label='Objective', content=ui.create_column(ui.create_spacing(10), self.obj_row, self.obj_slider, self.obj_wobbler_row, self.wobbler_freq_row, self.wobbler_slider_frequency, ui.create_spacing(10), self.save_pb))
 		
-		
+	## condensers ##	
 		
 		
         self.c1_cb = ui.create_check_box(text='C1:', name='c1_label', checked='@binding(instrument.c1_global_f)')
-        self.c1_value = ui.create_line_edit(name='c1_value', text='@binding(instrument.c1_edit_f)')
+        self.c1_value = ui.create_line_edit(name='c1_value', text='@binding(instrument.c1_edit_f)', on_text_edited='line_update')
         self.c1_row = ui.create_row(self.c1_cb, self.c1_value)
 		
-        self.c1_slider = ui.create_slider(name='c1_slider', value='@binding(instrument.c1_slider_f)', maximum=1000000)
+        self.c1_slider = ui.create_slider(name='c1_slider', value='@binding(instrument.c1_slider_f)', maximum=1000000, on_slider_released='adj_values')
 		
-        self.c1_wobbler_cb = ui.create_check_box(text='Wobbler [C1]: ', name='c1_wobbler_label')
-        self.c1_wobbler_value = ui.create_line_edit(name='c1_wobbler_value', width=150)
-        self.c1_wobbler_row = ui.create_row(self.c1_wobbler_cb, self.c1_wobbler_value)
+        self.c1_wobbler_cb = ui.create_check_box(text='Wobbler [C1]: ', name='c1_wobbler_label', checked='@binding(instrument.c1_wobbler_f)')
+        self.c1_wobbler_row = ui.create_row(self.c1_wobbler_cb, self.wobbler_value)
 		
         self.c2_cb = ui.create_check_box(text='C2:', name='c2_label', checked='@binding(instrument.c2_global_f)')
-        self.c2_value = ui.create_line_edit(name='c2_value', text='@binding(instrument.c2_edit_f)')
+        self.c2_value = ui.create_line_edit(name='c2_value', text='@binding(instrument.c2_edit_f)', on_text_edited='line_update')
         self.c2_row = ui.create_row(self.c2_cb, self.c2_value)
 		
-        self.c2_slider = ui.create_slider(name='c2_slider', value='@binding(instrument.c2_slider_f)', maximum=1000000)
+        self.c2_slider = ui.create_slider(name='c2_slider', value='@binding(instrument.c2_slider_f)', maximum=1000000, on_slider_released='adj_values')
 		
-        self.c2_wobbler_cb = ui.create_check_box(text='Wobbler [C2]: ', name='c2_wobbler_label')
-        self.c2_wobbler_value = ui.create_line_edit(name='c2_wobbler_value', width=150)
-        self.c2_wobbler_row = ui.create_row(self.c2_wobbler_cb, self.c2_wobbler_value)
+        self.c2_wobbler_cb = ui.create_check_box(text='Wobbler [C2]: ', name='c2_wobbler_label', checked='@binding(instrument.c2_wobbler_f)')
+        self.c2_wobbler_row = ui.create_row(self.c2_wobbler_cb, self.wobbler_value)
 
-        self.condenser_tab = ui.create_tab(label='Condenser', content=ui.create_column(ui.create_spacing(10), self.c1_row, self.c1_slider, self.c1_wobbler_row, ui.create_spacing(50), self.c2_row, self.c2_slider, self.c2_wobbler_row))
+        self.condenser_tab = ui.create_tab(label='Condenser', content=ui.create_column(ui.create_spacing(10), self.c1_row, self.c1_slider, self.c1_wobbler_row, self.wobbler_freq_row, self.wobbler_slider_frequency, ui.create_spacing(50), self.c2_row, self.c2_slider, self.c2_wobbler_row, self.wobbler_freq_row, self.wobbler_slider_frequency, ui.create_spacing(10), self.save_pb))
 		
 		
         self.tabs=ui.create_tabs(self.objective_tab, self.condenser_tab)
 		
-        #self.ui_view = ui.create_column(self.all_tabs, ui.create_spacing(10), self.obj_row, self.obj_slider, ui.create_spacing(50), self.obj_wobbler_row)
         self.ui_view=ui.create_column(self.tabs)
 
-        #self.ui_view=ui.create_column(self.init_pb, self.ui_view1, self.ui_view2, self.ui_view3, self.ui_view4, self.ui_view5, spacing=1)
 
 
 

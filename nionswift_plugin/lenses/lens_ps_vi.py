@@ -28,7 +28,7 @@ class Lenses:
             string_init='>1,1,2,'
         if which=='C2':
             string_init='>1,1,3,'
-			
+		
         string=string_init+str(val)+',0.5\r'
         logging.info(string)
         time.sleep(0.01)
