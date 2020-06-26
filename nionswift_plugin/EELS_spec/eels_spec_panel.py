@@ -68,12 +68,54 @@ class eels_spec_handler:
             json.dump(spec_dict, json_file)
 
 
+    def full_range(self, widget):
+        self.fx_slider.maximum=32767
+        self.fx_slider.minimum=-32767
+        
+        self.fy_slider.maximum=32767
+        self.fy_slider.minimum=-32767
+        
+        self.sx_slider.maximum=32767
+        self.sx_slider.minimum=-32767
+        
+        self.sy_slider.maximum=32767
+        self.sy_slider.minimum=-32767
+        
+        self.dy_slider.maximum=32767
+        self.dy_slider.minimum=-32767
+        
+        self.q1_slider.maximum=32767
+        self.q1_slider.minimum=-32767
+        
+        self.q2_slider.maximum=32767
+        self.q2_slider.minimum=-32767
+        
+        self.q3_slider.maximum=32767
+        self.q3_slider.minimum=-32767
+        
+        self.q4_slider.maximum=32767
+        self.q4_slider.minimum=-32767
+
+        self.dx_slider.maximum=32767
+        self.dx_slider.minimum=-32767
+
+        self.dmx_slider.maximum=32767
+        self.dmx_slider.minimum=-32767
+
+    def slider_release(self, widget):
+        widget.maximum=widget.value+250
+        widget.minimum=widget.value-250
 
 class eels_spec_View:
 
 
     def __init__(self, instrument:eels_spec_inst.EELS_SPEC_Device):
         ui = Declarative.DeclarativeUI()
+
+                # full_range
+
+        self.full_range_pb=ui.create_push_button(name='full_range_pb', text='Full Range', on_clicked='full_range')
+
 		
 		# range selection
 		
@@ -85,12 +127,12 @@ class eels_spec_View:
         self.fx_label = ui.create_label(text='FX: ', name='fx_label')
         self.fx_value = ui.create_line_edit(name='fx_value', text='@binding(instrument.fx_'+'edit_f)')
         self.fx_row = ui.create_row(self.fx_label, self.fx_value)
-        self.fx_slider = ui.create_slider(name='fx_slider', value='@binding(instrument.fx_slider_f)', minimum=-32767, maximum=32767)
+        self.fx_slider = ui.create_slider(name='fx_slider', value='@binding(instrument.fx_slider_f)', minimum=-32767, maximum=32767, on_slider_released='slider_release')
 
         self.fy_label = ui.create_label(text='FY: ', name='fy_label')
         self.fy_value = ui.create_line_edit(name='fy_value', text='@binding(instrument.fy_edit_f)')
         self.fy_row = ui.create_row(self.fy_label, self.fy_value)
-        self.fy_slider = ui.create_slider(name='fy_slider', value='@binding(instrument.fy_slider_f)', minimum=-32767, maximum=32767)
+        self.fy_slider = ui.create_slider(name='fy_slider', value='@binding(instrument.fy_slider_f)', minimum=-32767, maximum=32767, on_slider_released='slider_release')
 		
         self.first_order_group=ui.create_group(title='1st Order', content=ui.create_column(\
         self.fx_row, self.fx_slider, ui.create_spacing(10),\
@@ -101,17 +143,17 @@ class eels_spec_View:
         self.sx_label = ui.create_label(text='SX: ', name='sx_label')
         self.sx_value = ui.create_line_edit(name='sx_value', text='@binding(instrument.sx_edit_f)')
         self.sx_row = ui.create_row(self.sx_label, self.sx_value)
-        self.sx_slider = ui.create_slider(name='sx_slider', value='@binding(instrument.sx_slider_f)', minimum=-32767, maximum=32767)
+        self.sx_slider = ui.create_slider(name='sx_slider', value='@binding(instrument.sx_slider_f)', minimum=-32767, maximum=32767, on_slider_released='slider_release')
         
         self.sy_label = ui.create_label(text='SY: ', name='sy_label')
         self.sy_value = ui.create_line_edit(name='sy_value', text='@binding(instrument.sy_edit_f)')
         self.sy_row = ui.create_row(self.sy_label, self.sy_value)
-        self.sy_slider = ui.create_slider(name='sy_slider', value='@binding(instrument.sy_slider_f)', minimum=-32767, maximum=32767)		
+        self.sy_slider = ui.create_slider(name='sy_slider', value='@binding(instrument.sy_slider_f)', minimum=-32767, maximum=32767, on_slider_released='slider_release')	
 
         self.dy_label = ui.create_label(text='DY: ', name='dy_label')
         self.dy_value = ui.create_line_edit(name='dy_value', text='@binding(instrument.dy_edit_f)')
         self.dy_row = ui.create_row(self.dy_label, self.dy_value)
-        self.dy_slider = ui.create_slider(name='dy_slider', value='@binding(instrument.dy_slider_f)', minimum=-32767, maximum=32767)
+        self.dy_slider = ui.create_slider(name='dy_slider', value='@binding(instrument.dy_slider_f)', minimum=-32767, maximum=32767, on_slider_released='slider_release')
 		
         self.second_order_group=ui.create_group(title='2nd Order', content=ui.create_column(\
         self.sx_row, self.sx_slider, ui.create_spacing(10),\
@@ -121,7 +163,7 @@ class eels_spec_View:
 		#save button
 		
         self.save_pb=ui.create_push_button(text='Save Settings', name='save_pb', on_clicked='save_spec', width='100')
-        self.pb_row=ui.create_row(ui.create_stretch(), self.save_pb)
+        self.pb_row=ui.create_row(self.full_range_pb, ui.create_stretch(), self.save_pb)
 	
         #first tab
 	
@@ -136,32 +178,32 @@ class eels_spec_View:
         self.q1_label = ui.create_label(text='Q1: ', name='q1_label')
         self.q1_value = ui.create_line_edit(name='q1_value', text='@binding(instrument.q1_edit_f)')
         self.q1_row = ui.create_row(self.q1_label, self.q1_value)
-        self.q1_slider = ui.create_slider(name='q1_slider', value='@binding(instrument.q1_slider_f)', minimum=-32767, maximum=32767)
+        self.q1_slider = ui.create_slider(name='q1_slider', value='@binding(instrument.q1_slider_f)', minimum=-32767, maximum=32767, on_slider_released='slider_release')
 
         self.q2_label = ui.create_label(text='Q2: ', name='q2_label')
         self.q2_value = ui.create_line_edit(name='q2_value', text='@binding(instrument.q2_edit_f)')
         self.q2_row = ui.create_row(self.q2_label, self.q2_value)
-        self.q2_slider = ui.create_slider(name='q2_slider', value='@binding(instrument.q2_slider_f)', minimum=-32767, maximum=32767)
+        self.q2_slider = ui.create_slider(name='q2_slider', value='@binding(instrument.q2_slider_f)', minimum=-32767, maximum=32767, on_slider_released='slider_release')
         
         self.q3_label = ui.create_label(text='Q3: ', name='q3_label')
         self.q3_value = ui.create_line_edit(name='q3_value', text='@binding(instrument.q3_edit_f)')
         self.q3_row = ui.create_row(self.q3_label, self.q3_value)
-        self.q3_slider = ui.create_slider(name='q3_slider', value='@binding(instrument.q3_slider_f)', minimum=-32767, maximum=32767)
+        self.q3_slider = ui.create_slider(name='q3_slider', value='@binding(instrument.q3_slider_f)', minimum=-32767, maximum=32767, on_slider_released='slider_release')
         
         self.q4_label = ui.create_label(text='Q4: ', name='q4_label')
         self.q4_value = ui.create_line_edit(name='q4_value', text='@binding(instrument.q4_edit_f)')
         self.q4_row = ui.create_row(self.q4_label, self.q4_value)
-        self.q4_slider = ui.create_slider(name='q4_slider', value='@binding(instrument.q4_slider_f)', minimum=-32767, maximum=32767)		
+        self.q4_slider = ui.create_slider(name='q4_slider', value='@binding(instrument.q4_slider_f)', minimum=-32767, maximum=32767, on_slider_released='slider_release')
 
         self.dx_label = ui.create_label(text='DX: ', name='dx_label')
         self.dx_value = ui.create_line_edit(name='dx_value', text='@binding(instrument.dx_edit_f)')
         self.dx_row = ui.create_row(self.dx_label, self.dx_value)
-        self.dx_slider = ui.create_slider(name='dx_slider', value='@binding(instrument.dx_slider_f)', minimum=-32767, maximum=32767)
+        self.dx_slider = ui.create_slider(name='dx_slider', value='@binding(instrument.dx_slider_f)', minimum=-32767, maximum=32767, on_slider_released='slider_release')
 		
         self.dmx_label = ui.create_label(text='DMX: ', name='dmx_label')
         self.dmx_value = ui.create_line_edit(name='dmx_value', text='@binding(instrument.dmx_edit_f)')
         self.dmx_row = ui.create_row(self.dmx_label, self.dmx_value)
-        self.dmx_slider = ui.create_slider(name='dmx_slider', value='@binding(instrument.dmx_slider_f)', minimum=-32767, maximum=32767)		
+        self.dmx_slider = ui.create_slider(name='dmx_slider', value='@binding(instrument.dmx_slider_f)', minimum=-32767, maximum=32767, on_slider_released='slider_release')
         
 		# second tab
 		

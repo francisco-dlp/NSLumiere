@@ -10,7 +10,7 @@ import os
 
 setuptools.setup(
     name="Lumiere Ultra Combo",
-    version="1.4",
+    version="1.5",
     author="Yves Auad",
     description="Lenses",
     url="https://github.com/yvesauad/swift_lumiere",
