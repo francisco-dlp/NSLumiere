@@ -65,21 +65,31 @@ class probeDevice(Observable.Observable):
         self.__wobbler_intensity=0.2
 
 		
-        #try:
+        try:
+            inst_dir=os.path.dirname(__file__)
+            abs_path=os.path.join(inst_dir, 'lenses_settings.json')
+            with open(abs_path) as savfile:
+                data=json.load(savfile) #data is load json
+            logging.info(json.dumps(data, indent=4))
+            self.obj_edit_f=data['3']['obj']
+            self.c1_edit_f=data['3']['c1']
+            self.c2_edit_f=data['3']['c2']
+        except:
+            logging.info('***LENS***: No saved values.')
+
+        self.obj_global_f=True
+        self.c1_global_f=True
+        self.c2_global_f=True
+
+    def EHT_change(self, value):
         inst_dir=os.path.dirname(__file__)
         abs_path=os.path.join(inst_dir, 'lenses_settings.json')
         with open(abs_path) as savfile:
             data=json.load(savfile) #data is load json
         logging.info(json.dumps(data, indent=4))
-        self.obj_edit_f=data['100']['obj']
-        self.c1_edit_f=data['100']['c1']
-        self.c2_edit_f=data['100']['c2']
-        #except:
-        #    logging.info('***LENS***: No saved values.')
-
-        self.obj_global_f=True
-        self.c1_global_f=True
-        self.c2_global_f=True
+        self.obj_edit_f=data[str(value)]['obj']
+        self.c1_edit_f=data[str(value)]['c1']
+        self.c2_edit_f=data[str(value)]['c2']
 
 
     def sendMessageFactory(self):

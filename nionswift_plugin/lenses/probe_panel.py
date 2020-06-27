@@ -12,6 +12,7 @@ from nion.utils import Converter
 from nion.utils import Geometry
 from nion.ui import Declarative
 from nion.ui import UserInterface
+from nion.swift.model import HardwareSource
 import threading
 
 from . import probe_inst
@@ -33,8 +34,9 @@ class gainhandler:
         self.instrument=instrument
         self.enabled = False
         self.property_changed_event_listener=self.instrument.property_changed_event.listen(self.prepare_widget_enable)
-        self.property_changed_power_event_listener=self.instrument.property_changed_power_event.listen(self.prepare_power_widget_enable)
         self.busy_event_listener=self.instrument.busy_event.listen(self.prepare_widget_disable)
+
+        self.ivg=None
 
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
         #Pythonic way of finding the widgets
@@ -47,24 +49,25 @@ class gainhandler:
                     setattr(widg, "enabled", enabled)
 
     def prepare_widget_enable(self, value):
-        self.event_loop.create_task(self.do_enable(True, ["init_pb"]))
+        self.event_loop.create_task(self.do_enable(True, []))
 
     def prepare_widget_disable(self,value):
-        self.event_loop.create_task(self.do_enable(False, ["init_pb", "upt_pb", "abt_pb"]))
+        self.event_loop.create_task(self.do_enable(False, []))
     
-    def prepare_power_widget_enable(self,value): #NOTE THAT THE SECOND EVENT NEVER WORKS. WHAT IS THE DIF BETWEEN THE FIRST?
-        self.event_loop.create_task(self.do_enable(True, ["init_pb"]))
-    
-
     def save_lenses(self, widget):
-        l_dict={\
-		"100": {"obj": self.obj_value.text, "c1": self.c1_value.text, "c2": self.c2_value.text}\
-		}
+        if not self.ivg:
+            self.ivg=HardwareSource.HardwareSourceManager().get_instrument_by_id("Instrument_VG")
 
         panel_dir=os.path.dirname(__file__)
         abs_path=os.path.join(panel_dir, 'lenses_settings.json')
+        with open(abs_path) as savfile:
+            json_object=json.load(savfile)
+
+        json_object[self.ivg.EHT_f]={"obj": self.obj_value.text, "c1": self.c1_value.text, "c2": self.c2_value.text}
+
         with open(abs_path, 'w') as json_file:
-            json.dump(l_dict, json_file)
+            json.dump(json_object, json_file)
+
 
     def adj_values(self, widget):
         if widget==self.obj_slider:
