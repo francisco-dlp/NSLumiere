@@ -12,6 +12,7 @@ from nion.utils import Converter
 from nion.utils import Geometry
 from nion.ui import Declarative
 from nion.ui import UserInterface
+from nion.swift.model import HardwareSource
 import threading
 
 from . import eels_spec_inst
@@ -35,13 +36,11 @@ class eels_spec_handler:
         self.instrument=instrument
         self.enabled = False
         self.property_changed_event_listener=self.instrument.property_changed_event.listen(self.prepare_widget_enable)
-        self.property_changed_power_event_listener=self.instrument.property_changed_power_event.listen(self.prepare_power_widget_enable)
         self.busy_event_listener=self.instrument.busy_event.listen(self.prepare_widget_disable)
 
+        self.ivg=None
+
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
-        #Pythonic way of finding the widgets
-        #actually a more straigthforward way would be to create a list of widget in the init_handler
-        #then use this list in the present function...
         for var in self.__dict__:
             if var not in not_affected_widget_name_list:
                 if isinstance(getattr(self,var),UserInterface.Widget):
@@ -49,26 +48,38 @@ class eels_spec_handler:
                     setattr(widg, "enabled", enabled)
 
     def prepare_widget_enable(self, value):
-        self.event_loop.create_task(self.do_enable(True, ["init_pb"]))
+        self.event_loop.create_task(self.do_enable(True, []))
 
     def prepare_widget_disable(self,value):
-        self.event_loop.create_task(self.do_enable(False, ["init_pb", "upt_pb", "abt_pb"]))
-    
-    def prepare_power_widget_enable(self,value): #NOTE THAT THE SECOND EVENT NEVER WORKS. WHAT IS THE DIF BETWEEN THE FIRST?
-        self.event_loop.create_task(self.do_enable(True, ["init_pb"]))
+        self.event_loop.create_task(self.do_enable(False, []))
     
     def save_spec(self, widget):
-        spec_dict={'50': {'fx': self.fx_value.text, 'fy': self.fy_value.text, 'sx': self.sx_value.text,
-        'sy': self.sy_value.text, 'dy': self.dy_value.text, 'q1': self.q1_value.text, \
-        'q2': self.q2_value.text, 'q3': self.q3_value.text, 'q4': self.q4_value.text, \
-        'dx': self.dx_value.text, 'dmx': self.dmx_value.text, }}
+        if not self.ivg:
+            self.ivg=HardwareSource.HardwareSourceManager().get_instrument_by_id("Instrument_VG")
+
         panel_dir=os.path.dirname(__file__)
         abs_path=os.path.join(panel_dir, 'eels_settings.json')
+        with open(abs_path) as savfile:
+            json_object=json.load(savfile)
+
+        json_object[str(self.ivg.EHT_f)][self.dispersion_value.current_index]={\
+        'range': self.range_value.text, 'fx': self.fx_value.text, 'fy': self.fy_value.text, 'sx': self.sx_value.text,
+        'sy': self.sy_value.text, 'dy': self.dy_value.text, 'q1': self.q1_value.text, \
+        'q2': self.q2_value.text, 'q3': self.q3_value.text, 'q4': self.q4_value.text, \
+        'dx': self.dx_value.text, 'dmx': self.dmx_value.text, }
+
+
+        json_object[str(self.ivg.EHT_f)]['last']=self.dispersion_value.current_index
+
         with open(abs_path, 'w') as json_file:
-            json.dump(spec_dict, json_file)
+            json.dump(json_object, json_file)
+
+        self.full_range(widget)
+        
 
 
     def full_range(self, widget):
+        
         self.fx_slider.maximum=32767
         self.fx_slider.minimum=-32767
         
@@ -103,8 +114,8 @@ class eels_spec_handler:
         self.dmx_slider.minimum=-32767
 
     def slider_release(self, widget):
-        widget.maximum=widget.value+250
-        widget.minimum=widget.value-250
+        widget.maximum=widget.value+2500
+        widget.minimum=widget.value-2500
 
 class eels_spec_View:
 
@@ -119,8 +130,11 @@ class eels_spec_View:
 		
 		# range selection
 		
-        self.dispersion_label=ui.create_label(text='Range: ')
-        self.dispersion_value=ui.create_combo_box(items=['50', '100', '150'])
+        self.dispersion_label=ui.create_label(text='Dispersion: ')
+        self.dispersion_value=ui.create_combo_box(name='dispersion_value', items=['d1', 'd2', 'd3'], current_index='@binding(instrument.disp_change_f)')
+
+        self.range_label=ui.create_label(text='Range: ')
+        self.range_value=ui.create_line_edit(name='range_value', text='@binding(instrument.range_f)')
 		
 		# first order
 		
@@ -169,6 +183,7 @@ class eels_spec_View:
 	
         self.focus_tab = ui.create_tab(label='Focus', content=ui.create_column(\
         self.dispersion_label, self.dispersion_value, ui.create_stretch(),\
+        self.range_label, self.range_value, ui.create_stretch(),\
         self.first_order_group, ui.create_stretch(),\
         self.second_order_group,\
         self.pb_row))

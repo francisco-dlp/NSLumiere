@@ -50,8 +50,11 @@ class Lenses:
         self.ser.write('>1,2,1\r'.encode())
         logging.info(self.ser.readline())
         time.sleep(0.01)
-        self.ser.write(string.encode())
-        return self.ser.readline()
+        if val>0:
+            self.ser.write(string.encode())
+            return self.ser.readline()
+        else:
+            self.sendmessage(2)
 		
     def wobbler_loop(self, current, intensity, frequency, which):
         self.wobbler_thread=threading.currentThread()

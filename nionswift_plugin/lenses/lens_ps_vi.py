@@ -32,6 +32,8 @@ class Lenses:
         string=string_init+str(val)+',0.5\r'
         logging.info(string)
         time.sleep(0.01)
+        if val<0:
+            self.sendmessage(2)
         return None
 		
     def wobbler_loop(self, current, intensity, frequency, which):

@@ -23,5 +23,6 @@ class espec:
     def set_val(self, val, which):
         if val<0: val=0xffff+val
         string = which+' 0,'+hex(val)[2:6]+'\r'	
+        logging.info(string)
         time.sleep(0.01)
         return None

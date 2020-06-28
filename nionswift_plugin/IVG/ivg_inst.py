@@ -50,16 +50,18 @@ class ivgDevice(Observable.Observable):
         self.__obj_cur=5
         self.__obj_vol=30
         self.__obj_temp=60
+
         self.__lensInstrument=None
+        self.__EELSInstrument=None
 		
         self.__sendmessage = ivg.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__ivg= ivg.IVG(self.__sendmessage)
 
     def get_lenses_instrument(self):
         self.__lensInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("lenses_controller")
-        logging.info(self.__lensInstrument)
-        logging.info(dir(self.__lensInstrument))
-        logging.info(self.__lensInstrument.obj_edit_f)
+    
+    def get_EELS_instrument(self):
+        self.__EELSInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_controller")
 		
     def sendMessageFactory(self):
         def sendMessage(message):
@@ -78,7 +80,10 @@ class ivgDevice(Observable.Observable):
         self.__EHT=value
         if not self.__lensInstrument:
             self.get_lenses_instrument()
+        if not self.__EELSInstrument:
+            self.get_EELS_instrument()
         self.__lensInstrument.EHT_change(value)
+        self.__EELSInstrument.EHT_change(value)
         self.property_changed_event.fire('EHT_f')
 		
     @property

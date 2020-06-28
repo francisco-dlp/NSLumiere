@@ -44,6 +44,7 @@ class diafDevice(Observable.Observable):
         self.communicating_event = Event.Event()
         #self.property_changed_event_listener = self.property_changed_event.listen(self.computeCalibration)
         self.busy_event=Event.Event()
+        self.set_full_range=Event.Event()
         
 
 			
@@ -93,6 +94,7 @@ class diafDevice(Observable.Observable):
 		
     @voa_change_f.setter
     def voa_change_f(self, value):
+        self.set_full_range.fire() #before change you need to let slider go anywhere so you can set the value
         self.__voa=value
         self.set_values(value, 'VOA')
         self.property_changed_event.fire('voa_change_f')
@@ -103,6 +105,7 @@ class diafDevice(Observable.Observable):
 		
     @roa_change_f.setter
     def roa_change_f(self, value):
+        self.set_full_range.fire() #before change you need to let slider go anywhere so you can set the value
         self.__roa=value
         self.set_values(value, 'ROA')
         self.property_changed_event.fire('roa_change_f')

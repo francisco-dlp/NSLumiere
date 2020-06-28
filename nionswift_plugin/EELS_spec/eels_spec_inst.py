@@ -58,6 +58,8 @@ class EELS_SPEC_Device(Observable.Observable):
         self.__q4=0.
         self.__dx=0.
         self.__dmx=0.
+
+        self.__EHT='3'
 		
         try:
             inst_dir=os.path.dirname(__file__)
@@ -65,21 +67,35 @@ class EELS_SPEC_Device(Observable.Observable):
             with open(abs_path) as savfile:
                 data=json.load(savfile)
             logging.info(json.dumps(data, indent=4))
-            self.fx_edit_f=data['50']['fx']
-            self.fy_edit_f=data['50']['fy']
-            self.sx_edit_f=data['50']['sx']
-            self.sy_edit_f=data['50']['sy']
-            self.dy_edit_f=data['50']['dx']
-            self.q1_edit_f=data['50']['q1']
-            self.q2_edit_f=data['50']['q2']
-            self.q3_edit_f=data['50']['q3']
-            self.q4_edit_f=data['50']['q4']
-            self.dx_edit_f=data['50']['dx']
-            self.dmx_edit_f=data['50']['dmx']
+            self.__dispIndex=int(data["3"]["last"])
+            self.disp_change_f=self.__dispIndex #put last index
         except:
-            logging.info('***EELS SPEC***: No saved values.')		
-		
+            logging.info('***EELS SPEC***: No saved values.')
 
+
+    def set_spec_values(self, value):
+        inst_dir=os.path.dirname(__file__)
+        abs_path=os.path.join(inst_dir, 'eels_settings.json')
+        with open(abs_path) as savfile:
+            data=json.load(savfile)
+        
+        self.range_f=data[self.__EHT][value]['range']
+        self.fx_edit_f=data[self.__EHT][value]['fx']
+        self.fy_edit_f=data[self.__EHT][value]['fy']
+        self.sx_edit_f=data[self.__EHT][value]['sx']
+        self.sy_edit_f=data[self.__EHT][value]['sy']
+        self.dy_edit_f=data[self.__EHT][value]['dy']
+        self.q1_edit_f=data[self.__EHT][value]['q1']
+        self.q2_edit_f=data[self.__EHT][value]['q2']
+        self.q3_edit_f=data[self.__EHT][value]['q3']
+        self.q4_edit_f=data[self.__EHT][value]['q4']
+        self.dx_edit_f=data[self.__EHT][value]['dx']
+        self.dmx_edit_f=data[self.__EHT][value]['dmx']
+
+
+    def EHT_change(self, value):
+        self.__EHT=str(value) #next set at disp_change_f will going to be with the new self__EHT. Nice way of doing it
+        self.disp_change_f=0
 
 
     def sendMessageFactory(self):
@@ -88,6 +104,29 @@ class EELS_SPEC_Device(Observable.Observable):
                 logging.info("***EELS SPECTROMETER***: Could not find EELS Spec. Check Hardware")
 
         return sendMessage
+
+
+### General ###
+
+    @property
+    def range_f(self):
+        return self.__range
+
+    @range_f.setter
+    def range_f(self, value):
+        self.__range=value
+        self.property_changed_event.fire('range_f')
+
+    @property
+    def disp_change_f(self):
+        return self.__dispIndex
+
+    @disp_change_f.setter
+    def disp_change_f(self, value):
+        self.__dispIndex=value
+        self.set_spec_values(str(value))
+        self.property_changed_event.fire('disp_change_f')
+
 
 
 ### FX ###

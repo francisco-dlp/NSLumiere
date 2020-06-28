@@ -33,8 +33,8 @@ class diafhandler:
         self.instrument=instrument
         self.enabled = False
         self.property_changed_event_listener=self.instrument.property_changed_event.listen(self.prepare_widget_enable)
-        self.property_changed_power_event_listener=self.instrument.property_changed_power_event.listen(self.prepare_power_widget_enable)
         self.busy_event_listener=self.instrument.busy_event.listen(self.prepare_widget_disable)
+        self.set_full_range_listener=self.instrument.set_full_range.listen(self.total_range_2)
 
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
         #Pythonic way of finding the widgets
@@ -46,14 +46,12 @@ class diafhandler:
                     widg=getattr(self,var)
                     setattr(widg, "enabled", enabled)
 
+
     def prepare_widget_enable(self, value):
-        self.event_loop.create_task(self.do_enable(True, ["init_pb"]))
+        self.event_loop.create_task(self.do_enable(True, []))
 
     def prepare_widget_disable(self,value):
-        self.event_loop.create_task(self.do_enable(False, ["init_pb", "upt_pb", "abt_pb"]))
-    
-    def prepare_power_widget_enable(self,value): #NOTE THAT THE SECOND EVENT NEVER WORKS. WHAT IS THE DIF BETWEEN THE FIRST?
-        self.event_loop.create_task(self.do_enable(True, ["init_pb"]))
+        self.event_loop.create_task(self.do_enable(False, []))
     
 
     def save_ROA(self, widget):	
@@ -67,6 +65,8 @@ class diafhandler:
 
         with open(abs_path, 'w') as json_file:
             json.dump(json_object, json_file)
+        
+        self.total_range(widget)
 
     def save_SA(self, widget):
         panel_dir=os.path.dirname(__file__)
@@ -79,7 +79,22 @@ class diafhandler:
 
         with open(abs_path, 'w') as json_file:
             json.dump(json_object, json_file)
+
+        self.total_range(widget)
  
+    def total_range_2(self):
+        self.m1_slider.maximum=130000
+        self.m1_slider.minimum=50000
+        
+        self.m2_slider.maximum=95000
+        self.m2_slider.minimum=75000
+        
+        self.m3_slider.maximum=140000
+        self.m3_slider.minimum=60000
+        
+        self.m4_slider.maximum=70000
+        self.m4_slider.minimum=50000
+
 
     def total_range(self, widget):
         self.m1_slider.maximum=130000
@@ -95,8 +110,8 @@ class diafhandler:
         self.m4_slider.minimum=50000
 
     def slider_release(self, widget):
-            widget.maximum=widget.value+1000
-            widget.minimum=widget.value-1000
+        widget.maximum=widget.value+2000
+        widget.minimum=widget.value-2000
 
 
 

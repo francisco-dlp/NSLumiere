@@ -62,7 +62,7 @@ class probeDevice(Observable.Observable):
         self.__c1_wobbler=False
         self.__c2_wobbler=False
         self.wobbler_frequency_f=5
-        self.__wobbler_intensity=0.2
+        self.__wobbler_intensity=0.1
 
 		
         try:
@@ -95,7 +95,9 @@ class probeDevice(Observable.Observable):
     def sendMessageFactory(self):
         def sendMessage(message):
             if message==1:
-                logging.info("Could not find Lenses PS")
+                logging.info("***LENSES***: Could not find Lenses PS")
+            if message==2:
+                logging.info("***LENSES***: Can't query negative current.")
 
         return sendMessage
 
@@ -160,6 +162,7 @@ class probeDevice(Observable.Observable):
         else:
             self.__lenses_ps.wobbler_off()
             time.sleep(2.5/self.__wobbler_frequency)
+            self.obj_slider_f=self.__obj*1e6
         self.property_changed_event.fire('obj_wobbler_f')
 
     @property
@@ -169,6 +172,7 @@ class probeDevice(Observable.Observable):
     @obj_slider_f.setter
     def obj_slider_f(self, value):
         self.__obj=value/1e6
+        if self.__obj_wobbler: self.obj_wobbler_f=False
         if self.__obj_global: self.__lenses_ps.set_val(self.__obj, 'OBJ')
         self.property_changed_event.fire("obj_slider_f")
         self.property_changed_event.fire("obj_edit_f")
@@ -213,6 +217,7 @@ class probeDevice(Observable.Observable):
         else:
             self.__lenses_ps.wobbler_off()
             time.sleep(2.5/self.__wobbler_frequency)
+            self.c1_slider_f=self.__c1*1e6
         self.property_changed_event.fire('c1_wobbler_f')
 
 		
@@ -267,6 +272,7 @@ class probeDevice(Observable.Observable):
         else:
             self.__lenses_ps.wobbler_off()
             time.sleep(2.5/self.__wobbler_frequency)
+            self.c2_slider_f=self.__c2*1e6
         self.property_changed_event.fire('c2_wobbler_f')
 
 		
