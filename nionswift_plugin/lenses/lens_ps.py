@@ -36,6 +36,17 @@ class Lenses:
 		
         self.ser.readline()
 
+    def query_obj(self):
+        string='>1,2,1\r'
+        logging.info(string)
+        self.ser.write(string.encode())
+        time.sleep(0.01)
+        self.ser.read(7)
+        current=self.ser.read(8)
+        self.ser.read(1)
+        voltage=self.ser.read(8)
+        self.ser.readline()
+        return current, voltage
 		
     def set_val(self, val, which):
         if which=='OBJ':

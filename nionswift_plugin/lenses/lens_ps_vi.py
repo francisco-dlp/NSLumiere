@@ -20,6 +20,9 @@ class Lenses:
     def __init__(self, sendmessage):
         self.sendmessage=sendmessage
 
+    def query_obj(self):
+        return numpy.random.randn(1)[0]+6, numpy.random.randn(1)[0]+50
+
 		
     def set_val(self, val, which):
         if which=='OBJ':

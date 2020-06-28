@@ -30,11 +30,24 @@ import logging
 import time
 
 DEBUG=1
+DEBUG_gun=1
+DEBUG_airlock=1
 
 if DEBUG:
     from . import ivg_vi as ivg
 else:
     from . import ivg as ivg
+
+if DEBUG_gun:
+    from . import gun_vi as gun
+else:
+    from . import gun as gun
+
+if DEBUG_airlock:
+    from . import airlock_vi as al
+else:
+    from . import airlock as al
+
 
 class ivgDevice(Observable.Observable):
 
@@ -45,28 +58,65 @@ class ivgDevice(Observable.Observable):
         self.busy_event=Event.Event()
         
         self.__EHT=3
-        self.__gun_vac=1.e-11
-        self.__LL_vac=1.e-6
-        self.__obj_cur=5
-        self.__obj_vol=30
-        self.__obj_temp=60
+        self.__obj_cur=0.
+        self.__obj_vol=0.
+        self.__obj_temp=0.
+        self.__obj_res=0.
+        self.__obj_res_ref=1. #in ohms at room temp. Determine with obj under very low current
+        self.periodic()
+
 
         self.__lensInstrument=None
         self.__EELSInstrument=None
+        self.__AperInstrument=None
 		
         self.__sendmessage = ivg.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__ivg= ivg.IVG(self.__sendmessage)
+        
+        
+        self.__gun_sendmessage = gun.SENDMYMESSAGEFUNC(self.sendMessageFactory())
+        self.__gun_gauge= gun.GunVacuum(self.__gun_sendmessage)
+
+        self.__ll_sendmessage = al.SENDMYMESSAGEFUNC(self.sendMessageFactory())
+        self.__ll_gauge= al.AirLockVacuum(self.__ll_sendmessage)
+
 
     def get_lenses_instrument(self):
         self.__lensInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("lenses_controller")
     
     def get_EELS_instrument(self):
         self.__EELSInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_controller")
-		
+    
+    def get_diaf_instrument(self):
+        self.__AperInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("diaf_controller")
+
+    def periodic(self):
+        self.property_changed_event.fire('roa_val_f')
+        self.property_changed_event.fire('voa_val_f')
+        self.property_changed_event.fire('gun_vac_f')
+        self.property_changed_event.fire('LL_vac_f')
+        self.property_changed_event.fire('obj_cur_f')
+        self.property_changed_event.fire('obj_vol_f')
+        self.property_changed_event.fire('obj_temp_f')
+        self.estimate_temp()
+        self.__thread=threading.Timer(1, self.periodic, args=(),)
+        if not self.__thread.is_alive():
+            self.__thread.start()
+        
+    def estimate_temp(self):
+        logging.info(self.__obj_res)
+        self.__obj_temp=self.__obj_cur*3+self.__obj_vol
+
+
+
     def sendMessageFactory(self):
         def sendMessage(message):
             if message==1:
                 logging.info("***IVG***: Could not find some or all of the hardwares")
+            if message==3:
+                logging.info("***GUN GAUGE***: Could not find hardware. Check connection.")
+            if message==4:
+                logging.info("***AIRLOCK GAUGE***: Could not find hardware. Check connection.")
 
         return sendMessage
 
@@ -88,45 +138,44 @@ class ivgDevice(Observable.Observable):
 		
     @property
     def gun_vac_f(self):
-        return self.__gun_vac
-		
-    @gun_vac_f.setter 
-    def gun_vac_f(self, value):
-        self.__gun_vac=value
-        self.property_changed_event.fire('gun_vac_f')
+        self.__gun_vac=self.__gun_gauge.query('GDAT? 1\n')
+        return '{:.2E}'.format(self.__gun_vac)+' nT'
 			
     @property
     def LL_vac_f(self):
-        return self.__LL_vac
+        self.__LL_vac=self.__ll_gauge.query('0010074002=?106\r')
+        return '{:.2E}'.format(self.__LL_vac)+' mBar'
 		
-    @LL_vac_f.setter
-    def LL_vac_f(self, value):
-        self.__LL_vac=value
-        self.property_changed_event.fire('LL_vac_f')
-    
     @property
     def obj_cur_f(self):
-        return self.__obj_cur
+        if not self.__lensInstrument:
+            self.get_lenses_instrument()
+        self.__obj_cur, self.__obj_vol = self.__lensInstrument.get_obj()
+        self.__obj_res = self.__obj_vol / self.__obj_cur
+        return '{:.3E}'.format(self.__obj_cur)
 		
-    @obj_cur_f.setter
-    def obj_cur_f(self, value):
-        self.__obj_cur=value
-        self.property_changed_event.fire('obj_cur_f')
-    
     @property
     def obj_vol_f(self):
-        return self.__obj_vol
+        return '{:.3E}'.format(self.__obj_vol)
 		
-    @obj_vol_f.setter
-    def obj_vol_f(self, value):
-        self.__obj_vol=value
-        self.property_changed_event.fire('obj_vol_f')
         
     @property
     def obj_temp_f(self):
-        return self.__obj_temp
+        return '{:.3E}'.format(self.__obj_temp)
 		
-    @obj_temp_f.setter
-    def obj_temp_f(self, value):
-        self.__obj_temp=value
-        self.property_changed_event.fire('obj_temp_f')
+    @property
+    def voa_val_f(self):
+        if not self.__AperInstrument:
+            self.get_diaf_instrument()
+        self.__voa=self.__AperInstrument.voa_change_f
+        vlist=['None', '50 um', '100 um', '150 um']
+        return vlist[self.__voa]
+
+    @property
+    def roa_val_f(self):
+        if not self.__AperInstrument:
+            self.get_diaf_instrument()
+        self.__roa=self.__AperInstrument.roa_change_f
+        rlist=['None', '50 um', '100 um', '150 um']
+        return rlist[self.__roa]
+

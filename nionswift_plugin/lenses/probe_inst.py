@@ -91,6 +91,9 @@ class probeDevice(Observable.Observable):
         self.c1_edit_f=data[str(value)]['c1']
         self.c2_edit_f=data[str(value)]['c2']
 
+    def get_obj(self):
+        return self.__lenses_ps.query_obj()
+
 
     def sendMessageFactory(self):
         def sendMessage(message):

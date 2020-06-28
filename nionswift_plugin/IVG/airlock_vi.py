@@ -12,10 +12,17 @@ def _isPython3():
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
-class IVG:
+class AirLockVacuum:
 
     def __init__(self, sendmessage):
         self.sendmessage=sendmessage
+
+    def query(self, string):
+        if string=='0010074002=?106\r':
+            return (numpy.random.randn(1)[0]+2)*1e-1
+        else:
+            None
+
 
     
 		

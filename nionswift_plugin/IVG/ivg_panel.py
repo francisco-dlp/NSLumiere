@@ -72,6 +72,8 @@ class ivgView:
         self.LL_vac=ui.create_label(name='LL_vac', text='@binding(instrument.LL_vac_f)')
         self.LL_row=ui.create_row(self.LL_label, self.LL_vac, ui.create_stretch())
 
+        self.vac_group=ui.create_group(title='Gauges: ', content=ui.create_column(self.gun_row, self.LL_row))
+
         self.obj_cur=ui.create_label(name='obj_cur', text='Current: ')
         self.obj_cur_value=ui.create_label(name='obj_cur_value', text='@binding(instrument.obj_cur_f)')
         self.obj_cur_row=ui.create_row(self.obj_cur, self.obj_cur_value, ui.create_stretch())
@@ -83,11 +85,21 @@ class ivgView:
         self.obj_temp=ui.create_label(name='obj_temp', text='Temperature: ')
         self.obj_temp_value=ui.create_label(name='obj_temp_value', text='@binding(instrument.obj_temp_f)')
         self.obj_temp_row=ui.create_row(self.obj_temp, self.obj_temp_value, ui.create_stretch())
-
+        
         self.obj_group=ui.create_group(title='Objective Lens: ', content=ui.create_column(self.obj_cur_row, self.obj_vol_row, self.obj_temp_row))
 
         
-        self.ui_view=ui.create_column(self.EHT_row, self.gun_row, self.LL_row, self.obj_group, spacing=5)
+        self.voa_label=ui.create_label(name='voa_label', text='VOA: ')
+        self.voa_value=ui.create_label(name='voa_value', text='@binding(instrument.voa_val_f)')
+        self.voa_row=ui.create_row(self.voa_label, self.voa_value, ui.create_stretch())
+
+        self.roa_label=ui.create_label(name='roa_label', text='ROA: ')
+        self.roa_value=ui.create_label(name='roa_value', text='@binding(instrument.roa_val_f)')
+        self.roa_row=ui.create_row(self.roa_label, self.roa_value, ui.create_stretch())
+
+        self.aper_group=ui.create_group(title='Apertures: ', content=ui.create_column(self.voa_row, self.roa_row))
+        
+        self.ui_view=ui.create_column(self.EHT_row, self.vac_group, self.obj_group, self.aper_group, spacing=5)
 
 
 
