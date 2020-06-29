@@ -17,15 +17,15 @@ class GunVacuum:
     def __init__(self, sendmessage):
         self.sendmessage=sendmessage
         self.ser=serial.Serial()
-        self.ser.baudrate=9600
+        self.ser.baudrate=115200
         self.ser.port='COM5'
-        self.ser.parity=serial.PARITY_ONE
+        self.ser.parity=serial.PARITY_NONE
         self.ser.stopbits=serial.STOPBITS_ONE
         self.ser.bytesize=serial.EIGHTBITS
         self.ser.timeout=2
 
         try:
-            if not self.ser.open():
+            if not self.ser.is_open:
                 self.ser.open()
                 time.sleep(0.5)
         except:

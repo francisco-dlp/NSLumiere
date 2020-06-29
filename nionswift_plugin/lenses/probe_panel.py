@@ -122,7 +122,7 @@ class gainView:
         self.obj_value = ui.create_line_edit(name='obj_value', text='@binding(instrument.obj_edit_f)', on_text_edited='line_update')
         self.obj_row = ui.create_row(self.obj_cb, self.obj_value)
 		
-        self.obj_slider = ui.create_slider(name='obj_slider', value='@binding(instrument.obj_slider_f)', minimum=5000000, maximum=9000000, on_slider_released='adj_values')
+        self.obj_slider = ui.create_slider(name='obj_slider', value='@binding(instrument.obj_slider_f)', minimum=1000000, maximum=9000000, on_slider_released='adj_values')
 		
         self.obj_wobbler_cb = ui.create_check_box(text='Wobbler [Obj]: ', name='obj_wobbler_label', checked='@binding(instrument.obj_wobbler_f)')
 		

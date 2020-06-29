@@ -13,9 +13,8 @@ import time
 from nion.data import Calibration
 from nion.data import DataAndMetadata
 import asyncio
-#from pydevd import settrace
 import logging
-
+import queue
 
 from nion.utils import Registry
 from nion.utils import Event
@@ -29,7 +28,7 @@ from nion.swift.model import ImportExportManager
 import logging
 import time
 
-DEBUG=1
+DEBUG=0
 
 if DEBUG:
     from . import lens_ps_vi as lens_ps
@@ -44,14 +43,12 @@ class probeDevice(Observable.Observable):
         self.communicating_event = Event.Event()
         #self.property_changed_event_listener = self.property_changed_event.listen(self.computeCalibration)
         self.busy_event=Event.Event()
-        
 
-			
-		
+
         self.__sendmessage = lens_ps.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__lenses_ps = lens_ps.Lenses(self.__sendmessage)
-		
-		
+
+
         self.__obj=0.
         self.__c1=0.
         self.__c2=0.
@@ -91,8 +88,17 @@ class probeDevice(Observable.Observable):
         self.c1_edit_f=data[str(value)]['c1']
         self.c2_edit_f=data[str(value)]['c2']
 
-    def get_obj(self):
-        return self.__lenses_ps.query_obj()
+    def get_values(self, which):
+        cur, vol = self.__lenses_ps.query(which)
+        return cur, vol
+        #que=queue.Queue()
+        #thr = threading.Thread(target=lambda q, arg: q.put(self.__lenses_ps.query(arg)), args=(que, which))
+        #thr.start()
+        #thr.join()
+        #while not que.empty:
+        #    logging.info(que.get())
+
+
 
 
     def sendMessageFactory(self):
@@ -177,6 +183,7 @@ class probeDevice(Observable.Observable):
         self.__obj=value/1e6
         if self.__obj_wobbler: self.obj_wobbler_f=False
         if self.__obj_global: self.__lenses_ps.set_val(self.__obj, 'OBJ')
+        #if self.__obj_global: threading.Thread(target=self.__lenses_ps.set_val, args=(self.__obj, 'OBJ'),).start()
         self.property_changed_event.fire("obj_slider_f")
         self.property_changed_event.fire("obj_edit_f")
 		
@@ -190,7 +197,7 @@ class probeDevice(Observable.Observable):
         #if self.__obj_global: self.__lenses_ps.set_val(self.__obj, 'OBJ')
         self.property_changed_event.fire("obj_slider_f")
         self.property_changed_event.fire("obj_edit_f")
-		
+
 ### C1 ###
 
     @property
@@ -203,7 +210,7 @@ class probeDevice(Observable.Observable):
         if value:
             self.__lenses_ps.set_val(self.__c1, 'C1')
         else:
-            self.__lenses_ps.set_val(0.0, 'C1')
+            self.__lenses_ps.set_val(0.01, 'C1')
         self.property_changed_event.fire('c1_global_f')
     
     @property
@@ -242,7 +249,7 @@ class probeDevice(Observable.Observable):
     @c1_edit_f.setter
     def c1_edit_f(self, value):
         self.__c1=float(value)
-        #if self.__c1_global: self.__lenses_ps.set_val(self.__c1, 'C1')
+        if self.__c1_global: self.__lenses_ps.set_val(self.__c1, 'C1')
         self.property_changed_event.fire("c1_slider_f")
         self.property_changed_event.fire("c1_edit_f")
 	
@@ -258,7 +265,7 @@ class probeDevice(Observable.Observable):
         if value:
             self.__lenses_ps.set_val(self.__c2, 'C2')
         else:
-            self.__lenses_ps.set_val(0.0, 'C2')
+            self.__lenses_ps.set_val(0.01, 'C2')
         self.property_changed_event.fire('c2_global_setter')
     
     @property
@@ -297,6 +304,6 @@ class probeDevice(Observable.Observable):
     @c2_edit_f.setter
     def c2_edit_f(self, value):
         self.__c2=float(value)
-        #self.__c2_global: self.__lenses_ps.set_val(self.__c2, 'C2')
+        self.__c2_global: self.__lenses_ps.set_val(self.__c2, 'C2')
         self.property_changed_event.fire("c2_slider_f")
         self.property_changed_event.fire("c2_edit_f")
