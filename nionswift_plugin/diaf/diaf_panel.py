@@ -113,8 +113,6 @@ class diafhandler:
         widget.maximum=widget.value+2000
         widget.minimum=widget.value-2000
 
-
-
 class diafView:
 
 

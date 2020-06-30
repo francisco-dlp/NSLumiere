@@ -38,9 +38,7 @@ class stagehandler:
 
 
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
-        #Pythonic way of finding the widgets
-        #actually a more straigthforward way would be to create a list of widget in the init_handler
-        #then use this list in the present function...
+
         for var in self.__dict__:
             if var not in not_affected_widget_name_list:
                 if isinstance(getattr(self,var),UserInterface.Widget):
@@ -53,20 +51,50 @@ class stagehandler:
     def prepare_widget_disable(self,value):
         self.event_loop.create_task(self.do_enable(False, []))
 
+    def slider_release(self, widget):
+        widget.maximum=widget.value+50
+        widget.minimum=widget.value-50
+
+    def total_range(self, widget):
+        self.x_slider.maximum = 1000
+        self.x_slider.minimum = -1000
+
+        self.y_slider.maximum = 1000
+        self.y_slider.minimum = -1000
+
+    def line_edit(self, widget, text):
+        self.total_range(self.add_pb)
+
+    def add_value(self, widget):
+        self.list_positions.text+='(' + self.x_value_edit.text +', ' + self.y_value_edit.text + "): \n"
+
 class stageView:
 
 
     def __init__(self, instrument:stage_inst.stageDevice):
         ui = Declarative.DeclarativeUI()
 
-        ## wobbler ##
-        self.wobbler_value = ui.create_line_edit(name='wobbler_value', width=150, text='123')
-        self.wobbler_slider_label=ui.create_label(name='wobbler_slider_label', text='Frequency [Hz]: ')
-        self.wobbler_value_label=ui.create_label(name='wobbler_value_label', text='01234')
-        self.wobbler_slider_frequency=ui.create_slider(name='wobbler_slider_frequency', value='51515', minimum=1, maximum=10)
-        self.wobbler_freq_row = ui.create_row(self.wobbler_slider_label, self.wobbler_value_label)
-		
-        self.ui_view=ui.create_column(self.wobbler_value, self.wobbler_freq_row, self.wobbler_slider_frequency)
+        ### Full Range ###
+
+        self.full_range_pb=ui.create_push_button(name='full_range_pb', text='Full Range', on_clicked='total_range', width=100)
+        self.add_pb=ui.create_push_button(name='add_pb', text='Add', on_clicked='add_value')
+        self.list_positions=ui.create_text_edit(name='list_positions')
+        self.button_row=ui.create_row(ui.create_stretch(), self.add_pb, self.full_range_pb)
+
+
+        ### SLIDERS ###
+
+        self.x_label = ui.create_label(name='x_label', text='X Pos: ')
+        self.x_value_edit = ui.create_line_edit(name='x_value_edit', text='@binding(instrument.x_pos_edit_f)', on_text_edited='line_edit')
+        self.x_row=ui.create_row(self.x_label, self.x_value_edit, ui.create_stretch())
+        self.x_slider=ui.create_slider(name='x_slider', value='@binding(instrument.x_pos_f)', minimum=-1000, maximum=1000, on_slider_released='slider_release')
+
+        self.y_label = ui.create_label(name='y_label', text='Y Pos: ')
+        self.y_value_edit = ui.create_line_edit(name='y_value_edit', text='@binding(instrument.y_pos_edit_f)', on_text_edited='line_edit')
+        self.y_row = ui.create_row(self.y_label, self.y_value_edit, ui.create_stretch())
+        self.y_slider = ui.create_slider(name='y_slider', value='@binding(instrument.y_pos_f)', minimum=-1000, maximum=1000, on_slider_released='slider_release')
+
+        self.ui_view=ui.create_column(self.x_row, self.x_slider, ui.create_spacing(10), self.y_row, self.y_slider, self.list_positions, self.button_row)
 
 
 
