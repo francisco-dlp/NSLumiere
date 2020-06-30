@@ -25,24 +25,24 @@ class AirLockVacuum:
         self.ser.timeout=2
 
         try:
-            if not self.ser.open():
+            if not self.ser.is_open:
                 self.ser.open()
-                time.sleep(0.5)
+                time.sleep(0.1)
         except:
-            self.sendmessage(3)
+            self.sendmessage(4)
 
 
-    def query(self, string):
-        self.ser.write(string.encode())
-        self.ser.read(10)
-        data=self.ser.read(4).decode()
-        ex=self.ser.read(2).decode()
-        self.ser.read(4)
+    def query(self):
         try:
+            self.ser.write(b'0010074002=?106\r')
+            self.ser.read(10)
+            data=self.ser.read(4).decode()
+            ex=self.ser.read(2).decode()
+            self.ser.read(4)
             value = int(data)/1000. * 10**(int(ex)-20)
+            return value
         except:
-            value=0.0
-        return value
+            return 0.0
 
 
     

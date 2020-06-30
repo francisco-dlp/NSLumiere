@@ -30,7 +30,7 @@ import logging
 import time
 
 DEBUG=1
-DEBUG_gun=1
+DEBUG_gun=0
 DEBUG_airlock=1
 
 if DEBUG:
@@ -58,15 +58,14 @@ class ivgDevice(Observable.Observable):
         self.busy_event=Event.Event()
         
         self.append_data=Event.Event()
-        self.stop_append_data=Event.Event()
         
         self.__EHT=3
         self.__obj_cur=1.0
         self.__obj_vol=5.0
-        self.__obj_temp=22.0
-        self.__obj_res=5.226
-        self.__obj_res_ref=5.226 #in ohms at room temp. Determine with obj under very low current
-        self.__amb_temp=22.
+        self.__obj_temp=23.
+        self.__obj_res=5.18
+        self.__obj_res_ref=5.18 #in ohms at room temp. Determine with obj under very low current
+        self.__amb_temp=23.
 
         self.__c1_cur=0.01
         self.__c1_vol=0.01
@@ -116,13 +115,12 @@ class ivgDevice(Observable.Observable):
         self.property_changed_event.fire('c1_cur_f')
         self.property_changed_event.fire('c2_cur_f')
         self.estimate_temp()
-        if self.__LL_mon:
+        try:
             self.append_data.fire([self.__LL_vac, self.__gun_vac, self.__obj_temp], self.__loop_index)
             self.__loop_index+=1
-            if self.__loop_index==1000: self.__loop_index=0
-        else:
-            self.stop_append_data.fire()
-            self.__loop_index=0
+            if self.__loop_index==5000: self.__loop_index=0
+        except:
+            pass
         self.__thread=threading.Timer(1, self.periodic, args=(),)
         if not self.__thread.is_alive():
             try:
@@ -166,21 +164,13 @@ class ivgDevice(Observable.Observable):
 
     @property
     def gun_vac_f(self):
-        self.__gun_vac=float(self.__gun_gauge.query('GDAT? 1\n').decode()[0:4])
-        return str(self.__gun_vac) + ' mTorr'
+        self.__gun_vac =  self.__gun_gauge.query()
+        return str('{:.2E}'.format(self.__gun_vac))+' Torr'
 
-    @property
-    def LL_mon_f(self):
-        return self.__LL_mon
-
-    @LL_mon_f.setter
-    def LL_mon_f(self, value):
-        self.__LL_mon=value
-        self.property_changed_event.fire('LL_mon_f')
 
     @property
     def LL_vac_f(self):
-        self.__LL_vac=self.__ll_gauge.query('0010074002=?106\r')
+        self.__LL_vac=self.__ll_gauge.query()
         return str('{:.2E}'.format(self.__LL_vac))+' mBar'
 
     @property

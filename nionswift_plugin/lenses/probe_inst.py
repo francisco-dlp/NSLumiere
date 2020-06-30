@@ -28,7 +28,7 @@ from nion.swift.model import ImportExportManager
 import logging
 import time
 
-DEBUG=1
+DEBUG=0
 
 if DEBUG:
     from . import lens_ps_vi as lens_ps

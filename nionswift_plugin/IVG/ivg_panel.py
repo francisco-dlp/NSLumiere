@@ -30,6 +30,7 @@ class dataItemCreation():
         self.data_item=DataItem.DataItem()
         self.data_item.define_property("title", title)
         self.data_item.set_data(array)
+        self.data_item._enter_live_state()
 
 
 
@@ -45,27 +46,14 @@ class ivghandler:
         self.property_changed_event_listener=self.instrument.property_changed_event.listen(self.prepare_widget_enable)
         self.busy_event_listener=self.instrument.busy_event.listen(self.prepare_widget_disable)
         self.append_data_listener=self.instrument.append_data.listen(self.append_data)
-        self.stop_append_data_listener = self.instrument.stop_append_data.listen(self.stop_append_data)
 
+        self.ll_array = numpy.zeros(5000)
+        self.gun_array = numpy.zeros(5000)
+        self.obj_array = numpy.zeros(5000)
 
-
-        self.ll_array = numpy.zeros(100)
-        self.gun_array = numpy.zeros(100)
-        self.obj_array = numpy.zeros(100)
-        self.ll_di = dataItemCreation("AirLock Vacuum", self.ll_array)
-        self.gun_di = dataItemCreation("Gun Vacuum", self.gun_array)
-        self.obj_di = dataItemCreation("Objective Temperature", self.obj_array)
-        
-        self.document_controller.document_model.append_data_item(self.ll_di.data_item)
-        self.document_controller.document_model.append_data_item(self.gun_di.data_item)
-        self.document_controller.document_model.append_data_item(self.obj_di.data_item)
-
-        #self.LL_array=numpy.zeros(1000)
-        #self.LL_data_item = DataItem.DataItem()
-        #self.LL_data_item.define_property("title", "LL_Vacuum")
-        #self.LL
-        #self.LL_data_item.set_data(self.np_array)
-        #self.document_controler.document_model.append_data_item(self.LL_data_item)
+        self.ll_di=None
+        self.gun_di=None
+        self.obj_di=None
 
 
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
@@ -84,24 +72,25 @@ class ivghandler:
 
     def append_data(self, value, index):
         self.ll_array[index], self.gun_array[index], self.obj_array[index]= value
-        
-        self.obj_di.data_item._enter_live_state()
-        self.gun_di.data_item._enter_live_state()
-        self.ll_di.data_item._enter_live_state()
-        
-        self.obj_di.data_item.set_data(self.obj_array)
-        self.gun_di.data_item.set_data(self.gun_array)
-        self.ll_di.data_item.set_data(self.ll_array)
-        
-
-    def stop_append_data(self):
-        if self.obj_di.data_item.is_live: self.obj_di.data_item._exit_live_state()
-        if self.ll_di.data_item.is_live: self.ll_di.data_item._exit_live_state()
-        if self.gun_di.data_item.is_live: self.gun_di.data_item._exit_live_state()
+        if self.ll_di:
+            self.ll_di.data_item.set_data(self.ll_array)
+        if self.gun_di:
+            self.gun_di.data_item.set_data(self.gun_array)
+        if self.obj_di:
+            self.obj_di.data_item.set_data(self.obj_array)
 
 
-    
+    def monitor_air_lock(self, widget):
+        self.ll_di = dataItemCreation("AirLock Vacuum", self.ll_array)
+        self.document_controller.document_model.append_data_item(self.ll_di.data_item)
 
+    def monitor_gun(self, widget):
+        self.gun_di = dataItemCreation("Gun Vacuum", self.gun_array)
+        self.document_controller.document_model.append_data_item(self.gun_di.data_item)
+
+    def monitor_obj_temp(self, widget):
+        self.obj_di = dataItemCreation("Objective Temperature", self.obj_array)
+        self.document_controller.document_model.append_data_item(self.obj_di.data_item)
 
 class ivgView:
 
@@ -115,13 +104,14 @@ class ivgView:
 
         self.gun_label=ui.create_label(name='gun_label', text='Gun Vacuum: ')
         self.gun_vac=ui.create_label(name='gun_vac', text='@binding(instrument.gun_vac_f)')
-        self.gun_row=ui.create_row(self.gun_label, self.gun_vac, ui.create_stretch())
+        self.gun_pb=ui.create_push_button(name='gun_pb', text='Monitor', on_clicked='monitor_gun', width=50)
+        self.gun_row=ui.create_row(self.gun_label, self.gun_vac, ui.create_stretch(), self.gun_pb)
 
 
         self.LL_label=ui.create_label(name='LL_label', text='AirLock Vacuum: ')
         self.LL_vac=ui.create_label(name='LL_vac', text='@binding(instrument.LL_vac_f)')
-        self.LL_plot=ui.create_check_box(name='LL_plot', text='Monitor', checked='@binding(instrument.LL_mon_f)')
-        self.LL_row=ui.create_row(self.LL_label, self.LL_vac, ui.create_spacing(10), self.LL_plot, ui.create_stretch())
+        self.LL_pb=ui.create_push_button(name='LL_pb', text='Monitor', on_clicked='monitor_air_lock', width=50)
+        self.LL_row=ui.create_row(self.LL_label, self.LL_vac, ui.create_stretch(), self.LL_pb)
 
         self.vac_group=ui.create_group(title='Gauges: ', content=ui.create_column(self.gun_row, self.LL_row))
 
@@ -135,7 +125,8 @@ class ivgView:
         
         self.obj_temp=ui.create_label(name='obj_temp', text='Temperature: ')
         self.obj_temp_value=ui.create_label(name='obj_temp_value', text='@binding(instrument.obj_temp_f)')
-        self.obj_temp_row=ui.create_row(self.obj_temp, self.obj_temp_value, ui.create_stretch())
+        self.obj_pb=ui.create_push_button(name='obj_pb', text='Monitor', on_clicked='monitor_obj_temp', width=50)
+        self.obj_temp_row=ui.create_row(self.obj_temp, self.obj_temp_value, ui.create_stretch(), self.obj_pb)
         
         self.obj_group=ui.create_group(title='Objective Lens: ', content=ui.create_column(self.obj_cur_row, self.obj_vol_row, self.obj_temp_row))
 
