@@ -19,9 +19,20 @@ class Lenses:
 
     def __init__(self, sendmessage):
         self.sendmessage=sendmessage
+        self.lock = threading.Lock()
 
-    def query_obj(self):
-        return numpy.random.randn(1)[0]+6, numpy.random.randn(1)[0]+50
+    def query(self, which):
+        if which == 'OBJ':
+            string = '>1,2,1\r'
+        if which == 'C1':
+            string = '>1,2,2\r'
+        if which == 'C2':
+            string = '>1,2,3\r'
+        with self.lock:
+            current = str(abs(numpy.random.randn(1)[0])+7.5).encode()
+            voltage = str(abs(numpy.random.randn(1)[0])+50.0).encode()
+        return current, voltage
+
 
 		
     def set_val(self, val, which):
@@ -34,10 +45,9 @@ class Lenses:
 		
         string=string_init+str(val)+',0.5\r'
         logging.info(string)
-        time.sleep(0.01)
-        if val<0:
-            self.sendmessage(2)
-        return None
+        with self.lock:
+            if val<0:
+                self.sendmessage(2)
 		
     def wobbler_loop(self, current, intensity, frequency, which):
         self.wobbler_thread=threading.currentThread()

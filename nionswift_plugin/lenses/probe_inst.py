@@ -28,7 +28,7 @@ from nion.swift.model import ImportExportManager
 import logging
 import time
 
-DEBUG=0
+DEBUG=1
 
 if DEBUG:
     from . import lens_ps_vi as lens_ps
@@ -91,14 +91,6 @@ class probeDevice(Observable.Observable):
     def get_values(self, which):
         cur, vol = self.__lenses_ps.query(which)
         return cur, vol
-        #que=queue.Queue()
-        #thr = threading.Thread(target=lambda q, arg: q.put(self.__lenses_ps.query(arg)), args=(que, which))
-        #thr.start()
-        #thr.join()
-        #while not que.empty:
-        #    logging.info(que.get())
-
-
 
 
     def sendMessageFactory(self):

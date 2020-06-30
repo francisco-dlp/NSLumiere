@@ -20,9 +20,17 @@ import logging
 _ = gettext.gettext
 from nion.utils import Model
 from nion.swift.model import DataItem
+from nion.swift.model import DocumentModel
 
 
 import inspect
+
+class dataItemCreation():
+    def __init__(self, title, array):
+        self.data_item=DataItem.DataItem()
+        self.data_item.define_property("title", title)
+        self.data_item.set_data(array)
+
 
 
 class ivghandler:
@@ -31,7 +39,7 @@ class ivghandler:
     def __init__(self,instrument:ivg_inst.ivgDevice, document_controller):
 
         self.event_loop=document_controller.event_loop
-        self.document_controler=document_controller
+        self.document_controller=document_controller
         self.instrument=instrument
         self.enabled = False
         self.property_changed_event_listener=self.instrument.property_changed_event.listen(self.prepare_widget_enable)
@@ -40,10 +48,24 @@ class ivghandler:
         self.stop_append_data_listener = self.instrument.stop_append_data.listen(self.stop_append_data)
 
 
-        self.np_array=numpy.zeros(500)
-        self.LL_data_item = DataItem.DataItem()
-        self.LL_data_item.set_data(self.np_array)
-        self.document_controler.document_model.append_data_item(self.LL_data_item)
+
+        self.ll_array = numpy.zeros(100)
+        self.gun_array = numpy.zeros(100)
+        self.obj_array = numpy.zeros(100)
+        self.ll_di = dataItemCreation("AirLock Vacuum", self.ll_array)
+        self.gun_di = dataItemCreation("Gun Vacuum", self.gun_array)
+        self.obj_di = dataItemCreation("Objective Temperature", self.obj_array)
+        
+        self.document_controller.document_model.append_data_item(self.ll_di.data_item)
+        self.document_controller.document_model.append_data_item(self.gun_di.data_item)
+        self.document_controller.document_model.append_data_item(self.obj_di.data_item)
+
+        #self.LL_array=numpy.zeros(1000)
+        #self.LL_data_item = DataItem.DataItem()
+        #self.LL_data_item.define_property("title", "LL_Vacuum")
+        #self.LL
+        #self.LL_data_item.set_data(self.np_array)
+        #self.document_controler.document_model.append_data_item(self.LL_data_item)
 
 
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
@@ -60,15 +82,22 @@ class ivghandler:
         self.event_loop.create_task(self.do_enable(False, []))
 
 
-
-
     def append_data(self, value, index):
-        self.np_array[index]=value
-        self.LL_data_item.set_data(self.np_array)
-        self.LL_data_item._enter_live_state()
+        self.ll_array[index], self.gun_array[index], self.obj_array[index]= value
+        
+        self.obj_di.data_item._enter_live_state()
+        self.gun_di.data_item._enter_live_state()
+        self.ll_di.data_item._enter_live_state()
+        
+        self.obj_di.data_item.set_data(self.obj_array)
+        self.gun_di.data_item.set_data(self.gun_array)
+        self.ll_di.data_item.set_data(self.ll_array)
+        
 
     def stop_append_data(self):
-        self.LL_data_item._exit_live_state()
+        if self.obj_di.data_item.is_live: self.obj_di.data_item._exit_live_state()
+        if self.ll_di.data_item.is_live: self.ll_di.data_item._exit_live_state()
+        if self.gun_di.data_item.is_live: self.gun_di.data_item._exit_live_state()
 
 
     

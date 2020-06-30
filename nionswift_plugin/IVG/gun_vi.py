@@ -19,7 +19,7 @@ class GunVacuum:
 
     def query(self, string):
         if string=='GDAT? 1\n':
-            return (numpy.random.randn(1)[0]+2)*1e-10
+            return (str('{:.2E}'.format((numpy.random.randn(1)[0]+2)*1e-10))+ ' mTorr').encode()
         else:
             None
 

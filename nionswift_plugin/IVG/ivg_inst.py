@@ -30,8 +30,8 @@ import logging
 import time
 
 DEBUG=1
-DEBUG_gun=0
-DEBUG_airlock=0
+DEBUG_gun=1
+DEBUG_airlock=1
 
 if DEBUG:
     from . import ivg_vi as ivg
@@ -56,6 +56,7 @@ class ivgDevice(Observable.Observable):
         self.communicating_event = Event.Event()
         #self.property_changed_event_listener = self.property_changed_event.listen(self.computeCalibration)
         self.busy_event=Event.Event()
+        
         self.append_data=Event.Event()
         self.stop_append_data=Event.Event()
         
@@ -116,9 +117,9 @@ class ivgDevice(Observable.Observable):
         self.property_changed_event.fire('c2_cur_f')
         self.estimate_temp()
         if self.__LL_mon:
-            self.append_data.fire(self.__LL_vac, self.__loop_index)
+            self.append_data.fire([self.__LL_vac, self.__gun_vac, self.__obj_temp], self.__loop_index)
             self.__loop_index+=1
-            if self.__loop_index==500: self.__loop_index=0
+            if self.__loop_index==1000: self.__loop_index=0
         else:
             self.stop_append_data.fire()
             self.__loop_index=0
@@ -165,8 +166,8 @@ class ivgDevice(Observable.Observable):
 
     @property
     def gun_vac_f(self):
-        self.__gun_vac=self.__gun_gauge.query('GDTX? 1\n')
-        return self.__gun_vac.decode('UTF-8')
+        self.__gun_vac=float(self.__gun_gauge.query('GDAT? 1\n').decode()[0:4])
+        return str(self.__gun_vac) + ' mTorr'
 
     @property
     def LL_mon_f(self):
