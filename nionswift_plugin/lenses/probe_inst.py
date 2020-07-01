@@ -27,7 +27,7 @@ from nion.swift.model import ImportExportManager
 import logging
 import time
 
-DEBUG = 1
+DEBUG = 0
 
 if DEBUG:
     from . import lens_ps_vi as lens_ps
@@ -59,8 +59,10 @@ class probeDevice(Observable.Observable):
         self.wobbler_frequency_f = 5
         self.__wobbler_intensity = 0.1
 
-        self.__obj_astig00 = 0
-        self.__obj_astig01 = 0
+        self.__obj_astig = [0, 0]
+        self.__cond_astig = [0, 0]
+
+        self.__OrsayScanInstrument=HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device") ## does not always work. Put it again in property...
 
         try:
             inst_dir = os.path.dirname(__file__)
@@ -91,6 +93,10 @@ class probeDevice(Observable.Observable):
     def get_values(self, which):
         cur, vol = self.__lenses_ps.query(which)
         return cur, vol
+
+    def get_orsay_scan_instrument(self):
+        self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+        logging.info(dir(self.__OrsayScanInstrument.scan_device))
 
     def sendMessageFactory(self):
         def sendMessage(message):
@@ -137,22 +143,28 @@ class probeDevice(Observable.Observable):
 
     @property
     def obj_astig00_f(self):
-        logging.info(self.__obj_astig00)
-        return self.__obj_astig00
+        return int(self.__obj_astig[0]*1e3)
 
     @obj_astig00_f.setter
     def obj_astig00_f(self, value):
-        self.__obj_astig00 = value
+        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+        self.__obj_astig[0] = value/1e3
+        #self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_astig[0], self.__obj_astig[1])
+
+        self.__OrsayScanInstrument.scan_device.obj_stig=self.__obj_astig
+        logging.info(self.__OrsayScanInstrument.scan_device.obj_stig)
+
         self.property_changed_event.fire('obj_astig00_f')
 
     @property
     def obj_astig01_f(self):
-        logging.info(self.__obj_astig01)
-        return self.__obj_astig01
+        return int(self.__obj_astig[1]*1e3)
 
     @obj_astig01_f.setter
     def obj_astig01_f(self, value):
-        self.__obj_astig01 = value
+        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+        self.__obj_astig[1] = value/1e3
+        #self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_astig[0], self.__obj_astig[1])
         self.property_changed_event.fire('obj_astig01_f')
 
     @property
@@ -315,3 +327,31 @@ class probeDevice(Observable.Observable):
         self.__c2_global: self.__lenses_ps.set_val(self.__c2, 'C2')
         self.property_changed_event.fire("c2_slider_f")
         self.property_changed_event.fire("c2_edit_f")
+
+    ### COND ASTIGMATORS ###
+
+    @property
+    def cond_astig02_f(self):
+        return int(self.__cond_astig[0]*1e3)
+
+    @cond_astig02_f.setter
+    def cond_astig02_f(self, value):
+        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+        self.__cond_astig[0] = value/1e3
+        #self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__cond_astig[0], self.__cond_astig[1])
+
+        self.__OrsayScanInstrument.scan_device.gun_stig=self.__cond_astig
+        logging.info(self.__OrsayScanInstrument.scan_device.gun_stig)
+
+        self.property_changed_event.fire('cond_astig02_f')
+
+    @property
+    def cond_astig03_f(self):
+        return int(self.__cond_astig[1]*1e3)
+
+    @cond_astig03_f.setter
+    def cond_astig03_f(self, value):
+        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+        self.__cond_astig[1] = value/1e3
+        #self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__cond_astig[0], self.__cond_astig[1])
+        self.property_changed_event.fire('cond_astig03_f')

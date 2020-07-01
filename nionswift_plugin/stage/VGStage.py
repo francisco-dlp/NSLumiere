@@ -91,15 +91,16 @@ class VGStage(object):
             self.__logger_func = fn
 
         self._InitOk = False
-        try:
-            self._stage = _OrsayStageInit(self.__logger_func)
-            if not self._stage:
-                raise Exception("Stage not created")
-            self._InitOk = _OrsayStageIsInitialised(self._stage)
-        except:
-            pass
-        finally:
-            pass
+        #try:
+        self._stage = _OrsayStageInit(self.__logger_func)
+        print(self._stage)
+        if not self._stage:
+            raise Exception("Stage not created")
+        self._InitOk = _OrsayStageIsInitialised(self._stage, 0)
+        #except:
+        #    pass
+        #finally:
+        #    pass
         self.stage_moved = Event.Event()
         self.__property_changed_event_listener = None
 

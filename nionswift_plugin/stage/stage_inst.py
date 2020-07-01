@@ -48,7 +48,7 @@ class stageDevice(Observable.Observable):
 
         if not DEBUG:
             logging.info(sys.executable) #Stepper DLL should be here
-            self.__vgStage=VGStage.VGStage() #You need to have STEMSerial.dll and put Stepper.dll in python folder
+            self.__vgStage=stage.VGStage() #You need to have STEMSerial.dll and put Stepper.dll in python folder
 
         #self.__sendmessage = lens_ps.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         #self.__lenses_ps = lens_ps.Lenses(self.__sendmessage)

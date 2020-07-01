@@ -180,6 +180,19 @@ class gainView:
                                                  checked='@binding(instrument.c2_wobbler_f)')
         self.c2_wobbler_row = ui.create_row(self.c2_wobbler_cb, self.wobbler_value)
 
+
+        self.astig2_label=ui.create_label(name='astig1_labe2', text='Astig 02: ')
+        self.astig2_slider=ui.create_slider(name='astig2_slider', value='@binding(instrument.cond_astig02_f)', minimum=-1000, maximum=1000)
+
+        self.astig3_label=ui.create_label(name='astig3_label', text='Astig 03: ')
+        self.astig3_slider=ui.create_slider(name='astig3_slider', value='@binding(instrument.cond_astig03_f)', minimum=-1000, maximum=1000)
+
+        self.cond_astig_column=ui.create_column(self.astig2_label, self.astig2_slider, self.astig3_label, self.astig3_slider)
+
+        self.cond_astig_group=ui.create_group(title='Condenser Astigmators', content=self.cond_astig_column)
+
+
+
         self.condenser_tab = ui.create_tab(label='Condenser',
                                            content=ui.create_column(ui.create_spacing(10), self.c1_row, self.c1_slider,
                                                                     self.c1_wobbler_row, self.wobbler_freq_row,
@@ -187,6 +200,8 @@ class gainView:
                                                                     ui.create_spacing(50), self.c2_row, self.c2_slider,
                                                                     self.c2_wobbler_row, self.wobbler_freq_row,
                                                                     self.wobbler_slider_frequency,
+                                                                    ui.create_spacing(25),
+                                                                    self.cond_astig_group,
                                                                     self.pb_row))
 
         self.tabs = ui.create_tabs(self.objective_tab, self.condenser_tab)
