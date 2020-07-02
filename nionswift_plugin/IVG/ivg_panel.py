@@ -2,6 +2,7 @@
 import gettext
 import os
 import json
+import numpy
 
 # local libraries
 from nion.swift import Panel
@@ -18,27 +19,44 @@ from . import ivg_inst
 import logging
 _ = gettext.gettext
 from nion.utils import Model
-
+from nion.swift.model import DataItem
+from nion.swift.model import DocumentModel
 
 
 import inspect
+
+class dataItemCreation():
+    def __init__(self, title, array):
+        self.data_item=DataItem.DataItem()
+        self.data_item.define_property("title", title)
+        self.data_item.set_data(array)
+        self.data_item._enter_live_state()
+
 
 
 class ivghandler:
 
 
-    def __init__(self,instrument:ivg_inst.ivgDevice,event_loop):
+    def __init__(self,instrument:ivg_inst.ivgDevice, document_controller):
 
-        self.event_loop=event_loop
+        self.event_loop=document_controller.event_loop
+        self.document_controller=document_controller
         self.instrument=instrument
         self.enabled = False
         self.property_changed_event_listener=self.instrument.property_changed_event.listen(self.prepare_widget_enable)
         self.busy_event_listener=self.instrument.busy_event.listen(self.prepare_widget_disable)
+        self.append_data_listener=self.instrument.append_data.listen(self.append_data)
+
+        self.ll_array = numpy.zeros(5000)
+        self.gun_array = numpy.zeros(5000)
+        self.obj_array = numpy.zeros(5000)
+
+        self.ll_di=None
+        self.gun_di=None
+        self.obj_di=None
+
 
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
-        #Pythonic way of finding the widgets
-        #actually a more straigthforward way would be to create a list of widget in the init_handler
-        #then use this list in the present function...
         for var in self.__dict__:
             if var not in not_affected_widget_name_list:
                 if isinstance(getattr(self,var),UserInterface.Widget):
@@ -50,8 +68,29 @@ class ivghandler:
 
     def prepare_widget_disable(self,value):
         self.event_loop.create_task(self.do_enable(False, []))
-    
 
+
+    def append_data(self, value, index):
+        self.ll_array[index], self.gun_array[index], self.obj_array[index]= value
+        if self.ll_di:
+            self.ll_di.data_item.set_data(self.ll_array)
+        if self.gun_di:
+            self.gun_di.data_item.set_data(self.gun_array)
+        if self.obj_di:
+            self.obj_di.data_item.set_data(self.obj_array)
+
+
+    def monitor_air_lock(self, widget):
+        self.ll_di = dataItemCreation("AirLock Vacuum", self.ll_array)
+        self.document_controller.document_model.append_data_item(self.ll_di.data_item)
+
+    def monitor_gun(self, widget):
+        self.gun_di = dataItemCreation("Gun Vacuum", self.gun_array)
+        self.document_controller.document_model.append_data_item(self.gun_di.data_item)
+
+    def monitor_obj_temp(self, widget):
+        self.obj_di = dataItemCreation("Objective Temperature", self.obj_array)
+        self.document_controller.document_model.append_data_item(self.obj_di.data_item)
 
 class ivgView:
 
@@ -65,12 +104,14 @@ class ivgView:
 
         self.gun_label=ui.create_label(name='gun_label', text='Gun Vacuum: ')
         self.gun_vac=ui.create_label(name='gun_vac', text='@binding(instrument.gun_vac_f)')
-        self.gun_row=ui.create_row(self.gun_label, self.gun_vac, ui.create_stretch())
+        self.gun_pb=ui.create_push_button(name='gun_pb', text='Monitor', on_clicked='monitor_gun', width=50)
+        self.gun_row=ui.create_row(self.gun_label, self.gun_vac, ui.create_stretch(), self.gun_pb)
 
 
         self.LL_label=ui.create_label(name='LL_label', text='AirLock Vacuum: ')
         self.LL_vac=ui.create_label(name='LL_vac', text='@binding(instrument.LL_vac_f)')
-        self.LL_row=ui.create_row(self.LL_label, self.LL_vac, ui.create_stretch())
+        self.LL_pb=ui.create_push_button(name='LL_pb', text='Monitor', on_clicked='monitor_air_lock', width=50)
+        self.LL_row=ui.create_row(self.LL_label, self.LL_vac, ui.create_stretch(), self.LL_pb)
 
         self.vac_group=ui.create_group(title='Gauges: ', content=ui.create_column(self.gun_row, self.LL_row))
 
@@ -84,9 +125,28 @@ class ivgView:
         
         self.obj_temp=ui.create_label(name='obj_temp', text='Temperature: ')
         self.obj_temp_value=ui.create_label(name='obj_temp_value', text='@binding(instrument.obj_temp_f)')
-        self.obj_temp_row=ui.create_row(self.obj_temp, self.obj_temp_value, ui.create_stretch())
+        self.obj_pb=ui.create_push_button(name='obj_pb', text='Monitor', on_clicked='monitor_obj_temp', width=50)
+        self.obj_temp_row=ui.create_row(self.obj_temp, self.obj_temp_value, ui.create_stretch(), self.obj_pb)
         
         self.obj_group=ui.create_group(title='Objective Lens: ', content=ui.create_column(self.obj_cur_row, self.obj_vol_row, self.obj_temp_row))
+
+        self.c1_cur=ui.create_label(name='c1_cur', text='C1: ')
+        self.c1_cur_value=ui.create_label(name='c1_cur_value', text='@binding(instrument.c1_cur_f)')
+        self.c1_vol=ui.create_label(name='c1_vol', text='V1: ')
+        self.c1_vol_value=ui.create_label(name='c1_vol_value', text='@binding(instrument.c1_vol_f)')
+        self.c1_res=ui.create_label(name='c1_res', text='Ω1: ')
+        self.c1_res_value=ui.create_label(name='c1_res_value', text='@binding(instrument.c1_res_f)')
+        self.c1_res_row=ui.create_row(self.c1_cur, self.c1_cur_value, ui.create_spacing(10), self.c1_vol, self.c1_vol_value, ui.create_spacing(10), self.c1_res, self.c1_res_value, ui.create_stretch())
+
+        self.c2_cur=ui.create_label(name='c2_cur', text='C2: ')
+        self.c2_cur_value=ui.create_label(name='c2_cur_value', text='@binding(instrument.c2_cur_f)')
+        self.c2_vol=ui.create_label(name='c2_vol', text='V2: ')
+        self.c2_vol_value=ui.create_label(name='c2_vol_value', text='@binding(instrument.c2_vol_f)')
+        self.c2_res=ui.create_label(name='c2_res', text='Ω2: ')
+        self.c2_res_value=ui.create_label(name='c2_res_value', text='@binding(instrument.c2_res_f)')
+        self.c2_res_row=ui.create_row(self.c2_cur, self.c2_cur_value, ui.create_spacing(10), self.c2_vol, self.c2_vol_value, ui.create_spacing(10), self.c2_res, self.c2_res_value, ui.create_stretch())
+
+        self.cond_group=ui.create_group(title='Condenser Lens: ', content=ui.create_column(self.c1_res_row, self.c2_res_row))
 
         
         self.voa_label=ui.create_label(name='voa_label', text='VOA: ')
@@ -99,14 +159,14 @@ class ivgView:
 
         self.aper_group=ui.create_group(title='Apertures: ', content=ui.create_column(self.voa_row, self.roa_row))
         
-        self.ui_view=ui.create_column(self.EHT_row, self.vac_group, self.obj_group, self.aper_group, spacing=5)
+        self.ui_view=ui.create_column(self.EHT_row, self.vac_group, self.obj_group, self.cond_group, self.aper_group, spacing=5)
 
 
 
         
 def create_spectro_panel(document_controller, panel_id, properties):
         instrument = properties["instrument"]
-        ui_handler =ivghandler(instrument, document_controller.event_loop)
+        ui_handler =ivghandler(instrument, document_controller)
         ui_view=ivgView(instrument)
         panel = Panel.Panel(document_controller, panel_id, properties)
 

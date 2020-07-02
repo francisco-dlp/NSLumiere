@@ -17,12 +17,5 @@ class GunVacuum:
     def __init__(self, sendmessage):
         self.sendmessage=sendmessage
 
-    def query(self, string):
-        if string=='GDAT? 1\n':
-            return (numpy.random.randn(1)[0]+2)*1e-10
-        else:
-            None
-
-
-    
-		
+    def query(self):
+        return (numpy.random.randn(1)[0]+2)*1e-10

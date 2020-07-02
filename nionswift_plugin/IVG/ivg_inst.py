@@ -57,19 +57,35 @@ class ivgDevice(Observable.Observable):
         #self.property_changed_event_listener = self.property_changed_event.listen(self.computeCalibration)
         self.busy_event=Event.Event()
         
+        self.append_data=Event.Event()
+        
         self.__EHT=3
-        self.__obj_cur=0.
-        self.__obj_vol=0.
-        self.__obj_temp=0.
-        self.__obj_res=0.
-        self.__obj_res_ref=1. #in ohms at room temp. Determine with obj under very low current
+        self.__obj_cur=1.0
+        self.__obj_vol=5.0
+        self.__obj_temp=23.
+        self.__obj_res=5.18
+        self.__obj_res_ref=5.18 #in ohms at room temp. Determine with obj under very low current
+        self.__amb_temp=23.
+
+        self.__c1_cur=0.01
+        self.__c1_vol=0.01
+        self.__c1_res=23.39
+
+
+        self.__c2_cur=0.01
+        self.__c2_vol=0.01
+        self.__c2_res=23.37
+
+        self.__LL_mon=False
+        self.__loop_index=0
+
         self.periodic()
 
 
         self.__lensInstrument=None
         self.__EELSInstrument=None
         self.__AperInstrument=None
-		
+
         self.__sendmessage = ivg.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__ivg= ivg.IVG(self.__sendmessage)
         
@@ -96,16 +112,26 @@ class ivgDevice(Observable.Observable):
         self.property_changed_event.fire('gun_vac_f')
         self.property_changed_event.fire('LL_vac_f')
         self.property_changed_event.fire('obj_cur_f')
-        self.property_changed_event.fire('obj_vol_f')
-        self.property_changed_event.fire('obj_temp_f')
+        self.property_changed_event.fire('c1_cur_f')
+        self.property_changed_event.fire('c2_cur_f')
         self.estimate_temp()
+        try:
+            self.append_data.fire([self.__LL_vac, self.__gun_vac, self.__obj_temp], self.__loop_index)
+            self.__loop_index+=1
+            if self.__loop_index==5000: self.__loop_index=0
+        except:
+            pass
         self.__thread=threading.Timer(1, self.periodic, args=(),)
         if not self.__thread.is_alive():
-            self.__thread.start()
+            try:
+                self.__thread.start()
+            except:
+                pass
         
     def estimate_temp(self):
-        logging.info(self.__obj_res)
-        self.__obj_temp=self.__obj_cur*3+self.__obj_vol
+        self.__obj_temp = self.__amb_temp + ((self.__obj_res-self.__obj_res_ref)/self.__obj_res_ref)/0.004041
+        self.property_changed_event.fire('obj_temp_f')
+
 
 
 
@@ -120,11 +146,11 @@ class ivgDevice(Observable.Observable):
 
         return sendMessage
 
-		
+
     @property
     def EHT_f(self):
         return self.__EHT
-		
+
     @EHT_f.setter
     def EHT_f(self, value):
         self.__EHT=value
@@ -135,34 +161,95 @@ class ivgDevice(Observable.Observable):
         self.__lensInstrument.EHT_change(value)
         self.__EELSInstrument.EHT_change(value)
         self.property_changed_event.fire('EHT_f')
-		
+
     @property
     def gun_vac_f(self):
-        self.__gun_vac=self.__gun_gauge.query('GDAT? 1\n')
-        return '{:.2E}'.format(self.__gun_vac)+' nT'
-			
+        self.__gun_vac =  self.__gun_gauge.query()
+        return str('{:.2E}'.format(self.__gun_vac))+' Torr'
+
+
     @property
     def LL_vac_f(self):
-        self.__LL_vac=self.__ll_gauge.query('0010074002=?106\r')
-        return '{:.2E}'.format(self.__LL_vac)+' mBar'
-		
+        self.__LL_vac=self.__ll_gauge.query()
+        return str('{:.2E}'.format(self.__LL_vac))+' mBar'
+
     @property
     def obj_cur_f(self):
         if not self.__lensInstrument:
             self.get_lenses_instrument()
-        self.__obj_cur, self.__obj_vol = self.__lensInstrument.get_obj()
-        self.__obj_res = self.__obj_vol / self.__obj_cur
-        return '{:.3E}'.format(self.__obj_cur)
-		
+        self.__obj_cur, self.__obj_vol = self.__lensInstrument.get_values('OBJ')
+        self.__obj_cur = float(self.__obj_cur.decode()[0:5])
+        self.__obj_vol = float(self.__obj_vol.decode()[0:5])
+        if self.__obj_cur>0:
+            self.__obj_res = self.__obj_vol / self.__obj_cur
+        else:
+            self.__obj_res = -1.
+        self.property_changed_event.fire('obj_vol_f')
+        #return '{:.3f}'.format(self.__obj_cur)
+        return self.__obj_cur
+
+
     @property
     def obj_vol_f(self):
-        return '{:.3E}'.format(self.__obj_vol)
-		
+        return self.__obj_vol
+        #return '{:.3f}'.format(self.__obj_vol)
         
     @property
     def obj_temp_f(self):
-        return '{:.3E}'.format(self.__obj_temp)
-		
+        return '{:.2f}'.format(self.__obj_temp)
+
+
+    @property
+    def c1_cur_f(self):
+        if not self.__lensInstrument:
+            self.get_lenses_instrument()
+        self.__c1_cur, self.__c1_vol = self.__lensInstrument.get_values('C1')
+        self.__c1_cur = float(self.__c1_cur.decode()[0:5])
+        self.__c1_vol = float(self.__c1_vol.decode()[0:5])
+        if self.__c1_cur>0:
+            self.__c1_res = self.__c1_vol / self.__c1_cur
+        else:
+            self.__c1_res = -1.
+        self.property_changed_event.fire('c1_vol_f')
+        self.property_changed_event.fire('c1_res_f')
+        return self.__c1_cur
+
+
+    @property
+    def c1_vol_f(self):
+        return self.__c1_vol
+
+
+    @property
+    def c1_res_f(self):
+        return '{:.2f}'.format(self.__c1_res)
+
+
+    @property
+    def c2_cur_f(self):
+        if not self.__lensInstrument:
+            self.get_lenses_instrument()
+        self.__c2_cur, self.__c2_vol = self.__lensInstrument.get_values('C2')
+        self.__c2_cur = float(self.__c2_cur.decode()[0:5])
+        self.__c2_vol = float(self.__c2_vol.decode()[0:5])
+        if self.__c2_cur>0:
+            self.__c2_res = self.__c2_vol / self.__c2_cur
+        else:
+            self.__c2_res = -1.
+        self.property_changed_event.fire('c2_vol_f')
+        self.property_changed_event.fire('c2_res_f')
+        return self.__c2_cur
+
+
+    @property
+    def c2_vol_f(self):
+        return self.__c2_vol
+
+    @property
+    def c2_res_f(self):
+        return '{:.2f}'.format(self.__c2_res)
+
+
     @property
     def voa_val_f(self):
         if not self.__AperInstrument:
