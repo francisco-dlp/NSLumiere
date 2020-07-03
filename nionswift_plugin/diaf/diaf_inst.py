@@ -27,7 +27,7 @@ from nion.swift.model import ImportExportManager
 import logging
 import time
 
-DEBUG = 0
+DEBUG = 1
 
 if DEBUG:
     from . import diaf_vi as diaf
@@ -41,7 +41,6 @@ class diafDevice(Observable.Observable):
         self.property_changed_event = Event.Event()
         self.property_changed_power_event = Event.Event()
         self.communicating_event = Event.Event()
-        # self.property_changed_event_listener = self.property_changed_event.listen(self.computeCalibration)
         self.busy_event = Event.Event()
         self.set_full_range = Event.Event()
 
@@ -53,17 +52,18 @@ class diafDevice(Observable.Observable):
             abs_path = os.path.join(inst_dir, 'diafs_settings.json')
             with open(abs_path) as savfile:
                 data = json.load(savfile)  # data is load json
-            logging.info(json.dumps(data, indent=4))
             self.roa_change_f = int(data['ROA']['last'])
             self.voa_change_f = int(data['VOA']['last'])
 
         except:
-            logging.info('***APERTURES***: No saved values.')
+            logging.info('***APERTURES***: No saved values. Check your json file.')
 
     def sendMessageFactory(self):
         def sendMessage(message):
             if message == 1:
-                logging.info("Could not find Apertures Hardware")
+                logging.info("***APERTURES***: Could not find Apertures Hardware")
+            if message == 2:
+                logging.info("***APERTURES***: Communication problem over serial port. Easy check using Serial Port Monitor.")
 
         return sendMessage
 

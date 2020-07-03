@@ -25,7 +25,7 @@ class espec:
         self.ser.parity = serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
         self.ser.bytesize=serial.EIGHTBITS
-        self.ser.timeout=0.1
+        self.ser.timeout=0.2
 		
         try:
             if not self.ser.is_open:
@@ -35,8 +35,11 @@ class espec:
             self.sendmessage(1)
 
     def set_val(self, val, which):
-        if val<0: val=0xffff+val
-        string = which+' 0,'+hex(val)[2:6]+'\r'	
-        time.sleep(0.01)
-        self.ser.write(string.encode())
-        return self.ser.read(6)
+        try:
+            if val<0: val=0xffff+val
+            string = which+' 0,'+hex(val)[2:6]+'\r'	
+            time.sleep(0.01)
+            self.ser.write(string.encode())
+            return self.ser.read(6)
+        except:
+            self.sendmessage(2)

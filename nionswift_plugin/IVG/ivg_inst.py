@@ -13,7 +13,6 @@ import time
 from nion.data import Calibration
 from nion.data import DataAndMetadata
 import asyncio
-#from pydevd import settrace
 import logging
 
 
@@ -29,14 +28,8 @@ from nion.swift.model import ImportExportManager
 import logging
 import time
 
-DEBUG=1
-DEBUG_gun=0
+DEBUG_gun=1
 DEBUG_airlock=1
-
-if DEBUG:
-    from . import ivg_vi as ivg
-else:
-    from . import ivg as ivg
 
 if DEBUG_gun:
     from . import gun_vi as gun
@@ -54,7 +47,6 @@ class ivgDevice(Observable.Observable):
     def __init__(self):
         self.property_changed_event = Event.Event()
         self.communicating_event = Event.Event()
-        #self.property_changed_event_listener = self.property_changed_event.listen(self.computeCalibration)
         self.busy_event=Event.Event()
         
         self.append_data=Event.Event()
@@ -89,10 +81,6 @@ class ivgDevice(Observable.Observable):
         self.__AperInstrument=None
         self.__StageInstrument=None
 
-        self.__sendmessage = ivg.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        self.__ivg= ivg.IVG(self.__sendmessage)
-        
-        
         self.__gun_sendmessage = gun.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__gun_gauge= gun.GunVacuum(self.__gun_sendmessage)
 
@@ -117,7 +105,7 @@ class ivgDevice(Observable.Observable):
         try:
             self.stage_event.fire(self.__y_real_pos, self.__x_real_pos)
         except:
-            pass
+            logging.info('***IVG***: Could not sent [FAST] periodic values to the panel.')
         self.__stage_thread=threading.Timer(0.05, self.stage_periodic, args=(),)
         if not self.__stage_thread.is_alive():
             try:
@@ -139,7 +127,7 @@ class ivgDevice(Observable.Observable):
             self.__loop_index+=1
             if self.__loop_index==5000: self.__loop_index=0
         except:
-            pass
+            logging.info('***IVG***: Could not sent [SLOW] periodic values to the panel.')
         self.__thread=threading.Timer(1, self.periodic, args=(),)
         if not self.__thread.is_alive():
             try:
@@ -159,9 +147,13 @@ class ivgDevice(Observable.Observable):
             if message==1:
                 logging.info("***IVG***: Could not find some or all of the hardwares")
             if message==3:
-                logging.info("***GUN GAUGE***: Could not find hardware. Check connection.")
+                logging.info("***GUN GAUGE@IVG***: Could not find hardware. Check connection.")
             if message==4:
-                logging.info("***AIRLOCK GAUGE***: Could not find hardware. Check connection.")
+                logging.info("***AIRLOCK GAUGE@IVG***: Could not find hardware. Check connection.")
+            if message==5:
+                logging.info("***GUN GAUGE@IVG***: Problem querying gun gauge. Returning zero instead. If it is an intermitent problem, you are querying too fast.")
+            if message==6:
+                logging.info("***AIRLOCK GAUGE@IVG***: Problem querying gun gauge. Returning zero instead.")
 
         return sendMessage
 
@@ -173,12 +165,15 @@ class ivgDevice(Observable.Observable):
     @EHT_f.setter
     def EHT_f(self, value):
         self.__EHT=value
-        if not self.__lensInstrument:
-            self.get_lenses_instrument()
-        if not self.__EELSInstrument:
-            self.get_EELS_instrument()
-        self.__lensInstrument.EHT_change(value)
-        self.__EELSInstrument.EHT_change(value)
+        try:
+            if not self.__lensInstrument:
+                self.get_lenses_instrument()
+            if not self.__EELSInstrument:
+                self.get_EELS_instrument()
+            self.__lensInstrument.EHT_change(value)
+            self.__EELSInstrument.EHT_change(value)
+        except:
+            logging.info('***IVG***: A problem happened in Lens or EELS Controller during HT change.')
         self.property_changed_event.fire('EHT_f')
 
     @property
@@ -194,24 +189,26 @@ class ivgDevice(Observable.Observable):
 
     @property
     def obj_cur_f(self):
-        if not self.__lensInstrument:
-            self.get_lenses_instrument()
-        self.__obj_cur, self.__obj_vol = self.__lensInstrument.get_values('OBJ')
-        self.__obj_cur = float(self.__obj_cur.decode()[0:5])
-        self.__obj_vol = float(self.__obj_vol.decode()[0:5])
-        if self.__obj_cur>0:
-            self.__obj_res = self.__obj_vol / self.__obj_cur
-        else:
-            self.__obj_res = -1.
-        self.property_changed_event.fire('obj_vol_f')
-        #return '{:.3f}'.format(self.__obj_cur)
-        return self.__obj_cur
+        try:
+            if not self.__lensInstrument:
+                self.get_lenses_instrument()
+            self.__obj_cur, self.__obj_vol = self.__lensInstrument.get_values('OBJ')
+            self.__obj_cur = float(self.__obj_cur.decode()[0:5])
+            self.__obj_vol = float(self.__obj_vol.decode()[0:5])
+            if self.__obj_cur>0:
+                self.__obj_res = self.__obj_vol / self.__obj_cur
+            else:
+                self.__obj_res = -1.
+            self.property_changed_event.fire('obj_vol_f')
+            return self.__obj_cur
+        except:
+            logging.info('***IVG***: A problem happened Querying my Lens Objective Values. Returning 0.')
+            return 0
 
 
     @property
     def obj_vol_f(self):
         return self.__obj_vol
-        #return '{:.3f}'.format(self.__obj_vol)
         
     @property
     def obj_temp_f(self):
@@ -220,18 +217,22 @@ class ivgDevice(Observable.Observable):
 
     @property
     def c1_cur_f(self):
-        if not self.__lensInstrument:
-            self.get_lenses_instrument()
-        self.__c1_cur, self.__c1_vol = self.__lensInstrument.get_values('C1')
-        self.__c1_cur = float(self.__c1_cur.decode()[0:5])
-        self.__c1_vol = float(self.__c1_vol.decode()[0:5])
-        if self.__c1_cur>0:
-            self.__c1_res = self.__c1_vol / self.__c1_cur
-        else:
-            self.__c1_res = -1.
-        self.property_changed_event.fire('c1_vol_f')
-        self.property_changed_event.fire('c1_res_f')
-        return self.__c1_cur
+        try:
+            if not self.__lensInstrument:
+                self.get_lenses_instrument()
+            self.__c1_cur, self.__c1_vol = self.__lensInstrument.get_values('C1')
+            self.__c1_cur = float(self.__c1_cur.decode()[0:5])
+            self.__c1_vol = float(self.__c1_vol.decode()[0:5])
+            if self.__c1_cur>0:
+                self.__c1_res = self.__c1_vol / self.__c1_cur
+            else:
+                self.__c1_res = -1.
+            self.property_changed_event.fire('c1_vol_f')
+            self.property_changed_event.fire('c1_res_f')
+            return self.__c1_cur
+        except:
+            logging.info('***IVG***: A problem happened Querying my Lens C1 Values. Returning 0')
+            return 0
 
 
     @property
@@ -246,18 +247,22 @@ class ivgDevice(Observable.Observable):
 
     @property
     def c2_cur_f(self):
-        if not self.__lensInstrument:
-            self.get_lenses_instrument()
-        self.__c2_cur, self.__c2_vol = self.__lensInstrument.get_values('C2')
-        self.__c2_cur = float(self.__c2_cur.decode()[0:5])
-        self.__c2_vol = float(self.__c2_vol.decode()[0:5])
-        if self.__c2_cur>0:
-            self.__c2_res = self.__c2_vol / self.__c2_cur
-        else:
-            self.__c2_res = -1.
-        self.property_changed_event.fire('c2_vol_f')
-        self.property_changed_event.fire('c2_res_f')
-        return self.__c2_cur
+        try:
+            if not self.__lensInstrument:
+                self.get_lenses_instrument()
+            self.__c2_cur, self.__c2_vol = self.__lensInstrument.get_values('C2')
+            self.__c2_cur = float(self.__c2_cur.decode()[0:5])
+            self.__c2_vol = float(self.__c2_vol.decode()[0:5])
+            if self.__c2_cur>0:
+                self.__c2_res = self.__c2_vol / self.__c2_cur
+            else:
+                self.__c2_res = -1.
+            self.property_changed_event.fire('c2_vol_f')
+            self.property_changed_event.fire('c2_res_f')
+            return self.__c2_cur
+        except:
+            logging.info('***IVG***: A problem happened Querying my Lens C2 Values. Returning 0')
+            return 0
 
 
     @property
@@ -271,27 +276,41 @@ class ivgDevice(Observable.Observable):
 
     @property
     def voa_val_f(self):
-        if not self.__AperInstrument:
-            self.get_diaf_instrument()
-        self.__voa=self.__AperInstrument.voa_change_f
-        vlist=['None', '50 um', '100 um', '150 um']
-        return vlist[self.__voa]
+        try:
+            if not self.__AperInstrument:
+                self.get_diaf_instrument()
+            self.__voa=self.__AperInstrument.voa_change_f
+            vlist=['None', '50 um', '100 um', '150 um']
+            return vlist[self.__voa]
+        except:
+            logging.info('***IVG***: A problem happened Querying my VOA aperture. Returning Error')
+            return 'Error'
+
 
     @property
     def roa_val_f(self):
-        if not self.__AperInstrument:
-            self.get_diaf_instrument()
-        self.__roa=self.__AperInstrument.roa_change_f
-        rlist=['None', '50 um', '100 um', '150 um']
-        return rlist[self.__roa]
+        try:
+            if not self.__AperInstrument:
+                self.get_diaf_instrument()
+            self.__roa=self.__AperInstrument.roa_change_f
+            rlist=['None', '50 um', '100 um', '150 um']
+            return rlist[self.__roa]
+        except:
+            logging.info('***IVG***: A problem happened Querying my VOA aperture. Returning Error')
+            return 'Error'
+
 
     @property
     def x_stage_f(self):
-        if not self.__StageInstrument:
-            self.get_stage_instrument()
-        self.__x_real_pos, self.__y_real_pos = self.__StageInstrument.GetPos()
-        self.property_changed_event.fire('y_stage_f')
-        return '{:.2f}'.format(self.__x_real_pos*1e6)
+        try:
+            if not self.__StageInstrument:
+                self.get_stage_instrument()
+            self.__x_real_pos, self.__y_real_pos = self.__StageInstrument.GetPos()
+            self.property_changed_event.fire('y_stage_f')
+            return '{:.2f}'.format(self.__x_real_pos*1e6)
+        except:
+            logging.info('***IVG***: A problem happened Querying VG Stage. Returning 0.')
+            return 0
 
     @property
     def y_stage_f(self):

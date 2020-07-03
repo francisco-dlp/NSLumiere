@@ -28,7 +28,7 @@ from nion.swift.model import ImportExportManager
 import logging
 import time
 
-DEBUG=0
+DEBUG=1
 
 if DEBUG:
     from . import eels_spec_vi as spec
@@ -41,7 +41,6 @@ class EELS_SPEC_Device(Observable.Observable):
         self.property_changed_event = Event.Event()
         self.property_changed_power_event = Event.Event()
         self.communicating_event = Event.Event()
-        #self.property_changed_event_listener = self.property_changed_event.listen(self.computeCalibration)
         self.busy_event=Event.Event()
       
         self.__sendmessage = spec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
@@ -66,7 +65,6 @@ class EELS_SPEC_Device(Observable.Observable):
             abs_path=os.path.join(inst_dir, 'eels_settings.json')
             with open(abs_path) as savfile:
                 data=json.load(savfile)
-            logging.info(json.dumps(data, indent=4))
             self.__dispIndex=int(data["3"]["last"])
             self.disp_change_f=self.__dispIndex #put last index
         except:
@@ -102,6 +100,8 @@ class EELS_SPEC_Device(Observable.Observable):
         def sendMessage(message):
             if message==1:
                 logging.info("***EELS SPECTROMETER***: Could not find EELS Spec. Check Hardware")
+            if message==2:
+                logging.info("***EELS SPECTROMETER***: Problem communicating over serial port. Easy check using Serial Port Monitor.")
 
         return sendMessage
 

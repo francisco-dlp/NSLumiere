@@ -28,9 +28,11 @@ import logging
 import time
 import sys
 
-DEBUG = 0
+DEBUG = 1
 
-if not DEBUG:
+if DEBUG:
+    from . import VGStage_vi as stage
+else:
     from . import VGStage as stage
 
 
@@ -42,19 +44,15 @@ class stageDevice(Observable.Observable):
         self.property_changed_power_event = Event.Event()
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
+        
+        self.__sendmessage = stage.SENDMYMESSAGEFUNC(self.sendMessageFactory())
+        self.__vgStage=stage.VGStage(self.__sendmessage)
 
-        if not DEBUG:
-            logging.info(sys.executable) #Stepper DLL should be here
-            self.__vgStage=stage.VGStage() #You need to have STEMSerial.dll and put Stepper.dll in python folder
+        #Stepper DLL should be here
+        #You need to have STEMSerial.dll and put Stepper.dll in python folder
 
         self.__x, self.__y = self.__vgStage.stageGetPosition()
-        #self.__vgStage.stageInit(True, True, True)
 
-
-
-
-        #self.__sendmessage = lens_ps.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        #self.__lenses_ps = lens_ps.Lenses(self.__sendmessage)
 
     def GetPos(self):
         return self.__vgStage.stageGetPosition()
@@ -63,12 +61,12 @@ class stageDevice(Observable.Observable):
         #self.__vgStage.stageInit(True, True, True)
         logging.info('Disabled for now. X switch seems to be malfunctioning')
 
-
-
     def sendMessageFactory(self):
         def sendMessage(message):
             if message == 1:
-                logging.info("***VG STAGE***: TEST")
+                logging.info("***VG STAGE***: VG Stage not found. Please check if its connected and if STEMSerial.dll is present at the same folder as the installation. Also make sure Stepper.dll is inside your python folder.")
+            if message == 2:
+                logging.info("***VG STAGE***: Attempt to input a value out of boundary. Please if the value makes sense check VG Stage origin.")
 
         return sendMessage
 
@@ -80,7 +78,7 @@ class stageDevice(Observable.Observable):
     @x_pos_f.setter
     def x_pos_f(self, value):
         self.__x=value/1e6
-
+        self.__vgStage.stageGoTo_x(self.__x)
         self.property_changed_event.fire('x_pos_f')
         self.property_changed_event.fire('x_pos_edit_f')
 
@@ -102,7 +100,7 @@ class stageDevice(Observable.Observable):
     @y_pos_f.setter
     def y_pos_f(self, value):
         self.__y = value/1e6
-
+        self.__vgStage.stageGoTo_y(self.__y)
         self.property_changed_event.fire('y_pos_f')
         self.property_changed_event.fire('y_pos_edit_f')
 

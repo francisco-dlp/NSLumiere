@@ -45,6 +45,7 @@ class GunVacuum:
             vide=sig * 10**ex
             return vide
         except:
+            self.sendmessage(5)
             return 0
 
 

@@ -10,9 +10,7 @@ import os
 
 from nion.utils import Event
 
-__author__ = "Marcel Tence & Mathieu Kociak"
-__status__ = "alpha"
-__version__ = "0.1"
+__author__ = "Marcel Tence & Mathieu Kociak & Yves Auad"
 
 
 def _isPython3():
@@ -52,12 +50,13 @@ if (sys.maxsize > 2 ** 32):
 else:
     raise Exception("It must a python 64 bit version")
 
+def SENDMYMESSAGEFUNC(sendmessagefunc):
+    return sendmessagefunc
+
 
 
 LOGGERFUNC = WINFUNCTYPE(None, c_char_p)
 MOTOR = WINFUNCTYPE(c_void_p)
-
-
 
 # void VG_EXPORT *OrsayStageInit();
 _OrsayStageInit = _buildFunction(_library.OrsayStageInit, None, c_void_p)
@@ -99,19 +98,10 @@ class VGStage(object):
         try:
             self._stage = _OrsayStageInit()
             if not self._stage:
-                raise Exception("Stage not created")
+                self.sendmessage(1)
             self._InitOk = _OrsayStageIsInitialised(self._stage, 0)
         except:
             pass
-
-        #px, py = self.stageGetPosition()
-        #px = px + 0.0000010
-        #self.stageGoTo(px, py)
-        #print("Position: ", self.stageGetPosition())
-
-        self.stage_moved = Event.Event()
-        self.__property_changed_event_listener = None
-
 
     def close(self):
         """ ferme la dll """
@@ -121,12 +111,6 @@ class VGStage(object):
         _OrsayStageClose(self._stage)
         self._stage = 0
 
-    '''def attach_instrument(self, instrument):
-        def property_changed(name):
-            if name in self.depends_on:
-                pass
-
-        self.__property_changed_event_listener = instrument.property_changed_event.listen(property_changed)'''
 
     def stageInit(self, x_axis: bool, y_axis: bool, always: bool):
         """ lance la recherche de l'origine pour un ou deux axes
@@ -175,11 +159,20 @@ class VGStage(object):
 
     def stageGoTo(self, x: float, y: float):
         """ Va à la position demandée [x, y] """
-        _OrsayStageMotorGoToCalPosition(self._stage, 0, x)
-        _OrsayStageMotorGoToCalPosition(self._stage, 1, y)
+        if abs(x)<1e-3 and abs(y)<1e-3:
+            _OrsayStageMotorGoToCalPosition(self._stage, 0, x)
+            _OrsayStageMotorGoToCalPosition(self._stage, 1, y)
+        else:
+            self.sendmessage(2)
 
     def stageGoTo_x(self, x):
-        _OrsayStageMotorGoToCalPosition(self._stage, 0, x)
+        if abs(x)<1e-3:
+            _OrsayStageMotorGoToCalPosition(self._stage, 0, x)
+        else:
+            self.sendmessage(2)
 
     def stageGoTo_y(self, y):
-        _OrsayStageMotorGoToCalPosition(self._stage, 1, y)
+        if abs(y)<1e-3:
+            _OrsayStageMotorGoToCalPosition(self._stage, 1, y)
+        else:
+            self.sendmessage(2)

@@ -75,8 +75,9 @@ class ivghandler:
     def stage_data(self, stage1, stage2):
         index1 = (80-int(round(stage1*1e6/10)))
         index2 = (int(round(stage2*1e6/10))-80)
-        if self.stage_array[index1][index2]<=100:
-            self.stage_array[index1][index2] += 20
+        if abs(index1)<160 and abs(index2)<160:
+            if self.stage_array[index1][index2]<=100:
+                self.stage_array[index1][index2] += 20
 
         if self.stage_di:
             self.stage_di.data_item.set_data(self.stage_array)

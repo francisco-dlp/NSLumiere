@@ -48,16 +48,18 @@ class Lenses:
         if which == 'C2':
             string = '>1,2,3\r'
         with self.lock:
-            self.ser.write(string.encode())
-            self.ser.read(7)
-            current = self.ser.read(8)
-            self.ser.read(1)
-            voltage = self.ser.read(8)
-            self.ser.readline()
+            try:
+                self.ser.write(string.encode())
+                self.ser.read(7)
+                current = self.ser.read(8)
+                self.ser.read(1)
+                voltage = self.ser.read(8)
+                self.ser.readline()
+            except:
+                self.sendmessage(4)
         return current, voltage
 
     def set_val(self, val, which):
-        logging.info(val)
         if which == 'OBJ' and val<=9.2:
             string_init = '>1,1,1,'
         elif which == 'C1' and val<=0.80:

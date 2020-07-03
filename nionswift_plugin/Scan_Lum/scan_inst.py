@@ -28,6 +28,8 @@ import logging
 import time
 import sys
 
+DEBUG = 1
+
 class scanDevice(Observable.Observable):
 
     def __init__(self):
@@ -45,7 +47,10 @@ class scanDevice(Observable.Observable):
         #self.__lenses_ps = lens_ps.Lenses(self.__sendmessage)
 
     def get_orsay_scan_instrument(self):
-        self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+        if not DEBUG:
+            self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+        else:
+            pass #Here is debug
 
     def sendMessageFactory(self):
         def sendMessage(message):
@@ -57,14 +62,14 @@ class scanDevice(Observable.Observable):
     @property
     def field_f(self):
         if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
-        logging.info(self.__OrsayScanInstrument.scan_device.orsayscan.GetFieldSize())
+        if not DEBUG: self.__OrsayScanInstrument.scan_device.orsayscan.GetFieldSize()
         return int(self.__field*2e10)
 
     @field_f.setter
     def field_f(self, value):
         if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
         self.__field=value/2e10
-        logging.info(self.__OrsayScanInstrument.scan_device.orsayscan.SetFieldSize(self.__field))
+        if not DEBUG: self.__OrsayScanInstrument.scan_device.orsayscan.SetFieldSize(self.__field)
         self.property_changed_event.fire('field_f')
         self.property_changed_event.fire('field_edit_f')
 
