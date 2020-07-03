@@ -30,7 +30,7 @@ import logging
 import time
 
 DEBUG=1
-DEBUG_gun=1
+DEBUG_gun=0
 DEBUG_airlock=1
 
 if DEBUG:

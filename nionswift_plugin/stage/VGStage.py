@@ -63,7 +63,7 @@ _OrsayStageInitialise = _buildFunction(_library.Initialise, [c_void_p, c_short, 
 # void VG_EXPORT CancelInitialisation(void *o, short motor);
 _OrsayStageCancelInitialisation = _buildFunction(_library.CancelInitialisation, [c_void_p, c_short], None)
 # short VG_EXPORT IsInitialised(void *o, short motor);
-_OrsayStageIsInitialised = _buildFunction(_library.IsInitialised, [c_void_p, c_short], None)
+_OrsayStageIsInitialised = _buildFunction(_library.IsInitialised, [c_void_p, c_short], c_short)
 
 # long VG_EXPORT MotorGetCalStatus(void *o, short motor, double *pos, short *swdebut, short *swmilieu, short *swfin);
 _OrsayStageMotorGetCalStatus = _buildFunction(_library.MotorGetCalStatus,
@@ -93,10 +93,10 @@ class VGStage(object):
         self._InitOk = False
         #try:
         self._stage = _OrsayStageInit(self.__logger_func)
-        print(self._stage)
-        if not self._stage:
-            raise Exception("Stage not created")
+        #if not self._stage:
+        #    raise Exception("Stage not created")
         self._InitOk = _OrsayStageIsInitialised(self._stage, 0)
+        print(self._InitOk)
         #except:
         #    pass
         #finally:

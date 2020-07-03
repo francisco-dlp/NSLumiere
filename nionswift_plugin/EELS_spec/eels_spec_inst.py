@@ -28,7 +28,7 @@ from nion.swift.model import ImportExportManager
 import logging
 import time
 
-DEBUG=1
+DEBUG=0
 
 if DEBUG:
     from . import eels_spec_vi as spec
