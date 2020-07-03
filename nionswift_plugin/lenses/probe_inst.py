@@ -104,6 +104,8 @@ class probeDevice(Observable.Observable):
                 logging.info("***LENSES***: Could not find Lenses PS")
             if message == 2:
                 logging.info("***LENSES***: Can't query negative current.")
+            if message == 3:
+                logging.info("***LENSES***: Attempt to set values out of range.")
 
         return sendMessage
 

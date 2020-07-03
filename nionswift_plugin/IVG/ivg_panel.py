@@ -46,14 +46,17 @@ class ivghandler:
         self.property_changed_event_listener=self.instrument.property_changed_event.listen(self.prepare_widget_enable)
         self.busy_event_listener=self.instrument.busy_event.listen(self.prepare_widget_disable)
         self.append_data_listener=self.instrument.append_data.listen(self.append_data)
+        self.stage_event_listener=self.instrument.stage_event.listen(self.stage_data)
 
         self.ll_array = numpy.zeros(5000)
         self.gun_array = numpy.zeros(5000)
         self.obj_array = numpy.zeros(5000)
+        self.stage_array = numpy.zeros((160, 160))
 
         self.ll_di=None
         self.gun_di=None
         self.obj_di=None
+        self.stage_di=None
 
 
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
@@ -69,15 +72,25 @@ class ivghandler:
     def prepare_widget_disable(self,value):
         self.event_loop.create_task(self.do_enable(False, []))
 
+    def stage_data(self, stage1, stage2):
+        index1 = (80-int(round(stage1*1e6/10)))
+        index2 = (int(round(stage2*1e6/10))-80)
+        if self.stage_array[index1][index2]<=100:
+            self.stage_array[index1][index2] += 20
+
+        if self.stage_di:
+            self.stage_di.data_item.set_data(self.stage_array)
 
     def append_data(self, value, index):
-        self.ll_array[index], self.gun_array[index], self.obj_array[index]= value
+        self.ll_array[index], self.gun_array[index], self.obj_array[index] = value
+
         if self.ll_di:
             self.ll_di.data_item.set_data(self.ll_array)
         if self.gun_di:
             self.gun_di.data_item.set_data(self.gun_array)
         if self.obj_di:
             self.obj_di.data_item.set_data(self.obj_array)
+
 
 
     def monitor_air_lock(self, widget):
@@ -91,6 +104,10 @@ class ivghandler:
     def monitor_obj_temp(self, widget):
         self.obj_di = dataItemCreation("Objective Temperature", self.obj_array)
         self.document_controller.document_model.append_data_item(self.obj_di.data_item)
+
+    def monitor_stage(self, widget):
+        self.stage_di = dataItemCreation("Stage Position", self.obj_array)
+        self.document_controller.document_model.append_data_item(self.stage_di.data_item)
 
 class ivgView:
 
@@ -158,8 +175,20 @@ class ivgView:
         self.roa_row=ui.create_row(self.roa_label, self.roa_value, ui.create_stretch())
 
         self.aper_group=ui.create_group(title='Apertures: ', content=ui.create_column(self.voa_row, self.roa_row))
+
+
+        self.x_stage_label=ui.create_label(name='x_stage_label', text='Motor X Pos (μm): ')
+        self.x_stage_real=ui.create_label(name='x_stage_real', text='@binding(instrument.x_stage_f)')
+        self.stage_pb=ui.create_push_button(name='stage_pb', text='Monitor', on_clicked='monitor_stage', width=50)
+        self.x_stage_row = ui.create_row(self.x_stage_label, self.x_stage_real, ui.create_stretch(), self.stage_pb)
+
+        self.y_stage_label=ui.create_label(name='y_stage_label', text='Motor Y Pos (μm): ')
+        self.y_stage_real=ui.create_label(name='y_stage_real', text='@binding(instrument.y_stage_f)')
+        self.y_stage_row = ui.create_row(self.y_stage_label, self.y_stage_real, ui.create_stretch())
+
+        self.stage_group=ui.create_group(title='VG Stage', content=ui.create_column(self.x_stage_row, self.y_stage_row))
         
-        self.ui_view=ui.create_column(self.EHT_row, self.vac_group, self.obj_group, self.cond_group, self.aper_group, spacing=5)
+        self.ui_view=ui.create_column(self.EHT_row, self.vac_group, self.obj_group, self.cond_group, self.aper_group, self.stage_group, spacing=5)
 
 
 

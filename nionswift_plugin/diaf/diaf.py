@@ -25,7 +25,7 @@ class Diafs:
         self.ser.parity = serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
         self.ser.bytesize=serial.EIGHTBITS
-        self.ser.timeout=2
+        self.ser.timeout=0.2
 		
         try:
             if not self.ser.is_open:

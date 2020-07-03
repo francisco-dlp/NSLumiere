@@ -58,6 +58,7 @@ class ivgDevice(Observable.Observable):
         self.busy_event=Event.Event()
         
         self.append_data=Event.Event()
+        self.stage_event=Event.Event()
         
         self.__EHT=3
         self.__obj_cur=1.0
@@ -80,11 +81,13 @@ class ivgDevice(Observable.Observable):
         self.__loop_index=0
 
         self.periodic()
+        self.stage_periodic()
 
 
         self.__lensInstrument=None
         self.__EELSInstrument=None
         self.__AperInstrument=None
+        self.__StageInstrument=None
 
         self.__sendmessage = ivg.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__ivg= ivg.IVG(self.__sendmessage)
@@ -105,6 +108,22 @@ class ivgDevice(Observable.Observable):
     
     def get_diaf_instrument(self):
         self.__AperInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("diaf_controller")
+
+    def get_stage_instrument(self):
+        self.__StageInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
+
+    def stage_periodic(self):
+        self.property_changed_event.fire('x_stage_f')
+        try:
+            self.stage_event.fire(self.__y_real_pos, self.__x_real_pos)
+        except:
+            pass
+        self.__stage_thread=threading.Timer(0.05, self.stage_periodic, args=(),)
+        if not self.__stage_thread.is_alive():
+            try:
+                self.__stage_thread.start()
+            except:
+                pass
 
     def periodic(self):
         self.property_changed_event.fire('roa_val_f')
@@ -266,3 +285,14 @@ class ivgDevice(Observable.Observable):
         rlist=['None', '50 um', '100 um', '150 um']
         return rlist[self.__roa]
 
+    @property
+    def x_stage_f(self):
+        if not self.__StageInstrument:
+            self.get_stage_instrument()
+        self.__x_real_pos, self.__y_real_pos = self.__StageInstrument.GetPos()
+        self.property_changed_event.fire('y_stage_f')
+        return '{:.2f}'.format(self.__x_real_pos*1e6)
+
+    @property
+    def y_stage_f(self):
+        return '{:.2f}'.format(self.__y_real_pos*1e6)

@@ -52,9 +52,16 @@ if (sys.maxsize > 2 ** 32):
 else:
     raise Exception("It must a python 64 bit version")
 
+
+
 LOGGERFUNC = WINFUNCTYPE(None, c_char_p)
-# void VG_EXPORT *OrsayStageInit(void(*log)(char *mess));
-_OrsayStageInit = _buildFunction(_library.OrsayStageInit, [LOGGERFUNC], c_void_p)
+MOTOR = WINFUNCTYPE(c_void_p)
+
+
+
+# void VG_EXPORT *OrsayStageInit();
+_OrsayStageInit = _buildFunction(_library.OrsayStageInit, None, c_void_p)
+
 # void VG_EXPORT OrsayStageClose(void *o);
 _OrsayStageClose = _buildFunction(_library.OrsayStageClose, [c_void_p], None)
 
@@ -74,8 +81,6 @@ _OrsayStageMotorGoToCalPosition = _buildFunction(_library.MotorGoToCalPosition, 
 
 
 class VGStage(object):
-    """description of class"""
-    depends_on = ("C10",)  # subclasses should define the controls and attributes they depend on here
 
     def __logger(self, message):
         """ Permet de capter les messages de la dll"""
@@ -91,18 +96,22 @@ class VGStage(object):
             self.__logger_func = fn
 
         self._InitOk = False
-        #try:
-        self._stage = _OrsayStageInit(self.__logger_func)
-        #if not self._stage:
-        #    raise Exception("Stage not created")
-        self._InitOk = _OrsayStageIsInitialised(self._stage, 0)
-        print(self._InitOk)
-        #except:
-        #    pass
-        #finally:
-        #    pass
+        try:
+            self._stage = _OrsayStageInit()
+            if not self._stage:
+                raise Exception("Stage not created")
+            self._InitOk = _OrsayStageIsInitialised(self._stage, 0)
+        except:
+            pass
+
+        #px, py = self.stageGetPosition()
+        #px = px + 0.0000010
+        #self.stageGoTo(px, py)
+        #print("Position: ", self.stageGetPosition())
+
         self.stage_moved = Event.Event()
         self.__property_changed_event_listener = None
+
 
     def close(self):
         """ ferme la dll """
@@ -112,12 +121,12 @@ class VGStage(object):
         _OrsayStageClose(self._stage)
         self._stage = 0
 
-    def attach_instrument(self, instrument):
+    '''def attach_instrument(self, instrument):
         def property_changed(name):
             if name in self.depends_on:
                 pass
 
-        self.__property_changed_event_listener = instrument.property_changed_event.listen(property_changed)
+        self.__property_changed_event_listener = instrument.property_changed_event.listen(property_changed)'''
 
     def stageInit(self, x_axis: bool, y_axis: bool, always: bool):
         """ lance la recherche de l'origine pour un ou deux axes
@@ -166,5 +175,11 @@ class VGStage(object):
 
     def stageGoTo(self, x: float, y: float):
         """ Va à la position demandée [x, y] """
-        res = _OrsayStageMotorGoToCalPosition(self._stage, 0, x)
-        res = _OrsayStageMotorGoToCalPosition(self._stage, 1, y)
+        _OrsayStageMotorGoToCalPosition(self._stage, 0, x)
+        _OrsayStageMotorGoToCalPosition(self._stage, 1, y)
+
+    def stageGoTo_x(self, x):
+        _OrsayStageMotorGoToCalPosition(self._stage, 0, x)
+
+    def stageGoTo_y(self, y):
+        _OrsayStageMotorGoToCalPosition(self._stage, 1, y)

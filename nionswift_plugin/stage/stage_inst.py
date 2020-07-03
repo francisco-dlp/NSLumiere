@@ -28,7 +28,7 @@ import logging
 import time
 import sys
 
-DEBUG = 1
+DEBUG = 0
 
 if not DEBUG:
     from . import VGStage as stage
@@ -43,15 +43,27 @@ class stageDevice(Observable.Observable):
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
 
-        self.__x=0
-        self.__y=0
-
         if not DEBUG:
             logging.info(sys.executable) #Stepper DLL should be here
             self.__vgStage=stage.VGStage() #You need to have STEMSerial.dll and put Stepper.dll in python folder
 
+        self.__x, self.__y = self.__vgStage.stageGetPosition()
+        #self.__vgStage.stageInit(True, True, True)
+
+
+
+
         #self.__sendmessage = lens_ps.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         #self.__lenses_ps = lens_ps.Lenses(self.__sendmessage)
+
+    def GetPos(self):
+        return self.__vgStage.stageGetPosition()
+
+    def set_origin(self):
+        #self.__vgStage.stageInit(True, True, True)
+        logging.info('Disabled for now. X switch seems to be malfunctioning')
+
+
 
     def sendMessageFactory(self):
         def sendMessage(message):
@@ -60,42 +72,47 @@ class stageDevice(Observable.Observable):
 
         return sendMessage
 
+
     @property
     def x_pos_f(self):
-        return int(self.__x)
+        return int(self.__x*1e6)
 
     @x_pos_f.setter
     def x_pos_f(self, value):
-        self.__x=value
+        self.__x=value/1e6
+
         self.property_changed_event.fire('x_pos_f')
         self.property_changed_event.fire('x_pos_edit_f')
 
     @property
     def x_pos_edit_f(self):
-        return self.__x
+        return '{:.2f}'.format(self.__x*1e6)
 
     @x_pos_edit_f.setter
     def x_pos_edit_f(self, value):
-        self.__x = float(value)
+        self.__x = float(value)/1e6
+        self.__vgStage.stageGoTo_x(self.__x)
         self.property_changed_event.fire('x_pos_f')
         self.property_changed_event.fire('x_pos_edit_f')
 
     @property
     def y_pos_f(self):
-        return int(self.__y)
+        return int(self.__y*1e6)
 
     @y_pos_f.setter
     def y_pos_f(self, value):
-        self.__y = value
+        self.__y = value/1e6
+
         self.property_changed_event.fire('y_pos_f')
         self.property_changed_event.fire('y_pos_edit_f')
 
     @property
     def y_pos_edit_f(self):
-        return self.__y
+        return '{:.2f}'.format(self.__y*1e6)
 
     @y_pos_edit_f.setter
     def y_pos_edit_f(self, value):
-        self.__y = float(value)
+        self.__y = float(value)/1e6
+        self.__vgStage.stageGoTo_y(self.__y)
         self.property_changed_event.fire('y_pos_f')
         self.property_changed_event.fire('y_pos_edit_f')

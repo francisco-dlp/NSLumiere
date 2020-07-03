@@ -28,7 +28,7 @@ class Lenses:
         self.ser.parity = serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
         self.ser.bytesize = serial.EIGHTBITS
-        self.ser.timeout = 2
+        self.ser.timeout = 0.2
 
         self.lock = threading.Lock()
 
@@ -57,12 +57,16 @@ class Lenses:
         return current, voltage
 
     def set_val(self, val, which):
-        if which == 'OBJ':
+        logging.info(val)
+        if which == 'OBJ' and val<=9.2:
             string_init = '>1,1,1,'
-        if which == 'C1':
+        elif which == 'C1' and val<=0.80:
             string_init = '>1,1,2,'
-        if which == 'C2':
+        elif which == 'C2' and val<=0.80:
             string_init = '>1,1,3,'
+        else:
+            self.sendmessage(3)
+            return None
 
         string = string_init + str(val) + ',0.5\r'
         logging.info(string)
