@@ -77,7 +77,7 @@ class stageView:
     def __init__(self, instrument:stage_inst.stageDevice):
         ui = Declarative.DeclarativeUI()
 
-        ### Full Range ###
+        ### Buttons ###
 
         self.full_range_pb=ui.create_push_button(name='full_range_pb', text='Full Range', on_clicked='total_range', width=100)
         self.add_pb=ui.create_push_button(name='add_pb', text='Add', on_clicked='add_value')

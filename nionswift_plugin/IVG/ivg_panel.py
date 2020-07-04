@@ -8,6 +8,7 @@ import numpy
 from nion.swift import Panel
 from nion.swift import Workspace
 from nion.ui import Widgets
+from nion.data import Calibration
 from nion.utils import Binding
 from nion.utils import Converter
 from nion.utils import Geometry
@@ -27,11 +28,20 @@ import inspect
 
 class dataItemCreation():
     def __init__(self, title, array):
+        
         self.data_item=DataItem.DataItem()
         self.data_item.define_property("title", title)
         self.data_item.set_data(array)
         self.data_item._enter_live_state()
+        
+        self.calibration=Calibration.Calibration()
+        self.calibration.offset = 10
+        self.calibration.scale = 100
+        self.calibration.units = 'TESTE'
+        
+        self.data_item.intensity_calibration=self.calibration
 
+        logging.info(self.data_item.dimensional_calibrations)
 
 
 class ivghandler:
@@ -48,15 +58,16 @@ class ivghandler:
         self.append_data_listener=self.instrument.append_data.listen(self.append_data)
         self.stage_event_listener=self.instrument.stage_event.listen(self.stage_data)
 
-        self.ll_array = numpy.zeros(5000)
-        self.gun_array = numpy.zeros(5000)
-        self.obj_array = numpy.zeros(5000)
-        self.stage_array = numpy.zeros((160, 160))
+        self.ll_array = numpy.zeros(5000) #air lock (or load lock) gauge
+        self.gun_array = numpy.zeros(5000) #gun gauge
+        self.obj_array = numpy.zeros(5000) #objective lens temperature
+        self.stage_array = numpy.zeros((160, 160)) #stage tracker
 
         self.ll_di=None
         self.gun_di=None
         self.obj_di=None
         self.stage_di=None
+        
 
 
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
@@ -110,6 +121,9 @@ class ivghandler:
         self.stage_di = dataItemCreation("Stage Position", self.obj_array)
         self.document_controller.document_model.append_data_item(self.stage_di.data_item)
 
+    def clear_stage(self, widget):
+        self.stage_array = numpy.zeros((160, 160))
+
 class ivgView:
 
 
@@ -122,13 +136,13 @@ class ivgView:
 
         self.gun_label=ui.create_label(name='gun_label', text='Gun Vacuum: ')
         self.gun_vac=ui.create_label(name='gun_vac', text='@binding(instrument.gun_vac_f)')
-        self.gun_pb=ui.create_push_button(name='gun_pb', text='Monitor', on_clicked='monitor_gun', width=50)
+        self.gun_pb=ui.create_push_button(name='gun_pb', text='Monitor', on_clicked='monitor_gun', width=100)
         self.gun_row=ui.create_row(self.gun_label, self.gun_vac, ui.create_stretch(), self.gun_pb)
 
 
         self.LL_label=ui.create_label(name='LL_label', text='AirLock Vacuum: ')
         self.LL_vac=ui.create_label(name='LL_vac', text='@binding(instrument.LL_vac_f)')
-        self.LL_pb=ui.create_push_button(name='LL_pb', text='Monitor', on_clicked='monitor_air_lock', width=50)
+        self.LL_pb=ui.create_push_button(name='LL_pb', text='Monitor', on_clicked='monitor_air_lock', width=100)
         self.LL_row=ui.create_row(self.LL_label, self.LL_vac, ui.create_stretch(), self.LL_pb)
 
         self.vac_group=ui.create_group(title='Gauges: ', content=ui.create_column(self.gun_row, self.LL_row))
@@ -143,7 +157,7 @@ class ivgView:
         
         self.obj_temp=ui.create_label(name='obj_temp', text='Temperature: ')
         self.obj_temp_value=ui.create_label(name='obj_temp_value', text='@binding(instrument.obj_temp_f)')
-        self.obj_pb=ui.create_push_button(name='obj_pb', text='Monitor', on_clicked='monitor_obj_temp', width=50)
+        self.obj_pb=ui.create_push_button(name='obj_pb', text='Monitor', on_clicked='monitor_obj_temp', width=100)
         self.obj_temp_row=ui.create_row(self.obj_temp, self.obj_temp_value, ui.create_stretch(), self.obj_pb)
         
         self.obj_group=ui.create_group(title='Objective Lens: ', content=ui.create_column(self.obj_cur_row, self.obj_vol_row, self.obj_temp_row))
@@ -180,12 +194,13 @@ class ivgView:
 
         self.x_stage_label=ui.create_label(name='x_stage_label', text='Motor X Pos (μm): ')
         self.x_stage_real=ui.create_label(name='x_stage_real', text='@binding(instrument.x_stage_f)')
-        self.stage_pb=ui.create_push_button(name='stage_pb', text='Monitor', on_clicked='monitor_stage', width=50)
+        self.stage_pb=ui.create_push_button(name='stage_pb', text='Monitor', on_clicked='monitor_stage', width=100)
         self.x_stage_row = ui.create_row(self.x_stage_label, self.x_stage_real, ui.create_stretch(), self.stage_pb)
 
         self.y_stage_label=ui.create_label(name='y_stage_label', text='Motor Y Pos (μm): ')
         self.y_stage_real=ui.create_label(name='y_stage_real', text='@binding(instrument.y_stage_f)')
-        self.y_stage_row = ui.create_row(self.y_stage_label, self.y_stage_real, ui.create_stretch())
+        self.stage_clear_pb=ui.create_push_button(name='stage_clear_pb', text='Clear Track', on_clicked='clear_stage', width=100)
+        self.y_stage_row = ui.create_row(self.y_stage_label, self.y_stage_real, ui.create_stretch(), self.stage_clear_pb)
 
         self.stage_group=ui.create_group(title='VG Stage', content=ui.create_column(self.x_stage_row, self.y_stage_row))
         
