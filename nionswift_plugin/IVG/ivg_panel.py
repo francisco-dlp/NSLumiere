@@ -30,8 +30,8 @@ class dataItemCreation():
     def __init__(self, title, array):
         
         self.data_item=DataItem.DataItem()
-        self.data_item.define_property("title", title)
         self.data_item.set_data(array)
+        self.data_item.define_property("title", title)
         self.data_item._enter_live_state()
         
         self.calibration=Calibration.Calibration()
@@ -40,6 +40,8 @@ class dataItemCreation():
         self.calibration.units = 'TESTE'
         
         self.data_item.intensity_calibration=self.calibration
+
+        self.data_item.dimensional_calibrations[0].units='eV'
 
         logging.info(self.data_item.dimensional_calibrations)
 
@@ -97,7 +99,7 @@ class ivghandler:
         self.ll_array[index], self.gun_array[index], self.obj_array[index] = value
 
         if self.ll_di:
-            self.ll_di.data_item.set_data(self.ll_array)
+            self.ll_di.data_item.set_data(self.ll_array) #this is messing calibrations. Live data entering.
         if self.gun_di:
             self.gun_di.data_item.set_data(self.gun_array)
         if self.obj_di:
