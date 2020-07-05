@@ -21,8 +21,25 @@ class espec:
         self.sendmessage=sendmessage
 
     def set_val(self, val, which):
-        if val<0: val=0xffff+val
-        string = which+' 0,'+hex(val)[2:6]+'\r'	
-        logging.info(string)
-        time.sleep(0.01)
-        return None
+        if abs(val)<32767:
+            if val<0: val=0xffff+val
+            string = which+' 0,'+hex(val)[2:6]+'\r'
+            logging.info(string)
+            return None
+        else:
+            self.sendmessage(3)
+
+    def wobbler_loop(self, current, intensity, which):
+        self.wobbler_thread = threading.currentThread()
+        while getattr(self.wobbler_thread, "do_run", True):
+            self.set_val(current + intensity, which)
+            time.sleep(1.)
+            self.set_val(current - intensity, which)
+            time.sleep(1.)
+
+    def wobbler_on(self, current, intensity, which):
+        self.wobbler_thread = threading.Thread(target=self.wobbler_loop, args=(current, intensity, which), )
+        self.wobbler_thread.start()
+
+    def wobbler_off(self):
+        self.wobbler_thread.do_run = False

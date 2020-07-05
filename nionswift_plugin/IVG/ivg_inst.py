@@ -72,8 +72,8 @@ class ivgDevice(Observable.Observable):
         self.__LL_mon=False
         self.__loop_index=0
 
-        self.periodic()
-        self.stage_periodic()
+        #self.periodic()
+        #self.stage_periodic()
 
 
         self.__lensInstrument=None
