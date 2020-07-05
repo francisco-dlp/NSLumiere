@@ -129,8 +129,8 @@ class ivgDevice(Observable.Observable):
         self.property_changed_event.fire('obj_temp_f')
 
     def shutdown_objective(self):
-        self.__lensInstrument.obj_global_f=False
-        logging.info('*** LENSES / IVG ***: Shutdown objective lens because of high temperature.')
+        #self.__lensInstrument.obj_global_f=False
+        #logging.info('*** LENSES / IVG ***: Shutdown objective lens because of high temperature.')
         if SENDMAIL:
             try:
                 context=ssl.create_default_context()

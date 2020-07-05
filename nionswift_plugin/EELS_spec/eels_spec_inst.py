@@ -1,30 +1,11 @@
 # standard libraries
-import math
 import json
-import numpy
 import os
-import random
-import scipy.ndimage.interpolation
-import scipy.stats
-import threading
-import typing
-import time
-from nion.data import Calibration
-from nion.data import DataAndMetadata
-import asyncio
-# from pydevd import settrace
 import logging
+import time
 
-from nion.utils import Registry
 from nion.utils import Event
-from nion.utils import Geometry
-from nion.utils import Model
 from nion.utils import Observable
-from nion.swift.model import HardwareSource
-from nion.swift.model import ImportExportManager
-
-import logging
-import time
 
 DEBUG = 1
 
@@ -58,10 +39,10 @@ class EELS_SPEC_Device(Observable.Observable):
         self.__dmx = 0
 
         self.focus_wobbler_f=0
-        self.__focus_wobbler_int=1
+        self.__focus_wobbler_int=25
 
         self.dispersion_wobbler_f=0
-        self.__dispersion_wobbler_int=1
+        self.__dispersion_wobbler_int=25
 
         self.__EHT = '3'
 
@@ -141,14 +122,21 @@ class EELS_SPEC_Device(Observable.Observable):
 
     @focus_wobbler_f.setter
     def focus_wobbler_f(self, value):
-        list = ['OFF', 'FX', 'FY', 'SX', 'SY', 'DY']
-        list_values=[0, self.__fx, self.__fy, self.__sx, self.__sy, self.__dy]
+        focus_list = ['OFF', 'FX', 'FY', 'SX', 'SY', 'DY']
+        focus_list_values=[0, self.__fx, self.__fy, self.__sx, self.__sy, self.__dy]
         self.__focus_wobbler_index = value
+        logging.info(value)
         if value:
-            self.__eels_spec.wobbler_on(list_values[value], self.__focus_wobbler_int, list[value])
+            self.__eels_spec.wobbler_on(focus_list_values[value], self.__focus_wobbler_int, focus_list[value])
         else:
             try:
                 self.__eels_spec.wobbler_off()
+                time.sleep(2.2)
+                self.fx_slider_f=self.__fx
+                self.fy_slider_f = self.__fy
+                self.sx_slider_f = self.__sx
+                self.sy_slider_f = self.__sy
+                self.dy_slider_f = self.__dy
             except:
                 logging.info('***EELS SPECTROMETER***: Wobbler is OFF.')
         self.property_changed_event.fire('focus_wobbler_f')
@@ -163,7 +151,6 @@ class EELS_SPEC_Device(Observable.Observable):
         if self.__focus_wobbler_index:
             temp=self.focus_wobbler_f
             self.focus_wobbler_f=0
-            time.sleep(1.)
             self.focus_wobbler_f=temp
         self.property_changed_event.fire('focus_wobbler_int_f')
 
@@ -173,14 +160,21 @@ class EELS_SPEC_Device(Observable.Observable):
 
     @dispersion_wobbler_f.setter
     def dispersion_wobbler_f(self, value):
-        list = ['OFF', 'Q1', 'Q2', 'Q3', 'Q4', 'DX', 'DMX']
-        list_values = [0, self.__q1, self.__q2, self.__q3, self.__q4, self.__dx, self.__dmx]
+        disp_list = ['OFF', 'Q1', 'Q2', 'Q3', 'Q4', 'DX', 'DMX']
+        disp_list_values = [0, self.__q1, self.__q2, self.__q3, self.__q4, self.__dx, self.__dmx]
         self.__dispersion_wobbler_index = value
         if value:
-            self.__eels_spec.wobbler_on(list_values[value], self.__focus_wobbler_int, list[value])
+            self.__eels_spec.wobbler_on(disp_list_values[value], self.__dispersion_wobbler_int, disp_list[value])
         else:
             try:
                 self.__eels_spec.wobbler_off()
+                time.sleep(2.2)
+                self.q1_slider_f=self.__q1
+                self.q2_slider_f = self.__q2
+                self.q3_slider_f = self.__q3
+                self.q4_slider_f = self.__q4
+                self.dx_slider_f = self.__dx
+                self.dmx_slider_f = self.__dmx
             except:
                 logging.info('***EELS SPECTROMETER***: Wobbler is OFF.')
         self.property_changed_event.fire('dispersion_wobbler_f')
@@ -195,7 +189,6 @@ class EELS_SPEC_Device(Observable.Observable):
         if self.__dispersion_wobbler_index:
             temp=self.dispersion_wobbler_f
             self.dispersion_wobbler_f=0
-            time.sleep(1.)
             self.dispersion_wobbler_f=temp
         self.property_changed_event.fire('dispersion_wobbler_int_f')
 
