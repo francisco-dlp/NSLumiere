@@ -9,6 +9,7 @@ from nion.swift import Panel
 from nion.swift import Workspace
 from nion.ui import Widgets
 from nion.data import Calibration
+from nion.data import DataAndMetadata
 from nion.utils import Binding
 from nion.utils import Converter
 from nion.utils import Geometry
@@ -22,28 +23,60 @@ _ = gettext.gettext
 from nion.utils import Model
 from nion.swift.model import DataItem
 from nion.swift.model import DocumentModel
+from nion.swift.model import Utility
 
 
-import inspect
 
 class dataItemCreation():
-    def __init__(self, title, array):
+    def __init__(self, title, array, which):
+        
+        self.timezone = Utility.get_local_timezone()
+        self.timezone_offset = Utility.TimezoneMinutesToStringConverter().convert(Utility.local_utcoffset_minutes())
+            
+        self.calibration=Calibration.Calibration()
+
+        if which!='STA':
+            self.dimensional_calibrations = [Calibration.Calibration()]
+            if which=='OBJ':
+                self.calibration.units = 'ºC'
+                self.dimensional_calibrations[0].units='min'
+                self.dimensional_calibrations[0].scale=1/60.
+            if which=='LL':
+                self.calibration.units='mBar'
+                self.dimensional_calibrations[0].units='min'
+                self.dimensional_calibrations[0].scale=1/60.
+            if which=='GUN':
+                self.calibration.units='mTor'
+                self.dimensional_calibrations[0].units='min'
+                self.dimensional_calibrations[0].scale=1/60.
+            self.xdata=DataAndMetadata.new_data_and_metadata(array, self.calibration, self.dimensional_calibrations, timezone=self.timezone, timezone_offset=self.timezone_offset)
+        else:
+            self.calibration.units=''
+            
+            self.dim_calib01 = Calibration.Calibration()
+            self.dim_calib02 = Calibration.Calibration()
+
+            self.dim_calib01.units='µm'
+            self.dim_calib01.scale=-10
+            self.dim_calib01.offset=800
+            self.dim_calib02.units='µm'
+            self.dim_calib02.scale=10
+            self.dim_calib02.offset=-800
+            
+            self.dimensional_calibrations=[self.dim_calib01, self.dim_calib02]
+            
+            self.xdata=DataAndMetadata.new_data_and_metadata(array, self.calibration, self.dimensional_calibrations, timezone=self.timezone, timezone_offset=self.timezone_offset)
+            
+        
         
         self.data_item=DataItem.DataItem()
-        self.data_item.set_data(array)
+        self.data_item.set_xdata(self.xdata)
         self.data_item.define_property("title", title)
         self.data_item._enter_live_state()
-        
-        self.calibration=Calibration.Calibration()
-        self.calibration.offset = 10
-        self.calibration.scale = 100
-        self.calibration.units = 'TESTE'
-        
-        self.data_item.intensity_calibration=self.calibration
 
-        self.data_item.dimensional_calibrations[0].units='eV'
-
-        logging.info(self.data_item.dimensional_calibrations)
+    def update_data_only(self, array: numpy.array):
+        self.xdata=DataAndMetadata.new_data_and_metadata(array, self.calibration, self.dimensional_calibrations, timezone=self.timezone, timezone_offset=self.timezone_offset)
+        self.data_item.set_xdata(self.xdata)
 
 
 class ivghandler:
@@ -64,6 +97,7 @@ class ivghandler:
         self.gun_array = numpy.zeros(5000) #gun gauge
         self.obj_array = numpy.zeros(5000) #objective lens temperature
         self.stage_array = numpy.zeros((160, 160)) #stage tracker
+
 
         self.ll_di=None
         self.gun_di=None
@@ -93,34 +127,34 @@ class ivghandler:
                 self.stage_array[index1][index2] += 20
 
         if self.stage_di:
-            self.stage_di.data_item.set_data(self.stage_array)
+            self.stage_di.update_data_only(self.stage_array)
 
     def append_data(self, value, index):
         self.ll_array[index], self.gun_array[index], self.obj_array[index] = value
 
         if self.ll_di:
-            self.ll_di.data_item.set_data(self.ll_array) #this is messing calibrations. Live data entering.
+            self.ll_di.update_data_only(self.ll_array)
         if self.gun_di:
-            self.gun_di.data_item.set_data(self.gun_array)
+            self.gun_di.update_data_only(self.gun_array)
         if self.obj_di:
-            self.obj_di.data_item.set_data(self.obj_array)
+            self.obj_di.update_data_only(self.obj_array)
 
 
 
     def monitor_air_lock(self, widget):
-        self.ll_di = dataItemCreation("AirLock Vacuum", self.ll_array)
+        self.ll_di = dataItemCreation("AirLock Vacuum", self.ll_array, 'LL')
         self.document_controller.document_model.append_data_item(self.ll_di.data_item)
 
     def monitor_gun(self, widget):
-        self.gun_di = dataItemCreation("Gun Vacuum", self.gun_array)
+        self.gun_di = dataItemCreation("Gun Vacuum", self.gun_array, 'GUN')
         self.document_controller.document_model.append_data_item(self.gun_di.data_item)
 
     def monitor_obj_temp(self, widget):
-        self.obj_di = dataItemCreation("Objective Temperature", self.obj_array)
+        self.obj_di = dataItemCreation("Objective Temperature", self.obj_array, 'OBJ')
         self.document_controller.document_model.append_data_item(self.obj_di.data_item)
 
     def monitor_stage(self, widget):
-        self.stage_di = dataItemCreation("Stage Position", self.obj_array)
+        self.stage_di = dataItemCreation("Stage Position", self.stage_array, 'STA')
         self.document_controller.document_model.append_data_item(self.stage_di.data_item)
 
     def clear_stage(self, widget):
