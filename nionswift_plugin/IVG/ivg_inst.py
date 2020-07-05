@@ -25,8 +25,17 @@ with open(abs_path) as savfile:
 DEBUG_gun = settings["IVG"]["DEBUG_GUN"]
 DEBUG_airlock = settings["IVG"]["DEBUG_AIRLOCK"]
 SENDMAIL = settings["IVG"]["SENDMAIL"]
-FAST_PERIODIC = settings["IVG"]["FAST_PERIODIC"]
-SLOW_PERIODIC = settings["IVG"]["SLOW_PERIODIC"]
+FAST_PERIODIC = settings["IVG"]["FAST_PERIODIC"]["ACTIVE"]
+TIME_FAST_PERIODIC=settings["IVG"]["FAST_PERIODIC"]["PERIOD"]
+SLOW_PERIODIC = settings["IVG"]["SLOW_PERIODIC"]["ACTIVE"]
+TIME_SLOW_PERIODIC = settings["IVG"]["SLOW_PERIODIC"]["PERIOD"]
+OBJECTIVE_MAX_TEMPERATURE = settings["IVG"]["OBJECTIVE"]["MAX_TEMP"]
+OBJECTIVE_RESISTANCE = settings["IVG"]["OBJECTIVE"]["RESISTANCE"]
+TEMP_COEF = settings["IVG"]["OBJECTIVE"]["TEMP_COEF"]
+MAX_PTS = settings["IVG"]["MAX_PTS"]
+AMBIENT_TEMPERATURE = settings["IVG"]["AMBIENT_TEMPERATURE"]
+EHT_INITIAL = settings["IVG"]["EHT_INITIAL"]
+
 
 if DEBUG_gun:
     from . import gun_vi as gun
@@ -49,29 +58,17 @@ class ivgDevice(Observable.Observable):
         self.append_data=Event.Event()
         self.stage_event=Event.Event()
         
-        self.__EHT=3
-        self.__obj_cur=1.0
-        self.__obj_vol=5.0
-        self.__obj_temp=23.
-        self.__obj_res=5.18
-        self.__obj_res_ref=5.18 #in ohms at room temp. Determine with obj under very low current
-        self.__amb_temp=23.
+        self.__EHT=EHT_INITIAL
+        self.__obj_res_ref = OBJECTIVE_RESISTANCE
+        self.__amb_temp = AMBIENT_TEMPERATURE
 
-        self.__c1_cur=0.01
-        self.__c1_vol=0.01
-        self.__c1_res=23.39
+        self.__obj_temp=self.__amb_temp
+        self.__obj_res=self.__obj_res_ref
 
-
-        self.__c2_cur=0.01
-        self.__c2_vol=0.01
-        self.__c2_res=23.37
-
-        self.__LL_mon=False
         self.__loop_index=0
 
         if SLOW_PERIODIC: self.periodic()
         if FAST_PERIODIC: self.stage_periodic()
-
 
         self.__lensInstrument=None
         self.__EELSInstrument=None
@@ -103,7 +100,7 @@ class ivgDevice(Observable.Observable):
             self.stage_event.fire(self.__y_real_pos, self.__x_real_pos)
         except:
             logging.info('***IVG***: Could not sent [FAST] periodic values to the panel.')
-        self.__stage_thread=threading.Timer(0.05, self.stage_periodic, args=(),)
+        self.__stage_thread=threading.Timer(TIME_FAST_PERIODIC, self.stage_periodic, args=(),)
         if not self.__stage_thread.is_alive():
             try:
                 self.__stage_thread.start()
@@ -122,11 +119,11 @@ class ivgDevice(Observable.Observable):
         try:
             self.append_data.fire([self.__LL_vac, self.__gun_vac, self.__obj_temp], self.__loop_index)
             self.__loop_index+=1
-            if self.__loop_index==5000: self.__loop_index=0
-            if self.__obj_temp>70: self.shutdown_objective()
+            if self.__loop_index==MAX_PTS: self.__loop_index=0
+            if self.__obj_temp>OBJECTIVE_MAX_TEMPERATURE: self.shutdown_objective()
         except:
             logging.info('***IVG***: Could not sent [SLOW] periodic values to the panel.')
-        self.__thread=threading.Timer(1, self.periodic, args=(),)
+        self.__thread=threading.Timer(TIME_SLOW_PERIODIC, self.periodic, args=(),)
         if not self.__thread.is_alive():
             try:
                 self.__thread.start()
@@ -134,7 +131,7 @@ class ivgDevice(Observable.Observable):
                 pass
         
     def estimate_temp(self):
-        self.__obj_temp = self.__amb_temp + ((self.__obj_res-self.__obj_res_ref)/self.__obj_res_ref)/0.004041
+        self.__obj_temp = self.__amb_temp + ((self.__obj_res-self.__obj_res_ref)/self.__obj_res_ref)/TEMP_COEF
         self.property_changed_event.fire('obj_temp_f')
 
     def shutdown_objective(self):

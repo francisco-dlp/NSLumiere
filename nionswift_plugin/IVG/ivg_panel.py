@@ -3,29 +3,27 @@ import gettext
 import os
 import json
 import numpy
+import logging
 
-# local libraries
 from nion.swift import Panel
 from nion.swift import Workspace
-from nion.ui import Widgets
 from nion.data import Calibration
 from nion.data import DataAndMetadata
-from nion.utils import Binding
-from nion.utils import Converter
-from nion.utils import Geometry
 from nion.ui import Declarative
 from nion.ui import UserInterface
-import threading
-
-from . import ivg_inst
-import logging
-_ = gettext.gettext
-from nion.utils import Model
 from nion.swift.model import DataItem
-from nion.swift.model import DocumentModel
 from nion.swift.model import Utility
 
+from . import ivg_inst
 
+_ = gettext.gettext
+
+abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
+with open(abs_path) as savfile:
+    settings = json.load(savfile)
+
+MAX_PTS = settings["IVG"]["MAX_PTS"]
+STAGE_MATRIX_SIZE = settings["IVG"]["STAGE_MATRIX_SIZE"]
 
 class dataItemCreation():
     def __init__(self, title, array, which):
@@ -57,10 +55,10 @@ class dataItemCreation():
             self.dim_calib02 = Calibration.Calibration()
 
             self.dim_calib01.units='µm'
-            self.dim_calib01.scale=-10
+            self.dim_calib01.scale=-1600/STAGE_MATRIX_SIZE
             self.dim_calib01.offset=800
             self.dim_calib02.units='µm'
-            self.dim_calib02.scale=10
+            self.dim_calib02.scale=1600/STAGE_MATRIX_SIZE
             self.dim_calib02.offset=-800
             
             self.dimensional_calibrations=[self.dim_calib01, self.dim_calib02]
@@ -93,10 +91,10 @@ class ivghandler:
         self.append_data_listener=self.instrument.append_data.listen(self.append_data)
         self.stage_event_listener=self.instrument.stage_event.listen(self.stage_data)
 
-        self.ll_array = numpy.zeros(5000) #air lock (or load lock) gauge
-        self.gun_array = numpy.zeros(5000) #gun gauge
-        self.obj_array = numpy.zeros(5000) #objective lens temperature
-        self.stage_array = numpy.zeros((160, 160)) #stage tracker
+        self.ll_array = numpy.zeros(MAX_PTS) #air lock (or load lock) gauge
+        self.gun_array = numpy.zeros(MAX_PTS) #gun gauge
+        self.obj_array = numpy.zeros(MAX_PTS) #objective lens temperature
+        self.stage_array = numpy.zeros((STAGE_MATRIX_SIZE, STAGE_MATRIX_SIZE)) #stage tracker
 
 
         self.ll_di=None
@@ -120,9 +118,9 @@ class ivghandler:
         self.event_loop.create_task(self.do_enable(False, []))
 
     def stage_data(self, stage1, stage2):
-        index1 = (80-int(round(stage1*1e6/10)))
-        index2 = (int(round(stage2*1e6/10))-80)
-        if abs(index1)<160 and abs(index2)<160:
+        index1 = int(round(STAGE_MATRIX_SIZE/2-stage1*1e6/(1600/STAGE_MATRIX_SIZE)))
+        index2 = int(round(stage2*1e6/(1600/STAGE_MATRIX_SIZE)-STAGE_MATRIX_SIZE/2))
+        if abs(index1)<STAGE_MATRIX_SIZE and abs(index2)<STAGE_MATRIX_SIZE:
             if self.stage_array[index1][index2]<=100:
                 self.stage_array[index1][index2] += 20
 
@@ -158,7 +156,7 @@ class ivghandler:
         self.document_controller.document_model.append_data_item(self.stage_di.data_item)
 
     def clear_stage(self, widget):
-        self.stage_array = numpy.zeros((160, 160))
+        self.stage_array = numpy.zeros((STAGE_MATRIX_SIZE, STAGE_MATRIX_SIZE))
 
 class ivgView:
 

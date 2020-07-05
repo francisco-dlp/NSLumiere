@@ -88,7 +88,8 @@ class probeDevice(Observable.Observable):
             if message == 3:
                 logging.info("***LENSES***: Attempt to set values out of range.")
             if message == 4:
-                logging.info("***LENSES***: Communication Error over Serial Port. Easy check using Serial Port Monitor software.")
+                logging.info('***LENSES***: Communication Error over Serial Port. Easy check using Serial Port '
+                             'Monitor software.')
 
         return sendMessage
 

@@ -64,7 +64,7 @@ class diafhandler:
         json_object['ROA']['last']=self.obj_combo_box.current_index
 
         with open(abs_path, 'w') as json_file:
-            json.dump(json_object, json_file)
+            json.dump(json_object, json_file, indent=4)
         
         self.total_range(widget)
 
@@ -78,7 +78,7 @@ class diafhandler:
         json_object['VOA']['last']=self.sa_combo_box.current_index
 
         with open(abs_path, 'w') as json_file:
-            json.dump(json_object, json_file)
+            json.dump(json_object, json_file, indent=4)
 
         self.total_range(widget)
  
