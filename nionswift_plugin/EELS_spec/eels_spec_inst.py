@@ -7,7 +7,10 @@ import time
 from nion.utils import Event
 from nion.utils import Observable
 
-DEBUG = 1
+abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
+with open(abs_path) as savfile:
+    settings = json.load(savfile)
+DEBUG = settings["EELS"]["DEBUG"]
 
 if DEBUG:
     from . import eels_spec_vi as spec

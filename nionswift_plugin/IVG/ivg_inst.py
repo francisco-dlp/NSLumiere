@@ -2,6 +2,12 @@
 import threading
 import logging
 import smtplib, ssl
+import os
+import json
+
+from nion.utils import Event
+from nion.utils import Observable
+from nion.swift.model import HardwareSource
 
 sender_email = "vg.lumiere@gmail.com"
 receiver_email="yvesauad@gmail.com"
@@ -11,13 +17,16 @@ Subject: Objective Lens @ VG Lumiere
 
 This message was automatically sent and means objective lens @ VG Lum. was shutdown because of its high temperature"""
 
-from nion.utils import Event
-from nion.utils import Observable
-from nion.swift.model import HardwareSource
 
-DEBUG_gun=1
-DEBUG_airlock=1
-SENDMAIL = 0 #1 sends the email
+abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
+with open(abs_path) as savfile:
+    settings = json.load(savfile)
+
+DEBUG_gun = settings["IVG"]["DEBUG_GUN"]
+DEBUG_airlock = settings["IVG"]["DEBUG_AIRLOCK"]
+SENDMAIL = settings["IVG"]["SENDMAIL"]
+FAST_PERIODIC = settings["IVG"]["FAST_PERIODIC"]
+SLOW_PERIODIC = settings["IVG"]["SLOW_PERIODIC"]
 
 if DEBUG_gun:
     from . import gun_vi as gun
@@ -60,8 +69,8 @@ class ivgDevice(Observable.Observable):
         self.__LL_mon=False
         self.__loop_index=0
 
-        self.periodic()
-        self.stage_periodic()
+        if SLOW_PERIODIC: self.periodic()
+        if FAST_PERIODIC: self.stage_periodic()
 
 
         self.__lensInstrument=None

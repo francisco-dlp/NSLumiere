@@ -69,7 +69,7 @@ class eels_spec_handler:
         json_object[str(self.ivg.EHT_f)]['last'] = self.dispersion_value.current_index
 
         with open(abs_path, 'w') as json_file:
-            json.dump(json_object, json_file)
+            json.dump(json_object, json_file, indent=4)
 
         self.full_range(widget)
 

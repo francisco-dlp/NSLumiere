@@ -1,0 +1,24 @@
+{
+  "EELS": {
+    "DEBUG": 1
+  },
+  "IVG": {
+    "DEBUG_GUN": 1,
+    "DEBUG_AIRLOCK": 1,
+    "SENDMAIL": 0,
+    "FAST_PERIODIC": 1,
+    "SLOW_PERIODIC": 1
+  },
+  "Scan_Lum": {
+    "DEBUG": 1
+  },
+  "diaf": {
+    "DEBUG": 1
+  },
+  "lenses": {
+    "DEBUG": 1
+  },
+  "stage": {
+    "DEBUG": 1
+  }
+}

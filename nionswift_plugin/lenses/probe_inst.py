@@ -1,33 +1,17 @@
 # standard libraries
-import os
 import json
-import math
-import numpy
 import os
-import random
-import scipy.ndimage.interpolation
-import scipy.stats
-import threading
-import typing
-import time
-from nion.data import Calibration
-from nion.data import DataAndMetadata
-import asyncio
 import logging
-import queue
+import time
 
-from nion.utils import Registry
 from nion.utils import Event
-from nion.utils import Geometry
-from nion.utils import Model
 from nion.utils import Observable
 from nion.swift.model import HardwareSource
-from nion.swift.model import ImportExportManager
 
-import logging
-import time
-
-DEBUG = 1
+abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
+with open(abs_path) as savfile:
+    settings = json.load(savfile)
+DEBUG = settings["lenses"]["DEBUG"]
 
 if DEBUG:
     from . import lens_ps_vi as lens_ps
