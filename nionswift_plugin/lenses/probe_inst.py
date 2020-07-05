@@ -182,6 +182,7 @@ class probeDevice(Observable.Observable):
             self.__lenses_ps.set_val(self.__obj, 'OBJ')
         else:
             self.__lenses_ps.set_val(0.0, 'OBJ')
+        self.property_changed_event.fire('obj_global_f')
 
     @property
     def obj_wobbler_f(self):

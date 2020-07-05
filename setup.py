@@ -10,11 +10,11 @@ import os
 
 setuptools.setup(
     name="Lumiere Ultra Combo",
-    version="2.8",
+    version="2.9",
     author="Yves Auad",
     description="Lenses, EELS_Spec, Apertures,  Instrument",
     url="https://github.com/yvesauad/swift_lumiere",
-    packages=["nionswift_plugin.lenses", "nionswift_plugin.EELS_spec", "nionswift_plugin.diaf", "nionswift_plugin.IVG", ""],
+    packages=["nionswift_plugin.lenses", "nionswift_plugin.EELS_spec", "nionswift_plugin.diaf", "nionswift_plugin.IVG", "nionswift_plugin.stage", "nionswift_plugin.Scan_Lum"],
     python_requires='~=3.6',
 )
 

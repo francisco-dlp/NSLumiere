@@ -1,35 +1,23 @@
 # standard libraries
-import os
-import json
-import math
-import numpy
-import os
-import random
-import scipy.ndimage.interpolation
-import scipy.stats
 import threading
-import typing
-import time
-from nion.data import Calibration
-from nion.data import DataAndMetadata
-import asyncio
 import logging
+import smtplib, ssl
 
+sender_email = "vg.lumiere@gmail.com"
+receiver_email="yvesauad@gmail.com"
 
-from nion.utils import Registry
+message="""\
+Subject: Objective Lens @ VG Lumiere
+
+This message was automatically sent and means objective lens @ VG Lum. was shutdown because of its high temperature"""
+
 from nion.utils import Event
-from nion.utils import Geometry
-from nion.utils import Model
 from nion.utils import Observable
 from nion.swift.model import HardwareSource
-from nion.swift.model import ImportExportManager
-
-
-import logging
-import time
 
 DEBUG_gun=1
 DEBUG_airlock=1
+SENDMAIL = 0 #1 sends the email
 
 if DEBUG_gun:
     from . import gun_vi as gun
@@ -72,8 +60,8 @@ class ivgDevice(Observable.Observable):
         self.__LL_mon=False
         self.__loop_index=0
 
-        #self.periodic()
-        #self.stage_periodic()
+        self.periodic()
+        self.stage_periodic()
 
 
         self.__lensInstrument=None
@@ -126,6 +114,7 @@ class ivgDevice(Observable.Observable):
             self.append_data.fire([self.__LL_vac, self.__gun_vac, self.__obj_temp], self.__loop_index)
             self.__loop_index+=1
             if self.__loop_index==5000: self.__loop_index=0
+            if self.__obj_temp>70: self.shutdown_objective()
         except:
             logging.info('***IVG***: Could not sent [SLOW] periodic values to the panel.')
         self.__thread=threading.Timer(1, self.periodic, args=(),)
@@ -139,7 +128,17 @@ class ivgDevice(Observable.Observable):
         self.__obj_temp = self.__amb_temp + ((self.__obj_res-self.__obj_res_ref)/self.__obj_res_ref)/0.004041
         self.property_changed_event.fire('obj_temp_f')
 
-
+    def shutdown_objective(self):
+        self.__lensInstrument.obj_global_f=False
+        logging.info('*** LENSES / IVG ***: Shutdown objective lens because of high temperature.')
+        if SENDMAIL:
+            try:
+                context=ssl.create_default_context()
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+                    server.login(sender_email, 'vgStem27!')
+                    server.sendmail(sender_email, receiver_email, message)
+            except:
+                pass
 
 
     def sendMessageFactory(self):
