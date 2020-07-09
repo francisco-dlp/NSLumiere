@@ -11,7 +11,9 @@ from nion.swift.model import HardwareSource
 abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
 with open(abs_path) as savfile:
     settings = json.load(savfile)
+    logging.info(settings)
 DEBUG = settings["lenses"]["DEBUG"]
+
 
 if DEBUG:
     from . import lens_ps_vi as lens_ps
@@ -53,9 +55,13 @@ class probeDevice(Observable.Observable):
             with open(abs_path) as savfile:
                 data = json.load(savfile)  # data is load json
             logging.info(json.dumps(data, indent=4))
-            self.obj_edit_f = data['3']['obj']
-            self.c1_edit_f = data['3']['c1']
-            self.c2_edit_f = data['3']['c2']
+            self.obj_edit_f = data["3"]["obj"]
+            self.c1_edit_f = data["3"]["c1"]
+            self.c2_edit_f = data["3"]['c2']
+            self.obj_astig00_f=data["3"]["obj_stig_00"]
+            self.obj_astig01_f=data["3"]["obj_stig_01"]
+            self.cond_astig02_f=data["3"]["cond_stig_02"]
+            self.cond_astig03_f=data["3"]["cond_stig_03"]
         except:
             logging.info('***LENSES***: No saved values.')
 

@@ -10,7 +10,6 @@ from nion.swift.model import HardwareSource
 abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
 with open(abs_path) as savfile:
     settings = json.load(savfile)
-
 DEBUG = settings["Scan_Lum"]["DEBUG"]
 
 class scanDevice(Observable.Observable):

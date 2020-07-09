@@ -44,6 +44,7 @@ class gainhandler:
         self.event_loop.create_task(self.do_enable(False, []))
 
     def save_lenses(self, widget):
+        print(self.astig0_slider.value)
         if not self.ivg:
             self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("Instrument_VG")
 
@@ -52,7 +53,11 @@ class gainhandler:
         with open(abs_path) as savfile:
             json_object = json.load(savfile)
 
-        json_object[self.ivg.EHT_f] = {"obj": self.obj_value.text, "c1": self.c1_value.text, "c2": self.c2_value.text}
+
+        json_object[self.ivg.EHT_f] = {"obj": self.obj_value.text, "c1": self.c1_value.text, "c2": self.c2_value.text, \
+                                       "obj_stig_00": self.astig0_slider.value, "obj_stig_01": self.astig1_slider.value, \
+                                       "cond_stig_02": self.astig2_slider.value, "cond_stig_03": self.astig3_slider.value}
+
 
         with open(abs_path, 'w') as json_file:
             json.dump(json_object, json_file, indent=4)

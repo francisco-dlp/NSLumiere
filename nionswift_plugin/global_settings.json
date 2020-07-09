@@ -5,7 +5,7 @@
   "IVG": {
     "AMBIENT_TEMPERATURE": 23,
     "DEBUG_AIRLOCK": 1,
-    "DEBUG_GUN": 1,
+    "DEBUG_GUN": 0,
     "EHT_INITIAL": 3,
     "FAST_PERIODIC": {
       "ACTIVE": 1,
@@ -26,14 +26,15 @@
   },
   "Scan_Lum": {
     "DEBUG": 1
+
   },
   "diaf": {
-    "DEBUG": 1
+    "DEBUG": 0
   },
   "lenses": {
-    "DEBUG": 1
+    "DEBUG": 0
   },
   "stage": {
-    "DEBUG": 1
+    "DEBUG": 0
   }
 }

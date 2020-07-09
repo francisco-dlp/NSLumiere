@@ -7,10 +7,13 @@ import time
 from nion.utils import Event
 from nion.utils import Observable
 
-abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
+abs_path = os.path.abspath(os.path.join((__file__+"/../../"), "global_settings.json"))
 with open(abs_path) as savfile:
     settings = json.load(savfile)
 DEBUG = settings["EELS"]["DEBUG"]
+
+
+
 
 if DEBUG:
     from . import eels_spec_vi as spec
@@ -128,7 +131,6 @@ class EELS_SPEC_Device(Observable.Observable):
         focus_list = ['OFF', 'FX', 'FY', 'SX', 'SY', 'DY']
         focus_list_values=[0, self.__fx, self.__fy, self.__sx, self.__sy, self.__dy]
         self.__focus_wobbler_index = value
-        logging.info(value)
         if value:
             self.__eels_spec.wobbler_on(focus_list_values[value], self.__focus_wobbler_int, focus_list[value])
         else:
