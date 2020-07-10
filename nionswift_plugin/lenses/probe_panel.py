@@ -3,17 +3,11 @@ import gettext
 import os
 import json
 
-# local libraries
 from nion.swift import Panel
 from nion.swift import Workspace
-from nion.ui import Widgets
-from nion.utils import Binding
-from nion.utils import Converter
-from nion.utils import Geometry
 from nion.ui import Declarative
 from nion.ui import UserInterface
 from nion.swift.model import HardwareSource
-import threading
 
 from . import probe_inst
 import logging
@@ -58,10 +52,14 @@ class gainhandler:
         with open(abs_path) as savfile:
             json_object = json.load(savfile)
 
-        json_object[self.ivg.EHT_f] = {"obj": self.obj_value.text, "c1": self.c1_value.text, "c2": self.c2_value.text}
+
+        json_object[self.ivg.EHT_f] = {"obj": self.obj_value.text, "c1": self.c1_value.text, "c2": self.c2_value.text, \
+                                       "obj_stig_00": self.astig0_slider.value, "obj_stig_01": self.astig1_slider.value, \
+                                       "cond_stig_02": self.astig2_slider.value, "cond_stig_03": self.astig3_slider.value}
+
 
         with open(abs_path, 'w') as json_file:
-            json.dump(json_object, json_file)
+            json.dump(json_object, json_file, indent=4)
 
     def adj_values(self, widget):
         if widget == self.obj_slider:

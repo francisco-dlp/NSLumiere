@@ -25,12 +25,12 @@ class Diafs:
         self.ser.parity = serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
         self.ser.bytesize=serial.EIGHTBITS
-        self.ser.timeout=2
+        self.ser.timeout=0.2
 		
         try:
             if not self.ser.is_open:
                 self.ser.open()
-                time.sleep(0.5)
+                time.sleep(0.1)
         except:
             self.sendmessage(1)
 		
@@ -47,9 +47,12 @@ class Diafs:
 
 		
     def set_val(self, motor, value):
-        byt=self.pos_to_bytes(value)
-        message=[motor, 20, byt[0], byt[1], byt[2], byt[3]]
-        byt_array=bytearray(message)
-        self.ser.write(byt_array)
-        self.ser.read(6)
+        try:
+            byt=self.pos_to_bytes(value)
+            message=[motor, 20, byt[0], byt[1], byt[2], byt[3]]
+            byt_array=bytearray(message)
+            self.ser.write(byt_array)
+            self.ser.read(6)
+        except:
+            self.sendmessage(2)
 		

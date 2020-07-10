@@ -22,7 +22,7 @@ class GunVacuum:
         self.ser.parity=serial.PARITY_NONE
         self.ser.stopbits=serial.STOPBITS_ONE
         self.ser.bytesize=serial.EIGHTBITS
-        self.ser.timeout=2
+        self.ser.timeout=0.2
 
         try:
             if not self.ser.is_open:
@@ -38,13 +38,14 @@ class GunVacuum:
     def query(self):
         try:
             self.ser.write(b'GDAT? 1\n')
-            value=self.ser.readline()
+            value=self.ser.read(15)
             value=value.decode()
             ex=int(value[-5:-1])
             sig=float(value[0:6])
             vide=sig * 10**ex
             return vide
         except:
+            self.sendmessage(5)
             return 0
 
 

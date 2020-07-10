@@ -1,38 +1,24 @@
 # standard libraries
-import os
 import json
-import math
-import numpy
 import os
-import random
-import scipy.ndimage.interpolation
-import scipy.stats
-import threading
-import typing
-import time
-from nion.data import Calibration
-from nion.data import DataAndMetadata
-import asyncio
 import logging
-import queue
+import time
 
-from nion.utils import Registry
 from nion.utils import Event
-from nion.utils import Geometry
-from nion.utils import Model
 from nion.utils import Observable
 from nion.swift.model import HardwareSource
-from nion.swift.model import ImportExportManager
 
-import logging
-import time
+abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
+with open(abs_path) as savfile:
+    settings = json.load(savfile)
 
-DEBUG = 0
+DEBUG = settings["lenses"]["DEBUG"]
 
 if DEBUG:
     from . import lens_ps_vi as lens_ps
 else:
     from . import lens_ps as lens_ps
+
 
 
 class probeDevice(Observable.Observable):
@@ -41,7 +27,6 @@ class probeDevice(Observable.Observable):
         self.property_changed_event = Event.Event()
         self.property_changed_power_event = Event.Event()
         self.communicating_event = Event.Event()
-        # self.property_changed_event_listener = self.property_changed_event.listen(self.computeCalibration)
         self.busy_event = Event.Event()
 
         self.__sendmessage = lens_ps.SENDMYMESSAGEFUNC(self.sendMessageFactory())
@@ -56,8 +41,8 @@ class probeDevice(Observable.Observable):
         self.__obj_wobbler = False
         self.__c1_wobbler = False
         self.__c2_wobbler = False
-        self.wobbler_frequency_f = 5
-        self.__wobbler_intensity = 0.1
+        self.wobbler_frequency_f = 2
+        self.__wobbler_intensity = 0.05
 
         self.__obj_astig = [0, 0]
         self.__cond_astig = [0, 0]
@@ -70,11 +55,15 @@ class probeDevice(Observable.Observable):
             with open(abs_path) as savfile:
                 data = json.load(savfile)  # data is load json
             logging.info(json.dumps(data, indent=4))
-            self.obj_edit_f = data['3']['obj']
-            self.c1_edit_f = data['3']['c1']
-            self.c2_edit_f = data['3']['c2']
+            self.obj_edit_f = data["3"]["obj"]
+            self.c1_edit_f = data["3"]["c1"]
+            self.c2_edit_f = data["3"]['c2']
+            self.obj_astig00_f=data["3"]["obj_stig_00"]
+            self.obj_astig01_f=data["3"]["obj_stig_01"]
+            self.cond_astig02_f=data["3"]["cond_stig_02"]
+            self.cond_astig03_f=data["3"]["cond_stig_03"]
         except:
-            logging.info('***LENS***: No saved values.')
+            logging.info('***LENSES***: No saved values.')
 
         self.obj_global_f = True
         self.c1_global_f = True
@@ -85,7 +74,6 @@ class probeDevice(Observable.Observable):
         abs_path = os.path.join(inst_dir, 'lenses_settings.json')
         with open(abs_path) as savfile:
             data = json.load(savfile)  # data is load json
-        logging.info(json.dumps(data, indent=4))
         self.obj_edit_f = data[str(value)]['obj']
         self.c1_edit_f = data[str(value)]['c1']
         self.c2_edit_f = data[str(value)]['c2']
@@ -96,7 +84,6 @@ class probeDevice(Observable.Observable):
 
     def get_orsay_scan_instrument(self):
         self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-        logging.info(dir(self.__OrsayScanInstrument.scan_device))
 
     def sendMessageFactory(self):
         def sendMessage(message):
@@ -104,6 +91,11 @@ class probeDevice(Observable.Observable):
                 logging.info("***LENSES***: Could not find Lenses PS")
             if message == 2:
                 logging.info("***LENSES***: Can't query negative current.")
+            if message == 3:
+                logging.info("***LENSES***: Attempt to set values out of range.")
+            if message == 4:
+                logging.info('***LENSES***: Communication Error over Serial Port. Easy check using Serial Port '
+                             'Monitor software.')
 
         return sendMessage
 
@@ -147,13 +139,13 @@ class probeDevice(Observable.Observable):
 
     @obj_astig00_f.setter
     def obj_astig00_f(self, value):
-        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
         self.__obj_astig[0] = value/1e3
-        #self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_astig[0], self.__obj_astig[1])
-
-        self.__OrsayScanInstrument.scan_device.obj_stig=self.__obj_astig
-        logging.info(self.__OrsayScanInstrument.scan_device.obj_stig)
-
+        try:
+            if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+            self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_astig[0], self.__obj_astig[1])
+            #self.__OrsayScanInstrument.scan_device.obj_stig=self.__obj_astig
+        except:
+            logging.info('***LENSES***: Could not acess objective astigmators. Please check Scan Module.')
         self.property_changed_event.fire('obj_astig00_f')
 
     @property
@@ -162,9 +154,12 @@ class probeDevice(Observable.Observable):
 
     @obj_astig01_f.setter
     def obj_astig01_f(self, value):
-        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
         self.__obj_astig[1] = value/1e3
-        #self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_astig[0], self.__obj_astig[1])
+        try:
+            if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+            self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_astig[0], self.__obj_astig[1])
+        except:
+            logging.info('***LENSES***: Could not acess objective astigmators. Please check Scan Module.')
         self.property_changed_event.fire('obj_astig01_f')
 
     @property
@@ -178,6 +173,7 @@ class probeDevice(Observable.Observable):
             self.__lenses_ps.set_val(self.__obj, 'OBJ')
         else:
             self.__lenses_ps.set_val(0.0, 'OBJ')
+        self.property_changed_event.fire('obj_global_f')
 
     @property
     def obj_wobbler_f(self):
@@ -336,13 +332,12 @@ class probeDevice(Observable.Observable):
 
     @cond_astig02_f.setter
     def cond_astig02_f(self, value):
-        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
         self.__cond_astig[0] = value/1e3
-        #self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__cond_astig[0], self.__cond_astig[1])
-
-        self.__OrsayScanInstrument.scan_device.gun_stig=self.__cond_astig
-        logging.info(self.__OrsayScanInstrument.scan_device.gun_stig)
-
+        try:
+            if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+            self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__cond_astig[0], self.__cond_astig[1])
+        except:
+            logging.info('***LENSES***: Could not acess gun astigmators. Please check Scan Module.')
         self.property_changed_event.fire('cond_astig02_f')
 
     @property
@@ -351,7 +346,10 @@ class probeDevice(Observable.Observable):
 
     @cond_astig03_f.setter
     def cond_astig03_f(self, value):
-        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
         self.__cond_astig[1] = value/1e3
-        #self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__cond_astig[0], self.__cond_astig[1])
+        try:
+            if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+            self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__cond_astig[0], self.__cond_astig[1])
+        except:
+            logging.info('***LENSES***: Could not acess gun astigmators. Please check Scan Module.')
         self.property_changed_event.fire('cond_astig03_f')

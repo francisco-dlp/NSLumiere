@@ -52,15 +52,15 @@ class stagehandler:
         self.event_loop.create_task(self.do_enable(False, []))
 
     def slider_release(self, widget):
-        widget.maximum=widget.value+50
-        widget.minimum=widget.value-50
+        widget.maximum=widget.value+250
+        widget.minimum=widget.value-250
 
     def total_range(self, widget):
-        self.x_slider.maximum = 1000
-        self.x_slider.minimum = -1000
+        self.x_slider.maximum = 8000
+        self.x_slider.minimum = -8000
 
-        self.y_slider.maximum = 1000
-        self.y_slider.minimum = -1000
+        self.y_slider.maximum = 8000
+        self.y_slider.minimum = -8000
 
     def line_edit(self, widget, text):
         self.total_range(self.add_pb)
@@ -68,18 +68,22 @@ class stagehandler:
     def add_value(self, widget):
         self.list_positions.text+='(' + self.x_value_edit.text +', ' + self.y_value_edit.text + "): \n"
 
+    def set_origin(self, widget):
+        self.instrument.set_origin()
+
 class stageView:
 
 
     def __init__(self, instrument:stage_inst.stageDevice):
         ui = Declarative.DeclarativeUI()
 
-        ### Full Range ###
+        ### Buttons ###
 
         self.full_range_pb=ui.create_push_button(name='full_range_pb', text='Full Range', on_clicked='total_range', width=100)
         self.add_pb=ui.create_push_button(name='add_pb', text='Add', on_clicked='add_value')
+        self.set_origin_pb=ui.create_push_button(name='set_origin_pb', text='Set Origin', on_clicked='set_origin')
         self.list_positions=ui.create_text_edit(name='list_positions')
-        self.button_row=ui.create_row(ui.create_stretch(), self.add_pb, self.full_range_pb)
+        self.button_row=ui.create_row(ui.create_stretch(), self.set_origin_pb, self.add_pb, self.full_range_pb)
 
 
         ### SLIDERS ###
@@ -87,12 +91,12 @@ class stageView:
         self.x_label = ui.create_label(name='x_label', text='X Pos: ')
         self.x_value_edit = ui.create_line_edit(name='x_value_edit', text='@binding(instrument.x_pos_edit_f)', on_text_edited='line_edit')
         self.x_row=ui.create_row(self.x_label, self.x_value_edit, ui.create_stretch())
-        self.x_slider=ui.create_slider(name='x_slider', value='@binding(instrument.x_pos_f)', minimum=-1000, maximum=1000, on_slider_released='slider_release')
+        self.x_slider=ui.create_slider(name='x_slider', value='@binding(instrument.x_pos_f)', minimum=-8000, maximum=8000, on_slider_released='slider_release')
 
         self.y_label = ui.create_label(name='y_label', text='Y Pos: ')
         self.y_value_edit = ui.create_line_edit(name='y_value_edit', text='@binding(instrument.y_pos_edit_f)', on_text_edited='line_edit')
         self.y_row = ui.create_row(self.y_label, self.y_value_edit, ui.create_stretch())
-        self.y_slider = ui.create_slider(name='y_slider', value='@binding(instrument.y_pos_f)', minimum=-1000, maximum=1000, on_slider_released='slider_release')
+        self.y_slider = ui.create_slider(name='y_slider', value='@binding(instrument.y_pos_f)', minimum=-8000, maximum=8000, on_slider_released='slider_release')
 
         self.ui_view=ui.create_column(self.x_row, self.x_slider, ui.create_spacing(10), self.y_row, self.y_slider, self.list_positions, self.button_row)
 
