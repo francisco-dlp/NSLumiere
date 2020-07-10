@@ -70,6 +70,7 @@ class EELS_SPEC_Device(Observable.Observable):
         logging.info(json.dumps(data, indent=4))
 
         self.range_f = data[self.__EHT][value]['range']
+        self.note_f = data[self.__EHT][value]['note']
         self.fx_edit_f = data[self.__EHT][value]['fx']
         self.fy_edit_f = data[self.__EHT][value]['fy']
         self.sx_edit_f = data[self.__EHT][value]['sx']
@@ -109,6 +110,15 @@ class EELS_SPEC_Device(Observable.Observable):
     def range_f(self, value):
         self.__range = value
         self.property_changed_event.fire('range_f')
+
+    @property
+    def note_f(self):
+        return self.__note
+
+    @note_f.setter
+    def note_f(self, value):
+        self.__note=value
+        self.property_changed_event.fire('note_f')
 
     @property
     def disp_change_f(self):

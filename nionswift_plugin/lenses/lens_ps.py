@@ -3,9 +3,15 @@ import sys
 import logging
 import time
 import threading
-import numpy
-from concurrent.futures import ThreadPoolExecutor
-import concurrent.futures
+
+abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
+with open(abs_path) as savfile:
+    settings = json.load(savfile)
+
+MAX_OBJ = settings["lenses"]["MAX_OBJ"]
+MAX_C1 = settings["lenses"]["MAX_C1"]
+MAX_C2 = settings["lenses"]["MAX_C2"]
+
 
 __author__ = "Yves Auad"
 
@@ -60,11 +66,11 @@ class Lenses:
         return current, voltage
 
     def set_val(self, val, which):
-        if which == 'OBJ' and val<=9.2:
+        if which == 'OBJ' and val<=MAX_OBJ and val>=0:
             string_init = '>1,1,1,'
-        elif which == 'C1' and val<=0.80:
+        elif which == 'C1' and val<=MAX_C1 and val>=0:
             string_init = '>1,1,2,'
-        elif which == 'C2' and val<=0.80:
+        elif which == 'C2' and val<=MAX_C2 and val>=0:
             string_init = '>1,1,3,'
         else:
             self.sendmessage(3)
@@ -73,9 +79,8 @@ class Lenses:
         string = string_init + str(val) + ',0.5\r'
         logging.info(string)
         with self.lock:
-            if val >= 0.0:
-                self.ser.write(string.encode())
-                return self.ser.readline()
+            self.ser.write(string.encode())
+            return self.ser.readline()
             else:
                 self.sendmessage(2)
 

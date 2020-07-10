@@ -1,6 +1,6 @@
 {
   "EELS": {
-    "DEBUG": 1
+    "DEBUG": 0
   },
   "IVG": {
     "AMBIENT_TEMPERATURE": 23,
@@ -25,14 +25,17 @@
     "STAGE_MATRIX_SIZE": 160
   },
   "Scan_Lum": {
-    "DEBUG": 1
+    "DEBUG": 0
 
   },
   "diaf": {
     "DEBUG": 0
   },
   "lenses": {
-    "DEBUG": 0
+    "DEBUG": "0",
+    "MAX_OBJ": 9.5,
+    "MAX_C1": 1.5,
+    "MAX_C2": 1.5
   },
   "stage": {
     "DEBUG": 0

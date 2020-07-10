@@ -84,30 +84,30 @@ class diafhandler:
  
     def total_range_2(self):
         self.m1_slider.maximum=130000
-        self.m1_slider.minimum=50000
+        self.m1_slider.minimum=40000
         
         self.m2_slider.maximum=95000
-        self.m2_slider.minimum=75000
+        self.m2_slider.minimum=65000
         
         self.m3_slider.maximum=140000
-        self.m3_slider.minimum=60000
+        self.m3_slider.minimum=50000
         
         self.m4_slider.maximum=70000
-        self.m4_slider.minimum=50000
+        self.m4_slider.minimum=40000
 
 
     def total_range(self, widget):
         self.m1_slider.maximum=130000
-        self.m1_slider.minimum=50000
+        self.m1_slider.minimum=40000
         
         self.m2_slider.maximum=95000
-        self.m2_slider.minimum=75000
+        self.m2_slider.minimum=65000
         
         self.m3_slider.maximum=140000
-        self.m3_slider.minimum=60000
+        self.m3_slider.minimum=50000
         
         self.m4_slider.maximum=70000
-        self.m4_slider.minimum=50000
+        self.m4_slider.minimum=40000
 
     def slider_release(self, widget):
         widget.maximum=widget.value+2000
@@ -127,16 +127,16 @@ class diafView:
 
         self.obj_combo_box=ui.create_combo_box(name='obj_combo_box', items=['None', '50', '100', '150'], current_index='@binding(instrument.roa_change_f)')
         self.m1_slider_label=ui.create_label(name='m1_slider_label', text='@binding(instrument.m1_f)')
-        self.m1_slider = ui.create_slider(name='m1_slider', value='@binding(instrument.m1_f)', minimum=50000, maximum=130000, on_slider_released='slider_release')
+        self.m1_slider = ui.create_slider(name='m1_slider', value='@binding(instrument.m1_f)', minimum=40000, maximum=130000, on_slider_released='slider_release')
         self.m2_slider_label=ui.create_label(name='m2_slider_label', text='@binding(instrument.m2_f)')
-        self.m2_slider = ui.create_slider(name='m2_slider', value='@binding(instrument.m2_f)', minimum=75000, maximum=95000, on_slider_released='slider_release')
+        self.m2_slider = ui.create_slider(name='m2_slider', value='@binding(instrument.m2_f)', minimum=65000, maximum=95000, on_slider_released='slider_release')
         self.objective_tab = ui.create_tab(label='Objective', content=ui.create_column(self.obj_combo_box, self.m1_slider_label, self.m1_slider, self.m2_slider_label, self.m2_slider, ui.create_row(self.full_range_pb, ui.create_stretch(), self.save_obj_pb)))
 		
         self.sa_combo_box=ui.create_combo_box(name='sa_combo_box', items=['None', '50', '100', '150'], current_index='@binding(instrument.voa_change_f)')
         self.m3_slider_label=ui.create_label(name='m3_slider_label', text='@binding(instrument.m3_f)')
-        self.m3_slider = ui.create_slider(name='m3_slider', value='@binding(instrument.m3_f)', minimum=60000, maximum=140000, on_slider_released='slider_release')
+        self.m3_slider = ui.create_slider(name='m3_slider', value='@binding(instrument.m3_f)', minimum=50000, maximum=140000, on_slider_released='slider_release')
         self.m4_slider_label=ui.create_label(name='m4_slider_label', text='@binding(instrument.m4_f)')
-        self.m4_slider = ui.create_slider(name='m4_slider', value='@binding(instrument.m4_f)', minimum=50000, maximum=70000, on_slider_released='slider_release')
+        self.m4_slider = ui.create_slider(name='m4_slider', value='@binding(instrument.m4_f)', minimum=40000, maximum=70000, on_slider_released='slider_release')
 
         self.sa_tab = ui.create_tab(label='Selected Area', content=ui.create_column(self.sa_combo_box, self.m3_slider_label, self.m3_slider, self.m4_slider_label, self.m4_slider, ui.create_row(self.full_range_pb, ui.create_stretch(), self.save_sa_pb)))
 

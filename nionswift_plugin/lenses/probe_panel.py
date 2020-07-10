@@ -44,7 +44,6 @@ class gainhandler:
         self.event_loop.create_task(self.do_enable(False, []))
 
     def save_lenses(self, widget):
-        print(self.astig0_slider.value)
         if not self.ivg:
             self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("Instrument_VG")
 

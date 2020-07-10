@@ -60,7 +60,7 @@ class eels_spec_handler:
             json_object = json.load(savfile)
 
         json_object[str(self.ivg.EHT_f)][self.dispersion_value.current_index] = { \
-            'range': self.range_value.text, 'fx': self.fx_value.text, 'fy': self.fy_value.text,
+            'range': self.range_value.text, 'note': self.note_text.text, 'fx': self.fx_value.text, 'fy': self.fy_value.text,
             'sx': self.sx_value.text,
             'sy': self.sy_value.text, 'dy': self.dy_value.text, 'q1': self.q1_value.text, \
             'q2': self.q2_value.text, 'q3': self.q3_value.text, 'q4': self.q4_value.text, \
@@ -117,6 +117,11 @@ class eels_spec_View:
 
     def __init__(self, instrument: eels_spec_inst.EELS_SPEC_Device):
         ui = Declarative.DeclarativeUI()
+
+        # Note
+        self.note_label=ui.create_label(text='Note: ', name='note_label')
+        self.note_text = ui.create_line_edit(name='note_text', text='@binding(instrument.note_f)')
+        self.note_row = ui.create_row(self.note_label, self.note_text)
 
         # full_range
 
@@ -189,6 +194,7 @@ class eels_spec_View:
 
         self.focus_tab = ui.create_tab(label='Focus', content=ui.create_column( \
             self.dispersion_label, self.dispersion_value, ui.create_stretch(), \
+            self.note_row, ui.create_stretch(), \
             self.range_label, self.range_value, ui.create_stretch(), \
             self.first_order_group, ui.create_stretch(), \
             self.second_order_group, \

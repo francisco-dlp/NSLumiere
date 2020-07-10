@@ -30,9 +30,6 @@ class stageDevice(Observable.Observable):
         self.__sendmessage = stage.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__vgStage=stage.VGStage(self.__sendmessage)
 
-        #Stepper DLL should be here
-        #You need to have STEMSerial.dll and put Stepper.dll in python folder
-
         self.__x, self.__y = self.__vgStage.stageGetPosition()
 
 
@@ -55,11 +52,11 @@ class stageDevice(Observable.Observable):
 
     @property
     def x_pos_f(self):
-        return int(self.__x*1e6)
+        return int(self.__x*1e7)
 
     @x_pos_f.setter
     def x_pos_f(self, value):
-        self.__x=value/1e6
+        self.__x=value/1e7
         self.__vgStage.stageGoTo_x(self.__x)
         self.property_changed_event.fire('x_pos_f')
         self.property_changed_event.fire('x_pos_edit_f')
@@ -77,11 +74,11 @@ class stageDevice(Observable.Observable):
 
     @property
     def y_pos_f(self):
-        return int(self.__y*1e6)
+        return int(self.__y*1e7)
 
     @y_pos_f.setter
     def y_pos_f(self, value):
-        self.__y = value/1e6
+        self.__y = value/1e7
         self.__vgStage.stageGoTo_y(self.__y)
         self.property_changed_event.fire('y_pos_f')
         self.property_changed_event.fire('y_pos_edit_f')
