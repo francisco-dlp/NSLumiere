@@ -32,7 +32,7 @@
     "DEBUG": 0
   },
   "lenses": {
-    "DEBUG": "0",
+    "DEBUG": 0,
     "MAX_OBJ": 9.5,
     "MAX_C1": 1.5,
     "MAX_C2": 1.5

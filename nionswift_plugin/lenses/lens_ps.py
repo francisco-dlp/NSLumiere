@@ -3,6 +3,8 @@ import sys
 import logging
 import time
 import threading
+import os
+import json
 
 abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
 with open(abs_path) as savfile:
@@ -73,7 +75,7 @@ class Lenses:
         elif which == 'C2' and val<=MAX_C2 and val>=0:
             string_init = '>1,1,3,'
         else:
-            self.sendmessage(3)
+            self.sendmessage(2)
             return None
 
         string = string_init + str(val) + ',0.5\r'
@@ -81,8 +83,6 @@ class Lenses:
         with self.lock:
             self.ser.write(string.encode())
             return self.ser.readline()
-            else:
-                self.sendmessage(2)
 
     def wobbler_loop(self, current, intensity, frequency, which):
         self.wobbler_thread = threading.currentThread()
