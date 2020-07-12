@@ -12,6 +12,7 @@ abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.j
 with open(abs_path) as savfile:
     settings = json.load(savfile)
 
+
 DEBUG = settings["lenses"]["DEBUG"]
 
 if DEBUG:
@@ -90,8 +91,6 @@ class probeDevice(Observable.Observable):
             if message == 1:
                 logging.info("***LENSES***: Could not find Lenses PS")
             if message == 2:
-                logging.info("***LENSES***: Can't query negative current.")
-            if message == 3:
                 logging.info("***LENSES***: Attempt to set values out of range.")
             if message == 4:
                 logging.info('***LENSES***: Communication Error over Serial Port. Easy check using Serial Port '
