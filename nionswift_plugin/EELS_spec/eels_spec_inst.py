@@ -52,6 +52,8 @@ class EELS_SPEC_Device(Observable.Observable):
 
         self.__EHT = '3'
 
+        self.ene_offset_f=0
+
         try:
             inst_dir = os.path.dirname(__file__)
             abs_path = os.path.join(inst_dir, 'eels_settings.json')
@@ -449,3 +451,23 @@ class EELS_SPEC_Device(Observable.Observable):
         self.__dmx = int(value)
         self.property_changed_event.fire("dmx_slider_f")
         self.property_changed_event.fire("dmx_edit_f")
+
+    @property
+    def ene_offset_f(self):
+        return int(self.__ene_offset*10.)
+
+    @ene_offset_f.setter
+    def ene_offset_f(self, value):
+        self.__ene_offset = value/10.
+        self.property_changed_event.fire('ene_offset_f')
+        self.property_changed_event.fire('ene_offset_edit_f')
+
+    @property
+    def ene_offset_edit_f(self):
+        return self.__ene_offset
+
+    @ene_offset_edit_f.setter
+    def ene_offset_edit_f(self, value):
+        self.__ene_offset = float(value)
+        self.property_changed_event.fire('ene_offset_f')
+        self.property_changed_event.fire('ene_offset_edit_f')

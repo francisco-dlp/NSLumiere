@@ -326,6 +326,8 @@ class ivgDevice(Observable.Observable):
         return '{:.2f}'.format(self.__y_real_pos*1e6)
 
 
+
+
 ###################################
 
 class ivgInstrument(stem_controller.STEMController):
@@ -334,25 +336,13 @@ class ivgInstrument(stem_controller.STEMController):
         self.priority = 20
         self.instrument_id = instrument_id
         self.property_changed_event = Event.Event()
-        self.__sample_index = 0
 
         self.__EELSInstrument=None
 
-        # define the STEM geometry limits
-        self.stage_size_nm = 150
-        self.max_defocus = 5000 / 1E9
-
-        self.__stage_position_m = Geometry.FloatPoint()
-        self.__convergence_angle_rad = 30 / 1000
-        self.__energy_per_channel_eV = 0.5
-        self.__voltage = 100000
-        self.__beam_current = 200E-12  # 200 pA
         self.__blanked = False
         self.__scan_context = stem_controller.ScanContext()
         self.__probe_position = None
         self.__live_probe_position = None
-        self.__sequence_progress = 0
-        self.__lock = threading.Lock()
         self.__controls = dict()
 
 
@@ -372,6 +362,7 @@ class ivgInstrument(stem_controller.STEMController):
     def _set_scan_context_probe_position(self, scan_context: stem_controller.ScanContext,
                                          probe_position: Geometry.FloatPoint) -> None:
         self.__scan_context = copy.deepcopy(scan_context)
+        print(self.probe_position)
         self.__probe_position = probe_position
 
 
@@ -382,47 +373,18 @@ class ivgInstrument(stem_controller.STEMController):
                 self.get_EELS_instrument()
         except:
             pass
+        try:
+            if s == "eels_y_offset":
+                return True, 0
+            elif s == "eels_x_offset":
+                return True, self.__EELSInstrument.ene_offset_edit_f
+            elif s == "eels_y_scale":
+                return True, 1
+            elif s == "eels_x_scale":
+                return True, self.__EELSInstrument.range_f
+        except:
+            return False, 1
 
-        if s == "eels_y_offset":
-            return True, 0
-        elif s == "eels_x_offset":
-            return True, 0
-        elif s == "eels_y_scale":
-            return True, 1
-        elif s == "eels_x_scale":
-            return True, 10
-
-
-    @property
-    def sequence_progress(self):
-        with self.__lock:
-            return self.__sequence_progress
-
-    @sequence_progress.setter
-    def sequence_progress(self, value):
-        with self.__lock:
-            self.__sequence_progress = value
-
-    def increment_sequence_progress(self):
-        with self.__lock:
-            self.__sequence_progress += 1
-
-    @property
-    def stage_position_m(self) -> Geometry.FloatPoint:
-        return self.GetVal2D("stage_position_m")
-
-    @stage_position_m.setter
-    def stage_position_m(self, value: Geometry.FloatPoint) -> None:
-        self.SetVal2D("stage_position_m", value)
-
-    @property
-    def voltage(self) -> float:
-        return self.__voltage
-
-    @voltage.setter
-    def voltage(self, value: float) -> None:
-        self.__voltage = value
-        self.property_changed_event.fire("voltage")
 
     @property
     def is_blanked(self) -> bool:
@@ -433,24 +395,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__blanked = value
         self.property_changed_event.fire("is_blanked")
 
-    @property
-    def energy_offset_eV(self) -> float:
-        return self.__controls["ZLPoffset"].output_value
-
-    @energy_offset_eV.setter
-    def energy_offset_eV(self, value: float) -> None:
-        self.__controls["ZLPoffset"].set_output_value(value)
-        # TODO: this should be fired whenever ZLPoffset changes; not just when this method is called.
-        self.property_changed_event.fire("energy_offset_eV")
-
-    @property
-    def energy_per_channel_eV(self) -> float:
-        return self.__energy_per_channel_eV
-
-    @energy_per_channel_eV.setter
-    def energy_per_channel_eV(self, value: float) -> None:
-        self.__energy_per_channel_eV = value
-        self.property_changed_event.fire("energy_per_channel_eV")
 
     def get_autostem_properties(self):
         """Return a new autostem properties (dict) to be recorded with an acquisition.
@@ -469,12 +413,4 @@ class ivgInstrument(stem_controller.STEMController):
             "defocus_m": self.defocus_m,
         }
 
-    # these are required functions to implement the standard stem controller interface.
 
-    def change_stage_position(self, *, dy: int = None, dx: int = None):
-        """Shift the stage by dx, dy (meters). Do not wait for confirmation."""
-        self.stage_position_m += Geometry.FloatPoint(y=-dy, x=-dx)
-
-    def change_pmt_gain(self, pmt_type: stem_controller.PMTType, *, factor: float) -> None:
-        """Change specified PMT by factor. Do not wait for confirmation."""
-        pass

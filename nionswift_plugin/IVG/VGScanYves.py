@@ -25,8 +25,6 @@ from . import ivg_inst
 
 _ = gettext.gettext
 
-AUTOSTEM_CONTROLLER_ID = "autostem_controller"
-
 class Channel:
     def __init__(self, channel_id: int, name: str, enabled: bool):
         self.channel_id=channel_id
