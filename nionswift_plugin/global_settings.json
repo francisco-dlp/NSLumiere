@@ -8,7 +8,7 @@
     "DEBUG_GUN": 0,
     "EHT_INITIAL": 3,
     "FAST_PERIODIC": {
-      "ACTIVE": 1,
+      "ACTIVE": 0,
       "PERIOD": 0.05
     },
     "MAX_PTS": 5000,
@@ -19,25 +19,25 @@
     },
     "SENDMAIL": 0,
     "SLOW_PERIODIC": {
-      "ACTIVE": 1,
+      "ACTIVE": 0,
       "PERIOD": 1.00
     },
     "STAGE_MATRIX_SIZE": 160
   },
   "Scan_Lum": {
-    "DEBUG": 0
+    "DEBUG": 1
 
   },
   "diaf": {
-    "DEBUG": 0
+    "DEBUG": 1
   },
   "lenses": {
-    "DEBUG": 0,
+    "DEBUG": 1,
     "MAX_OBJ": 9.5,
     "MAX_C1": 1.5,
     "MAX_C2": 1.5
   },
   "stage": {
-    "DEBUG": 0
+    "DEBUG": 1
   }
 }
