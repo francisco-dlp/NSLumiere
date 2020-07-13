@@ -196,7 +196,7 @@ class orsayScan(object):
 
         # bool SCAN_EXPORT OrsayScanSetTopBlanking(self.orsayscan, short mode, short source, double beamontime, bool risingedge, unsigned int nbpulses, double delay);
         self.__OrsayScanSetTopBlanking = _buildFunction(_library.OrsayScanSetTopBlanking,
-                                                   [c_void_p, c_short, c_double, c_bool, c_uint, c_double], c_bool)
+                                                   [c_void_p, c_short, c_short, c_double, c_bool, c_uint, c_double], c_bool)
 
         # bool SCAN_EXPORT OrsayScanSetCameraSync(self.orsayscan, bool eels, int divider, double width, bool risingedge);
         self.__OrsayScanSetCameraSync = _buildFunction(_library.OrsayScanSetCameraSync,

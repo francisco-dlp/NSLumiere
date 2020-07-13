@@ -43,11 +43,9 @@ class Handler:
     def bottom_blanker(self, value):
         self.__bot_blanker = value
         if self.__bot_blanker:
-            self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 3)
+            self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 2)
         else:
             self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(0, 0)
-
-
 
 
 
@@ -62,7 +60,6 @@ class View():
         self.bf_gain_slider=ui.create_slider(name='bf_gain_slider', value='@binding(bf_gain_pmt)', minimum=0, maximum=2500)
 
         self.bot_blanker_check_box = ui.create_check_box(name='bot_blanker_check_box', text='Botton Blanker EELS', checked='@binding(bottom_blanker)')
-
 
         self.column = ui.create_column(self.hadf_label, self.hadf_gain_slider, ui.create_spacing(25), self.bf_label, self.bf_gain_slider, self.bot_blanker_check_box)
 
