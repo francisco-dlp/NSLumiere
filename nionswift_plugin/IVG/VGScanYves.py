@@ -56,6 +56,8 @@ class Device:
         self.__frame_number = 0
         self.__instrument = instrument
         self.__sizez = 2
+        self.__probe_position=(0, 0)
+        self.__rotation = 0.
         self.__is_scanning = False
         self.on_device_state_changed = None
         self.__profiles = self.__get_initial_profiles()
@@ -139,9 +141,11 @@ class Device:
         Device should use these parameters for new acquisition; and update to these parameters during acquisition.
         """
         self.__frame_parameters = copy.deepcopy(frame_parameters)
-        self.field_of_view = frame_parameters['fov_nm']
-        self.pixel_time = frame_parameters['pixel_time_us']
-        #if (self.Image_area[0], self.Image_area[1]) != (frame_parameters['subscan_pixel_size'] if frame_parameters['subscan_pixel_size'] else frame_parameters['size']):
+        if self.field_of_view != frame_parameters['fov_nm']: self.field_of_view = frame_parameters['fov_nm']
+        if self.pixel_time != frame_parameters['pixel_time_us']: self.pixel_time = frame_parameters['pixel_time_us']
+
+        if self.scan_rotation != frame_parameters['rotation_rad']:
+            self.scan_rotation = frame_parameters['rotation_rad']
 
         if frame_parameters['subscan_pixel_size']:
             self.subscan_status=True
@@ -248,6 +252,10 @@ class Device:
             self.cancel()
         return True
 
+    def set_scan_context_probe_position(self, scan_context: stem_controller.ScanContext, probe_position: Geometry.FloatPoint):
+        if probe_position:
+            self.probe_pos=probe_position
+
     @property
     def field_of_view(self):
         return self.__fov
@@ -266,6 +274,14 @@ class Device:
         self.__pixeltime = value/1e6
         self.orsayscan.pixelTime = self.__pixeltime
 
+    @property
+    def scan_rotation(self):
+        return self.__rotation
+
+    @scan_rotation.setter
+    def scan_rotation(self, value):
+        self.__rotation = value
+        self.orsayscan.setScanRotation(self.__rotation)
 
     @property
     def Image_area(self):
@@ -277,6 +293,16 @@ class Device:
         self.orsayscan.setImageArea(self.__scan_area[0], self.__scan_area[1], self.__scan_area[2], self.__scan_area[3], self.__scan_area[4], self.__scan_area[5])
         self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
         self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
+
+    @property
+    def probe_pos(self):
+        return self.__probe_position
+
+    @probe_pos.setter
+    def probe_pos(self, value):
+        self.__probe_position=value
+        px, py = round(self.__probe_position[0]*self.__scan_area[0]), round(self.__probe_position[1]*self.__scan_area[1])
+        self.orsayscan.SetProbeAt(px, py)
 
 
     @property

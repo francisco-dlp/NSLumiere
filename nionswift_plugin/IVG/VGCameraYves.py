@@ -118,9 +118,7 @@ class CameraDevice(camera_base.CameraDevice):
         return self.current_camera_settings
 
     def set_frame_parameters(self, frame_parameters : dict) -> None:
-        #acqon = self.__acqon
-        #if acqon:
-        #    self.stop_live()
+        if self.__acqon: self.stop_live()
             
         if self.__hardware_settings.exposure_ms != frame_parameters.exposure_ms:
             self.__hardware_settings.exposure_ms = frame_parameters.exposure_ms
@@ -180,6 +178,8 @@ class CameraDevice(camera_base.CameraDevice):
 
         if "processing" in frame_parameters:
             self.__hardware_settings.processing = frame_parameters.processing
+
+        if self.__acqon: self.start_live()
 
     def __numpy_to_orsay_type(self, array: numpy.array):
         orsay_type = Orsay_Data.float
