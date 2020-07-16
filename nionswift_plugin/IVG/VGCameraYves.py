@@ -244,7 +244,6 @@ class CameraDevice(camera_base.CameraDevice):
     @readout_area.setter
     def readout_area(self, readout_area_TLBR: (int, int, int, int)) -> None:
         self.__readout_area = readout_area_TLBR
-        print(readout_area_TLBR)
 
     @property
     def flip(self):

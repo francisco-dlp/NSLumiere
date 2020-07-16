@@ -136,11 +136,12 @@ class ivgDevice(Observable.Observable):
         
     def estimate_temp(self):
         self.__obj_temp = self.__amb_temp + ((self.__obj_res-self.__obj_res_ref)/self.__obj_res_ref)/TEMP_COEF
+        if self.__obj_temp<0: self.__obj_temp: self.__amb_temp
         self.property_changed_event.fire('obj_temp_f')
 
     def shutdown_objective(self):
-        #self.__lensInstrument.obj_global_f=False
-        #logging.info('*** LENSES / IVG ***: Shutdown objective lens because of high temperature.')
+        self.__lensInstrument.obj_global_f=False
+        logging.info('*** LENSES / IVG ***: Shutdown objective lens because of high temperature.')
         if SENDMAIL:
             try:
                 context=ssl.create_default_context()
@@ -345,10 +346,17 @@ class ivgInstrument(stem_controller.STEMController):
         self.__live_probe_position = None
         self.__controls = dict()
 
-
+    def get_lenses_instrument(self):
+        self.__lensInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("lenses_controller")
 
     def get_EELS_instrument(self):
         self.__EELSInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_controller")
+
+    def get_diaf_instrument(self):
+        self.__AperInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("diaf_controller")
+
+    def get_stage_instrument(self):
+        self.__StageInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
 
     @property
     def live_probe_position(self):
@@ -362,7 +370,6 @@ class ivgInstrument(stem_controller.STEMController):
     def _set_scan_context_probe_position(self, scan_context: stem_controller.ScanContext,
                                          probe_position: Geometry.FloatPoint) -> None:
         self.__scan_context = copy.deepcopy(scan_context)
-        print(self.probe_position)
         self.__probe_position = probe_position
 
 

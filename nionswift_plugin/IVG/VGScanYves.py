@@ -217,7 +217,6 @@ class Device:
         current_frame=self.__frame
         assert current_frame is not None
         frame_parameters=current_frame.frame_parameters
-        #print(frame_parameters.subscan_pixel_size)
         data_elements=list()
 
         for channel in current_frame.channels:
@@ -302,7 +301,7 @@ class Device:
     def probe_pos(self, value):
         self.__probe_position=value
         px, py = round(self.__probe_position[0]*self.__scan_area[0]), round(self.__probe_position[1]*self.__scan_area[1])
-        self.orsayscan.SetProbeAt(px, py)
+        self.orsayscan.SetProbeAt(py, px)
 
 
     @property

@@ -187,7 +187,7 @@ class probeDevice(Observable.Observable):
             self.__lenses_ps.wobbler_on(self.__obj, self.__wobbler_intensity, self.__wobbler_frequency, 'OBJ')
         else:
             self.__lenses_ps.wobbler_off()
-            time.sleep(2.5 / self.__wobbler_frequency)
+            time.sleep(1.1 / self.__wobbler_frequency)
             self.obj_slider_f = self.__obj * 1e6
         self.property_changed_event.fire('obj_wobbler_f')
 
@@ -243,7 +243,7 @@ class probeDevice(Observable.Observable):
             self.__lenses_ps.wobbler_on(self.__c1, self.__wobbler_intensity, self.__wobbler_frequency, 'C1')
         else:
             self.__lenses_ps.wobbler_off()
-            time.sleep(2.5 / self.__wobbler_frequency)
+            time.sleep(1.1 / self.__wobbler_frequency)
             self.c1_slider_f = self.__c1 * 1e6
         self.property_changed_event.fire('c1_wobbler_f')
 
@@ -297,7 +297,7 @@ class probeDevice(Observable.Observable):
             self.__lenses_ps.wobbler_on(self.__c2, self.__wobbler_intensity, self.__wobbler_frequency, 'C2')
         else:
             self.__lenses_ps.wobbler_off()
-            time.sleep(2.5 / self.__wobbler_frequency)
+            time.sleep(1.1 / self.__wobbler_frequency)
             self.c2_slider_f = self.__c2 * 1e6
         self.property_changed_event.fire('c2_wobbler_f')
 

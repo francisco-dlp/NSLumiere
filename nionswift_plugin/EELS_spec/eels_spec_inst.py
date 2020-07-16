@@ -148,7 +148,7 @@ class EELS_SPEC_Device(Observable.Observable):
         else:
             try:
                 self.__eels_spec.wobbler_off()
-                time.sleep(2.2)
+                time.sleep(1.1)
                 self.fx_slider_f=self.__fx
                 self.fy_slider_f = self.__fy
                 self.sx_slider_f = self.__sx
@@ -185,7 +185,7 @@ class EELS_SPEC_Device(Observable.Observable):
         else:
             try:
                 self.__eels_spec.wobbler_off()
-                time.sleep(2.2)
+                time.sleep(1.1)
                 self.q1_slider_f=self.__q1
                 self.q2_slider_f = self.__q2
                 self.q3_slider_f = self.__q3
