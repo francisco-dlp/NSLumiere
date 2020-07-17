@@ -52,16 +52,25 @@ else:
     from . import airlock as al
 
 
-class ivgDevice(Observable.Observable):
-
-    def __init__(self):
+class ivgInstrument(stem_controller.STEMController):
+    def __init__(self, instrument_id: str):
+        super().__init__()
+        self.priority = 20
+        self.instrument_id = instrument_id
         self.property_changed_event = Event.Event()
         self.communicating_event = Event.Event()
         self.busy_event=Event.Event()
-        
+
         self.append_data=Event.Event()
         self.stage_event=Event.Event()
-        
+
+        self.__blanked = False
+        self.__scan_context = stem_controller.ScanContext()
+        self.__probe_position = None
+        self.__live_probe_position = None
+        self.__fov = None
+
+
         self.__EHT=EHT_INITIAL
         self.__obj_res_ref = OBJECTIVE_RESISTANCE
         self.__amb_temp = AMBIENT_TEMPERATURE
@@ -88,10 +97,10 @@ class ivgDevice(Observable.Observable):
 
     def get_lenses_instrument(self):
         self.__lensInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("lenses_controller")
-    
+
     def get_EELS_instrument(self):
         self.__EELSInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_controller")
-    
+
     def get_diaf_instrument(self):
         self.__AperInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("diaf_controller")
 
@@ -133,10 +142,10 @@ class ivgDevice(Observable.Observable):
                 self.__thread.start()
             except:
                 pass
-        
+
     def estimate_temp(self):
         self.__obj_temp = self.__amb_temp + ((self.__obj_res-self.__obj_res_ref)/self.__obj_res_ref)/TEMP_COEF
-        if self.__obj_temp<0: self.__obj_temp: self.__amb_temp
+        if self.__obj_temp<0: self.__obj_temp = self.__amb_temp
         self.property_changed_event.fire('obj_temp_f')
 
     def shutdown_objective(self):
@@ -150,6 +159,13 @@ class ivgDevice(Observable.Observable):
                     server.sendmail(sender_email, receiver_email, message)
             except:
                 pass
+
+    def fov_change(self, FOV):
+        self.__fov = int(FOV*1e6)
+        try:
+            self.__StageInstrument.slider_range_f=self.__fov
+        except:
+            pass
 
 
     def sendMessageFactory(self):
@@ -219,7 +235,7 @@ class ivgDevice(Observable.Observable):
     @property
     def obj_vol_f(self):
         return self.__obj_vol
-        
+
     @property
     def obj_temp_f(self):
         return '{:.2f}'.format(self.__obj_temp)
@@ -326,37 +342,6 @@ class ivgDevice(Observable.Observable):
     def y_stage_f(self):
         return '{:.2f}'.format(self.__y_real_pos*1e6)
 
-
-
-
-###################################
-
-class ivgInstrument(stem_controller.STEMController):
-    def __init__(self, instrument_id: str):
-        super().__init__()
-        self.priority = 20
-        self.instrument_id = instrument_id
-        self.property_changed_event = Event.Event()
-
-        self.__EELSInstrument=None
-
-        self.__blanked = False
-        self.__scan_context = stem_controller.ScanContext()
-        self.__probe_position = None
-        self.__live_probe_position = None
-        self.__controls = dict()
-
-    def get_lenses_instrument(self):
-        self.__lensInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("lenses_controller")
-
-    def get_EELS_instrument(self):
-        self.__EELSInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_controller")
-
-    def get_diaf_instrument(self):
-        self.__AperInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("diaf_controller")
-
-    def get_stage_instrument(self):
-        self.__StageInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
 
     @property
     def live_probe_position(self):

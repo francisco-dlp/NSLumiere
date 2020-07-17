@@ -263,6 +263,7 @@ class Device:
     def field_of_view(self, value):
         self.__fov = value/1e9
         self.orsayscan.SetFieldSize(self.__fov)
+        self.__instrument.fov_change(self.__fov)
 
     @property
     def pixel_time(self):

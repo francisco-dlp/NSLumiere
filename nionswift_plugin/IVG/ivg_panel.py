@@ -80,7 +80,7 @@ class dataItemCreation():
 class ivghandler:
 
 
-    def __init__(self,instrument:ivg_inst.ivgDevice, document_controller):
+    def __init__(self,instrument:ivg_inst.ivgInstrument, document_controller):
 
         self.event_loop=document_controller.event_loop
         self.document_controller=document_controller
@@ -161,7 +161,7 @@ class ivghandler:
 class ivgView:
 
 
-    def __init__(self, instrument:ivg_inst.ivgDevice):
+    def __init__(self, instrument:ivg_inst.ivgInstrument):
         ui = Declarative.DeclarativeUI()
         
         self.EHT_label=ui.create_label(name='EHT_label', text='HT: ')
@@ -260,7 +260,7 @@ def create_spectro_panel(document_controller, panel_id, properties):
         return panel
 
 
-def run(instrument: ivg_inst.ivgDevice) -> None:
+def run(instrument: ivg_inst.ivgInstrument) -> None:
     panel_id = "IVG"#make sure it is unique, otherwise only one of the panel will be displayed
     name = _("VG Lumiere - Status")
     Workspace.WorkspaceManager().register_panel(create_spectro_panel, panel_id, name, ["left", "right"], "left",
