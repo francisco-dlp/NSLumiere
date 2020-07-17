@@ -1,4 +1,3 @@
-from nion.swift.model import HardwareSource
 from nion.utils import Registry
 
 import logging

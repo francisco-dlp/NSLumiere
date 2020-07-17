@@ -26,6 +26,7 @@ class stageDevice(Observable.Observable):
         self.property_changed_power_event = Event.Event()
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
+        self.slider_event=Event.Event()
         
         self.__sendmessage = stage.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__vgStage=stage.VGStage(self.__sendmessage)
@@ -102,4 +103,10 @@ class stageDevice(Observable.Observable):
     @slider_range_f.setter
     def slider_range_f(self, value):
         self.__slider_range=value*100
-        self.property_changed_event('slider_range')
+        if self.__slider_range<32000:
+            try:
+                self.slider_event.fire()
+            except:
+                pass
+        self.property_changed_event.fire('slider_range_f')
+

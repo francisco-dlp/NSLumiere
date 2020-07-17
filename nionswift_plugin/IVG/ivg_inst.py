@@ -74,7 +74,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__EHT=EHT_INITIAL
         self.__obj_res_ref = OBJECTIVE_RESISTANCE
         self.__amb_temp = AMBIENT_TEMPERATURE
-
+        self.__stand=False
         self.__obj_temp=self.__amb_temp
         self.__obj_res=self.__obj_res_ref
 
@@ -133,7 +133,7 @@ class ivgInstrument(stem_controller.STEMController):
             self.append_data.fire([self.__LL_vac, self.__gun_vac, self.__obj_temp], self.__loop_index)
             self.__loop_index+=1
             if self.__loop_index==MAX_PTS: self.__loop_index=0
-            if self.__obj_temp>OBJECTIVE_MAX_TEMPERATURE: self.shutdown_objective()
+            if self.__obj_temp>OBJECTIVE_MAX_TEMPERATURE and self.__obj_cur>4.0: self.shutdown_objective()
         except:
             logging.info('***IVG***: Could not sent [SLOW] periodic values to the panel.')
         self.__thread=threading.Timer(TIME_SLOW_PERIODIC, self.periodic, args=(),)
@@ -201,6 +201,23 @@ class ivgInstrument(stem_controller.STEMController):
         except:
             logging.info('***IVG***: A problem happened in Lens or EELS Controller during HT change.')
         self.property_changed_event.fire('EHT_f')
+
+    @property
+    def stand_f(self):
+        return self.__stand
+
+    @stand_f.setter
+    def stand_f(self, value):
+        self.__stand = value
+        try:
+            self.__lensInstrument.obj_global_f=not value
+            self.__lensInstrument.c1_global_f=not value
+            self.__lensInstrument.c2_global_f=not value
+        except:
+            pass
+
+        self.property_changed_event.fire('stand_f')
+
 
     @property
     def gun_vac_f(self):

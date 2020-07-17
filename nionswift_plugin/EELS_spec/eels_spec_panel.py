@@ -52,7 +52,7 @@ class eels_spec_handler:
 
     def save_spec(self, widget):
         if not self.ivg:
-            self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("Instrument_VG")
+            self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id('VG_Lum_controller')
 
         panel_dir = os.path.dirname(__file__)
         abs_path = os.path.join(panel_dir, 'eels_settings.json')

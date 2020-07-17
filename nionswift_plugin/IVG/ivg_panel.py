@@ -166,7 +166,11 @@ class ivgView:
         
         self.EHT_label=ui.create_label(name='EHT_label', text='HT: ')
         self.EHT_combo_box=ui.create_combo_box(name='EHT_combo_box', items=['40', '60', '80', '100'], current_index='@binding(instrument.EHT_f)')
-        self.EHT_row=ui.create_row(self.EHT_label, self.EHT_combo_box, ui.create_stretch())
+
+        self.stand_label = ui.create_label(name='stand_label', text='Stand By:')
+        self.stand_value=ui.create_check_box(name='stand_value', checked='@binding(instrument.stand_f)')
+
+        self.EHT_row=ui.create_row(self.EHT_label, self.EHT_combo_box, ui.create_spacing(25), self.stand_label, self.stand_value, ui.create_stretch())
 
         self.gun_label=ui.create_label(name='gun_label', text='Gun Vacuum: ')
         self.gun_vac=ui.create_label(name='gun_vac', text='@binding(instrument.gun_vac_f)')

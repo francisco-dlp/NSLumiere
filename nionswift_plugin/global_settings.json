@@ -9,7 +9,7 @@
     "EHT_INITIAL": 3,
     "FAST_PERIODIC": {
       "ACTIVE": 1,
-      "PERIOD": 0.05
+      "PERIOD": 0.1
     },
     "MAX_PTS": 5000,
     "OBJECTIVE": {

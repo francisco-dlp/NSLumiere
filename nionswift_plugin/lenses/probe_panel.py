@@ -45,7 +45,7 @@ class gainhandler:
 
     def save_lenses(self, widget):
         if not self.ivg:
-            self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("Instrument_VG")
+            self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 
         panel_dir = os.path.dirname(__file__)
         abs_path = os.path.join(panel_dir, 'lenses_settings.json')
@@ -144,11 +144,10 @@ class gainView:
 
 
         self.objective_tab = ui.create_tab(label='Objective',
-                                           content=ui.create_column(ui.create_spacing(10), self.obj_row,
+                                           content=ui.create_column(self.obj_row,
                                                                     self.obj_slider, self.obj_wobbler_row,
                                                                     self.wobbler_freq_row,
                                                                     self.wobbler_slider_frequency,
-                                                                    ui.create_spacing(25),
                                                                     self.astig_group,
                                                                     self.pb_row))
 
@@ -192,13 +191,10 @@ class gainView:
 
 
         self.condenser_tab = ui.create_tab(label='Condenser',
-                                           content=ui.create_column(ui.create_spacing(10), self.c1_row, self.c1_slider,
+                                           content=ui.create_column(self.c1_row, self.c1_slider,
                                                                     self.c1_wobbler_row, self.wobbler_freq_row,
-                                                                    self.wobbler_slider_frequency,
-                                                                    ui.create_spacing(50), self.c2_row, self.c2_slider,
+                                                                    self.c2_row, self.c2_slider,
                                                                     self.c2_wobbler_row, self.wobbler_freq_row,
-                                                                    self.wobbler_slider_frequency,
-                                                                    ui.create_spacing(25),
                                                                     self.cond_astig_group,
                                                                     self.pb_row))
 

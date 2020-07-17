@@ -1,24 +1,13 @@
 # standard libraries
 import gettext
-import os
-import json
-
-# local libraries
 from nion.swift import Panel
 from nion.swift import Workspace
-from nion.ui import Widgets
-from nion.utils import Binding
-from nion.utils import Converter
-from nion.utils import Geometry
 from nion.ui import Declarative
 from nion.ui import UserInterface
-from nion.swift.model import HardwareSource
-import threading
-
 from . import stage_inst
-import logging
+
 _ = gettext.gettext
-from nion.utils import Model
+
 
 
 
@@ -35,7 +24,8 @@ class stagehandler:
         self.enabled = False
         self.property_changed_event_listener=self.instrument.property_changed_event.listen(self.prepare_widget_enable)
         self.busy_event_listener=self.instrument.busy_event.listen(self.prepare_widget_disable)
-        self.slider_max = 2500
+        self.slider_event_listener=self.instrument.slider_event.listen(self.readjust_slider)
+        self.slider_max = 80000
 
 
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
@@ -53,9 +43,17 @@ class stagehandler:
         self.event_loop.create_task(self.do_enable(False, []))
 
     def slider_release(self, widget):
-        value=self.instrument.slider_range_f
-        widget.maximum=widget.value+value
-        widget.minimum=widget.value-value
+        widget.maximum=widget.value+self.slider_max
+        widget.minimum=widget.value-self.slider_max
+
+    def readjust_slider(self):
+        self.slider_max=self.instrument.slider_range_f
+
+        try:
+            self.slider_release(self.x_slider)
+            self.slider_release(self.y_slider)
+        except:
+            pass
 
     def total_range(self, widget):
         self.x_slider.maximum = 80000
@@ -65,7 +63,7 @@ class stagehandler:
         self.y_slider.minimum = -80000
 
     def line_edit(self, widget, text):
-        self.total_range(self.add_pb)
+        self.total_range(widget)
 
     def add_value(self, widget):
         self.list_positions.text+='(' + self.x_value_edit.text +', ' + self.y_value_edit.text + "): \n"
@@ -93,12 +91,12 @@ class stageView:
         self.x_label = ui.create_label(name='x_label', text='X Pos: ')
         self.x_value_edit = ui.create_line_edit(name='x_value_edit', text='@binding(instrument.x_pos_edit_f)', on_text_edited='line_edit')
         self.x_row=ui.create_row(self.x_label, self.x_value_edit, ui.create_stretch())
-        self.x_slider=ui.create_slider(name='x_slider', value='@binding(instrument.x_pos_f)', minimum=-80000, maximum=80000, on_slider_released='slider_release')
+        self.x_slider=ui.create_slider(name='x_slider', value='@binding(instrument.x_pos_f)', minimum=-3200, maximum=3200, on_slider_released='slider_release')
 
         self.y_label = ui.create_label(name='y_label', text='Y Pos: ')
         self.y_value_edit = ui.create_line_edit(name='y_value_edit', text='@binding(instrument.y_pos_edit_f)', on_text_edited='line_edit')
         self.y_row = ui.create_row(self.y_label, self.y_value_edit, ui.create_stretch())
-        self.y_slider = ui.create_slider(name='y_slider', value='@binding(instrument.y_pos_f)', minimum=-80000, maximum=80000, on_slider_released='slider_release')
+        self.y_slider = ui.create_slider(name='y_slider', value='@binding(instrument.y_pos_f)', minimum=-3200, maximum=3200, on_slider_released='slider_release')
 
         self.ui_view=ui.create_column(self.x_row, self.x_slider, ui.create_spacing(10), self.y_row, self.y_slider, self.list_positions, self.button_row)
 
@@ -123,7 +121,7 @@ def create_spectro_panel(document_controller, panel_id, properties):
 
 
 def run(instrument: stage_inst.stageDevice) -> None:
-    panel_id = "Stage"#make sure it is unique, otherwise only one of the panel will be displayed
+    panel_id = "Stage"
     name = _("Stage")
     Workspace.WorkspaceManager().register_panel(create_spectro_panel, panel_id, name, ["left", "right"], "left",
                                                 {"instrument": instrument})

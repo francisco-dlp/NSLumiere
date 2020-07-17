@@ -7,6 +7,7 @@ import time
 from nion.utils import Event
 from nion.utils import Observable
 from nion.swift.model import HardwareSource
+from nion.utils import Registry
 
 abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
 with open(abs_path) as savfile:
@@ -48,6 +49,7 @@ class probeDevice(Observable.Observable):
         self.__obj_astig = [0, 0]
         self.__cond_astig = [0, 0]
 
+        print(HardwareSource.HardwareSourceManager().get_all_hardware_source_ids())
         self.__OrsayScanInstrument=HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device") ## does not always work. Put it again in property...
 
         try:

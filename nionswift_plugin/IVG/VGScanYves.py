@@ -262,6 +262,7 @@ class Device:
     @field_of_view.setter
     def field_of_view(self, value):
         self.__fov = value/1e9
+        if self.__fov>72*1e-6: self.__fov=72.*1e6
         self.orsayscan.SetFieldSize(self.__fov)
         self.__instrument.fov_change(self.__fov)
 
