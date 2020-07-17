@@ -69,7 +69,7 @@ class EELS_SPEC_Device(Observable.Observable):
         abs_path = os.path.join(inst_dir, 'eels_settings.json')
         with open(abs_path) as savfile:
             data = json.load(savfile)
-        logging.info(json.dumps(data, indent=4))
+        #logging.info(json.dumps(data, indent=4))
 
         self.range_f = data[self.__EHT][value]['range']
         self.note_f = data[self.__EHT][value]['note']

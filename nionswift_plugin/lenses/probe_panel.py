@@ -55,7 +55,7 @@ class gainhandler:
 
         json_object[self.ivg.EHT_f] = {"obj": self.obj_value.text, "c1": self.c1_value.text, "c2": self.c2_value.text, \
                                        "obj_stig_00": self.astig0_slider.value, "obj_stig_01": self.astig1_slider.value, \
-                                       "cond_stig_02": self.astig2_slider.value, "cond_stig_03": self.astig3_slider.value}
+                                       "gun_stig_02": self.astig2_slider.value, "gun_stig_03": self.astig3_slider.value}
 
 
         with open(abs_path, 'w') as json_file:
@@ -133,10 +133,10 @@ class gainView:
         self.obj_wobbler_row = ui.create_row(self.obj_wobbler_cb, self.wobbler_value)
 
         self.astig0_label=ui.create_label(name='astig0_label', text='Astig 00: ')
-        self.astig0_slider=ui.create_slider(name='astig0_slider', value='@binding(instrument.obj_astig00_f)', minimum=-1000, maximum=1000)
+        self.astig0_slider=ui.create_slider(name='astig0_slider', value='@binding(instrument.obj_stigmateur0_f)', minimum=-1000, maximum=1000)
 
         self.astig1_label=ui.create_label(name='astig1_label', text='Astig 01: ')
-        self.astig1_slider=ui.create_slider(name='astig1_slider', value='@binding(instrument.obj_astig01_f)', minimum=-1000, maximum=1000)
+        self.astig1_slider=ui.create_slider(name='astig1_slider', value='@binding(instrument.obj_stigmateur1_f)', minimum=-1000, maximum=1000)
 
         self.astig_column=ui.create_column(self.astig0_label, self.astig0_slider, self.astig1_label, self.astig1_slider)
 
@@ -179,10 +179,10 @@ class gainView:
 
 
         self.astig2_label=ui.create_label(name='astig1_labe2', text='Astig 02: ')
-        self.astig2_slider=ui.create_slider(name='astig2_slider', value='@binding(instrument.cond_astig02_f)', minimum=-1000, maximum=1000)
+        self.astig2_slider=ui.create_slider(name='astig2_slider', value='@binding(instrument.gun_stigmateur0_f)', minimum=-1000, maximum=1000)
 
         self.astig3_label=ui.create_label(name='astig3_label', text='Astig 03: ')
-        self.astig3_slider=ui.create_slider(name='astig3_slider', value='@binding(instrument.cond_astig03_f)', minimum=-1000, maximum=1000)
+        self.astig3_slider=ui.create_slider(name='astig3_slider', value='@binding(instrument.gun_stigmateur1_f)', minimum=-1000, maximum=1000)
 
         self.cond_astig_column=ui.create_column(self.astig2_label, self.astig2_slider, self.astig3_label, self.astig3_slider)
 

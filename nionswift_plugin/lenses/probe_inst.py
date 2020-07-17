@@ -13,8 +13,8 @@ abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.j
 with open(abs_path) as savfile:
     settings = json.load(savfile)
 
-
 DEBUG = settings["lenses"]["DEBUG"]
+
 
 if DEBUG:
     from . import lens_ps_vi as lens_ps
@@ -46,25 +46,20 @@ class probeDevice(Observable.Observable):
         self.wobbler_frequency_f = 2
         self.__wobbler_intensity = 0.05
 
-        self.__obj_astig = [0, 0]
-        self.__cond_astig = [0, 0]
-
-        print(HardwareSource.HardwareSourceManager().get_all_hardware_source_ids())
-        self.__OrsayScanInstrument=HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device") ## does not always work. Put it again in property...
+        self.__ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 
         try:
             inst_dir = os.path.dirname(__file__)
             abs_path = os.path.join(inst_dir, 'lenses_settings.json')
             with open(abs_path) as savfile:
                 data = json.load(savfile)  # data is load json
-            logging.info(json.dumps(data, indent=4))
             self.obj_edit_f = data["3"]["obj"]
             self.c1_edit_f = data["3"]["c1"]
             self.c2_edit_f = data["3"]['c2']
-            self.obj_astig00_f=data["3"]["obj_stig_00"]
-            self.obj_astig01_f=data["3"]["obj_stig_01"]
-            self.cond_astig02_f=data["3"]["cond_stig_02"]
-            self.cond_astig03_f=data["3"]["cond_stig_03"]
+            self.obj_stigmateur0_f=data["3"]["obj_stig_0"]
+            self.obj_stigmateur1_f=data["3"]["obj_stig_1"]
+            self.gun_stimateur0_f=data["3"]["gun_stig_0"]
+            self.gun_stigmateur1_f=data["3"]["gun_stig_1"]
         except:
             logging.info('***LENSES***: No saved values.')
 
@@ -135,33 +130,22 @@ class probeDevice(Observable.Observable):
     ### OBJ ###
 
     @property
-    def obj_astig00_f(self):
-        return int(self.__obj_astig[0]*1e3)
+    def obj_stigmateur0_f(self):
+        return self.__ivg.obj_stig00_f
 
-    @obj_astig00_f.setter
-    def obj_astig00_f(self, value):
-        self.__obj_astig[0] = value/1e3
-        try:
-            if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
-            self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_astig[0], self.__obj_astig[1])
-            #self.__OrsayScanInstrument.scan_device.obj_stig=self.__obj_astig
-        except:
-            logging.info('***LENSES***: Could not acess objective astigmators. Please check Scan Module.')
-        self.property_changed_event.fire('obj_astig00_f')
+    @obj_stigmateur0_f.setter
+    def obj_stigmateur0_f(self, value):
+        self.__ivg.obj_stig00_f=value
+        self.property_changed_event.fire('obj_stigmateur0_f')
 
     @property
-    def obj_astig01_f(self):
-        return int(self.__obj_astig[1]*1e3)
+    def obj_stigmateur1_f(self):
+        return self.__ivg.obj_stig01_f
 
-    @obj_astig01_f.setter
-    def obj_astig01_f(self, value):
-        self.__obj_astig[1] = value/1e3
-        try:
-            if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
-            self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_astig[0], self.__obj_astig[1])
-        except:
-            logging.info('***LENSES***: Could not acess objective astigmators. Please check Scan Module.')
-        self.property_changed_event.fire('obj_astig01_f')
+    @obj_stigmateur1_f.setter
+    def obj_stigmateur1_f(self, value):
+        self.__ivg.obj_stig01_f=value
+        self.property_changed_event.fire('obj_stigmateur01_f')
 
     @property
     def obj_global_f(self):
@@ -326,31 +310,20 @@ class probeDevice(Observable.Observable):
         self.property_changed_event.fire("c2_edit_f")
 
     ### COND ASTIGMATORS ###
+    @property
+    def gun_stigmateur0_f(self):
+        return self.__ivg.gun_stig00_f
+
+    @gun_stigmateur0_f.setter
+    def gun_stigmateur0_f(self, value):
+        self.__ivg.gun_stig00_f = value
+        self.property_changed_event.fire('gun_stigmateur0_f')
 
     @property
-    def cond_astig02_f(self):
-        return int(self.__cond_astig[0]*1e3)
+    def gun_stigmateur1_f(self):
+        return self.__ivg.gun_stig01_f
 
-    @cond_astig02_f.setter
-    def cond_astig02_f(self, value):
-        self.__cond_astig[0] = value/1e3
-        try:
-            if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
-            self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__cond_astig[0], self.__cond_astig[1])
-        except:
-            logging.info('***LENSES***: Could not acess gun astigmators. Please check Scan Module.')
-        self.property_changed_event.fire('cond_astig02_f')
-
-    @property
-    def cond_astig03_f(self):
-        return int(self.__cond_astig[1]*1e3)
-
-    @cond_astig03_f.setter
-    def cond_astig03_f(self, value):
-        self.__cond_astig[1] = value/1e3
-        try:
-            if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
-            self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__cond_astig[0], self.__cond_astig[1])
-        except:
-            logging.info('***LENSES***: Could not acess gun astigmators. Please check Scan Module.')
-        self.property_changed_event.fire('cond_astig03_f')
+    @gun_stigmateur1_f.setter
+    def gun_stigmateur1_f(self, value):
+        self.__ivg.gun_stig01_f = value
+        self.property_changed_event.fire('gun_stigmateur1_f')

@@ -1,5 +1,4 @@
 # standard libraries
-import collections
 import copy
 import math
 import ctypes
@@ -16,12 +15,10 @@ from nion.instrumentation import scan_base
 from nion.instrumentation import stem_controller
 
 
-from .orsayscan import orsayScan, LOCKERFUNC, UNLOCKERFUNC, UNLOCKERFUNCA
-from .ConfigVGLumDialog import ConfigDialog
-from . import orsayscan
+from nionswift_plugin.IVG.scan.orsayscan import orsayScan, LOCKERFUNC, UNLOCKERFUNCA
+from nionswift_plugin.IVG.scan.ConfigVGLumDialog import ConfigDialog
 
-
-from . import ivg_inst
+from nionswift_plugin.IVG import ivg_inst
 
 _ = gettext.gettext
 

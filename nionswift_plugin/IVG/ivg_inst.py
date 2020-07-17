@@ -4,13 +4,10 @@ import logging
 import smtplib, ssl
 import os
 import json
-import typing
 
 from nion.utils import Event
-from nion.utils import Observable
 from nion.swift.model import HardwareSource
 from nion.instrumentation import stem_controller
-from nion.swift.model import Utility
 from nion.utils import Geometry
 
 sender_email = "vg.lumiere@gmail.com"
@@ -39,17 +36,23 @@ TEMP_COEF = settings["IVG"]["OBJECTIVE"]["TEMP_COEF"]
 MAX_PTS = settings["IVG"]["MAX_PTS"]
 AMBIENT_TEMPERATURE = settings["IVG"]["AMBIENT_TEMPERATURE"]
 EHT_INITIAL = settings["IVG"]["EHT_INITIAL"]
-
+DEBUG_CAMERA = settings["IVG"]["DEBUG_CAMERA"]
+DEBUG_SCAN = settings["IVG"]["DEBUG_SCAN"]
 
 if DEBUG_gun:
-    from . import gun_vi as gun
+    from .virtual_instruments import gun_vi as gun
 else:
     from . import gun as gun
 
 if DEBUG_airlock:
-    from . import airlock_vi as al
+    from .virtual_instruments import airlock_vi as al
 else:
     from . import airlock as al
+
+if not DEBUG_CAMERA:
+    from .camera import orsaycamera as camera
+if not DEBUG_SCAN:
+    from .scan import orsayscan as scan
 
 
 class ivgInstrument(stem_controller.STEMController):
@@ -61,6 +64,9 @@ class ivgInstrument(stem_controller.STEMController):
         self.communicating_event = Event.Event()
         self.busy_event=Event.Event()
 
+        if not DEBUG_CAMERA: self.__camera=camera
+        if not DEBUG_SCAN: self.__scan=scan
+
         self.append_data=Event.Event()
         self.stage_event=Event.Event()
 
@@ -69,6 +75,8 @@ class ivgInstrument(stem_controller.STEMController):
         self.__probe_position = None
         self.__live_probe_position = None
         self.__fov = None
+        self.__obj_stig = [0, 0]
+        self.__gun_stig = [0, 0]
 
 
         self.__EHT=EHT_INITIAL
@@ -229,6 +237,58 @@ class ivgInstrument(stem_controller.STEMController):
     def LL_vac_f(self):
         self.__LL_vac=self.__ll_gauge.query()
         return str('{:.2E}'.format(self.__LL_vac))+' mBar'
+
+    @property
+    def obj_stig00_f(self):
+        return int(self.__obj_stig[0] * 1e3)
+
+    @obj_stig00_f.setter
+    def obj_stig00_f(self, value):
+        self.__obj_stig[0] = value / 1e3
+        if not DEBUG_SCAN:
+            self.__scan.orsayScan.ObjectiveStigmateur(self.__obj_stig[0], self.__obj_stig[1])
+        else:
+            logging.info('***LENSES***: Could not acess objective astigmators. Please check Scan Module.')
+        self.property_changed_event.fire('obj_astig00_f')
+
+    @property
+    def obj_stig01_f(self):
+        return int(self.__obj_stig[1] * 1e3)
+
+    @obj_stig01_f.setter
+    def obj_stig01_f(self, value):
+        self.__obj_stig[1] = value / 1e3
+        if not DEBUG_SCAN:
+            self.__scan.orsayScan.ObjectiveStigmateur(self.__obj_stig[0], self.__obj_stig[1])
+        else:
+            logging.info('***LENSES***: Could not acess objective astigmators. Please check Scan Module.')
+        self.property_changed_event.fire('obj_astig01_f')
+
+    @property
+    def gun_stig00_f(self):
+        return int(self.__gun_stig[0] * 1e3)
+
+    @gun_stig00_f.setter
+    def gun_stig00_f(self, value):
+        self.__gun_stig[0] = value / 1e3
+        if not DEBUG_SCAN:
+            self.__scan.orsayScan.CondensorStigmateur(self.__gun_stig[0], self.__gun_stig[1])
+        else:
+            logging.info('***LENSES***: Could not acess gun astigmators. Please check Scan Module.')
+        self.property_changed_event.fire('gun_astig00_f')
+
+    @property
+    def gun_stig01_f(self):
+        return int(self.__gun_stig[1] * 1e3)
+
+    @gun_stig01_f.setter
+    def gun_stig01_f(self, value):
+        self.__gun_stig[1] = value / 1e3
+        if not DEBUG_SCAN:
+            self.__scan.orsayScan.CondensorStigmateur(self.__gun_stig[0], self.__gun_stig[1])
+        else:
+            logging.info('***LENSES***: Could not acess gun astigmators. Please check Scan Module.')
+        self.property_changed_event.fire('gun_astig01_f')
 
     @property
     def obj_cur_f(self):
