@@ -100,12 +100,10 @@ class MonoDevice(Observable.Observable):
         threading.Thread(target=self.__Mono.set_exit, args=(self.__exit_slit,)).start()
     @property
     def which_slit_f(self):
-        print('get')
         return self.__slit_choice
 
     @which_slit_f.setter
     def which_slit_f(self, value):
-        print('set')
         self.__slit_choice = value
         self.busy_event.fire("")
         threading.Thread(target=self.__Mono.set_which, args=(self.__slit_choice,)).start()
