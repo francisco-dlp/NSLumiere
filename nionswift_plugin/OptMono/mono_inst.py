@@ -34,10 +34,13 @@ class MonoDevice(Observable.Observable):
         self.__exit_slit = self.__Mono.exit_slit
         self.__slit_choice = self.__Mono.which_slit
 
+
+
         self.__running=False
 
     def init(self):
         logging.info('***MONOCHROMATOR***: Initializing hardware...')
+
 
     def sendMessageFactory(self):
         def sendMessage(message):
@@ -45,18 +48,16 @@ class MonoDevice(Observable.Observable):
                 logging.info("***Monochromator***: Serial Communication was not possible. Check instrument")
             if message == 2:
                 logging.info("***MONOCHROMATOR***: Grating changed successfully.")
-
             if message == 3:
                 logging.info("***MONOCHROMATOR***: Wavelength changed successfully.")
-
             if message == 4:
                 logging.info("***MONOCHROMATOR***: Entrance slit width changed successfully.")
-
             if message == 5:
                 logging.info("***MONOCHROMATOR***: Exit slit width changed successfully.")
-
             if message == 6:
                 logging.info("***MONOCHROMATOR***: Axial/Lateral slit changed successfully.")
+            if message == 7:
+                logging.info("***MONOCHROMATOR***: Attempted to set a property outside allowed range. Setting stard value..")
             self.__running=False
             self.property_changed_event.fire("")
 

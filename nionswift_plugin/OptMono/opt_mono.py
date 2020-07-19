@@ -24,7 +24,7 @@ class OptMonochromator:
         self.ser.parity = serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
         self.ser.bytesize = serial.EIGHTBITS
-        self.ser.timeout = 30
+        self.ser.timeout = 60
 
         try:
             if not self.ser.is_open:
@@ -32,26 +32,26 @@ class OptMonochromator:
                 time.sleep(0.1)
 
                 self.ser.write(b'?NM\r')
-                wav_line = ser.readline()
+                wav_line = self.ser.readline()
                 self.wavelength = float(wav_line[1:6].decode())
 
                 self.ser.write(b'?GRATING\r')
-                grating_line = ser.readline()
-                self.now_grating = int(grating_line[1:2].decode())
+                grating_line = self.ser.readline()
+                self.now_grating = int(grating_line[1:2].decode())-1
 
                 self.ser.write(b'EXIT-MIRROR ?MIRROR\r')
-                mirror_line = ser.readline()
+                mirror_line = self.ser.readline()
                 if mirror_line[1:6].decode() == 'front':
                     self.which_slit=0
                 else:
                     self.which_slit=1
 
                 self.ser.write(b'SIDE-ENT-SLIT ?MICRONS\r')
-                entrance_line = ser.readline()
+                entrance_line = self.ser.readline()
                 self.entrance_slit = float(entrance_line[1:5].decode())
 
                 self.ser.write(b'SIDE-EXIT-SLIT ?MICRONS\r')
-                exit_line = ser.readline()
+                exit_line = self.ser.readline()
                 self.exit_slit = float(exit_line[1:5].decode())
 
                 gratings=list()
@@ -62,7 +62,7 @@ class OptMonochromator:
                     if line:
                         if b'g/mm' in line:
                             print(line[4:].decode())
-                            gratings.append(line[4:].decode())
+                            gratings.append(line[4:-3].decode())
                     if line[-4:-2] == b'ok':
                         msg = False
 
@@ -82,29 +82,65 @@ class OptMonochromator:
         self.ser.write(string.encode())
         msg = True
         while msg:
-            line = ser.readline()
+            line = self.ser.readline()
             if b'ok' in line:
                 msg = False
         self.sendmessage(2)
 
     def set_wavelength(self, value):
-        string = (format(value, '.3f') + ' <goto>\r')
+        if value>=0 and value<=1000:
+            string = (format(value, '.3f') + ' <goto>\r')
+
+        else:
+            string = (format(0, '.3f') + ' <goto>\r')
+            self.sendmessage(7)
         self.ser.write(string.encode())
         msg = True
         while msg:
-            line = ser.readline()
+            line = self.ser.readline()
             if b'ok' in line:
                 msg = False
         self.sendmessage(3)
 
     def set_entrance(self, value):
-
+        if value>=0 and value<=5000:
+            string = 'SIDE-ENT-SLIT ' + format(value, '.0f') + ' MICRONS\r'
+        else:
+            string = 'SIDE-ENT-SLIT ' + str(3000) + ' MICRONS\r'
+            self.sendmessage(7)
+        self.ser.write(string.encode())
+        msg = True
+        while msg:
+            line = self.ser.readline()
+            if b'ok' in line:
+                msg = False
         self.sendmessage(4)
 
     def set_exit(self, value):
+        if value>=0 and value<=5000:
+            string = 'SIDE-EXIT-SLIT ' + format(value, '.0f') + ' MICRONS\r'
+        else:
+            string = 'SIDE-EXIT-SLIT ' + str(3000) + ' MICRONS\r'
+            self.sendmessage(7)
+        self.ser.write(string.encode())
+        msg = True
+        while msg:
+            line = self.ser.readline()
+            if b'ok' in line:
+                msg = False
 
         self.sendmessage(5)
 
     def set_which(self, value):
+        if value==0:
+            string = 'EXIT-MIRROR FRONT 400 MS\r'
+        if value==1:
+            string = 'EXIT-MIRROR SIDE 400 MS\r'
+        self.ser.write(string.encode())
+        msg = True
+        while msg:
+            line = self.ser.readline()
+            if b'ok' in line:
+                msg = False
 
         self.sendmessage(6)
