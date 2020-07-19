@@ -10,7 +10,7 @@ from nion.utils import Observable
 abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
 with open(abs_path) as savfile:
     settings = json.load(savfile)
-DEBUG = settings["monochromator"]["DEBUG"]
+DEBUG = settings["MONOCHROMATOR"]["DEBUG"]
 
 if DEBUG:
     from . import opt_mono_vi as optMono
@@ -34,6 +34,8 @@ class MonoDevice(Observable.Observable):
         self.__exit_slit = self.__Mono.exit_slit
         self.__slit_choice = self.__Mono.which_slit
 
+        self.__running=False
+
     def init(self):
         logging.info('***MONOCHROMATOR***: Initializing hardware...')
 
@@ -43,19 +45,20 @@ class MonoDevice(Observable.Observable):
                 logging.info("***Monochromator***: Serial Communication was not possible. Check instrument")
             if message == 2:
                 logging.info("***MONOCHROMATOR***: Grating changed successfully.")
-                self.property_changed_event.fire("")
+
             if message == 3:
                 logging.info("***MONOCHROMATOR***: Wavelength changed successfully.")
-                self.property_changed_event.fire("")
+
             if message == 4:
                 logging.info("***MONOCHROMATOR***: Entrance slit width changed successfully.")
-                self.property_changed_event.fire("")
+
             if message == 5:
                 logging.info("***MONOCHROMATOR***: Exit slit width changed successfully.")
-                self.property_changed_event.fire("")
+
             if message == 6:
                 logging.info("***MONOCHROMATOR***: Axial/Lateral slit changed successfully.")
-                self.property_changed_event.fire("")
+            self.__running=False
+            self.property_changed_event.fire("")
 
         return sendMessage
 
@@ -65,9 +68,10 @@ class MonoDevice(Observable.Observable):
 
     @wav_f.setter
     def wav_f(self, value):
-        self.__wl=value
+        self.__wl=float(value)
         self.busy_event.fire("")
-        threading.Thread(target=self.__Mono.set_wavelength, args=(self.__wl,)).start()
+        if not self.__running: threading.Thread(target=self.__Mono.set_wavelength, args=(self.__wl,)).start()
+        self.__running=True
 
     @property
     def grating_f(self):
@@ -77,8 +81,8 @@ class MonoDevice(Observable.Observable):
     def grating_f(self, value):
         self.__grating = value
         self.busy_event.fire("")
-        threading.Thread(target=self.__Mono.set_grating, args=(self.__grating,)).start()
-
+        if not self.__running: threading.Thread(target=self.__Mono.set_grating, args=(self.__grating,)).start()
+        self.__running = True
 
     @property
     def entrance_slit_f(self):
@@ -86,18 +90,22 @@ class MonoDevice(Observable.Observable):
 
     @entrance_slit_f.setter
     def entrance_slit_f(self, value):
-        self.__entrance_slit = value
+        self.__entrance_slit = float(value)
         self.busy_event.fire("")
-        threading.Thread(target=self.__Mono.set_entrance, args=(self.__entrance_slit,)).start()
+        if not self.__running: threading.Thread(target=self.__Mono.set_entrance, args=(self.__entrance_slit,)).start()
+        self.__running = True
+
     @property
     def exit_slit_f(self):
         return self.__exit_slit
 
     @exit_slit_f.setter
     def exit_slit_f(self, value):
-        self.__exit_slit = value
+        self.__exit_slit = float(value)
         self.busy_event.fire("")
-        threading.Thread(target=self.__Mono.set_exit, args=(self.__exit_slit,)).start()
+        if not self.__running: threading.Thread(target=self.__Mono.set_exit, args=(self.__exit_slit,)).start()
+        self.__running = True
+
     @property
     def which_slit_f(self):
         return self.__slit_choice
@@ -106,4 +114,5 @@ class MonoDevice(Observable.Observable):
     def which_slit_f(self, value):
         self.__slit_choice = value
         self.busy_event.fire("")
-        threading.Thread(target=self.__Mono.set_which, args=(self.__slit_choice,)).start()
+        if not self.__running: threading.Thread(target=self.__Mono.set_which, args=(self.__slit_choice,)).start()
+        self.__running = True

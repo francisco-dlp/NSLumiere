@@ -26,7 +26,7 @@
     },
     "STAGE_MATRIX_SIZE": 160
   },
-  "monochromator": {
+  "MONOCHROMATOR": {
     "DEBUG": 1,
     "GRATINGS": ["0", "1", "2"]
   },

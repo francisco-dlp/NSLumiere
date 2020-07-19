@@ -1,14 +1,10 @@
 import serial
 import sys
-import logging
 import time
-import threading
-import numpy
-from concurrent.futures import ThreadPoolExecutor
-import concurrent.futures
+import os
+import json
 
 __author__ = "Yves Auad"
-
 
 def _isPython3():
     return sys.version_info[0] >= 3
@@ -58,17 +54,47 @@ class OptMonochromator:
                 exit_line = ser.readline()
                 self.exit_slit = float(exit_line[1:5].decode())
 
+                gratings=list()
+                self.ser.write(b'?GRATINGS\r')
+                msg = True
+                while msg:
+                    line = self.ser.readline()
+                    if line:
+                        if b'g/mm' in line:
+                            print(line[4:].decode())
+                            gratings.append(line[4:].decode())
+                    if line[-4:-2] == b'ok':
+                        msg = False
 
+                abs_path = os.path.abspath(os.path.join((__file__ + "/../../"), 'global_settings.json'))
+                with open(abs_path) as savfile:
+                    json_object = json.load(savfile)
 
+                json_object["MONOCHROMATOR"]["GRATINGS"] = gratings
+
+                with open(abs_path, 'w') as json_file:
+                    json.dump(json_object, json_file, indent=4)
         except:
             self.sendmessage(1)
 
     def set_grating(self, value):
-
+        string = str(value+1)+ ' GRATING\r'
+        self.ser.write(string.encode())
+        msg = True
+        while msg:
+            line = ser.readline()
+            if b'ok' in line:
+                msg = False
         self.sendmessage(2)
 
     def set_wavelength(self, value):
-
+        string = (format(value, '.3f') + ' <goto>\r')
+        self.ser.write(string.encode())
+        msg = True
+        while msg:
+            line = ser.readline()
+            if b'ok' in line:
+                msg = False
         self.sendmessage(3)
 
     def set_entrance(self, value):

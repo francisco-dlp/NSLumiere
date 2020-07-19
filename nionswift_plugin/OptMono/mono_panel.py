@@ -14,7 +14,7 @@ _ = gettext.gettext
 abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
 with open(abs_path) as savfile:
     settings = json.load(savfile)
-GRATINGS = settings["monochromator"]["GRATINGS"]
+GRATINGS = settings["MONOCHROMATOR"]["GRATINGS"]
 
 print(GRATINGS)
 
@@ -48,9 +48,13 @@ class Monohandler:
         self.event_loop.create_task(self.do_enable(False, ['init_pb']))
 
     def init(self, widget):
-        self.instrument.init()
         self.init_pb.enabled = False
+        abs_path = os.path.abspath(os.path.join((__file__ + "/../../"), 'global_settings.json'))
+        with open(abs_path) as savfile:
+            settings = json.load(savfile)
+        GRATINGS = settings["MONOCHROMATOR"]["GRATINGS"]
         self.event_loop.create_task(self.do_enable(True, ['init_pb']))
+        self.instrument.init()
 
 class MonoView:
 
