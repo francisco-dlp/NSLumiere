@@ -120,7 +120,7 @@ class ivgInstrument(stem_controller.STEMController):
         try:
             self.stage_event.fire(self.__y_real_pos, self.__x_real_pos)
         except:
-            logging.info('***IVG***: Could not sent [FAST] periodic values to the panel.')
+            pass
         self.__stage_thread=threading.Timer(TIME_FAST_PERIODIC, self.stage_periodic, args=(),)
         if not self.__stage_thread.is_alive():
             try:
@@ -143,7 +143,7 @@ class ivgInstrument(stem_controller.STEMController):
             if self.__loop_index==MAX_PTS: self.__loop_index=0
             if self.__obj_temp>OBJECTIVE_MAX_TEMPERATURE and self.__obj_cur>4.0: self.shutdown_objective()
         except:
-            logging.info('***IVG***: Could not sent [SLOW] periodic values to the panel.')
+            pass
         self.__thread=threading.Timer(TIME_SLOW_PERIODIC, self.periodic, args=(),)
         if not self.__thread.is_alive():
             try:
@@ -437,23 +437,33 @@ class ivgInstrument(stem_controller.STEMController):
 
 
     def TryGetVal(self, s: str) -> (bool, float):
+
         try:
             if not self.__EELSInstrument:
                 self.get_EELS_instrument()
         except:
             pass
-        try:
-            if s == "eels_y_offset":
-                return True, 0
-            elif s == "eels_x_offset":
-                return True, self.__EELSInstrument.ene_offset_edit_f
-            elif s == "eels_y_scale":
-                return True, 1
-            elif s == "eels_x_scale":
-                return True, self.__EELSInstrument.range_f
-        except:
-            return False, 1
 
+        if s == "eels_y_offset":
+            return True, 0
+        elif s == "eels_x_offset":
+            return True, self.__EELSInstrument.ene_offset_edit_f
+        elif s == "eels_y_scale":
+            return True, 1
+        elif s == "eels_x_scale":
+            return True, self.__EELSInstrument.range_f
+
+        if s == "eire_y_offset":
+            return True, 0
+        elif s == "eire_x_offset":
+            return True, 0
+        elif s == "eire_y_scale":
+            return True, 1
+        elif s == "eire_x_scale":
+            return True, 1
+
+        else:
+            return False, 0
 
     @property
     def is_blanked(self) -> bool:

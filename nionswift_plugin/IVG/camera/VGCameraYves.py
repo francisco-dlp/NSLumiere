@@ -36,9 +36,9 @@ class Orsay_Data(Enum):
 
 class CameraDevice(camera_base.CameraDevice):
 
-    def __init__(self, manufacturer, model, sn, simul, instrument: ivg_inst.ivgInstrument, id, name):
+    def __init__(self, manufacturer, model, sn, simul, instrument: ivg_inst.ivgInstrument, id, name, type):
         self.camera_id=id
-        self.camera_type="eels"
+        self.camera_type=type
         self.camera_name=name
         self.instrument=instrument
         self.camera = orsaycamera.orsayCamera(manufacturer, model, sn, simul)
@@ -529,17 +529,18 @@ def periodic_logger():
 def run(instrument: ivg_inst.ivgInstrument):
     cameras = list()
     try:
-        config_file = os.environ['ALLUSERSPROFILE'] + "\\Nion\\Nion Swift\\Orsay_cameras_list.json"
-        with open(config_file) as f:
+        #config_file = os.environ['ALLUSERSPROFILE'] + "\\Nion\\Nion Swift\\Orsay_cameras_list.json"
+        panel_dir = os.path.dirname(__file__)
+        abs_path = os.path.join(panel_dir, 'Orsay_cameras_list.json')
+        with open(abs_path) as f:
             cameras = json.load(f)
     except Exception as e:
         cameras.append({"manufacturer": 1, "model": "KURO: 2048B", "type": "eels", "id": "orsay_camera_kuro", "name": "EELS", "simulation": True})
         cameras.append({"manufacturer": 1, "model": "ProEM+: 1600xx(2)B eXcelon", "type":"eire", "id":"orsay_camera_eire", "name": "EIRE", "simulation":True})
 
     for camera in cameras:
-        print(camera["manufacturer"])
         sn=""
-        camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"], instrument, camera["id"], camera["name"])
+        camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"], instrument, camera["id"], camera["name"], camera["type"])
 
         camera_settings = CameraSettings(camera_device)
 

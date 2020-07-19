@@ -14,7 +14,7 @@ def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
 
-class OptMonochromator:
+class OptSpectrometer:
 
     def __init__(self, sendmessage):
         self.sendmessage = sendmessage
@@ -61,7 +61,6 @@ class OptMonochromator:
                     line = self.ser.readline()
                     if line:
                         if b'g/mm' in line:
-                            print(line[4:].decode())
                             gratings.append(line[4:-3].decode())
                     if line[-4:-2] == b'ok':
                         msg = False

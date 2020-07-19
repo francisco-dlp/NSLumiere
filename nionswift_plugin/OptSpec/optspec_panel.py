@@ -8,20 +8,20 @@ from nion.swift import Workspace
 from nion.ui import Declarative
 from nion.ui import UserInterface
 
-from . import mono_inst
+from . import optspec_inst
 _ = gettext.gettext
 
 abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
 with open(abs_path) as savfile:
     settings = json.load(savfile)
-GRATINGS = settings["MONOCHROMATOR"]["GRATINGS"]
+GRATINGS = settings["SPECTROMETER"]["GRATINGS"]
 
 print(GRATINGS)
 
-class Monohandler:
+class OptSpechandler:
 
 
-    def __init__(self, instrument:mono_inst.MonoDevice, event_loop):
+    def __init__(self, instrument:optspec_inst.OptSpecDevice, event_loop):
 
         self.event_loop=event_loop
         self.instrument=instrument
@@ -52,14 +52,14 @@ class Monohandler:
         abs_path = os.path.abspath(os.path.join((__file__ + "/../../"), 'global_settings.json'))
         with open(abs_path) as savfile:
             settings = json.load(savfile)
-        GRATINGS = settings["MONOCHROMATOR"]["GRATINGS"]
+        GRATINGS = settings["SPECTROMETER"]["GRATINGS"]
         self.event_loop.create_task(self.do_enable(True, ['init_pb']))
         self.instrument.init()
 
-class MonoView:
+class OptSpecView:
 
 
-    def __init__(self, instrument:mono_inst.MonoDevice):
+    def __init__(self, instrument:optspec_inst.OptSpecDevice):
         ui = Declarative.DeclarativeUI()
 
         self.init_pb = ui.create_push_button(name='init_pb', text='Init Hardware', on_clicked='init')
@@ -103,8 +103,8 @@ class MonoView:
         
 def create_spectro_panel(document_controller, panel_id, properties):
         instrument = properties["instrument"]
-        ui_handler =Monohandler(instrument, document_controller.event_loop)
-        ui_view=MonoView(instrument)
+        ui_handler =OptSpechandler(instrument, document_controller.event_loop)
+        ui_view=OptSpecView(instrument)
         panel = Panel.Panel(document_controller, panel_id, properties)
 
         finishes = list()
@@ -118,8 +118,8 @@ def create_spectro_panel(document_controller, panel_id, properties):
         return panel
 
 
-def run(instrument: mono_inst.MonoDevice) -> None:
-    panel_id = "Monochromator"#make sure it is unique, otherwise only one of the panel will be displayed
-    name = _("Monochromator")
+def run(instrument: optspec_inst.OptSpecDevice) -> None:
+    panel_id = "Optical Spectrometer"#make sure it is unique, otherwise only one of the panel will be displayed
+    name = _("Optical Spectrometer")
     Workspace.WorkspaceManager().register_panel(create_spectro_panel, panel_id, name, ["left", "right"], "left",
                                                 {"instrument": instrument})

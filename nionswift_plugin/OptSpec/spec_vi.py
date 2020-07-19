@@ -10,7 +10,7 @@ def _isPython3():
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
-class OptMonochromator:
+class OptSpectrometer:
 
     def __init__(self, sendmessage):
         self.sendmessage=sendmessage

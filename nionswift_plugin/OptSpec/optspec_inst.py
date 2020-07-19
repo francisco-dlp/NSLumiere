@@ -10,14 +10,14 @@ from nion.utils import Observable
 abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
 with open(abs_path) as savfile:
     settings = json.load(savfile)
-DEBUG = settings["MONOCHROMATOR"]["DEBUG"]
+DEBUG = settings["SPECTROMETER"]["DEBUG"]
 
 if DEBUG:
-    from . import opt_mono_vi as optMono
+    from . import spec_vi as optSpec
 else:
-    from . import opt_mono as optMono
+    from . import spec as optSpec
 
-class MonoDevice(Observable.Observable):
+class OptSpecDevice(Observable.Observable):
 
     def __init__(self):
         self.property_changed_event = Event.Event()
@@ -25,14 +25,14 @@ class MonoDevice(Observable.Observable):
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
 
-        self.__sendmessage = optMono.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        self.__Mono = optMono.OptMonochromator(self.__sendmessage)
+        self.__sendmessage = optSpec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
+        self.__Spec = optSpec.OptSpectrometer(self.__sendmessage)
 
-        self.__wl = self.__Mono.wavelength
-        self.__grating = self.__Mono.now_grating
-        self.__entrance_slit = self.__Mono.entrance_slit
-        self.__exit_slit = self.__Mono.exit_slit
-        self.__slit_choice = self.__Mono.which_slit
+        self.__wl = self.__Spec.wavelength
+        self.__grating = self.__Spec.now_grating
+        self.__entrance_slit = self.__Spec.entrance_slit
+        self.__exit_slit = self.__Spec.exit_slit
+        self.__slit_choice = self.__Spec.which_slit
 
 
 
