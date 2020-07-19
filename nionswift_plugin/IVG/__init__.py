@@ -6,7 +6,7 @@ abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.j
 with open(abs_path) as savfile:
     settings = json.load(savfile)
 
-DEBUG_CAMERA = settings["IVG"]["DEBUG_CAMERA"]
+DEBUG_CAMERA = settings["IVG"]["CAMERA"]["DEBUG"]
 DEBUG_SCAN = settings["IVG"]["DEBUG_SCAN"]
 
 from . import ivg_inst

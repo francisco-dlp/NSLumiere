@@ -3,7 +3,11 @@
         "DEBUG": 0
     },
     "IVG": {
-        "DEBUG_CAMERA": 0,
+        "CAMERA": {
+            "DEBUG": 0,
+            "PIXELS": 1600,
+            "SIZE": 25.6
+        },
         "DEBUG_SCAN": 0,
         "AMBIENT_TEMPERATURE": 23,
         "DEBUG_AIRLOCK": 1,
@@ -28,11 +32,19 @@
     },
     "SPECTROMETER": {
         "DEBUG": 0,
-        "GRATINGS": [
-            "300 g/mm BLZ=  300NM",
-            "300 g/mm BLZ=  1.0UM",
-            "150 g/mm BLZ=  500NM"
-        ]
+        "GRATINGS": {
+            "COMPLET": [
+                "300 g/mm BLZ=  300NM",
+                "300 g/mm BLZ=  1.0UM",
+                "150 g/mm BLZ=  500NM"
+            ],
+            "LP_MM": [
+                300.0,
+                300.0,
+                150.0
+            ]
+        },
+        "FL": 320
     },
     "diaf": {
         "DEBUG": 0

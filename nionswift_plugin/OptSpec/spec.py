@@ -6,6 +6,7 @@ import json
 
 __author__ = "Yves Auad"
 
+
 def _isPython3():
     return sys.version_info[0] >= 3
 
@@ -37,14 +38,14 @@ class OptSpectrometer:
 
                 self.ser.write(b'?GRATING\r')
                 grating_line = self.ser.readline()
-                self.now_grating = int(grating_line[1:2].decode())-1
+                self.now_grating = int(grating_line[1:2].decode()) - 1
 
                 self.ser.write(b'EXIT-MIRROR ?MIRROR\r')
                 mirror_line = self.ser.readline()
                 if mirror_line[1:6].decode() == 'front':
-                    self.which_slit=0
+                    self.which_slit = 0
                 else:
-                    self.which_slit=1
+                    self.which_slit = 1
 
                 self.ser.write(b'SIDE-ENT-SLIT ?MICRONS\r')
                 entrance_line = self.ser.readline()
@@ -54,7 +55,8 @@ class OptSpectrometer:
                 exit_line = self.ser.readline()
                 self.exit_slit = float(exit_line[1:5].decode())
 
-                gratings=list()
+                gratings = list()
+                self.lp_mm = list()
                 self.ser.write(b'?GRATINGS\r')
                 msg = True
                 while msg:
@@ -62,6 +64,7 @@ class OptSpectrometer:
                     if line:
                         if b'g/mm' in line:
                             gratings.append(line[4:-3].decode())
+                            self.lp_mm.append(float(line[4:8].decode()))
                     if line[-4:-2] == b'ok':
                         msg = False
 
@@ -69,7 +72,8 @@ class OptSpectrometer:
                 with open(abs_path) as savfile:
                     json_object = json.load(savfile)
 
-                json_object["MONOCHROMATOR"]["GRATINGS"] = gratings
+                json_object["SPECTROMETER"]["GRATINGS"]["COMPLET"] = gratings
+                json_object["SPECTROMETER"]["GRATINGS"]["LP_MM"] = self.lp_mm
 
                 with open(abs_path, 'w') as json_file:
                     json.dump(json_object, json_file, indent=4)
@@ -77,7 +81,7 @@ class OptSpectrometer:
             self.sendmessage(1)
 
     def set_grating(self, value):
-        string = str(value+1)+ ' GRATING\r'
+        string = str(value + 1) + ' GRATING\r'
         self.ser.write(string.encode())
         msg = True
         while msg:
@@ -87,7 +91,7 @@ class OptSpectrometer:
         self.sendmessage(2)
 
     def set_wavelength(self, value):
-        if value>=0 and value<=1000:
+        if value >= 0 and value <= 1000:
             string = (format(value, '.3f') + ' <goto>\r')
 
         else:
@@ -102,7 +106,7 @@ class OptSpectrometer:
         self.sendmessage(3)
 
     def set_entrance(self, value):
-        if value>=0 and value<=5000:
+        if value >= 0 and value <= 5000:
             string = 'SIDE-ENT-SLIT ' + format(value, '.0f') + ' MICRONS\r'
         else:
             string = 'SIDE-ENT-SLIT ' + str(3000) + ' MICRONS\r'
@@ -116,7 +120,7 @@ class OptSpectrometer:
         self.sendmessage(4)
 
     def set_exit(self, value):
-        if value>=0 and value<=5000:
+        if value >= 0 and value <= 5000:
             string = 'SIDE-EXIT-SLIT ' + format(value, '.0f') + ' MICRONS\r'
         else:
             string = 'SIDE-EXIT-SLIT ' + str(3000) + ' MICRONS\r'
@@ -131,9 +135,9 @@ class OptSpectrometer:
         self.sendmessage(5)
 
     def set_which(self, value):
-        if value==0:
+        if value == 0:
             string = 'EXIT-MIRROR FRONT 400 MS\r'
-        if value==1:
+        if value == 1:
             string = 'EXIT-MIRROR SIDE 400 MS\r'
         self.ser.write(string.encode())
         msg = True

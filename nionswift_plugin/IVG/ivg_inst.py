@@ -36,7 +36,9 @@ TEMP_COEF = settings["IVG"]["OBJECTIVE"]["TEMP_COEF"]
 MAX_PTS = settings["IVG"]["MAX_PTS"]
 AMBIENT_TEMPERATURE = settings["IVG"]["AMBIENT_TEMPERATURE"]
 EHT_INITIAL = settings["IVG"]["EHT_INITIAL"]
-DEBUG_CAMERA = settings["IVG"]["DEBUG_CAMERA"]
+DEBUG_CAMERA = settings["IVG"]["CAMERA"]["DEBUG"]
+CAMERA_PIXELS = settings["IVG"]["CAMERA"]["PIXELS"]
+CAMERA_SIZE = settings["IVG"]["CAMERA"]["SIZE"]
 DEBUG_SCAN = settings["IVG"]["DEBUG_SCAN"]
 
 if DEBUG_gun:
@@ -95,6 +97,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__EELSInstrument=None
         self.__AperInstrument=None
         self.__StageInstrument=None
+        self.__optSpecInstrument=None
 
         self.__gun_sendmessage = gun.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__gun_gauge= gun.GunVacuum(self.__gun_sendmessage)
@@ -114,6 +117,9 @@ class ivgInstrument(stem_controller.STEMController):
 
     def get_stage_instrument(self):
         self.__StageInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
+
+    def get_optSpec_instrument(self):
+        self.__optSpecInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("optSpec_controller")
 
     def stage_periodic(self):
         self.property_changed_event.fire('x_stage_f')
@@ -441,6 +447,8 @@ class ivgInstrument(stem_controller.STEMController):
         try:
             if not self.__EELSInstrument:
                 self.get_EELS_instrument()
+            if not self.__optSpecInstrument:
+                self.get_optSpec_instrument()
         except:
             pass
 
@@ -456,11 +464,11 @@ class ivgInstrument(stem_controller.STEMController):
         if s == "eire_y_offset":
             return True, 0
         elif s == "eire_x_offset":
-            return True, 0
+            return True, (self.__optSpecInstrument.wav_f - self.__optSpecInstrument.dispersion_f * CAMERA_SIZE / 2.)
         elif s == "eire_y_scale":
             return True, 1
         elif s == "eire_x_scale":
-            return True, 1
+            return True, self.__optSpecInstrument.dispersion_f * CAMERA_SIZE / CAMERA_PIXELS
 
         else:
             return False, 0

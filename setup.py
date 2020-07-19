@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="Lumiere Ultra Combo",
-    version="3.3",
+    version="3.4",
     author="Yves Auad",
     description="Lenses, EELS_Spec, Apertures,  Instrument",
     url="https://github.com/yvesauad/swift_lumiere",
@@ -11,4 +11,3 @@ setuptools.setup(
     install_requires=["pyserial>=3.4"]
 )
 
-#dependencies = pip install pyvisa and pip install pyvisa-py and pip install pyusb

@@ -1,0 +1,21 @@
+[
+    {
+        "manufacturer": 1,
+        "model": "ProEM+: 1600xx(2)B eXcelon",
+        "type": "eire",
+        "id": "orsay_camera_eira",
+        "name": "EIRE",
+        "simulation": false
+    },
+
+    {
+        "manufacturer": 2,
+        "model": "Newton",
+        "type": "eels",
+        "id": "orsay_camera_eels",
+        "name": "EELS",
+        "simulation": false
+    }
+
+
+]

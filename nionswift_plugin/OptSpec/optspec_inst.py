@@ -3,6 +3,7 @@ import logging
 import os
 import json
 import threading
+import numpy
 
 from nion.utils import Event
 from nion.utils import Observable
@@ -34,7 +35,9 @@ class OptSpecDevice(Observable.Observable):
         self.__exit_slit = self.__Spec.exit_slit
         self.__slit_choice = self.__Spec.which_slit
 
-
+        self.__lp_mm=self.__Spec.lp_mm[self.__grating]
+        self.__dif=numpy.arcsin(self.__wl * self.__lp_mm / 1e6)
+        self.__disp = 1e6/self.__lp_mm * numpy.cos(self.__dif) / 320
 
         self.__running=False
 
@@ -70,8 +73,9 @@ class OptSpecDevice(Observable.Observable):
     @wav_f.setter
     def wav_f(self, value):
         self.__wl=float(value)
+        self.__dif=numpy.arcsin(self.__wl * self.__lp_mm / 1e6)
         self.busy_event.fire("")
-        if not self.__running: threading.Thread(target=self.__Mono.set_wavelength, args=(self.__wl,)).start()
+        if not self.__running: threading.Thread(target=self.__Spec.set_wavelength, args=(self.__wl,)).start()
         self.__running=True
 
     @property
@@ -81,9 +85,24 @@ class OptSpecDevice(Observable.Observable):
     @grating_f.setter
     def grating_f(self, value):
         self.__grating = value
+        self.__lp_mm=self.__Spec.lp_mm[self.__grating]
+        self.__dif=numpy.arcsin(self.__wl * self.__lp_mm / 1e6)
         self.busy_event.fire("")
-        if not self.__running: threading.Thread(target=self.__Mono.set_grating, args=(self.__grating,)).start()
+        if not self.__running: threading.Thread(target=self.__Spec.set_grating, args=(self.__grating,)).start()
         self.__running = True
+
+    @property
+    def lp_mm_f(self):
+        return self.__lp_mm
+
+    @property
+    def dif_angle_f(self):
+        return self.__dif
+
+    @property
+    def dispersion_f(self):
+        self.__disp = 1e6/self.__lp_mm * numpy.cos(self.__dif) / 320
+        return self.__disp
 
     @property
     def entrance_slit_f(self):
@@ -93,7 +112,7 @@ class OptSpecDevice(Observable.Observable):
     def entrance_slit_f(self, value):
         self.__entrance_slit = float(value)
         self.busy_event.fire("")
-        if not self.__running: threading.Thread(target=self.__Mono.set_entrance, args=(self.__entrance_slit,)).start()
+        if not self.__running: threading.Thread(target=self.__Spec.set_entrance, args=(self.__entrance_slit,)).start()
         self.__running = True
 
     @property
@@ -104,7 +123,7 @@ class OptSpecDevice(Observable.Observable):
     def exit_slit_f(self, value):
         self.__exit_slit = float(value)
         self.busy_event.fire("")
-        if not self.__running: threading.Thread(target=self.__Mono.set_exit, args=(self.__exit_slit,)).start()
+        if not self.__running: threading.Thread(target=self.__Spec.set_exit, args=(self.__exit_slit,)).start()
         self.__running = True
 
     @property
@@ -115,5 +134,5 @@ class OptSpecDevice(Observable.Observable):
     def which_slit_f(self, value):
         self.__slit_choice = value
         self.busy_event.fire("")
-        if not self.__running: threading.Thread(target=self.__Mono.set_which, args=(self.__slit_choice,)).start()
+        if not self.__running: threading.Thread(target=self.__Spec.set_which, args=(self.__slit_choice,)).start()
         self.__running = True
