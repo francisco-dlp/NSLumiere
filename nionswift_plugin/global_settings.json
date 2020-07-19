@@ -1,43 +1,49 @@
 {
-  "EELS": {
-    "DEBUG": 0
-  },
-  "IVG": {
-    "AMBIENT_TEMPERATURE": 23,
-    "DEBUG_AIRLOCK": 1,
-    "DEBUG_GUN": 0,
-    "EHT_INITIAL": 3,
-    "FAST_PERIODIC": {
-      "ACTIVE": 1,
-      "PERIOD": 0.1
+    "EELS": {
+        "DEBUG": 1
     },
-    "MAX_PTS": 5000,
-    "OBJECTIVE": {
-      "MAX_TEMP": 65,
-      "RESISTANCE": 5.18,
-      "TEMP_COEF": 0.004041
+    "IVG": {
+        "DEBUG_CAMERA": 1,
+        "DEBUG_SCAN": 1,
+        "AMBIENT_TEMPERATURE": 23,
+        "DEBUG_AIRLOCK": 1,
+        "DEBUG_GUN": 1,
+        "EHT_INITIAL": 3,
+        "FAST_PERIODIC": {
+            "ACTIVE": 0,
+            "PERIOD": 0.1
+        },
+        "MAX_PTS": 5000,
+        "OBJECTIVE": {
+            "MAX_TEMP": 65,
+            "RESISTANCE": 5.18,
+            "TEMP_COEF": 0.004041
+        },
+        "SENDMAIL": 0,
+        "SLOW_PERIODIC": {
+            "ACTIVE": 0,
+            "PERIOD": 1.0
+        },
+        "STAGE_MATRIX_SIZE": 160
     },
-    "SENDMAIL": 0,
-    "SLOW_PERIODIC": {
-      "ACTIVE": 1,
-      "PERIOD": 1.00
+    "MONOCHROMATOR": {
+        "DEBUG": 0,
+        "GRATINGS": [
+            "300 g/mm BLZ=  300NM",
+            "300 g/mm BLZ=  1.0UM",
+            "150 g/mm BLZ=  500NM"
+        ]
     },
-    "STAGE_MATRIX_SIZE": 160
-  },
-  "Scan_Lum": {
-    "DEBUG": 0
-
-  },
-  "diaf": {
-    "DEBUG": 0
-  },
-  "lenses": {
-    "DEBUG": 0,
-    "MAX_OBJ": 9.5,
-    "MAX_C1": 1.5,
-    "MAX_C2": 1.5
-  },
-  "stage": {
-    "DEBUG": 0
-  }
+    "diaf": {
+        "DEBUG": 1
+    },
+    "lenses": {
+        "DEBUG": 1,
+        "MAX_OBJ": 9.5,
+        "MAX_C1": 1.5,
+        "MAX_C2": 1.5
+    },
+    "stage": {
+        "DEBUG": 1
+    }
 }

@@ -7,7 +7,6 @@ import threading
 import typing
 import time
 import json
-import traceback
 import os
 from enum import Enum
 
@@ -19,9 +18,9 @@ from nion.utils import Registry
 
 from nion.instrumentation import camera_base
 
-from . import orsaycamera
+from nionswift_plugin.IVG.camera import orsaycamera
 
-from . import ivg_inst
+from nionswift_plugin.IVG import ivg_inst
 
 _ = gettext.gettext
 

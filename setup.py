@@ -1,19 +1,12 @@
-# -*- coding: utf-8 -*-
-
-"""
-To upload to PyPI, PyPI test, or a local server:
-python setup.py bdist_wheel upload -r <server_identifier>
-"""
-
 import setuptools
 
 setuptools.setup(
     name="Lumiere Ultra Combo",
-    version="3.2",
+    version="3.2.5",
     author="Yves Auad",
     description="Lenses, EELS_Spec, Apertures,  Instrument",
     url="https://github.com/yvesauad/swift_lumiere",
-    packages=["nionswift_plugin.lenses", "nionswift_plugin.EELS_spec", "nionswift_plugin.diaf", "nionswift_plugin.IVG", "nionswift_plugin.stage", "nionswift_plugin.Scan_Lum"],
+    packages=["nionswift_plugin.lenses", "nionswift_plugin.EELS_spec", "nionswift_plugin.diaf", "nionswift_plugin.IVG", "nionswift_plugin.stage", "nionswift_plugin.OptMono"],
     python_requires='~=3.7',
     install_requires=["pyserial>=3.4"]
 )

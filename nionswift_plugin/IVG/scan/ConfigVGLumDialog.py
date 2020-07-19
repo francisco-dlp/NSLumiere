@@ -1,5 +1,4 @@
 from nion.ui import Declarative
-from nion.utils import Converter, Model
 from nion.utils import Event
 from nion.swift.model import HardwareSource
 import logging

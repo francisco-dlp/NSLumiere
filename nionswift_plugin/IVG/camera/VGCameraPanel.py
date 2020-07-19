@@ -1,13 +1,10 @@
 import gettext
-from json import load as json_load
-from json import dump as json_dump
-import os
 
 from nion.utils import Converter
 from nion.utils import Model
 from nion.utils import Registry
 
-from . import VGCameraYves
+from nionswift_plugin.IVG.camera import VGCameraYves
 
 _ = gettext.gettext
 
