@@ -52,7 +52,7 @@ class eels_spec_handler:
 
     def save_spec(self, widget):
         if not self.ivg:
-            self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("Instrument_VG")
+            self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id('VG_Lum_controller')
 
         panel_dir = os.path.dirname(__file__)
         abs_path = os.path.join(panel_dir, 'eels_settings.json')
@@ -133,7 +133,7 @@ class eels_spec_View:
         self.dispersion_value = ui.create_combo_box(name='dispersion_value', items=['d1', 'd2', 'd3'],
                                                     current_index='@binding(instrument.disp_change_f)')
 
-        self.range_label = ui.create_label(text='Range: ')
+        self.range_label = ui.create_label(text='Dispersion: ')
         self.range_value = ui.create_line_edit(name='range_value', text='@binding(instrument.range_f)')
 
         # first order
@@ -260,10 +260,12 @@ class eels_spec_View:
 
         # third tab
 
-        self.vsm_label = ui.create_label(text='VSM: ')
-        self.vsm_value = ui.create_line_edit(name='vsm_value')
+        self.vsm_label = ui.create_label(text='Energy Offset: ')
+        self.vsm_value = ui.create_line_edit(name='vsm_value', text='@binding(instrument.ene_offset_edit_f)')
+        self.vsm_row=ui.create_row(self.vsm_label, self.vsm_value)
+        self.vsm_slider=ui.create_slider(name='vsm_slider', value='@binding(instrument.ene_offset_f)', minimum=-1000, maximum=1000)
         self.vsm_tab = ui.create_tab(label='VSM', content=ui.create_column( \
-            self.vsm_label, self.vsm_value, ui.create_stretch()))
+            self.vsm_row, self.vsm_slider, ui.create_stretch()))
 
         # all tabs
 

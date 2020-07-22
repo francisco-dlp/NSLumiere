@@ -1,43 +1,61 @@
 {
-  "EELS": {
-    "DEBUG": 0
-  },
-  "IVG": {
-    "AMBIENT_TEMPERATURE": 23,
-    "DEBUG_AIRLOCK": 1,
-    "DEBUG_GUN": 0,
-    "EHT_INITIAL": 3,
-    "FAST_PERIODIC": {
-      "ACTIVE": 1,
-      "PERIOD": 0.05
+    "EELS": {
+        "DEBUG": 0
     },
-    "MAX_PTS": 5000,
-    "OBJECTIVE": {
-      "MAX_TEMP": 70,
-      "RESISTANCE": 5.18,
-      "TEMP_COEF": 0.004041
+    "IVG": {
+        "CAMERA": {
+            "DEBUG": 0,
+            "PIXELS": 1600,
+            "SIZE": 25.6
+        },
+        "DEBUG_SCAN": 0,
+        "AMBIENT_TEMPERATURE": 23,
+        "DEBUG_AIRLOCK": 1,
+        "DEBUG_GUN": 0,
+        "EHT_INITIAL": 3,
+        "FAST_PERIODIC": {
+            "ACTIVE": 1,
+            "PERIOD": 0.1
+        },
+        "MAX_PTS": 5000,
+        "OBJECTIVE": {
+            "MAX_TEMP": 65,
+            "RESISTANCE": 5.18,
+            "TEMP_COEF": 0.004041
+        },
+        "SENDMAIL": 0,
+        "SLOW_PERIODIC": {
+            "ACTIVE": 1,
+            "PERIOD": 1.0
+        },
+        "STAGE_MATRIX_SIZE": 160
     },
-    "SENDMAIL": 0,
-    "SLOW_PERIODIC": {
-      "ACTIVE": 1,
-      "PERIOD": 1.00
+    "SPECTROMETER": {
+        "DEBUG": 0,
+        "GRATINGS": {
+            "COMPLET": [
+                "300 g/mm BLZ=  300NM",
+                "300 g/mm BLZ=  1.0UM",
+                "150 g/mm BLZ=  500NM"
+            ],
+            "LP_MM": [
+                300.0,
+                300.0,
+                150.0
+            ]
+        },
+        "FL": 320
     },
-    "STAGE_MATRIX_SIZE": 160
-  },
-  "Scan_Lum": {
-    "DEBUG": 0
-
-  },
-  "diaf": {
-    "DEBUG": 0
-  },
-  "lenses": {
-    "DEBUG": 0,
-    "MAX_OBJ": 9.5,
-    "MAX_C1": 1.5,
-    "MAX_C2": 1.5
-  },
-  "stage": {
-    "DEBUG": 0
-  }
+    "diaf": {
+        "DEBUG": 0
+    },
+    "lenses": {
+        "DEBUG": 0,
+        "MAX_OBJ": 9.5,
+        "MAX_C1": 1.5,
+        "MAX_C2": 1.5
+    },
+    "stage": {
+        "DEBUG": 0
+    }
 }

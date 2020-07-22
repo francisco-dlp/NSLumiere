@@ -52,6 +52,8 @@ class EELS_SPEC_Device(Observable.Observable):
 
         self.__EHT = '3'
 
+        self.ene_offset_f=0
+
         try:
             inst_dir = os.path.dirname(__file__)
             abs_path = os.path.join(inst_dir, 'eels_settings.json')
@@ -67,7 +69,7 @@ class EELS_SPEC_Device(Observable.Observable):
         abs_path = os.path.join(inst_dir, 'eels_settings.json')
         with open(abs_path) as savfile:
             data = json.load(savfile)
-        logging.info(json.dumps(data, indent=4))
+        #logging.info(json.dumps(data, indent=4))
 
         self.range_f = data[self.__EHT][value]['range']
         self.note_f = data[self.__EHT][value]['note']
@@ -146,7 +148,7 @@ class EELS_SPEC_Device(Observable.Observable):
         else:
             try:
                 self.__eels_spec.wobbler_off()
-                time.sleep(2.2)
+                time.sleep(1.1)
                 self.fx_slider_f=self.__fx
                 self.fy_slider_f = self.__fy
                 self.sx_slider_f = self.__sx
@@ -183,7 +185,7 @@ class EELS_SPEC_Device(Observable.Observable):
         else:
             try:
                 self.__eels_spec.wobbler_off()
-                time.sleep(2.2)
+                time.sleep(1.1)
                 self.q1_slider_f=self.__q1
                 self.q2_slider_f = self.__q2
                 self.q3_slider_f = self.__q3
@@ -449,3 +451,23 @@ class EELS_SPEC_Device(Observable.Observable):
         self.__dmx = int(value)
         self.property_changed_event.fire("dmx_slider_f")
         self.property_changed_event.fire("dmx_edit_f")
+
+    @property
+    def ene_offset_f(self):
+        return int(self.__ene_offset*10.)
+
+    @ene_offset_f.setter
+    def ene_offset_f(self, value):
+        self.__ene_offset = value/10.
+        self.property_changed_event.fire('ene_offset_f')
+        self.property_changed_event.fire('ene_offset_edit_f')
+
+    @property
+    def ene_offset_edit_f(self):
+        return self.__ene_offset
+
+    @ene_offset_edit_f.setter
+    def ene_offset_edit_f(self, value):
+        self.__ene_offset = float(value)
+        self.property_changed_event.fire('ene_offset_f')
+        self.property_changed_event.fire('ene_offset_edit_f')

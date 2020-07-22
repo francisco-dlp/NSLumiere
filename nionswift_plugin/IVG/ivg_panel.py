@@ -80,7 +80,7 @@ class dataItemCreation():
 class ivghandler:
 
 
-    def __init__(self,instrument:ivg_inst.ivgDevice, document_controller):
+    def __init__(self,instrument:ivg_inst.ivgInstrument, document_controller):
 
         self.event_loop=document_controller.event_loop
         self.document_controller=document_controller
@@ -161,12 +161,16 @@ class ivghandler:
 class ivgView:
 
 
-    def __init__(self, instrument:ivg_inst.ivgDevice):
+    def __init__(self, instrument:ivg_inst.ivgInstrument):
         ui = Declarative.DeclarativeUI()
         
         self.EHT_label=ui.create_label(name='EHT_label', text='HT: ')
         self.EHT_combo_box=ui.create_combo_box(name='EHT_combo_box', items=['40', '60', '80', '100'], current_index='@binding(instrument.EHT_f)')
-        self.EHT_row=ui.create_row(self.EHT_label, self.EHT_combo_box, ui.create_stretch())
+
+        self.stand_label = ui.create_label(name='stand_label', text='Stand By:')
+        self.stand_value=ui.create_check_box(name='stand_value', checked='@binding(instrument.stand_f)')
+
+        self.EHT_row=ui.create_row(self.EHT_label, self.EHT_combo_box, ui.create_spacing(25), self.stand_label, self.stand_value, ui.create_stretch())
 
         self.gun_label=ui.create_label(name='gun_label', text='Gun Vacuum: ')
         self.gun_vac=ui.create_label(name='gun_vac', text='@binding(instrument.gun_vac_f)')
@@ -260,7 +264,7 @@ def create_spectro_panel(document_controller, panel_id, properties):
         return panel
 
 
-def run(instrument: ivg_inst.ivgDevice) -> None:
+def run(instrument: ivg_inst.ivgInstrument) -> None:
     panel_id = "IVG"#make sure it is unique, otherwise only one of the panel will be displayed
     name = _("VG Lumiere - Status")
     Workspace.WorkspaceManager().register_panel(create_spectro_panel, panel_id, name, ["left", "right"], "left",

@@ -2,6 +2,7 @@ import serial
 import sys
 import time
 import threading
+import logging
 
 
 __author__ = "Yves Auad"
@@ -39,6 +40,7 @@ class espec:
             try:
                 if val < 0: val = 0xffff + val
                 string = which + ' 0,' + hex(val)[2:6] + '\r'
+                logging.info(string)
                 self.ser.write(string.encode())
                 return self.ser.read(6)
             except:
@@ -48,11 +50,13 @@ class espec:
 
     def wobbler_loop(self, current, intensity, which):
         self.wobbler_thread = threading.currentThread()
+        sens = 1
         while getattr(self.wobbler_thread, "do_run", True):
-            self.set_val(current + intensity, which)
-            time.sleep(1.)
-            self.set_val(current - intensity, which)
-            time.sleep(1.)
+            sens = sens * -1
+            if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / 2.)
+            self.set_val(current + sens * intensity, which)
+            if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / 2.)
+            self.set_val(current, which)
 
     def wobbler_on(self, current, intensity, which):
         self.wobbler_thread = threading.Thread(target=self.wobbler_loop, args=(current, intensity, which), )
