@@ -102,7 +102,7 @@ class stageDevice(Observable.Observable):
 
     @slider_range_f.setter
     def slider_range_f(self, value):
-        self.__slider_range=value*100
+        self.__slider_range=int(value*100)
         if self.__slider_range<32000:
             try:
                 self.slider_event.fire()

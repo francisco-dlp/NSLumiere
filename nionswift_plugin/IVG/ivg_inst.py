@@ -51,11 +51,6 @@ if DEBUG_airlock:
 else:
     from . import airlock as al
 
-if not DEBUG_CAMERA:
-    from .camera import orsaycamera as camera
-if not DEBUG_SCAN:
-    from .scan import orsayscan as scan
-
 
 class ivgInstrument(stem_controller.STEMController):
     def __init__(self, instrument_id: str):
@@ -66,8 +61,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.communicating_event = Event.Event()
         self.busy_event=Event.Event()
 
-        if not DEBUG_CAMERA: self.__camera=camera
-        if not DEBUG_SCAN: self.__scan=scan
 
         self.append_data=Event.Event()
         self.stage_event=Event.Event()
@@ -79,6 +72,8 @@ class ivgInstrument(stem_controller.STEMController):
         self.__fov = None
         self.__obj_stig = [0, 0]
         self.__gun_stig = [0, 0]
+        self.__haadf_gain = 250
+        self.__bf_gain = 250
 
 
         self.__EHT=EHT_INITIAL
@@ -98,6 +93,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__AperInstrument=None
         self.__StageInstrument=None
         self.__optSpecInstrument=None
+        self.__OrsayScanInstrument=None
 
         self.__gun_sendmessage = gun.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__gun_gauge= gun.GunVacuum(self.__gun_sendmessage)
@@ -120,6 +116,9 @@ class ivgInstrument(stem_controller.STEMController):
 
     def get_optSpec_instrument(self):
         self.__optSpecInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("optSpec_controller")
+
+    def get_orsay_scan_instrument(self):
+        self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
 
     def stage_periodic(self):
         self.property_changed_event.fire('x_stage_f')
@@ -175,7 +174,7 @@ class ivgInstrument(stem_controller.STEMController):
                 pass
 
     def fov_change(self, FOV):
-        self.__fov = int(FOV*1e6)
+        self.__fov = float(FOV*1e6)
         try:
             self.__StageInstrument.slider_range_f=self.__fov
         except:
@@ -251,9 +250,11 @@ class ivgInstrument(stem_controller.STEMController):
     @obj_stig00_f.setter
     def obj_stig00_f(self, value):
         self.__obj_stig[0] = value / 1e3
-        if not DEBUG_SCAN:
-            self.__scan.orsayScan.ObjectiveStigmateur(self.__obj_stig[0], self.__obj_stig[1])
-        else:
+        try:
+            if not DEBUG_SCAN:
+                if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+                self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_stig[0], self.__obj_stig[1])
+        except:
             logging.info('***LENSES***: Could not acess objective astigmators. Please check Scan Module.')
         self.property_changed_event.fire('obj_astig00_f')
 
@@ -264,9 +265,11 @@ class ivgInstrument(stem_controller.STEMController):
     @obj_stig01_f.setter
     def obj_stig01_f(self, value):
         self.__obj_stig[1] = value / 1e3
-        if not DEBUG_SCAN:
-            self.__scan.orsayScan.ObjectiveStigmateur(self.__obj_stig[0], self.__obj_stig[1])
-        else:
+        try:
+            if not DEBUG_SCAN:
+                if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+                self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_stig[0], self.__obj_stig[1])
+        except:
             logging.info('***LENSES***: Could not acess objective astigmators. Please check Scan Module.')
         self.property_changed_event.fire('obj_astig01_f')
 
@@ -277,9 +280,11 @@ class ivgInstrument(stem_controller.STEMController):
     @gun_stig00_f.setter
     def gun_stig00_f(self, value):
         self.__gun_stig[0] = value / 1e3
-        if not DEBUG_SCAN:
-            self.__scan.orsayScan.CondensorStigmateur(self.__gun_stig[0], self.__gun_stig[1])
-        else:
+        try:
+            if not DEBUG_SCAN:
+                if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+                self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__gun_stig[0], self.__gun_stig[1])
+        except:
             logging.info('***LENSES***: Could not acess gun astigmators. Please check Scan Module.')
         self.property_changed_event.fire('gun_astig00_f')
 
@@ -290,9 +295,11 @@ class ivgInstrument(stem_controller.STEMController):
     @gun_stig01_f.setter
     def gun_stig01_f(self, value):
         self.__gun_stig[1] = value / 1e3
-        if not DEBUG_SCAN:
-            self.__scan.orsayScan.CondensorStigmateur(self.__gun_stig[0], self.__gun_stig[1])
-        else:
+        try:
+            if not DEBUG_SCAN:
+                if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+                self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__gun_stig[0], self.__gun_stig[1])
+        except:
             logging.info('***LENSES***: Could not acess gun astigmators. Please check Scan Module.')
         self.property_changed_event.fire('gun_astig01_f')
 
@@ -440,7 +447,21 @@ class ivgInstrument(stem_controller.STEMController):
         self.__scan_context = copy.deepcopy(scan_context)
         self.__probe_position = probe_position
 
+    def change_pmt_gain(self, pmt_type, *, factor: float) -> None:
+        if not DEBUG_SCAN:
+            if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+            if pmt_type==0:
+                self.__haadf_gain=int(self.__haadf_gain*1.2) if factor>1 else int(self.__haadf_gain*0.8)
+                if self.__haadf_gain>2500: self.__haadf_gain=2500
+            if pmt_type==1:
+                self.__bf_gain=int(self.__bf_gain*1.2) if factor>1 else int(self.__bf_gain*0.8)
+                if self.__bf_gain>2500: self.__bf_gain=2500
+            self.__OrsayScanInstrument.scan_device.orsayscan.SetPMT(-pmt_type+1, self.__haadf_gain)
 
+    def change_stage_position(self, *, dy: int=None, dx: int=None):
+        self.__StageInstrument.x_pos_f+=dx*1e8
+        self.__StageInstrument.y_pos_f-=dy*1e8
+        self.__StageInstrument.slider_range_f=self.__fov
 
     def TryGetVal(self, s: str) -> (bool, float):
 

@@ -345,6 +345,7 @@ class Device:
         myConfig = ConfigDialog(document_controller)
 
 
+
 def run(instrument: ivg_inst.ivgInstrument):
     scan_device = Device(instrument)
     component_types = {"scan_device"}  # the set of component types that this component represents

@@ -48,6 +48,7 @@ class stagehandler:
 
     def readjust_slider(self):
         self.slider_max=self.instrument.slider_range_f
+        if self.slider_max<5: self.slider_max=5
 
         try:
             self.slider_release(self.x_slider)

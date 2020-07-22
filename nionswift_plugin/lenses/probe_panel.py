@@ -10,12 +10,9 @@ from nion.ui import UserInterface
 from nion.swift.model import HardwareSource
 
 from . import probe_inst
-import logging
 
 _ = gettext.gettext
-from nion.utils import Model
 
-import inspect
 
 
 class gainhandler:
