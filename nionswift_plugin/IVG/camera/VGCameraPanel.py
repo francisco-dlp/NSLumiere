@@ -35,9 +35,15 @@ class CameraHandler:
 
         def frame_parameter_changed(name, *args, **kwargs):
             pass
+            #self.event_loop.create_task(self.update_buttons())
+            #self.stop_clicked()
+
+
 
         self.__frame_parameter_changed_event_listener = camera_device.frame_parameter_changed_event.listen(
             frame_parameter_changed)
+
+        self.__stop_acquisition_event_listener = camera_device.stop_acquitisition_event.listen(self.stop_clicked)
 
         sx, sy = camera_device.camera.getCCDSize()
 
@@ -63,7 +69,7 @@ class CameraHandler:
         self.port_items = Model.PropertyModel([])
         self.port_items.value = list(self.camera_device.camera.getPortNames())
         self.port_item = Model.PropertyModel(frame_parameters["port"])
-        self.port_item_text = Model.PropertyModel("Not known yet")
+        self.port_item_text = Model.PropertyModel("")
         self.speed_items = Model.PropertyModel([])
         self.speed_items.value = list(self.camera_device.camera.getSpeeds(frame_parameters["port"]))
         self.speed_item = Model.PropertyModel(-1)
@@ -88,8 +94,6 @@ class CameraHandler:
         self.correction_items = [_("None"), _("Readout"), _("Gain"), _("Both")]
         self.correction_item = Model.PropertyModel(correction_enum)
 
-        # self.softbinning_cb = None
-        # self.softbinning = frame_parameters.acquisition_style == "1d"
         self.soft_binning_model = Model.PropertyModel(frame_parameters["soft_binning"])
 
         self.mode_items = Model.PropertyModel([])
@@ -98,14 +102,14 @@ class CameraHandler:
         self.mode_item = Model.PropertyModel(self.camera_settings.modes.index(frame_parameters["acquisition_mode"]))
         self.mode_item_text = Model.PropertyModel("???g")
 
-        def frame_parameter_changed(name, *args, **kwargs):
-            if name == "acquisition_mode":
-                md = self.camera_settings.get_current_frame_parameters()["acquisition_mode"]
-                md1 = self.camera_settings.modes.index(md) if md in self.camera_settings.modes else 0
-                self.mode_item.value = md1
+        #def frame_parameter_changed(name, *args, **kwargs):
+        #    if name == "acquisition_mode":
+        #        md = self.camera_settings.get_current_frame_parameters()["acquisition_mode"]
+        #        md1 = self.camera_settings.modes.index(md) if md in self.camera_settings.modes else 0
+        #        self.mode_item.value = md1
 
-        self.__frame_parameter_changed_event_listener = camera_device.frame_parameter_changed_event.listen(
-            frame_parameter_changed)
+        #self.__frame_parameter_changed_event_listener = camera_device.frame_parameter_changed_event.listen(
+        #    frame_parameter_changed)
 
         # self.shutter_enabled_model = Model.PropertyModel(False)
         self.fan_enabled_model = Model.PropertyModel(True)
@@ -175,6 +179,7 @@ class CameraHandler:
             frame_parameters = self.camera_settings.get_current_frame_parameters()
             frame_parameters["speed"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
+            self.speed_item_text.value = format(float(self.speed_items.value[self.speed_item.value][0:4]), '.2f') + ' ' + self.speed_items.value[self.speed_item.value][-3:]
 
         def set_gain(value):
             # print(f"Panel: set_gain {value}")
@@ -242,10 +247,6 @@ class CameraHandler:
             frame_parameters["soft_binning"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
 
-        def set_shutter(value):
-            # print(f"set_shutter {value}")
-            pass
-
         def set_threshold(value):
             frame_parameters = self.camera_settings.get_current_frame_parameters()
             frame_parameters["video_threshold"] = value
@@ -256,8 +257,6 @@ class CameraHandler:
         self.speed_item.on_value_changed = set_speed
         self.gain_item.on_value_changed = set_gain
         self.multiplication_model.on_value_changed = set_multiplier
-        # self.shutter_enabled_model.value = self.camera_device.fan_enabled
-        # self.shutter_enabled_model.on_value_changed = set_shutter
         self.threshold_model.value = 0
         self.threshold_model.on_value_changed = set_threshold
         self.fan_enabled_model.on_value_changed = set_fan
@@ -286,7 +285,7 @@ class CameraHandler:
         `on_clicked` property of the push button."""
         self.hardware_source.abort_playing()
 
-    def stop_clicked(self, widget):
+    def stop_clicked(self, widget=None):
         """Handle stop button click.
 
         This method is called when the user clicks on the button. The name of this method corresponds to the

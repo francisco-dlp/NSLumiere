@@ -3,7 +3,6 @@ import gettext
 import os
 import json
 import numpy
-import logging
 
 from nion.swift import Panel
 from nion.swift import Workspace

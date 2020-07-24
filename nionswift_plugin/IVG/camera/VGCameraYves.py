@@ -52,6 +52,7 @@ class CameraDevice(camera_base.CameraDevice):
         self.sizez = 1
         self._last_time = time.time()
         self.frame_parameter_changed_event = Event.Event()
+        self.stop_acquitisition_event = Event.Event()
 
         # register data locker for focus acquisition
         self.fnlock = orsaycamera.DATALOCKFUNC(self.__data_locker)
@@ -63,10 +64,7 @@ class CameraDevice(camera_base.CameraDevice):
         self.acquire_data = None
         self.has_data_event = threading.Event()
 
-        #makes sure there is a calibration that does not depends on calibration_controls if we are not using a stem_controller, for example if we are not working with AS2
-        #swift checks first for a propertie called calibration in the data item; if none, it checks for a calibration method for the camera, if none it checks for calibration_controls
-        #if self.__is_vg:
-        #    self.calibration= [Calibration.Calibration().rpc_dict,Calibration.Calibration(offset=100, scale=100, units="eV").rpc_dict]
+
         bx, by = self.camera.getBinning()
         port = self.camera.getCurrentPort()
 
@@ -298,16 +296,17 @@ class CameraDevice(camera_base.CameraDevice):
         properties["acquisition_mode"] = acquisition_mode
         calibration_controls = copy.deepcopy(self.calibration_controls)
 
+        if self.frame_number==self.current_camera_settings.spectra_count and acquisition_mode=='Cumul':
+            #self.stop_live()
+            self.stop_acquitisition_event.fire("")
+
         return {"data": self.acquire_data, "collection_dimension_count": collection_dimensions,
                 "datum_dimension_count": datum_dimensions, "calibration_controls": calibration_controls,
                 "properties": properties}
 
     @property
     def calibration_controls(self) -> dict:
-        """Define the AS2 calibration controls for this camera.
 
-        The controls should be unique for each camera if there are more than one.
-        """
         return {
             "x_scale_control": self.camera_type + "_x_scale",
             "x_offset_control": self.camera_type + "_x_offset",
@@ -334,8 +333,6 @@ class CameraDevice(camera_base.CameraDevice):
     def start_monitor(self) -> None:
         pass
 
-    # custom methods (not part of the camera_base.Camera)
-
     @property
     def fan_enabled(self) -> bool:
         return self.camera.getFan()
@@ -345,7 +342,6 @@ class CameraDevice(camera_base.CameraDevice):
         self.camera.setFan(bool(value))
 
     def isCameraAcquiring(self):
-        # acqon = self.camera.getCCDStatus()[0] != "idle"
         return self.__acqon
 
     def __getTurboMode(self):

@@ -1,7 +1,6 @@
 from nion.ui import Declarative
 from nion.utils import Event
 from nion.swift.model import HardwareSource
-import logging
 
 
 class Handler:
