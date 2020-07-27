@@ -5,6 +5,7 @@ from nion.utils import Model
 from nion.utils import Registry
 
 from nionswift_plugin.IVG.camera import VGCameraYves
+from nionswift_plugin.IVG.scan import VGScanYves
 
 _ = gettext.gettext
 
@@ -123,7 +124,8 @@ class CameraHandler:
         def update_speeds():
             self.speed_items.value = list(self.camera_device.camera.getSpeeds(self.port_item.value))
             self.speed_item.value = self.camera_settings.get_current_frame_parameters()["speed"]
-            self.speed_item_text.value = self.speed_items.value[self.speed_item.value]
+            #self.speed_item_text.value = self.speed_items.value[self.speed_item.value]
+            self.speed_item_text.value = format(float(self.speed_items.value[self.speed_item.value][0:4]), '.2f') + ' ' + self.speed_items.value[self.speed_item.value][-3:]
 
         def update_gains():
             self.gain_items.value = list(self.camera_device.camera.getGains(self.port_item.value))
@@ -300,6 +302,7 @@ class CameraHandler:
         # print(f"At start exposure = {self.exposure_model.value}")
         self.hardware_source.start_playing()
 
+
     def measure_clicked(selfself, widget):
         pass
 
@@ -445,7 +448,16 @@ class CameraPanelFactory:
             setup_column = ui.create_column(roi_row, speed_row, gain_group, correction_group, fan_checkbox,
                                             ui.create_stretch(), spacing=8, margin=4)
 
-        tabs = ui.create_tabs(ui.create_tab(_("Control"), control_column), ui.create_tab(_("Setup"), setup_column))
+
+    ############################### SPIM BEGIN #######################
+
+
+        spim_column = ui.create_column(
+            #ui.create_push_button(text='Prepare Spim', on_clicked='prepare_spim'),
+            ui.create_label(text='Spim Test')
+        )
+
+        tabs = ui.create_tabs(ui.create_tab(_("Control"), control_column), ui.create_tab(_("Setup"), setup_column), ui.create_tab(_("Spim"), spim_column))
 
         tabs_column = ui.create_column(tabs, status_bar, margin=4)
 

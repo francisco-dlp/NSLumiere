@@ -64,6 +64,19 @@ class CameraDevice(camera_base.CameraDevice):
         self.acquire_data = None
         self.has_data_event = threading.Event()
 
+        # register data locker for SPIM acquisition
+        self.fnspimlock = orsaycamera.SPIMLOCKFUNC(self.__spim_data_locker)
+        self.camera.registerSpimDataLocker(self.fnspimlock)
+        self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
+        self.camera.registerSpimDataUnlocker(self.fnspimunlock)
+        self.fnspectrumlock = orsaycamera.SPECTLOCKFUNC(self.__spectrum_data_locker)
+        self.camera.registerSpectrumDataLocker(self.fnspectrumlock)
+        self.fnspectrumunlock = orsaycamera.SPECTUNLOCKFUNC(self.__spectrum_data_unlocker)
+        self.camera.registerSpectrumDataUnlocker(self.fnspectrumunlock)
+        self.spimimagedata = None
+        self.spimimagedata_ptr = None
+        self.has_spim_data_event = threading.Event()
+
 
         bx, by = self.camera.getBinning()
         port = self.camera.getCurrentPort()
@@ -220,6 +233,33 @@ class CameraDevice(camera_base.CameraDevice):
                 self.camera_id)
             hardware_source.stop_playing()
 
+    def __spim_data_locker(self, gene, data_type, sx, sy, sz):
+        sx[0] = self.sizex
+        sy[0] = self.sizey
+        sz[0] = self.sizez
+        #data_type >= 100 force spectrum data on first axis.
+        data_type[0] = 100 + self.__numpy_to_orsay_type(self.spimimagedata)
+        # if self.current_camera_settings.acquisition_mode != "2D-Chrono":
+        #     data_type[0] = 100 + self.__numpy_to_orsay_type(self.spimimagedata)
+        #print(f"spim lock {sx[0]} {sy[0]} {sz[0]}")
+        return self.spimimagedata_ptr.value
+
+    def __spim_data_unlocker(self, gene :int, new_data : bool, running : bool):
+        status = self.camera.getCCDStatus()
+        if status["mode"] == "Spectrum imaging":
+            self.frame_number = status["current spectrum"]
+        if "Chrono" in status["mode"]:
+            if new_data:
+                self.has_data_event.set()
+        else:
+            if not running:
+                # just stopped, send last data anyway.
+                self.has_spim_data_event.set()
+                print("spim done")
+        if not running:
+            hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                self.camera_id)
+            hardware_source.stop_playing()
 
 
     def __spectrum_data_locker(self, gene, data_type, sx) -> None:
@@ -229,6 +269,10 @@ class CameraDevice(camera_base.CameraDevice):
             return self.imagedata_ptr.value
         else:
             return None
+
+    def __spectrum_data_unlocker(self, gene, newdata):
+        if "Chrono" in self.current_camera_settings.acquisition_mode:
+            self.has_data_event.set()
 
     @property
     def sensor_dimensions(self) -> (int, int):

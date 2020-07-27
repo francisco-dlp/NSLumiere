@@ -451,10 +451,12 @@ class ivgInstrument(stem_controller.STEMController):
         if not DEBUG_SCAN:
             if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
             if pmt_type==0:
-                self.__haadf_gain=int(self.__haadf_gain*1.2) if factor>1 else int(self.__haadf_gain*0.8)
+                self.__haadf_gain = int(self.__OrsayScanInstrument.scan_device.orsayscan.GetPMT(1))
+                self.__haadf_gain=int(self.__haadf_gain*1.05) if factor>1 else int(self.__haadf_gain*0.95)
                 if self.__haadf_gain>2500: self.__haadf_gain=2500
             if pmt_type==1:
-                self.__bf_gain=int(self.__bf_gain*1.2) if factor>1 else int(self.__bf_gain*0.8)
+                self.__bf_gain = int(self.__OrsayScanInstrument.scan_device.orsayscan.GetPMT(0))
+                self.__bf_gain=int(self.__bf_gain*1.05) if factor>1 else int(self.__bf_gain*0.95)
                 if self.__bf_gain>2500: self.__bf_gain=2500
             self.__OrsayScanInstrument.scan_device.orsayscan.SetPMT(-pmt_type+1, self.__haadf_gain)
 

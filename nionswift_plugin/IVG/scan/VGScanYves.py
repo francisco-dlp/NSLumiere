@@ -82,6 +82,7 @@ class Device:
         self.field_of_view=32000
         self.orsayscan.SetProbeAt(0, 0)
         self.subscan_status=True
+        self.__spim = False
 
         self.p0=512
         self.p1=512
@@ -218,19 +219,23 @@ class Device:
 
         for channel in current_frame.channels:
             data_element = dict()
-            data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):(channel.channel_id + 1) * (self.__scan_area[1]),
-                         0: (self.__scan_area[0])].astype(numpy.float32)
-            if self.subscan_status:
-                    data_array=data_array[self.p4:self.p5, self.p2:self.p3]
-            data_element["data"] = data_array
-            properties = current_frame.frame_parameters.as_dict()
-            properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
-            properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
-            properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
-            properties["channel_id"] = channel.channel_id
-            data_element["properties"] = properties
-            if data_array is not None:
-                data_elements.append(data_element)
+            if not self.__spim:
+                data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):(channel.channel_id + 1) * (self.__scan_area[1]),
+                             0: (self.__scan_area[0])].astype(numpy.float32)
+                if self.subscan_status:
+                        data_array=data_array[self.p4:self.p5, self.p2:self.p3]
+                data_element["data"] = data_array
+                properties = current_frame.frame_parameters.as_dict()
+                properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
+                properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
+                properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
+                properties["channel_id"] = channel.channel_id
+                data_element["properties"] = properties
+                if data_array is not None:
+                    data_elements.append(data_element)
+            else:
+                print('SPIM RUNNING')
+
 
         self.has_data_event.clear()
 
@@ -321,7 +326,13 @@ class Device:
     def channels_enabled(self) -> typing.Tuple[bool, ...]:
         return tuple(channel.enabled for channel in self.__channels)
 
+    @property
+    def set_spim(self):
+        return self.__spim
 
+    @set_spim.setter
+    def set_spim(self, value):
+        self.__spim = value
 
     def __data_locker(self, gene, datatype, sx, sy, sz):
         sx[0] = self.__scan_area[0]
@@ -343,6 +354,10 @@ class Device:
         api = api_broker.get_api(version="1", ui_version="1")
         document_controller = api.application.document_controllers[0]._document_controller
         myConfig = ConfigDialog(document_controller)
+
+
+
+
 
 
 

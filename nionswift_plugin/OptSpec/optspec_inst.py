@@ -48,19 +48,19 @@ class OptSpecDevice(Observable.Observable):
     def sendMessageFactory(self):
         def sendMessage(message):
             if message == 1:
-                logging.info("***Monochromator***: Serial Communication was not possible. Check instrument")
+                logging.info("***OPT SPECTROMETER***: Serial Communication was not possible. Check instrument")
             if message == 2:
-                logging.info("***MONOCHROMATOR***: Grating changed successfully.")
+                logging.info("***OPT SPECTROMETER***: Grating changed successfully.")
             if message == 3:
-                logging.info("***MONOCHROMATOR***: Wavelength changed successfully.")
+                logging.info("***OPT SPECTROMETER***: Wavelength changed successfully.")
             if message == 4:
-                logging.info("***MONOCHROMATOR***: Entrance slit width changed successfully.")
+                logging.info("***OPT SPECTROMETER***: Entrance slit width changed successfully.")
             if message == 5:
-                logging.info("***MONOCHROMATOR***: Exit slit width changed successfully.")
+                logging.info("***OPT SPECTROMETER***: Exit slit width changed successfully.")
             if message == 6:
-                logging.info("***MONOCHROMATOR***: Axial/Lateral slit changed successfully.")
+                logging.info("***OPT SPECTROMETER***: Axial/Lateral slit changed successfully.")
             if message == 7:
-                logging.info("***MONOCHROMATOR***: Attempted to set a property outside allowed range. Setting stard value..")
+                logging.info("***OPT SPECTROMETER***: Attempted to set a property outside allowed range. Setting stard value..")
             self.__running=False
             self.property_changed_event.fire("")
 
