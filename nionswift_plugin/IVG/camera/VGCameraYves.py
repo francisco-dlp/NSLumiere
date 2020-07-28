@@ -96,9 +96,8 @@ class CameraDevice(camera_base.CameraDevice):
             "turbo_mode_enabled": self.camera.getTurboMode()[0],
             "video_threshold": self.camera.getVideoThreshold(),
             "fan_enabled": self.camera.getFan(),
-            "processing": None
+            "processing": None,
         }
-
 
         self.current_camera_settings = CameraFrameParameters(d)
         self.__hardware_settings = self.current_camera_settings
