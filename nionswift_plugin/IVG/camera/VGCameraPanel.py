@@ -457,7 +457,7 @@ class CameraPanelFactory:
             ui.create_label(text='Spim Test')
         )
 
-        tabs = ui.create_tabs(ui.create_tab(_("Control"), control_column), ui.create_tab(_("Setup"), setup_column), ui.create_tab(_("Spim"), spim_column))
+        tabs = ui.create_tabs(ui.create_tab(_("Control"), control_column), ui.create_tab(_("Setup"), setup_column))
 
         tabs_column = ui.create_column(tabs, status_bar, margin=4)
 

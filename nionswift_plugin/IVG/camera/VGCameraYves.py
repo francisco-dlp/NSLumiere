@@ -307,33 +307,96 @@ class CameraDevice(camera_base.CameraDevice):
               f"    mode: {self.current_camera_settings.acquisition_mode}"
               f"    nb spectra {self.current_camera_settings.spectra_count}")
         self.camera.setAccumulationNumber(self.current_camera_settings.spectra_count)
+        hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            self.camera_id)
 
-        self.sizez = 1
-        acqmode = 0
-        sb = "1d" if self.current_camera_settings.soft_binning else "2d"
-        if self.current_camera_settings.acquisition_mode == "Cumul":
-            acqmode = 1
+        if "Chrono" in self.current_camera_settings.acquisition_mode:
+            if self.current_camera_settings.acquisition_mode == '2D-Chrono':
+                self.sizez = self.current_camera_settings.spectra_count
+                self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype = numpy.float32)
+            else:
+                self.sizey = self.current_camera_settings.spectra_count
+                self.sizez = 1
+                self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype = numpy.float32)
+            self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
+            self.camera.startSpim(self.current_camera_settings.spectra_count, 1, self.current_camera_settings.exposure_ms / 1000., self.current_camera_settings.acquisition_mode == "2D-Chrono")
+            self.camera.resumeSpim(4)
+            if self.current_camera_settings.acquisition_mode == "1D-Chrono-Live":
+                self.camera.setSpimMode(1)
 
-        self.imagedata = numpy.zeros((self.sizey, self.sizex), dtype=numpy.float32)
-        self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
-        self.__acqon = self.camera.startFocus(self.current_camera_settings.exposure_ms / 1000, sb, acqmode)
+        elif "Spim" in self.current_camera_settings.acquisition_mode:
+            self.sizex, self.sizey = self.camera.getImageSize()
+            self.spimimagedata = numpy.zeros((100, self.sizey, self.sizex), dtype=numpy.float32)
+            #self.spimimagedata = numpy.ascontiguousarray(self.spimimagedata, dtype=numpy.float32)
+            self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
+            self.camera.startSpim(100, 1, self.current_camera_settings.exposure_ms / 1000., True)
+            self.camera.resumeSpim(4)
+            self.__acqspimon = True
+
+        else:
+            self.sizez = 1
+            acqmode = 0
+            sb = "1d" if self.current_camera_settings.soft_binning else "2d"
+            if self.current_camera_settings.acquisition_mode == "Cumul":
+                acqmode = 1
+            self.imagedata = numpy.zeros((self.sizey, self.sizex), dtype=numpy.float32)
+            self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
+            self.__acqon = self.camera.startFocus(self.current_camera_settings.exposure_ms / 1000, sb, acqmode)
 
         self._last_time = time.time()
 
     def stop_live(self) -> None:
-        self.__acqon = self.camera.stopFocus()
+        if "Chrono" in self.current_camera_settings.acquisition_mode or "Spim" in self.current_camera_settings.acquisition_mode:
+            self.camera.stopSpim(True)
+            self.has_data_event.set()
+            self.__acqon = False
+        else:
+            if self.__acqspimon:
+                self.has_spim_data_event.set()
+            else:
+                self.__acqon = self.camera.stopFocus()
 
     def acquire_image(self) -> dict:
         gotit = self.has_data_event.wait(1)
         self.has_data_event.clear()
         acquisition_mode = self.current_camera_settings.acquisition_mode
-        self.acquire_data = self.imagedata
-        if self.acquire_data.shape[0] == 1:
-            datum_dimensions = 1
-            collection_dimensions = 1
+        if "Chrono" in acquisition_mode:
+            self.acquire_data = self.spimimagedata
+
+            if "2D" in acquisition_mode:
+                collection_dimensions = 1
+                datum_dimensions = 2
+            else:
+                collection_dimensions = 1
+                datum_dimensions = 2
         else:
-            datum_dimensions = 2
-            collection_dimensions = 0
+            if acquisition_mode=="Spim":
+                #if not self.__prepared:
+                 #   self.prepare_spim()
+                spnb = self.frame_number
+                y0 = int(spnb / 10)
+                x0 = int(spnb - y0 * 10)
+                print(f"spnb: {spnb}  x0: {x0}  y0: {y0}")
+                if spnb < 10 * 10:
+                    self.acquire_data = self.spimimagedata
+                    self.acquire_data = numpy.reshape(self.acquire_data, (1, -1))
+                else:
+                    print('Acquisition is over')
+                    self.stop_acquitisition_event.fire("")
+            else:
+                self.acquire_data = self.imagedata
+            if self.acquire_data.shape[0] == 1:
+                datum_dimensions = 1
+                collection_dimensions = 1
+            #else:
+            #    datum_dimensions = 2
+            #    collection_dimensions = 0
+        print('acquire data')
+        print(self.acquire_data)
+        print(self.acquire_data.shape)
+        print(collection_dimensions)
+        print(datum_dimensions)
+        print(self.frame_number)
         properties = dict()
         properties["frame_number"] = self.frame_number
         properties["acquisition_mode"] = acquisition_mode
@@ -478,7 +541,7 @@ class CameraSettings:
         self.frame_parameters_changed_event = Event.Event()
         self.settings_changed_event = Event.Event()
         # the list of possible modes should be defined here
-        self.modes = ["Focus", "Cumul"]
+        self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "2D-Chrono", "Spim"]
 
         self.__camera_device = camera_device
         self.settings_id = camera_device.camera_id
