@@ -236,25 +236,14 @@ class CameraDevice(camera_base.CameraDevice):
         sx[0] = self.sizex
         sy[0] = self.sizey
         sz[0] = self.sizez
-        #data_type >= 100 force spectrum data on first axis.
         data_type[0] = 100 + self.__numpy_to_orsay_type(self.spimimagedata)
-        # if self.current_camera_settings.acquisition_mode != "2D-Chrono":
-        #     data_type[0] = 100 + self.__numpy_to_orsay_type(self.spimimagedata)
-        #print(f"spim lock {sx[0]} {sy[0]} {sz[0]}")
         return self.spimimagedata_ptr.value
 
     def __spim_data_unlocker(self, gene :int, new_data : bool, running : bool):
-        status = self.camera.getCCDStatus()
-        if status["mode"] == "Spectrum imaging":
-            self.frame_number = status["current spectrum"]
-        if "Chrono" in status["mode"]:
-            if new_data:
-                self.has_data_event.set()
-        else:
-            if not running:
-                # just stopped, send last data anyway.
-                self.has_spim_data_event.set()
-                print("spim done")
+
+        if not running:
+            self.has_spim_data_event.set()
+            print("spim done")
         if not running:
             hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 self.camera_id)
@@ -325,11 +314,13 @@ class CameraDevice(camera_base.CameraDevice):
                 self.camera.setSpimMode(1)
 
         elif "Spim" in self.current_camera_settings.acquisition_mode:
-            self.sizex, self.sizey = self.camera.getImageSize()
-            self.spimimagedata = numpy.zeros((100, self.sizey, self.sizex), dtype=numpy.float32)
-            #self.spimimagedata = numpy.ascontiguousarray(self.spimimagedata, dtype=numpy.float32)
+            print("SPIM")
+            self.sizey = self.current_camera_settings.spectra_count
+            self.sizez = 1
+            print(self.sizey) #sizey at the top seems to be important because it affects spim data locker.  If we remove this value is 1 and a problem happens. Of course i need to check with marcel
+            self.spimimagedata = numpy.zeros((1, 100, self.sizex), dtype=numpy.float32)
             self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
-            self.camera.startSpim(100, 1, self.current_camera_settings.exposure_ms / 1000., True)
+            self.camera.startSpim(100, 1, self.current_camera_settings.exposure_ms / 1000., False)
             self.camera.resumeSpim(4)
             self.__acqspimon = True
 
@@ -357,8 +348,7 @@ class CameraDevice(camera_base.CameraDevice):
                 self.__acqon = self.camera.stopFocus()
 
     def acquire_image(self) -> dict:
-        gotit = self.has_data_event.wait(1)
-        self.has_data_event.clear()
+
         acquisition_mode = self.current_camera_settings.acquisition_mode
         if "Chrono" in acquisition_mode:
             self.acquire_data = self.spimimagedata
@@ -366,37 +356,33 @@ class CameraDevice(camera_base.CameraDevice):
             if "2D" in acquisition_mode:
                 collection_dimensions = 1
                 datum_dimensions = 2
+
             else:
                 collection_dimensions = 1
                 datum_dimensions = 2
-        else:
-            if acquisition_mode=="Spim":
-                #if not self.__prepared:
-                 #   self.prepare_spim()
-                spnb = self.frame_number
-                y0 = int(spnb / 10)
-                x0 = int(spnb - y0 * 10)
-                print(f"spnb: {spnb}  x0: {x0}  y0: {y0}")
-                if spnb < 10 * 10:
-                    self.acquire_data = self.spimimagedata
-                    self.acquire_data = numpy.reshape(self.acquire_data, (1, -1))
-                else:
-                    print('Acquisition is over')
-                    self.stop_acquitisition_event.fire("")
-            else:
-                self.acquire_data = self.imagedata
+
+        elif "Spim" in acquisition_mode:
+            spnb = self.frame_number
+            y0 = int(spnb / 10)
+            x0 = int(spnb - y0 * 10)
+            self.acquire_data = self.spimimagedata
+            self.acquire_data = self.acquire_data.reshape(10, 10, -1)
+            collection_dimensions = 2
+            datum_dimensions = 1
+
+        elif acquisition_mode=="Test":
+            self.acquire_data = numpy.random.randn(10, 10, 10)
+            collection_dimensions = 2
+            datum_dimensions = 1
+
+        else: #CUMUL AND FOCUS
+            gotit = self.has_data_event.wait(1)
+            self.has_data_event.clear()
+            self.acquire_data = self.imagedata
             if self.acquire_data.shape[0] == 1:
                 datum_dimensions = 1
                 collection_dimensions = 1
-            #else:
-            #    datum_dimensions = 2
-            #    collection_dimensions = 0
-        print('acquire data')
-        print(self.acquire_data)
-        print(self.acquire_data.shape)
-        print(collection_dimensions)
-        print(datum_dimensions)
-        print(self.frame_number)
+
         properties = dict()
         properties["frame_number"] = self.frame_number
         properties["acquisition_mode"] = acquisition_mode
@@ -541,7 +527,7 @@ class CameraSettings:
         self.frame_parameters_changed_event = Event.Event()
         self.settings_changed_event = Event.Event()
         # the list of possible modes should be defined here
-        self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "2D-Chrono", "Spim"]
+        self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "2D-Chrono", "Spim", "Test"]
 
         self.__camera_device = camera_device
         self.settings_id = camera_device.camera_id
