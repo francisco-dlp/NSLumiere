@@ -379,9 +379,13 @@ class CameraDevice(camera_base.CameraDevice):
             gotit = self.has_data_event.wait(1)
             self.has_data_event.clear()
             self.acquire_data = self.imagedata
-            if self.acquire_data.shape[0] == 1:
-                datum_dimensions = 1
+            if self.acquire_data.shape[0] == 1: #fully binned
                 collection_dimensions = 1
+                datum_dimensions = 1
+            else: #not binned
+                collection_dimensions = 0
+                datum_dimensions = 2
+
 
         properties = dict()
         properties["frame_number"] = self.frame_number
