@@ -44,7 +44,7 @@ class probeDevice(Observable.Observable):
         self.__c1_wobbler = False
         self.__c2_wobbler = False
         self.wobbler_frequency_f = 2
-        self.__wobbler_intensity = 0.05
+        self.__wobbler_intensity = 0.02
 
         self.__ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 

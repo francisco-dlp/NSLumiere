@@ -314,13 +314,12 @@ class CameraDevice(camera_base.CameraDevice):
                 self.camera.setSpimMode(1)
 
         elif "Spim" in self.current_camera_settings.acquisition_mode:
-            print("SPIM")
+            self.instrument.warn_instrument_spim() #remember this is python. This must finish before calling the rest
             self.sizey = self.current_camera_settings.spectra_count
-            self.sizez = 1
-            print(self.sizey) #sizey at the top seems to be important because it affects spim data locker.  If we remove this value is 1 and a problem happens. Of course i need to check with marcel
-            self.spimimagedata = numpy.zeros((1, 100, self.sizex), dtype=numpy.float32)
+            self.sizez = self.sizey
+            self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype = numpy.float32)
             self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
-            self.camera.startSpim(100, 1, self.current_camera_settings.exposure_ms / 1000., False)
+            self.camera.startSpim(self.current_camera_settings.spectra_count**2, 1, self.current_camera_settings.exposure_ms / 1000., self.current_camera_settings.acquisition_mode == "2D-Chrono")
             self.camera.resumeSpim(4)
             self.__acqspimon = True
 
@@ -352,6 +351,7 @@ class CameraDevice(camera_base.CameraDevice):
         acquisition_mode = self.current_camera_settings.acquisition_mode
         if "Chrono" in acquisition_mode:
             self.acquire_data = self.spimimagedata
+            print(self.acquire_data)
 
             if "2D" in acquisition_mode:
                 collection_dimensions = 1
@@ -366,12 +366,12 @@ class CameraDevice(camera_base.CameraDevice):
             y0 = int(spnb / 10)
             x0 = int(spnb - y0 * 10)
             self.acquire_data = self.spimimagedata
-            self.acquire_data = self.acquire_data.reshape(10, 10, -1)
+            #self.acquire_data = self.acquire_data.reshape(10, 10, 1600) #i initialized correct so dont need to reshape
             collection_dimensions = 2
             datum_dimensions = 1
 
         elif acquisition_mode=="Test":
-            self.acquire_data = numpy.random.randn(10, 10, 10)
+            self.acquire_data = numpy.random.randn(10, 10, 50)
             collection_dimensions = 2
             datum_dimensions = 1
 

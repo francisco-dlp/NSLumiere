@@ -63,6 +63,7 @@ class Device:
         self.__buffer = list()
 
         self.orsayscan = orsayScan(1, vg=True)
+        self.spimscan = orsayScan(2, self.orsayscan.orsayscan, vg=True)
 
         self.orsayscan.SetInputs([1, 0])
 
@@ -176,14 +177,14 @@ class Device:
             if self.__sizez % 2:
                 self.__sizez += 1
 
-            self.__is_scanning = self.orsayscan.startImaging(0, 1)
+            self.__is_scanning = self.orsayscan.startImaging(0, 1) #second argument is line averaging nothing to do which channel starts
             if self.__is_scanning: print('Acquisition Started')
         return self.__frame_number
 
     def __start_next_frame(self):
         frame_parameters = copy.deepcopy(self.__frame_parameters)
         self.__scan_context = stem_controller.ScanContext()
-        channels = [copy.deepcopy(channel) for channel in self.__channels if channel.enabled]
+        channels = [copy.deepcopy(channel) for channel in self.__channels if channel.enabled] #channel enabled is here
         size = Geometry.IntSize.make(frame_parameters.subscan_pixel_size if frame_parameters.subscan_pixel_size else frame_parameters.size)
         for channel in channels:
             channel.data = numpy.zeros(tuple(size), numpy.float32)
@@ -206,23 +207,23 @@ class Device:
         a 'channel_id' indicating the index of the channel (may be an int or float).
         """
 
-        #gotit = self.has_data_event.wait(5.0)
+        #gotit = self.has_data_event.wait(5.0) #this is problably related to the call function that is always running but everything worked without it so i commented
 
         if self.__frame is None:
             self.__start_next_frame()
 
         sub_area=None
-        current_frame=self.__frame
+        current_frame=self.__frame #this is from Frame Class defined above
         assert current_frame is not None
         frame_parameters=current_frame.frame_parameters
         data_elements=list()
 
-        for channel in current_frame.channels:
+        for channel in current_frame.channels: #At the end of the day this uses channel_id, which is a 0, 1 saying which channel is which
             data_element = dict()
             if not self.__spim:
                 data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):(channel.channel_id + 1) * (self.__scan_area[1]),
                              0: (self.__scan_area[0])].astype(numpy.float32)
-                if self.subscan_status:
+                if self.subscan_status: #Marcel programs returns 0 pixels without the sub scan region so i just crop
                         data_array=data_array[self.p4:self.p5, self.p2:self.p3]
                 data_element["data"] = data_array
                 properties = current_frame.frame_parameters.as_dict()
