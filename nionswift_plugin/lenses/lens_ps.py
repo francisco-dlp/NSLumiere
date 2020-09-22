@@ -59,9 +59,9 @@ class Lenses:
             try:
                 self.ser.write(string.encode())
                 self.ser.read(7)
-                current = self.ser.read(8)
+                current = self.ser.read_until(',', 8)
                 self.ser.read(1)
-                voltage = self.ser.read(8)
+                voltage = self.ser.read_until(',', 8)
                 self.ser.readline()
             except:
                 self.sendmessage(4)
