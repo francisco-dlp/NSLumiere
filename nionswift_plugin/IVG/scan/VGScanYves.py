@@ -334,6 +334,11 @@ class Device:
     @set_spim.setter
     def set_spim(self, value):
         self.__spim = value
+        if self.__spim:
+            self.spimscan.startSpim(0, 1)
+        else:
+            pass
+        print(self.__spim)
 
     def __data_locker(self, gene, datatype, sx, sy, sz):
         sx[0] = self.__scan_area[0]

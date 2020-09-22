@@ -244,7 +244,7 @@ class CameraDevice(camera_base.CameraDevice):
         if not running:
             self.has_spim_data_event.set()
             print("spim done")
-        if not running:
+            self.instrument.warn_instrument_spim(False)
             hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 self.camera_id)
             hardware_source.stop_playing()
@@ -314,7 +314,7 @@ class CameraDevice(camera_base.CameraDevice):
                 self.camera.setSpimMode(1)
 
         elif "Spim" in self.current_camera_settings.acquisition_mode:
-            self.instrument.warn_instrument_spim() #remember this is python. This must finish before calling the rest
+            self.instrument.warn_instrument_spim(True) #remember this is python. This must finish before calling the rest
             self.sizey = self.current_camera_settings.spectra_count
             self.sizez = self.sizey
             self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype = numpy.float32)
@@ -340,6 +340,7 @@ class CameraDevice(camera_base.CameraDevice):
             self.camera.stopSpim(True)
             self.has_data_event.set()
             self.__acqon = False
+            print('stop spim')
         else:
             if self.__acqspimon:
                 self.has_spim_data_event.set()
