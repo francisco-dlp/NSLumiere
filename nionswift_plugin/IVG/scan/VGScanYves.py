@@ -178,6 +178,7 @@ class Device:
                 self.__sizez += 1
 
             self.__is_scanning = self.orsayscan.startImaging(0, 1) #second argument is line averaging nothing to do which channel starts
+
             if self.__is_scanning: print('Acquisition Started')
         return self.__frame_number
 
@@ -220,7 +221,7 @@ class Device:
 
         for channel in current_frame.channels: #At the end of the day this uses channel_id, which is a 0, 1 saying which channel is which
             data_element = dict()
-            if not self.__spim:
+            if not self.__spim or True:
                 data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):(channel.channel_id + 1) * (self.__scan_area[1]),
                              0: (self.__scan_area[0])].astype(numpy.float32)
                 if self.subscan_status: #Marcel programs returns 0 pixels without the sub scan region so i just crop
@@ -335,10 +336,17 @@ class Device:
     def set_spim(self, value):
         self.__spim = value
         if self.__spim:
-            self.spimscan.startSpim(0, 1)
+            if self.__is_scanning:
+                self.orsayscan.stopImaging(True)
+                logging.info('***SCAN***: Imaging was running. Turning it off...')
+            #self.spimscan.startSpim(0, 1)
+            #self.spimscan.setScanClock(2)
+            #self.start_frame(True)
+            #self.orsayscan.setScanClock(2)
+            #self.orsayscan.startSpim(0, 1)
+
         else:
             pass
-        print(self.__spim)
 
     def __data_locker(self, gene, datatype, sx, sy, sz):
         sx[0] = self.__scan_area[0]
@@ -351,6 +359,7 @@ class Device:
         self.has_data_event.set()
 
     def __data_unlockerA(self, gene, newdata, imagenb, rect):
+        print('unlocker')
         if newdata:
             self.__frame_number = imagenb
             self.has_data_event.set()

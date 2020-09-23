@@ -240,7 +240,7 @@ class CameraDevice(camera_base.CameraDevice):
         return self.spimimagedata_ptr.value
 
     def __spim_data_unlocker(self, gene :int, new_data : bool, running : bool):
-
+        status = self.camera.getCCDStatus()
         if not running:
             self.has_spim_data_event.set()
             print("spim done")
@@ -314,12 +314,14 @@ class CameraDevice(camera_base.CameraDevice):
                 self.camera.setSpimMode(1)
 
         elif "Spim" in self.current_camera_settings.acquisition_mode:
-            self.instrument.warn_instrument_spim(True) #remember this is python. This must finish before calling the rest
+
             self.sizey = self.current_camera_settings.spectra_count
             self.sizez = self.sizey
             self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype = numpy.float32)
             self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
+            self.camera.stopFocus()
             self.camera.startSpim(self.current_camera_settings.spectra_count**2, 1, self.current_camera_settings.exposure_ms / 1000., self.current_camera_settings.acquisition_mode == "2D-Chrono")
+            self.instrument.warn_instrument_spim(True) #This must finish before calling the rest
             self.camera.resumeSpim(4)
             self.__acqspimon = True
 
@@ -352,12 +354,9 @@ class CameraDevice(camera_base.CameraDevice):
         acquisition_mode = self.current_camera_settings.acquisition_mode
         if "Chrono" in acquisition_mode:
             self.acquire_data = self.spimimagedata
-            print(self.acquire_data)
-
             if "2D" in acquisition_mode:
                 collection_dimensions = 1
                 datum_dimensions = 2
-
             else:
                 collection_dimensions = 1
                 datum_dimensions = 2
