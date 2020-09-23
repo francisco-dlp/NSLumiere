@@ -173,12 +173,27 @@ class ivgInstrument(stem_controller.STEMController):
             except:
                 pass
 
+
     def fov_change(self, FOV):
         self.__fov = float(FOV*1e6)
         try:
             self.__StageInstrument.slider_range_f=self.__fov
         except:
             pass
+
+    def warn_instrument_spim(self, value):
+        #Lets warn instrument and make instrument stop any conventional HAADF/BF order he is currently doing. I will
+        #try to do spim basically creating a data_item instead of using my channels? Not sure the best approach. I
+        #would love to let my ScanYves as clean as possible
+        logging.info('***IVG***: SPIM starting. Aborting (if running) HAADF/BF...')
+        #try:
+        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+        self.__OrsayScanInstrument.scan_device.cancel()
+        self.__OrsayScanInstrument.scan_device.set_spim=value
+        #except:
+        #    pass
+
+
 
 
     def sendMessageFactory(self):
@@ -442,6 +457,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__live_probe_position = position
         self.property_changed_event.fire("live_probe_position")
 
+
     def _set_scan_context_probe_position(self, scan_context: stem_controller.ScanContext,
                                          probe_position: Geometry.FloatPoint) -> None:
         self.__scan_context = copy.deepcopy(scan_context)
@@ -451,10 +467,12 @@ class ivgInstrument(stem_controller.STEMController):
         if not DEBUG_SCAN:
             if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
             if pmt_type==0:
-                self.__haadf_gain=int(self.__haadf_gain*1.2) if factor>1 else int(self.__haadf_gain*0.8)
+                self.__haadf_gain = int(self.__OrsayScanInstrument.scan_device.orsayscan.GetPMT(1))
+                self.__haadf_gain=int(self.__haadf_gain*1.05) if factor>1 else int(self.__haadf_gain*0.95)
                 if self.__haadf_gain>2500: self.__haadf_gain=2500
             if pmt_type==1:
-                self.__bf_gain=int(self.__bf_gain*1.2) if factor>1 else int(self.__bf_gain*0.8)
+                self.__bf_gain = int(self.__OrsayScanInstrument.scan_device.orsayscan.GetPMT(0))
+                self.__bf_gain=int(self.__bf_gain*1.05) if factor>1 else int(self.__bf_gain*0.95)
                 if self.__bf_gain>2500: self.__bf_gain=2500
             self.__OrsayScanInstrument.scan_device.orsayscan.SetPMT(-pmt_type+1, self.__haadf_gain)
 

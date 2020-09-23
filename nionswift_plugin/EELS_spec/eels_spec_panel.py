@@ -109,8 +109,8 @@ class eels_spec_handler:
         self.dmx_slider.minimum = -32767
 
     def slider_release(self, widget):
-        widget.maximum = widget.value + 2500
-        widget.minimum = widget.value - 2500
+        widget.maximum = widget.value + 1500
+        widget.minimum = widget.value - 1500
 
 
 class eels_spec_View:

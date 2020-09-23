@@ -60,16 +60,16 @@ class gainhandler:
 
     def adj_values(self, widget):
         if widget == self.obj_slider:
-            self.obj_slider.maximum = self.obj_slider.value + 50000
-            self.obj_slider.minimum = max(self.obj_slider.value - 50000, 0)
+            self.obj_slider.maximum = self.obj_slider.value + 25000
+            self.obj_slider.minimum = max(self.obj_slider.value - 25000, 0)
 
         if widget == self.c1_slider:
-            self.c1_slider.maximum = self.c1_slider.value + 10000
-            self.c1_slider.minimum = max(self.c1_slider.value - 10000, 0)
+            self.c1_slider.maximum = self.c1_slider.value + 5000
+            self.c1_slider.minimum = max(self.c1_slider.value - 5000, 0)
 
         if widget == self.c2_slider:
-            self.c2_slider.maximum = self.c2_slider.value + 10000
-            self.c2_slider.minimum = max(self.c2_slider.value - 10000, 0)
+            self.c2_slider.maximum = self.c2_slider.value + 5000
+            self.c2_slider.minimum = max(self.c2_slider.value - 5000, 0)
 
     def line_update(self, widget, text):
         if widget == self.obj_value:

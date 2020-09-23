@@ -9,11 +9,6 @@ from . import stage_inst
 _ = gettext.gettext
 
 
-
-
-import inspect
-
-
 class stagehandler:
 
 
@@ -45,8 +40,10 @@ class stagehandler:
     def slider_release(self, widget):
         widget.maximum=widget.value+self.slider_max
         widget.minimum=widget.value-self.slider_max
+        self.full_label.text = '(Relative Range)'
 
     def readjust_slider(self):
+        #Here we set the maximum value coming from ivg_inst and FOV.
         self.slider_max=self.instrument.slider_range_f
         if self.slider_max<5: self.slider_max=5
 
@@ -62,6 +59,8 @@ class stagehandler:
 
         self.y_slider.maximum = 80000
         self.y_slider.minimum = -80000
+
+        self.full_label.text = '(Full Range)'
 
     def line_edit(self, widget, text):
         self.total_range(widget)
@@ -89,15 +88,17 @@ class stageView:
 
         ### SLIDERS ###
 
+        self.full_label = ui.create_label(name='full_label', text='(Full Range)')
+
         self.x_label = ui.create_label(name='x_label', text='X Pos: ')
         self.x_value_edit = ui.create_line_edit(name='x_value_edit', text='@binding(instrument.x_pos_edit_f)', on_text_edited='line_edit')
-        self.x_row=ui.create_row(self.x_label, self.x_value_edit, ui.create_stretch())
-        self.x_slider=ui.create_slider(name='x_slider', value='@binding(instrument.x_pos_f)', minimum=-3200, maximum=3200, on_slider_released='slider_release')
+        self.x_row=ui.create_row(self.x_label, self.x_value_edit, ui.create_stretch(), self.full_label)
+        self.x_slider=ui.create_slider(name='x_slider', value='@binding(instrument.x_pos_f)', minimum=-80000, maximum=80000, on_slider_released='slider_release')
 
         self.y_label = ui.create_label(name='y_label', text='Y Pos: ')
         self.y_value_edit = ui.create_line_edit(name='y_value_edit', text='@binding(instrument.y_pos_edit_f)', on_text_edited='line_edit')
         self.y_row = ui.create_row(self.y_label, self.y_value_edit, ui.create_stretch())
-        self.y_slider = ui.create_slider(name='y_slider', value='@binding(instrument.y_pos_f)', minimum=-3200, maximum=3200, on_slider_released='slider_release')
+        self.y_slider = ui.create_slider(name='y_slider', value='@binding(instrument.y_pos_f)', minimum=-80000, maximum=80000, on_slider_released='slider_release')
 
         self.ui_view=ui.create_column(self.x_row, self.x_slider, ui.create_spacing(10), self.y_row, self.y_slider, self.list_positions, self.button_row)
 
