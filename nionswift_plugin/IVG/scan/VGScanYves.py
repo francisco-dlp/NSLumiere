@@ -7,6 +7,7 @@ import numpy
 import threading
 import typing
 import time
+import logging
 
 # local libraries
 from nion.utils import Registry
@@ -82,6 +83,7 @@ class Device:
         self.pixel_time=0.25
         self.field_of_view=32000
         self.orsayscan.SetProbeAt(0, 0)
+        self.__spim_pixels = 0
         self.subscan_status=True
         self.__spim = False
 
@@ -296,6 +298,7 @@ class Device:
     def Image_area(self, value):
         self.__scan_area=value
         self.orsayscan.setImageArea(self.__scan_area[0], self.__scan_area[1], self.__scan_area[2], self.__scan_area[3], self.__scan_area[4], self.__scan_area[5])
+        self.spimscan.setImageArea(self.__scan_area[0], self.__scan_area[1], self.__scan_area[2], self.__scan_area[3], self.__scan_area[4], self.__scan_area[5])
         self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
         self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
 
@@ -335,18 +338,23 @@ class Device:
     @set_spim.setter
     def set_spim(self, value):
         self.__spim = value
+
         if self.__spim:
             if self.__is_scanning:
                 self.orsayscan.stopImaging(True)
+                self.__is_scanning = False
                 logging.info('***SCAN***: Imaging was running. Turning it off...')
-            #self.spimscan.startSpim(0, 1)
-            #self.spimscan.setScanClock(2)
-            #self.start_frame(True)
-            #self.orsayscan.setScanClock(2)
-            #self.orsayscan.startSpim(0, 1)
+
+            logging.info(f'Spim using {self.spimscan.getImageArea()} pixels and {self.spimscan.GetFieldSize()} FOV')
+            logging.info(f'Imaging using {self.orsayscan.getImageArea()} pixels and {self.orsayscan.GetFieldSize()} FOV')
+            self.spimscan.setScanClock(2)
+            self.__is_scanning = self.spimscan.startSpim(0, 1)
 
         else:
-            pass
+            logging.info('***SCAN***: Spim is done. Handling it..')
+            self.spimscan.stopImaging(True)
+            self.__is_scanning = False
+
 
     def __data_locker(self, gene, datatype, sx, sy, sz):
         sx[0] = self.__scan_area[0]
@@ -359,7 +367,6 @@ class Device:
         self.has_data_event.set()
 
     def __data_unlockerA(self, gene, newdata, imagenb, rect):
-        print('unlocker')
         if newdata:
             self.__frame_number = imagenb
             self.has_data_event.set()

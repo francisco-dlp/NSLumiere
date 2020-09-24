@@ -182,14 +182,16 @@ class ivgInstrument(stem_controller.STEMController):
             pass
 
 
-    def warn_instrument_spim(self, value):
+    def warn_instrument_spim(self, value, pixels = 0):
         #Lets warn instrument and make instrument stop any conventional HAADF/BF order he is currently doing. I will
         #try to do spim basically creating a data_item instead of using my channels? Not sure the best approach. I
         #would love to let my ScanYves as clean as possible
         #logging.info('***IVG***: SPIM starting. Aborting (if running) HAADF/BF...')
         #try:
         if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+
         self.__OrsayScanInstrument.scan_device.set_spim=value
+
         #except:
         #    pass
 
