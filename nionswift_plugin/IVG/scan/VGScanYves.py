@@ -177,7 +177,8 @@ class Device:
             self.__buffer = list()
             self.__start_next_frame()
 
-            if not self.__spim: self.__is_scanning = self.orsayscan.startImaging(0, 1)
+            if not self.__spim:
+                self.__is_scanning = self.orsayscan.startImaging(0, 1)
 
             if self.__is_scanning: print('Acquisition Started')
         return self.__frame_number
@@ -218,7 +219,7 @@ class Device:
 
         for channel in current_frame.channels:  # At the end of the day this uses channel_id, which is a 0, 1 saying which channel is which
             data_element = dict()
-            if not self.__spim:
+            if not self.__spim and self.__is_scanning:
                 data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):(channel.channel_id + 1) * (
                 self.__scan_area[1]),
                              0: (self.__scan_area[0])].astype(numpy.float32)
@@ -238,8 +239,8 @@ class Device:
                 data_array = self.imagedata[(channel.channel_id) * (self.__spim_pixels):(channel.channel_id + 1) * (
                     self.__spim_pixels),
                              0: (self.__spim_pixels)].astype(numpy.float32)
-                if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
-                    data_array = data_array[self.p4:self.p5, self.p2:self.p3]
+                #if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
+                #    data_array = data_array[self.p4:self.p5, self.p2:self.p3]
                 data_element["data"] = data_array
                 properties = current_frame.frame_parameters.as_dict()
                 properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
@@ -353,17 +354,18 @@ class Device:
                 self.__is_scanning = False
                 logging.info('***SCAN***: Imaging was running. Turning it off...')
 
-            logging.info(f'Spim using {self.spimscan.getImageArea()} pixels and {self.spimscan.GetFieldSize()} FOV')
-            logging.info(
-                f'Imaging using {self.orsayscan.getImageArea()} pixels and {self.orsayscan.GetFieldSize()} FOV')
             self.spimscan.setScanClock(2)
-            self.__is_scanning = self.spimscan.startSpim(0, 1)
+            self.spimscan.startSpim(0, 1)
+            #self.__is_scanning is false for spim. This allows us a better control of data flow. See first loop
+            #condition in read_partial.
 
         else:
             logging.info('***SCAN***: Spim is done. Handling it..')
             self.spimscan.stopImaging(True)
-            #self.__is_scanning = False
-            self.__is_scanning = self.orsayscan.startImaging(0, 1)
+            self.__is_scanning = False
+            self.__instrument.warn_instrument_spim_over(self.imagedata, self.__spim_pixels, [0, 1])
+            #self.__is_scanning = self.orsayscan.startImaging(0, 1)
+
 
     @property
     def set_spim_pixels(self):
@@ -371,8 +373,9 @@ class Device:
 
     @set_spim_pixels.setter
     def set_spim_pixels(self, value):
-        self.__spim_pixels = value
-        self.spimscan.setImageArea(value, value, self.__scan_area[2], self.__scan_area[3], self.__scan_area[4],
+        if value:
+            self.__spim_pixels = value
+            self.spimscan.setImageArea(value, value, self.__scan_area[2], self.__scan_area[3], self.__scan_area[4],
                                    self.__scan_area[5])
 
     def __data_locker(self, gene, datatype, sx, sy, sz):
