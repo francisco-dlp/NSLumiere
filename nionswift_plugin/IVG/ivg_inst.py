@@ -189,7 +189,7 @@ class ivgInstrument(stem_controller.STEMController):
         #logging.info('***IVG***: SPIM starting. Aborting (if running) HAADF/BF...')
         #try:
         if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
-
+        self.__OrsayScanInstrument.scan_device.set_spim_pixels = pixels
         self.__OrsayScanInstrument.scan_device.set_spim=value
 
         #except:

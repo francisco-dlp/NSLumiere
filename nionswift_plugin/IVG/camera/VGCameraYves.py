@@ -321,7 +321,7 @@ class CameraDevice(camera_base.CameraDevice):
             self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
             self.camera.stopFocus()
             self.camera.startSpim(self.current_camera_settings.spectra_count**2, 1, self.current_camera_settings.exposure_ms / 1000., self.current_camera_settings.acquisition_mode == "2D-Chrono")
-            self.instrument.warn_instrument_spim(True, self.current_camera_settings.spectra_count**2) #This must finish before calling the rest
+            self.instrument.warn_instrument_spim(True, self.current_camera_settings.spectra_count) #This must finish before calling the rest
             self.camera.resumeSpim(4)
             self.__acqspimon = True
 
@@ -367,7 +367,6 @@ class CameraDevice(camera_base.CameraDevice):
             y0 = int(spnb / 10)
             x0 = int(spnb - y0 * 10)
             self.acquire_data = self.spimimagedata
-            #self.acquire_data = self.acquire_data.reshape(10, 10, 1600) #i initialized correct so dont need to reshape
             collection_dimensions = 2
             datum_dimensions = 1
 

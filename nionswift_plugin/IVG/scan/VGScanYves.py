@@ -223,7 +223,7 @@ class Device:
 
         for channel in current_frame.channels: #At the end of the day this uses channel_id, which is a 0, 1 saying which channel is which
             data_element = dict()
-            if not self.__spim or True:
+            if not self.__spim:
                 data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):(channel.channel_id + 1) * (self.__scan_area[1]),
                              0: (self.__scan_area[0])].astype(numpy.float32)
                 if self.subscan_status: #Marcel programs returns 0 pixels without the sub scan region so i just crop
@@ -237,8 +237,21 @@ class Device:
                 data_element["properties"] = properties
                 if data_array is not None:
                     data_elements.append(data_element)
+
             else:
-                print('SPIM RUNNING')
+                data_array = self.imagedata[channel.channel_id * (self.__spim_pixels):(channel.channel_id + 1) * (self.__spim_pixels),
+                             0: (self.__spim_pixels)].astype(numpy.float32)
+                if self.subscan_status: #Marcel programs returns 0 pixels without the sub scan region so i just crop
+                    data_array=data_array[self.p4:self.p5, self.p2:self.p3]
+                data_element["data"] = data_array
+                properties = current_frame.frame_parameters.as_dict()
+                properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
+                properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
+                properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
+                properties["channel_id"] = channel.channel_id
+                data_element["properties"] = properties
+                if data_array is not None:
+                    data_elements.append(data_element)
 
 
         self.has_data_event.clear()
@@ -298,7 +311,6 @@ class Device:
     def Image_area(self, value):
         self.__scan_area=value
         self.orsayscan.setImageArea(self.__scan_area[0], self.__scan_area[1], self.__scan_area[2], self.__scan_area[3], self.__scan_area[4], self.__scan_area[5])
-        self.spimscan.setImageArea(self.__scan_area[0], self.__scan_area[1], self.__scan_area[2], self.__scan_area[3], self.__scan_area[4], self.__scan_area[5])
         self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
         self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
 
@@ -354,6 +366,18 @@ class Device:
             logging.info('***SCAN***: Spim is done. Handling it..')
             self.spimscan.stopImaging(True)
             self.__is_scanning = False
+
+    @property
+    def set_spim_pixels(self):
+        return self.__spim_pixels
+
+    @set_spim_pixels.setter
+    def set_spim_pixels(self, value):
+        self.__spim_pixels = value
+        self.spimscan.setImageArea(value, value, self.__scan_area[2], self.__scan_area[3], self.__scan_area[4], self.__scan_area[5])
+
+
+
 
 
     def __data_locker(self, gene, datatype, sx, sy, sz):
