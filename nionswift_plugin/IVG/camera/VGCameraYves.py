@@ -24,7 +24,6 @@ from nionswift_plugin.IVG import ivg_inst
 
 _ = gettext.gettext
 
-# STEM_CONTROLLER_ID = "autostem_controller"
 
 class Orsay_Data(Enum):
     s16 = 2
