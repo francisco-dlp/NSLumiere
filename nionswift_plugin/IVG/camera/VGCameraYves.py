@@ -9,6 +9,7 @@ import time
 import json
 import os
 from enum import Enum
+import logging
 
 # local libraries
 
@@ -142,7 +143,7 @@ class CameraDevice(camera_base.CameraDevice):
             self.__hardware_settings.soft_binning = frame_parameters.soft_binning
             if self.__hardware_settings.acquisition_mode != frame_parameters.acquisition_mode:
                 self.__hardware_settings.acquisition_mode = frame_parameters.acquisition_mode
-            print(f"acquisition mode[camera]: {self.__hardware_settings.acquisition_mode}")
+            print(f"***CAMERA***: acquisition mode[camera]: {self.__hardware_settings.acquisition_mode}")
             self.__hardware_settings.spectra_count = frame_parameters.spectra_count
 
         if "port" in frame_parameters:
@@ -242,7 +243,7 @@ class CameraDevice(camera_base.CameraDevice):
         status = self.camera.getCCDStatus()
         if not running:
             self.has_spim_data_event.set()
-            print("spim done")
+            logging.info("***CAMERA***: Spim done. Handling..")
             self.instrument.warn_instrument_spim(False)
             hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 self.camera_id)
@@ -290,7 +291,7 @@ class CameraDevice(camera_base.CameraDevice):
         self.sizex, self.sizey = self.camera.getImageSize()
         if self.current_camera_settings.soft_binning:
             self.sizey = 1
-        print(f"Start live, Image size: {self.sizex} x {self.sizey}"
+        print(f"***CAMERA***: Start live, Image size: {self.sizex} x {self.sizey}"
               f"  soft_binning: {self.current_camera_settings.soft_binning}"
               f"    mode: {self.current_camera_settings.acquisition_mode}"
               f"    nb spectra {self.current_camera_settings.spectra_count}")
@@ -341,7 +342,7 @@ class CameraDevice(camera_base.CameraDevice):
             self.camera.stopSpim(True)
             self.has_data_event.set()
             self.__acqon = False
-            print('stop spim')
+            logging.info('***CAMERA***: Spim stopped. Handling..')
             self.instrument.warn_instrument_spim(False)
         else:
             if self.__acqspimon:
@@ -366,11 +367,6 @@ class CameraDevice(camera_base.CameraDevice):
             y0 = int(spnb / 10)
             x0 = int(spnb - y0 * 10)
             self.acquire_data = self.spimimagedata
-            collection_dimensions = 2
-            datum_dimensions = 1
-
-        elif acquisition_mode=="Test":
-            self.acquire_data = numpy.random.randn(10, 10, 50)
             collection_dimensions = 2
             datum_dimensions = 1
 
@@ -530,7 +526,7 @@ class CameraSettings:
         self.frame_parameters_changed_event = Event.Event()
         self.settings_changed_event = Event.Event()
         # the list of possible modes should be defined here
-        self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "2D-Chrono", "Spim", "Test"]
+        self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "Spim"]
 
         self.__camera_device = camera_device
         self.settings_id = camera_device.camera_id

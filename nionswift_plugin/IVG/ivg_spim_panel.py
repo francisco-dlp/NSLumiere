@@ -101,6 +101,12 @@ class ivgSpimhandler:
     def prepare_widget_disable(self,value):
         self.event_loop.create_task(self.do_enable(False, []))
 
+    def cancel_spim(self, widget):
+        pass
+
+    def start_spim(self, widget):
+        pass
+
 class ivgSpimView:
 
 
@@ -121,8 +127,13 @@ class ivgSpimView:
         self.y_pixels_value = ui.create_line_edit(name='y_pixels_value', text='@binding(instrument.spim_ypix_f)')
         self.pixels_column = ui.create_row(self.x_pixels_label, self.x_pixels_value, ui.create_stretch(), self.y_pixels_label, self.y_pixels_value, ui.create_stretch())
 
+        self.bottom_blanker = ui.create_check_box(name='bottom_blanker_value', text='Bottom Blanker', checked='@binding(instrument.is_blanked)')
 
-        self.ui_view=ui.create_column(self.type_column, self.trigger_column, self.pixels_column, spacing=5)
+        self.cancel_button = ui.create_push_button(name='cancel_button', text='Cancel', on_clicked='cancel_spim')
+        self.start_button = ui.create_push_button(name='start_button', text='Start', on_clicked='start_spim')
+        self.button_row = ui.create_row(ui.create_stretch(), self.cancel_button, self.start_button, spacing=5)
+
+        self.ui_view=ui.create_column(self.type_column, self.trigger_column, self.pixels_column, self.bottom_blanker, self.button_row, spacing=5)
         
 def create_spectro_panel(document_controller, panel_id, properties):
         instrument = properties["instrument"]
