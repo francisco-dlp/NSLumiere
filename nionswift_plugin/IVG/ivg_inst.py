@@ -78,7 +78,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__haadf_gain = 250
         self.__bf_gain = 250
 
-
         self.__EHT=EHT_INITIAL
         self.__obj_res_ref = OBJECTIVE_RESISTANCE
         self.__amb_temp = AMBIENT_TEMPERATURE
@@ -87,6 +86,15 @@ class ivgInstrument(stem_controller.STEMController):
         self.__obj_res=self.__obj_res_ref
 
         self.__loop_index=0
+
+        ## spim properties attributes START
+
+        self.__spim_type = 0
+        self.__spim_trigger = 0
+        self.__spim_xpix = 50
+        self.__spim_ypix = 50
+
+        ## spim properties attributes END
 
         if SLOW_PERIODIC: self.periodic()
         if FAST_PERIODIC: self.stage_periodic()
@@ -450,6 +458,51 @@ class ivgInstrument(stem_controller.STEMController):
     def y_stage_f(self):
         return '{:.2f}'.format(self.__y_real_pos*1e6)
 
+    ## spim_panel Properties START ##
+
+    @property
+    def spim_type_f(self):
+        return self.__spim_type
+
+    @spim_type_f.setter
+    def spim_type_f(self, value):
+        self.__spim_type = value
+
+    @property
+    def spim_trigger_f(self):
+        return self.__spim_trigger
+
+    @spim_trigger_f.setter
+    def spim_trigger_f(self, value):
+        self.__spim_trigger = value
+
+    @property
+    def spim_xpix_f(self):
+        return self.__spim_xpix
+
+    @spim_xpix_f.setter
+    def spim_xpix_f(self, value):
+        try:
+            isinstance(int(value), int)
+            self.__spim_xpix = int(value)
+        except ValueError:
+            logging.info('***SPIM***: Please put an integer number')
+        self.property_changed_event.fire('spim_xpix_f')
+
+    @property
+    def spim_ypix_f(self):
+        return self.__spim_ypix
+
+    @spim_ypix_f.setter
+    def spim_ypix_f(self, value):
+        try:
+            isinstance(int(value), int)
+            self.__spim_ypix = int(value)
+        except ValueError:
+            logging.info('***SPIM***: Please put an integer number')
+        self.property_changed_event.fire('spim_ypix_f')
+
+    ## spim_panel Properties END ##
 
     @property
     def live_probe_position(self):
