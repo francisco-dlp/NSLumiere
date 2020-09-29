@@ -362,7 +362,14 @@ class Device:
                 self.__is_scanning = False
                 logging.info('***SCAN***: Imaging was running. Turning it off...')
 
-            self.spimscan.setScanClock(2)
+
+            if self.__instrument.spim_trigger_f==0:
+                self.spimscan.setScanClock(2)
+                logging.info(f'***SCAN***: EELS Spim')
+            elif self.__instrument.spim_trigger_f==1:
+                self.spimscan.setScanClock(4)
+                logging.info(f'***SCAN***: Cathodoluminescence Spim')
+
             self.spimscan.startSpim(0, 1)
         else:
             logging.info('***SCAN***: Spim is done. Handling...')

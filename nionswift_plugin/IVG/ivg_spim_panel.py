@@ -53,7 +53,7 @@ class ivgSpimhandler:
         self.instrument.stop_spim_push_button()
 
     def start_spim(self, widget):
-        self.instrument.start_spim_push_button(self.x_pixels_value.text, self.y_pixels_value.text, self.type_value.current_index, self.trigger_value.current_index)
+        self.instrument.start_spim_push_button(self.x_pixels_value.text, self.y_pixels_value.text)
 
 class ivgSpimView:
 
