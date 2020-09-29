@@ -556,6 +556,7 @@ class ivgInstrument(stem_controller.STEMController):
     @property
     def spim_sampling_f(self):
         self.__spim_sampling = (self.__fov/self.__spim_xpix*1e3, self.__fov/self.__spim_ypix*1e3) if not self.__is_subscan[0] else (self.__fov*self.__is_subscan[1]/self.__spim_xpix*1e3, self.__fov*self.__is_subscan[2]/self.__spim_ypix*1e3)
+        self.__spim_sampling = [float("%.2f" % member) for member in self.__spim_sampling]
         return self.__spim_sampling
 
     @property
