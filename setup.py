@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="Lumiere Ultra Combo",
-    version="3.12.11",
+    version="3.12.12",
     author="Yves Auad",
     description="Lenses, EELS_Spec, Apertures,  Instrument",
     url="https://github.com/yvesauad/swift_lumiere",

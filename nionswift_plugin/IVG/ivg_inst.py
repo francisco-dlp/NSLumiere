@@ -209,18 +209,29 @@ class ivgInstrument(stem_controller.STEMController):
         self.__OrsayScanInstrument.stop_playing()
         self.det_spim_over.fire(det_data, spim_pixels, detector)
 
-    def start_spim(self, x_pix, y_pix):
+    def start_spim_push_button(self, x_pix, y_pix, type, trigger):
         if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
         if not self.__OrsayCamEELS: self.get_orsay_eels_instrument()
-        self.__OrsayCamEELS.stop_playing()
-        self.__OrsayCamEELS.camera._CameraDevice__acqspimon=True
-        self.__OrsayCamEELS.camera._CameraDevice__x_pix_spim=int(x_pix)
-        self.__OrsayCamEELS.camera._CameraDevice__y_pix_spim=int(y_pix)
-        if not self.__OrsayCamEELS.is_playing:
-            self.__OrsayCamEELS.start_playing()
+        if not self.__OrsayCamEIRE: self.get_orsay_eire_instrument()
+
+        if trigger==0: now_cam = self.__OrsayCamEELS
+        elif trigger==1: now_cam = self.__OrsayCamEIRE
+        elif trigger==2:
+            now_cam = self.__OrsayCamEELS
+            logging.info('***IVG***: Both measurement not yet implemented. Please check back later. Using EELS instead.')
+
+        now_cam.stop_playing()
+        now_cam.camera._CameraDevice__acqspimon=True
+        now_cam.camera._CameraDevice__x_pix_spim=int(x_pix)
+        now_cam.camera._CameraDevice__y_pix_spim=int(y_pix)
+        if not now_cam.is_playing:
+            now_cam.start_playing()
         else:
             logging.info('**IVG***: Please stop camera before starting spim.')
 
+    def stop_spim_push_button(self):
+        if not self.__OrsayCamEELS: self.get_orsay_eels_instrument()
+        self.__OrsayCamEELS.stop_playing()
 
 
     def sendMessageFactory(self):
