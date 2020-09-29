@@ -84,7 +84,7 @@ class Device:
         self.pixel_time = 0.5
         self.field_of_view = 4000
         self.orsayscan.SetProbeAt(0, 0)
-        self.__spim_pixels = 0
+        self.__spim_pixels = (0, 0)
         self.subscan_status = True
         self.__spim = False
 
@@ -153,6 +153,7 @@ class Device:
 
         if frame_parameters['subscan_pixel_size']:
             self.subscan_status = True
+            self.__instrument.is_subscan_f=[True, frame_parameters['subscan_pixel_size'][1]/self.p0, frame_parameters['subscan_pixel_size'][0]/self.p1]
             self.p0, self.p1 = frame_parameters['size']
             self.p2 = int(
                 frame_parameters['subscan_fractional_center'][1] * self.p0 - frame_parameters['subscan_pixel_size'][
@@ -170,6 +171,7 @@ class Device:
                 self.p3, self.p5 = self.p0, self.p1
                 self.Image_area = [self.p0, self.p1, 0, self.p3, 0, self.p5]
                 self.subscan_status = False
+                self.__instrument.is_subscan_f=[False, 1, 1]
 
     def save_frame_parameters(self) -> None:
         """Called when shutting down. Save frame parameters to persistent storage."""
@@ -240,9 +242,9 @@ class Device:
                     data_elements.append(data_element)
 
             else:
-                data_array = self.imagedata[(channel.channel_id) * (self.__spim_pixels):(channel.channel_id + 1) * (
-                    self.__spim_pixels),
-                             0: (self.__spim_pixels)].astype(numpy.float32)
+                data_array = self.imagedata[(channel.channel_id) * (self.__spim_pixels[1]):(channel.channel_id + 1) * (
+                    self.__spim_pixels[1]),
+                             0: (self.__spim_pixels[0])].astype(numpy.float32)
                 #if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
                 #    data_array = data_array[self.p4:self.p5, self.p2:self.p3]
                 data_element["data"] = data_array
@@ -363,7 +365,7 @@ class Device:
             self.spimscan.setScanClock(2)
             self.spimscan.startSpim(0, 1)
         else:
-            logging.info('***SCAN***: Spim is done. Handling it..')
+            logging.info('***SCAN***: Spim is done. Handling...')
             self.spimscan.stopImaging(True)
             self.__is_scanning = False
             self.__instrument.warn_Scan_instrument_spim_over(self.imagedata, self.__spim_pixels, [0, 1])
@@ -377,7 +379,7 @@ class Device:
     def set_spim_pixels(self, value):
         if value:
             self.__spim_pixels = value
-            self.spimscan.setImageArea(value, value, self.__scan_area[2], self.__scan_area[3], self.__scan_area[4],
+            self.spimscan.setImageArea(self.__spim_pixels[0], self.__spim_pixels[1], self.__scan_area[2], self.__scan_area[3], self.__scan_area[4],
                                    self.__scan_area[5])
 
     def __data_locker(self, gene, datatype, sx, sy, sz):

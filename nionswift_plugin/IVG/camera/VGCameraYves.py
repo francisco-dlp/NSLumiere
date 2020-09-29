@@ -321,7 +321,7 @@ class CameraDevice(camera_base.CameraDevice):
             self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
             self.camera.stopFocus()
             self.camera.startSpim(self.__x_pix_spim*self.__y_pix_spim, 1, self.current_camera_settings.exposure_ms / 1000., self.current_camera_settings.acquisition_mode == "2D-Chrono")
-            self.instrument.warn_Scan_instrument_spim(True, self.current_camera_settings.spectra_count) #This must finish before calling the rest
+            self.instrument.warn_Scan_instrument_spim(True, self.__x_pix_spim, self.__y_pix_spim) #This must finish before calling the rest
             self.camera.resumeSpim(4)
 
         else:

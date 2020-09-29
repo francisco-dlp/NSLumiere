@@ -73,6 +73,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__probe_position = None
         self.__live_probe_position = None
         self.__fov = None
+        self.__is_subscan = [False, 1, 1]
         self.__obj_stig = [0, 0]
         self.__gun_stig = [0, 0]
         self.__haadf_gain = 250
@@ -93,6 +94,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__spim_trigger = 0
         self.__spim_xpix = 50
         self.__spim_ypix = 50
+        self.__spim_sampling = (0, 0)
 
         ## spim properties attributes END
 
@@ -194,20 +196,22 @@ class ivgInstrument(stem_controller.STEMController):
 
 
     def fov_change(self, FOV):
-        self.__fov = float(FOV*1e6)
+        self.__fov = float(FOV*1e6) #in microns
+        self.spim_sampling_f = (self.__fov/self.__spim_xpix*1e3, self.__fov/self.__spim_ypix*1e3) if not self.__is_subscan[0] else (self.__fov*self.__is_subscan[1]/self.__spim_xpix*1e3, self.__fov*self.__is_subscan[2]/self.__spim_ypix*1e3)
         try:
             self.__StageInstrument.slider_range_f=self.__fov
         except:
             pass
 
 
-    def warn_Scan_instrument_spim(self, value, pixels = 0):
-        self.__OrsayScanInstrument.scan_device.set_spim_pixels = pixels
+    def warn_Scan_instrument_spim(self, value, x_pixels = 0, y_pixels = 0):
+        #only set scan pixels if you going to start spim.
+        if value: self.__OrsayScanInstrument.scan_device.set_spim_pixels = (x_pixels, y_pixels)
         self.__OrsayScanInstrument.scan_device.set_spim=value
 
     def warn_Scan_instrument_spim_over(self, det_data, spim_pixels, detector):
         self.__OrsayScanInstrument.stop_playing()
-        self.det_spim_over.fire(det_data, spim_pixels, detector)
+        #self.det_spim_over.fire(det_data, spim_pixels, detector)
 
     def start_spim_push_button(self, x_pix, y_pix, type, trigger):
         if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
@@ -512,6 +516,7 @@ class ivgInstrument(stem_controller.STEMController):
         try:
             isinstance(int(value), int)
             self.__spim_xpix = int(value)
+            self.spim_sampling_f = (self.__fov/self.__spim_xpix*1e3, self.__fov/self.__spim_ypix*1e3) if not self.__is_subscan[0] else (self.__fov*self.__is_subscan[1]/self.__spim_xpix*1e3, self.__fov*self.__is_subscan[2]/self.__spim_ypix*1e3)
         except ValueError:
             logging.info('***SPIM***: Please put an integer number')
         self.property_changed_event.fire('spim_xpix_f')
@@ -525,9 +530,29 @@ class ivgInstrument(stem_controller.STEMController):
         try:
             isinstance(int(value), int)
             self.__spim_ypix = int(value)
+            self.spim_sampling_f = (self.__fov/self.__spim_xpix*1e3, self.__fov/self.__spim_ypix*1e3) if not self.__is_subscan[0] else (self.__fov*self.__is_subscan[1]/self.__spim_xpix*1e3, self.__fov*self.__is_subscan[2]/self.__spim_ypix*1e3)
         except ValueError:
             logging.info('***SPIM***: Please put an integer number')
         self.property_changed_event.fire('spim_ypix_f')
+
+    @property
+    def is_subscan_f(self):
+        return str(self.__is_subscan[0])
+
+    @is_subscan_f.setter
+    def is_subscan_f(self, value):
+        self.__is_subscan = value
+        self.spim_sampling_f = (self.__fov/self.__spim_xpix*1e3, self.__fov/self.__spim_xpix*1e3) if not self.__is_subscan[0] else (self.__fov*self.__is_subscan[1]/self.__spim_xpix*1e3, self.__fov*self.__is_subscan[2]/self.__spim_xpix*1e3)
+        self.property_changed_event.fire('is_subscan_f')
+
+    @property
+    def spim_sampling_f(self):
+        return self.__spim_sampling
+
+    @spim_sampling_f.setter
+    def spim_sampling_f(self, value):
+        self.__spim_sampling = value
+        self.property_changed_event.fire('spim_sampling_f')
 
     ## spim_panel Properties END ##
 

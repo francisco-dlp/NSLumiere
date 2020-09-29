@@ -63,7 +63,9 @@ class ivgSpimView:
         
         self.type_label=ui.create_label(name='type_label', text='Type: ')
         self.type_value=ui.create_combo_box(name='type_value', items=['Normal', 'Random', 'User-Defined'], current_index='@binding(instrument.spim_type_f)')
-        self.type_column = ui.create_row(self.type_label, self.type_value, ui.create_stretch())
+        self.subscan_label = ui.create_label(name='subscan_label', text='From Subscan: ')
+        self.subscan_value = ui.create_label(name='subscan_value', text='@binding(instrument.is_subscan_f)')
+        self.type_column = ui.create_row(self.type_label, self.type_value, ui.create_spacing(12), self.subscan_label, self.subscan_value, ui.create_stretch())
 
         self.trigger_label=ui.create_label(name='trigger_label', text='Trigger: ')
         self.trigger_value=ui.create_combo_box(name='trigger_value', items=['EELS', 'CL', 'EELS+CL'], current_index='@binding(instrument.spim_trigger_f)')
@@ -76,7 +78,7 @@ class ivgSpimView:
         self.pixels_column = ui.create_row(self.x_pixels_label, self.x_pixels_value, ui.create_stretch(), self.y_pixels_label, self.y_pixels_value, ui.create_stretch())
 
         self.sampling_label = ui.create_label(name='sampling_label', text='Sampling (nm): ')
-        self.sampling_value = ui.create_label(name='sampling_value', text='41.57')
+        self.sampling_value = ui.create_label(name='sampling_value', text='@binding(instrument.spim_sampling_f)')
         self.sampling_row = ui.create_row(self.sampling_label, self.sampling_value, ui.create_stretch())
 
         self.bottom_blanker = ui.create_check_box(name='bottom_blanker_value', text='Bottom Blanker', checked='@binding(instrument.is_blanked)')
