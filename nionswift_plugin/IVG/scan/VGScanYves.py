@@ -352,6 +352,8 @@ class Device:
     def set_spim(self, value):
         self.__spim = value
 
+        #self.__is_scanning is false for spim. This allows us a better control of data flow. See first loop
+        #condition in read_partial.
         if self.__spim:
             if self.__is_scanning:
                 self.orsayscan.stopImaging(True)
@@ -360,15 +362,11 @@ class Device:
 
             self.spimscan.setScanClock(2)
             self.spimscan.startSpim(0, 1)
-            #self.__is_scanning is false for spim. This allows us a better control of data flow. See first loop
-            #condition in read_partial.
-
         else:
             logging.info('***SCAN***: Spim is done. Handling it..')
             self.spimscan.stopImaging(True)
             self.__is_scanning = False
-            self.__instrument.warn_instrument_spim_over(self.imagedata, self.__spim_pixels, [0, 1])
-            #self.__is_scanning = self.orsayscan.startImaging(0, 1)
+            self.__instrument.warn_Scan_instrument_spim_over(self.imagedata, self.__spim_pixels, [0, 1])
 
 
     @property

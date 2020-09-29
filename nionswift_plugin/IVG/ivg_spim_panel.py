@@ -105,7 +105,7 @@ class ivgSpimhandler:
         pass
 
     def start_spim(self, widget):
-        pass
+        self.instrument.start_spim(self.x_pixels_value.text, self.y_pixels_value.text)
 
 class ivgSpimView:
 

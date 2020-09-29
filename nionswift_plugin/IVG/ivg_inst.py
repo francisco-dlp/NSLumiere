@@ -105,6 +105,8 @@ class ivgInstrument(stem_controller.STEMController):
         self.__StageInstrument=None
         self.__optSpecInstrument=None
         self.__OrsayScanInstrument=None
+        self.__OrsayCamEELS=None
+        self.__OrsayCamEIRE=None
 
         self.__gun_sendmessage = gun.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__gun_gauge= gun.GunVacuum(self.__gun_sendmessage)
@@ -130,6 +132,12 @@ class ivgInstrument(stem_controller.STEMController):
 
     def get_orsay_scan_instrument(self):
         self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+
+    def get_orsay_eire_instrument(self):
+        self.__OrsayCamEIRE = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eire")
+
+    def get_orsay_eels_instrument(self):
+        self.__OrsayCamEELS = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eels")
 
     def stage_periodic(self):
         self.property_changed_event.fire('x_stage_f')
@@ -193,17 +201,25 @@ class ivgInstrument(stem_controller.STEMController):
             pass
 
 
-    def warn_instrument_spim(self, value, pixels = 0):
-        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
-        #self.__OrsayScanInstrument.start_playing()
+    def warn_Scan_instrument_spim(self, value, pixels = 0):
         self.__OrsayScanInstrument.scan_device.set_spim_pixels = pixels
         self.__OrsayScanInstrument.scan_device.set_spim=value
 
-    def warn_instrument_spim_over(self, det_data, spim_pixels, detector):
-        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+    def warn_Scan_instrument_spim_over(self, det_data, spim_pixels, detector):
         self.__OrsayScanInstrument.stop_playing()
         self.det_spim_over.fire(det_data, spim_pixels, detector)
 
+    def start_spim(self, x_pix, y_pix):
+        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+        if not self.__OrsayCamEELS: self.get_orsay_eels_instrument()
+        self.__OrsayCamEELS.stop_playing()
+        self.__OrsayCamEELS.camera._CameraDevice__acqspimon=True
+        self.__OrsayCamEELS.camera._CameraDevice__x_pix_spim=int(x_pix)
+        self.__OrsayCamEELS.camera._CameraDevice__y_pix_spim=int(y_pix)
+        if not self.__OrsayCamEELS.is_playing:
+            self.__OrsayCamEELS.start_playing()
+        else:
+            logging.info('**IVG***: Please stop camera before starting spim.')
 
 
 
