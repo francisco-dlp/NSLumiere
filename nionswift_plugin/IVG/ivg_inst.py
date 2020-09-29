@@ -74,6 +74,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__live_probe_position = None
         self.__fov = None
         self.__is_subscan = [False, 1, 1]
+        self.__spim_time = 0.
         self.__obj_stig = [0, 0]
         self.__gun_stig = [0, 0]
         self.__haadf_gain = 250
@@ -94,7 +95,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__spim_trigger = 0
         self.__spim_xpix = 50
         self.__spim_ypix = 50
-        self.__spim_sampling = (0, 0)
+        self.__spim_sampling = [0, 0]
 
         ## spim properties attributes END
 
@@ -197,7 +198,8 @@ class ivgInstrument(stem_controller.STEMController):
 
     def fov_change(self, FOV):
         self.__fov = float(FOV*1e6) #in microns
-        self.spim_sampling_f = (self.__fov/self.__spim_xpix*1e3, self.__fov/self.__spim_ypix*1e3) if not self.__is_subscan[0] else (self.__fov*self.__is_subscan[1]/self.__spim_xpix*1e3, self.__fov*self.__is_subscan[2]/self.__spim_ypix*1e3)
+        self.property_changed_event.fire('spim_sampling_f')
+        self.property_changed_event.fire('spim_time_f')
         try:
             self.__StageInstrument.slider_range_f=self.__fov
         except:
@@ -506,6 +508,7 @@ class ivgInstrument(stem_controller.STEMController):
     @spim_trigger_f.setter
     def spim_trigger_f(self, value):
         self.__spim_trigger = value
+        self.property_changed_event.fire('spim_time_f')
 
     @property
     def spim_xpix_f(self):
@@ -516,10 +519,11 @@ class ivgInstrument(stem_controller.STEMController):
         try:
             isinstance(int(value), int)
             self.__spim_xpix = int(value)
-            self.spim_sampling_f = (self.__fov/self.__spim_xpix*1e3, self.__fov/self.__spim_ypix*1e3) if not self.__is_subscan[0] else (self.__fov*self.__is_subscan[1]/self.__spim_xpix*1e3, self.__fov*self.__is_subscan[2]/self.__spim_ypix*1e3)
         except ValueError:
             logging.info('***SPIM***: Please put an integer number')
         self.property_changed_event.fire('spim_xpix_f')
+        self.property_changed_event.fire('spim_sampling_f')
+        self.property_changed_event.fire('spim_time_f')
 
     @property
     def spim_ypix_f(self):
@@ -530,10 +534,12 @@ class ivgInstrument(stem_controller.STEMController):
         try:
             isinstance(int(value), int)
             self.__spim_ypix = int(value)
-            self.spim_sampling_f = (self.__fov/self.__spim_xpix*1e3, self.__fov/self.__spim_ypix*1e3) if not self.__is_subscan[0] else (self.__fov*self.__is_subscan[1]/self.__spim_xpix*1e3, self.__fov*self.__is_subscan[2]/self.__spim_ypix*1e3)
+
         except ValueError:
             logging.info('***SPIM***: Please put an integer number')
         self.property_changed_event.fire('spim_ypix_f')
+        self.property_changed_event.fire('spim_sampling_f')
+        self.property_changed_event.fire('spim_time_f')
 
     @property
     def is_subscan_f(self):
@@ -542,17 +548,30 @@ class ivgInstrument(stem_controller.STEMController):
     @is_subscan_f.setter
     def is_subscan_f(self, value):
         self.__is_subscan = value
-        self.spim_sampling_f = (self.__fov/self.__spim_xpix*1e3, self.__fov/self.__spim_xpix*1e3) if not self.__is_subscan[0] else (self.__fov*self.__is_subscan[1]/self.__spim_xpix*1e3, self.__fov*self.__is_subscan[2]/self.__spim_xpix*1e3)
+
         self.property_changed_event.fire('is_subscan_f')
+        self.property_changed_event.fire('spim_sampling_f')
+        self.property_changed_event.fire('spim_time_f')
 
     @property
     def spim_sampling_f(self):
+        self.__spim_sampling = (self.__fov/self.__spim_xpix*1e3, self.__fov/self.__spim_ypix*1e3) if not self.__is_subscan[0] else (self.__fov*self.__is_subscan[1]/self.__spim_xpix*1e3, self.__fov*self.__is_subscan[2]/self.__spim_ypix*1e3)
         return self.__spim_sampling
 
-    @spim_sampling_f.setter
-    def spim_sampling_f(self, value):
-        self.__spim_sampling = value
-        self.property_changed_event.fire('spim_sampling_f')
+    @property
+    def spim_time_f(self):
+        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+        if not self.__OrsayCamEELS: self.get_orsay_eels_instrument()
+        if not self.__OrsayCamEIRE: self.get_orsay_eire_instrument()
+
+        if self.__spim_trigger==0: now_cam = self.__OrsayCamEELS
+        elif self.__spim_trigger==1: now_cam = self.__OrsayCamEIRE
+        elif self.__spim_trigger==2:
+            now_cam = self.__OrsayCamEELS
+            logging.info('***IVG***: Both measurement not yet implemented. Please check back later. Using EELS instead.')
+
+        self.__spim_time = format(((now_cam.camera.current_camera_settings.exposure_ms/1000. + now_cam.camera.readoutTime) * self.__spim_xpix * self.__spim_ypix / 60), '.2f')
+        return self.__spim_time
 
     ## spim_panel Properties END ##
 

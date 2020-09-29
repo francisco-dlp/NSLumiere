@@ -81,13 +81,17 @@ class ivgSpimView:
         self.sampling_value = ui.create_label(name='sampling_value', text='@binding(instrument.spim_sampling_f)')
         self.sampling_row = ui.create_row(self.sampling_label, self.sampling_value, ui.create_stretch())
 
+        self.time_label = ui.create_label(name='time_label', text='Stimated Time (min): ')
+        self.time_value = ui.create_label(name='time_value', text='@binding(instrument.spim_time_f)')
+        self.time_row = ui.create_row(self.time_label, self.time_value, ui.create_stretch())
+
         self.bottom_blanker = ui.create_check_box(name='bottom_blanker_value', text='Bottom Blanker', checked='@binding(instrument.is_blanked)')
 
         self.cancel_button = ui.create_push_button(name='cancel_button', text='Cancel', on_clicked='cancel_spim')
         self.start_button = ui.create_push_button(name='start_button', text='Start', on_clicked='start_spim')
         self.button_row = ui.create_row(ui.create_stretch(), self.cancel_button, self.start_button, spacing=5)
 
-        self.ui_view=ui.create_column(self.type_column, self.trigger_column, self.pixels_column, self.sampling_row, self.bottom_blanker, self.button_row, spacing=5)
+        self.ui_view=ui.create_column(self.type_column, self.trigger_column, self.pixels_column, self.sampling_row, self.time_row, self.bottom_blanker, self.button_row, spacing=5)
         
 def create_spectro_panel(document_controller, panel_id, properties):
         instrument = properties["instrument"]
