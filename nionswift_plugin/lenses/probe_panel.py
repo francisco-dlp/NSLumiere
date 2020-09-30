@@ -62,14 +62,17 @@ class gainhandler:
         if widget == self.obj_slider:
             self.obj_slider.maximum = self.obj_slider.value + 25000
             self.obj_slider.minimum = max(self.obj_slider.value - 25000, 0)
+            self.full_range_obj.text = '(Fine)'
 
         if widget == self.c1_slider:
             self.c1_slider.maximum = self.c1_slider.value + 5000
             self.c1_slider.minimum = max(self.c1_slider.value - 5000, 0)
+            self.full_range_c1.text = '(Fine)'
 
         if widget == self.c2_slider:
             self.c2_slider.maximum = self.c2_slider.value + 5000
             self.c2_slider.minimum = max(self.c2_slider.value - 5000, 0)
+            self.full_range_c2.text = '(Fine)'
 
     def line_update(self, widget, text):
         if widget == self.obj_value:
@@ -77,16 +80,19 @@ class gainhandler:
                 value = int(float(text) * 1000000)
                 self.obj_slider.maximum = value + 1000000
                 self.obj_slider.minimum = max(value - 1000000, 0)
+                self.full_range_obj.text = '(Coarse)'
         if widget == self.c1_value:
             if text:
                 value = int(float(text) * 1000000)
                 self.c1_slider.maximum = value + 500000
                 self.c1_slider.minimum = max(value - 500000, 0)
+                self.full_range_c1.text = '(Coarse)'
         if widget == self.c2_value:
             if text:
                 value = int(float(text) * 1000000)
                 self.c2_slider.maximum = value + 500000
                 self.c2_slider.minimum = max(value - 500000, 0)
+                self.full_range_c2.text = '(Coarse)'
 
 
 class gainView:
@@ -94,7 +100,10 @@ class gainView:
     def __init__(self, instrument: probe_inst.probeDevice):
         ui = Declarative.DeclarativeUI()
 
-        # fine adjustment #
+        # fine adjustment label #
+        self.full_range_obj = ui.create_label(name='full_range_obj', text='(Coarse)')
+        self.full_range_c1 = ui.create_label(name='full_range_c1', text='(Coarse)')
+        self.full_range_c2 = ui.create_label(name='full_range_c2', text='(Coarse)')
 
         ## wobbler ##
         self.wobbler_value = ui.create_line_edit(name='wobbler_value', width=150,
@@ -117,7 +126,7 @@ class gainView:
         self.obj_cb = ui.create_check_box(text='Obj:', name='obj_label', checked='@binding(instrument.obj_global_f)')
         self.obj_value = ui.create_line_edit(name='obj_value', text='@binding(instrument.obj_edit_f)',
                                              on_text_edited='line_update')
-        self.obj_row = ui.create_row(self.obj_cb, self.obj_value)
+        self.obj_row = ui.create_row(self.obj_cb, self.obj_value, self.full_range_obj, ui.create_stretch(), spacing=5)
 
         self.obj_slider = ui.create_slider(name='obj_slider', value='@binding(instrument.obj_slider_f)',
                                            minimum=1000000, maximum=9000000, on_slider_released='adj_values')
@@ -153,7 +162,7 @@ class gainView:
         self.c1_cb = ui.create_check_box(text='C1:', name='c1_label', checked='@binding(instrument.c1_global_f)')
         self.c1_value = ui.create_line_edit(name='c1_value', text='@binding(instrument.c1_edit_f)',
                                             on_text_edited='line_update')
-        self.c1_row = ui.create_row(self.c1_cb, self.c1_value)
+        self.c1_row = ui.create_row(self.c1_cb, self.c1_value, self.full_range_c1, ui.create_stretch(), spacing=5)
 
         self.c1_slider = ui.create_slider(name='c1_slider', value='@binding(instrument.c1_slider_f)', maximum=1000000,
                                           on_slider_released='adj_values')
@@ -165,7 +174,7 @@ class gainView:
         self.c2_cb = ui.create_check_box(text='C2:', name='c2_label', checked='@binding(instrument.c2_global_f)')
         self.c2_value = ui.create_line_edit(name='c2_value', text='@binding(instrument.c2_edit_f)',
                                             on_text_edited='line_update')
-        self.c2_row = ui.create_row(self.c2_cb, self.c2_value)
+        self.c2_row = ui.create_row(self.c2_cb, self.c2_value, self.full_range_c2, ui.create_stretch(), spacing=5)
 
         self.c2_slider = ui.create_slider(name='c2_slider', value='@binding(instrument.c2_slider_f)', maximum=1000000,
                                           on_slider_released='adj_values')
