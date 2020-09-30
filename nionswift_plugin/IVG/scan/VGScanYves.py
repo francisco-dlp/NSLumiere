@@ -266,12 +266,13 @@ class Device:
         # return data_elements, complete, bad_frame, sub_area, frame_number, pixels_to_skip
         return data_elements, True, False, ((0, 0), data_array.shape), None, 0
 
+    #This one is called in scan_base
     def prepare_synchronized_scan(self, scan_frame_parameters: scan_base.ScanFrameParameters, *, camera_exposure_ms, **kwargs) -> None:
         #scan_frame_parameters["pixel_time_us"] = min(5120000, int(1000 * camera_exposure_ms * 0.75))
         #scan_frame_parameters["external_clock_wait_time_ms"] = 20000 # int(camera_frame_parameters["exposure_ms"] * 1.5)
         #scan_frame_parameters["external_clock_mode"] = 1
-        print(camera_exposure_ms)
-        print(scan_frame_parameters)
+        pass
+
 
     def set_channel_enabled(self, channel_index: int, enabled: bool) -> bool:
         assert 0 <= channel_index < self.channel_count
