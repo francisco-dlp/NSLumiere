@@ -65,8 +65,8 @@ class ivgInstrument(stem_controller.STEMController):
         self.append_data=Event.Event()
         self.stage_event=Event.Event()
 
-        self.det_spim_over = Event.Event()
         self.cam_spim_over = Event.Event()
+        self.spim_over = Event.Event()
 
         self.__blanked = False
         self.__scan_context = stem_controller.ScanContext()
@@ -195,7 +195,6 @@ class ivgInstrument(stem_controller.STEMController):
             except:
                 pass
 
-
     def fov_change(self, FOV):
         self.__fov = float(FOV*1e6) #in microns
         self.property_changed_event.fire('spim_sampling_f')
@@ -205,16 +204,18 @@ class ivgInstrument(stem_controller.STEMController):
         except:
             pass
 
-
     def warn_Scan_instrument_spim(self, value, x_pixels = 0, y_pixels = 0):
         #only set scan pixels if you going to start spim.
         if value: self.__OrsayScanInstrument.scan_device.set_spim_pixels = (x_pixels, y_pixels)
+        if value:
+            self.__OrsayScanInstrument.start_playing()
+        else:
+            self.__OrsayScanInstrument.stop_playing()
         self.__OrsayScanInstrument.scan_device.set_spim=value
-        self.__OrsayScanInstrument.start_playing()
 
     def warn_Scan_instrument_spim_over(self, det_data, spim_pixels, detector):
-        self.__OrsayScanInstrument.stop_playing()
-        #self.det_spim_over.fire(det_data, spim_pixels, detector)
+        self.spim_over.fire(det_data, spim_pixels, detector)
+        #threading.Timer(7, self.spim_over.fire, (det_data, spim_pixels, detector),).start()
 
     def start_spim_push_button(self, x_pix, y_pix):
         if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()

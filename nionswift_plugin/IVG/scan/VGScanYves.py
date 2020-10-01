@@ -364,12 +364,12 @@ class Device:
 
         #self.__is_scanning is false for spim. This allows us a better control of data flow. See first loop
         #condition in read_partial.
+
         if self.__spim:
             if self.__is_scanning:
                 self.orsayscan.stopImaging(True)
                 self.__is_scanning = False
                 logging.info('***SCAN***: Imaging was running. Turning it off...')
-
 
             if self.__instrument.spim_trigger_f==0:
                 self.spimscan.setScanClock(2)
@@ -377,13 +377,13 @@ class Device:
             elif self.__instrument.spim_trigger_f==1:
                 self.spimscan.setScanClock(4)
                 logging.info(f'***SCAN***: Cathodoluminescence Spim')
-
             self.spimscan.startSpim(0, 1)
+
         else:
             logging.info('***SCAN***: Spim is done. Handling...')
             self.spimscan.stopImaging(True)
             self.__is_scanning = False
-            self.__instrument.warn_Scan_instrument_spim_over(self.imagedata, self.__spim_pixels, [0, 1])
+            self.__instrument.warn_Scan_instrument_spim_over(self.imagedata, self.__spim_pixels, [0])
 
 
     @property

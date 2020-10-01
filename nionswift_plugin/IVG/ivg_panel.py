@@ -95,9 +95,6 @@ class ivghandler:
         self.obj_array = numpy.zeros(MAX_PTS) #objective lens temperature
         self.stage_array = numpy.zeros((STAGE_MATRIX_SIZE, STAGE_MATRIX_SIZE)) #stage tracker
 
-        self.det_spim_over_listener = self.instrument.det_spim_over.listen(self.create_det_spim)
-
-
         self.ll_di=None
         self.gun_di=None
         self.obj_di=None
@@ -158,15 +155,6 @@ class ivghandler:
 
     def clear_stage(self, widget):
         self.stage_array = numpy.zeros((STAGE_MATRIX_SIZE, STAGE_MATRIX_SIZE))
-
-    def create_det_spim(self, imagedata, spim_pixels, detector):
-        try:
-            for det in detector:
-                data_item = DataItem.DataItem()
-                data_item.set_data(imagedata[det*spim_pixels:(det + 1)*spim_pixels, 0: spim_pixels].astype(numpy.float32))
-                self.document_controller.document_model.append_data_item(data_item)
-        except:
-            pass
 
 class ivgView:
 

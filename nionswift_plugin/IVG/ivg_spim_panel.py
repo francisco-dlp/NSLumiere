@@ -9,6 +9,9 @@ from nion.ui import Declarative
 from nion.ui import UserInterface
 from nion.utils import Registry
 from nion.swift.model import HardwareSource
+from nion.swift.model import DataItem
+import numpy
+import time
 
 from . import ivg_inst
 
@@ -32,13 +35,17 @@ class ivgSpimhandler:
         self.enabled = False
         self.property_changed_event_listener=self.instrument.property_changed_event.listen(self.prepare_widget_enable)
         self.busy_event_listener=self.instrument.busy_event.listen(self.prepare_widget_disable)
+        self.spim_over_listener = self.instrument.spim_over.listen(self.over_spim)
 
-    async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
+    async def do_enable(self, enabled=True, not_affected_widget_name_list=None):
         for var in self.__dict__:
             if var not in not_affected_widget_name_list:
-                if isinstance(getattr(self,var),UserInterface.Widget):
-                    widg=getattr(self,var)
+                if isinstance(getattr(self, var), UserInterface.Widget):
+                    widg=getattr(self, var)
                     setattr(widg, "enabled", enabled)
+
+    async def data_item_show(self, DI):
+        self.document_controller.document_model.append_data_item(DI)
 
     def init_handler(self):
         self.__cams = []
@@ -62,6 +69,13 @@ class ivgSpimhandler:
         self.controller_value.items = self.__controllers
 
         self.start_button.enabled=False
+        self.cancel_button.enabled=False
+
+        if self.controller_value.current_item == 'usim_stem_controller':
+            self.start_button.enabled=False
+        else:
+            self.start_button.enabled=True
+
 
     def changed_controller(self, widget, current_index):
         if self.controller_value.current_item == 'usim_stem_controller':
@@ -71,18 +85,28 @@ class ivgSpimhandler:
         self.trigger_value.items = self.__cams[current_index]
 
     def prepare_widget_enable(self,  value):
-        self.event_loop.create_task(self.do_enable(True, ['start_button']))
+        self.event_loop.create_task(self.do_enable(True, ['start_button', 'cancel_button']))
 
     def prepare_widget_disable(self, value):
         self.event_loop.create_task(self.do_enable(False, []))
 
+    def over_spim(self, imagedata, spim_pixels, detector):
+        self.event_loop.create_task(self.do_enable(False, []))
+        self.event_loop.create_task(self.do_enable(True, ['cancel_button']))
+        for det in detector:
+            data_item = DataItem.DataItem()
+            data_item.set_data(imagedata[det*spim_pixels[1]:(det + 1)*spim_pixels[1], 0: spim_pixels[0]].astype(numpy.float32))
+            self.event_loop.create_task(self.data_item_show(data_item))
+
     def cancel_spim(self, widget):
         self.instrument.stop_spim_push_button()
         self.start_button.enabled=True
+        self.cancel_button.enabled=False
 
     def start_spim(self, widget):
         self.instrument.start_spim_push_button(self.x_pixels_value.text, self.y_pixels_value.text)
         self.start_button.enabled=False
+        self.cancel_button.enabled=True
 
 class ivgSpimView:
 
