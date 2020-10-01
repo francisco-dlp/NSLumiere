@@ -8,6 +8,8 @@ from nion.swift import Workspace
 from nion.ui import Declarative
 from nion.ui import UserInterface
 from nion.utils import Registry
+from nion.data import Calibration
+from nion.data import DataAndMetadata
 from nion.swift.model import HardwareSource
 from nion.swift.model import DataItem
 import numpy
@@ -90,12 +92,20 @@ class ivgSpimhandler:
     def prepare_widget_disable(self, value):
         self.event_loop.create_task(self.do_enable(False, []))
 
-    def over_spim(self, imagedata, spim_pixels, detector):
+    def over_spim(self, imagedata, spim_pixels, detector, sampling):
         self.event_loop.create_task(self.do_enable(False, []))
         self.event_loop.create_task(self.do_enable(True, ['cancel_button']))
         for det in detector:
+            calib = Calibration.Calibration()
+            dim_calib = [Calibration.Calibration(), Calibration.Calibration()]
+            dim_calib[0].scale = sampling[0]
+            dim_calib[1].scale = sampling[1]
+            dim_calib[0].units = 'nm'
+            dim_calib[1].units = 'nm'
+            xdata = DataAndMetadata.new_data_and_metadata(imagedata[det*spim_pixels[1]:(det + 1)*spim_pixels[1], 0: spim_pixels[0]].astype(numpy.float32), calib, dim_calib)
             data_item = DataItem.DataItem()
-            data_item.set_data(imagedata[det*spim_pixels[1]:(det + 1)*spim_pixels[1], 0: spim_pixels[0]].astype(numpy.float32))
+            data_item.set_xdata(xdata)
+            data_item.define_property("title", 'Spim Image')
             self.event_loop.create_task(self.data_item_show(data_item))
 
     def cancel_spim(self, widget):

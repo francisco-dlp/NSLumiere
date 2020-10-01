@@ -18,3 +18,10 @@ for hards in HardwareSource.HardwareSourceManager().hardware_sources:  # finding
 
 print(cams)
 print(scans)
+
+sc = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+fp = sc.get_current_frame_parameters()
+ft = sc.calculate_frame_time(fp)
+
+print(fp)
+print(ft)

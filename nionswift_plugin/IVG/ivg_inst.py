@@ -214,8 +214,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__OrsayScanInstrument.scan_device.set_spim=value
 
     def warn_Scan_instrument_spim_over(self, det_data, spim_pixels, detector):
-        self.spim_over.fire(det_data, spim_pixels, detector)
-        #threading.Timer(7, self.spim_over.fire, (det_data, spim_pixels, detector),).start()
+        self.spim_over.fire(det_data, spim_pixels, detector, self.__spim_sampling)
 
     def start_spim_push_button(self, x_pix, y_pix):
         if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
