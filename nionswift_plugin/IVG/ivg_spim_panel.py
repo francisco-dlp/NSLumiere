@@ -41,48 +41,48 @@ class ivgSpimhandler:
                     setattr(widg, "enabled", enabled)
 
     def init_handler(self):
-        cams = dict()
-        scans = dict()
-        controllers = list()
+        self.__cams = []
+        self.__scans = []
+        self.__controllers = dict()
 
         my_insts = Registry.get_components_by_type("stem_controller")
         for counter, my_inst in enumerate(list(my_insts)):
-            controllers.append(my_inst.instrument_id)
+            self.__controllers[my_inst.instrument_id] = counter
+            self.__cams.append([])
+            self.__scans.append([])
 
         for hards in HardwareSource.HardwareSourceManager().hardware_sources:  # finding eels camera. If you don't
             if hasattr(hards, 'hardware_source_id'):
                 if hasattr(hards, '_CameraHardwareSource__instrument_controller_id'):
-                    print(dir(hards))
-                    cams[hards.hardware_source_id]=hards._CameraHardwareSource__instrument_controller_id
+                    self.__cams[self.__controllers[hards._CameraHardwareSource__instrument_controller_id]].append(hards._HardwareSource__display_name)
                 if hasattr(hards, '_ScanHardwareSource__stem_controller'):
-                    scans[hards.hardware_source_id]=hards._ScanHardwareSource__stem_controller.instrument_id
+                    self.__scans[self.__controllers[hards._ScanHardwareSource__stem_controller.instrument_id]].append(hards.hardware_source_id)
 
 
-        self.controller_value.items = controllers
-        print(cams)
+        self.controller_value.items = self.__controllers
 
-        if self.controller_value.current_item == 'usim_stem_controller':
-            self.event_loop.create_task(self.do_enable(False, ['controller_label', 'controller_value']))
+        self.start_button.enabled=False
 
     def changed_controller(self, widget, current_index):
         if self.controller_value.current_item == 'usim_stem_controller':
-            self.event_loop.create_task(self.do_enable(False, ['controller_label', 'controller_value']))
+            self.start_button.enabled=False
         else:
-            self.event_loop.create_task(self.do_enable(True, []))
-
-        print(self.controller_value.current_item)
+            self.start_button.enabled=True
+        self.trigger_value.items = self.__cams[current_index]
 
     def prepare_widget_enable(self,  value):
-        self.event_loop.create_task(self.do_enable(True, []))
+        self.event_loop.create_task(self.do_enable(True, ['start_button']))
 
     def prepare_widget_disable(self, value):
         self.event_loop.create_task(self.do_enable(False, []))
 
     def cancel_spim(self, widget):
         self.instrument.stop_spim_push_button()
+        self.start_button.enabled=True
 
     def start_spim(self, widget):
         self.instrument.start_spim_push_button(self.x_pixels_value.text, self.y_pixels_value.text)
+        self.start_button.enabled=False
 
 class ivgSpimView:
 
@@ -101,7 +101,7 @@ class ivgSpimView:
         self.type_column = ui.create_row(self.type_label, self.type_value, ui.create_spacing(12), self.subscan_label, self.subscan_value, ui.create_stretch())
 
         self.trigger_label=ui.create_label(name='trigger_label', text='Trigger: ')
-        self.trigger_value=ui.create_combo_box(name='trigger_value', items=['EELS', 'CL', 'EELS+CL'], current_index='@binding(instrument.spim_trigger_f)')
+        self.trigger_value=ui.create_combo_box(name='trigger_value', items=['EELS', 'EIRE', 'EELS+EIRE'], current_index='@binding(instrument.spim_trigger_f)')
         self.trigger_column = ui.create_row(self.trigger_label, self.trigger_value, ui.create_stretch())
 
         self.x_pixels_label = ui.create_label(name='x_pixels_label', text='x Pixels: ')
@@ -114,7 +114,7 @@ class ivgSpimView:
         self.sampling_value = ui.create_label(name='sampling_value', text='@binding(instrument.spim_sampling_f)')
         self.sampling_row = ui.create_row(self.sampling_label, self.sampling_value, ui.create_stretch())
 
-        self.time_label = ui.create_label(name='time_label', text='Stimated Time (min): ')
+        self.time_label = ui.create_label(name='time_label', text='Estimated Time (min): ')
         self.time_value = ui.create_label(name='time_value', text='@binding(instrument.spim_time_f)')
         self.time_row = ui.create_row(self.time_label, self.time_value, ui.create_stretch())
 
