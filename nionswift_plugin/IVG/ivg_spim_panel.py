@@ -2,16 +2,13 @@
 import gettext
 import os
 import json
-import numpy
 
 from nion.swift import Panel
 from nion.swift import Workspace
-from nion.data import Calibration
-from nion.data import DataAndMetadata
 from nion.ui import Declarative
 from nion.ui import UserInterface
-from nion.swift.model import DataItem
-from nion.swift.model import Utility
+from nion.utils import Registry
+from nion.swift.model import HardwareSource
 
 from . import ivg_inst
 
@@ -43,10 +40,42 @@ class ivgSpimhandler:
                     widg=getattr(self,var)
                     setattr(widg, "enabled", enabled)
 
-    def prepare_widget_enable(self, value):
+    def init_handler(self):
+        cams = dict()
+        scans = dict()
+        controllers = list()
+
+        my_insts = Registry.get_components_by_type("stem_controller")
+        for counter, my_inst in enumerate(list(my_insts)):
+            controllers.append(my_inst.instrument_id)
+
+        for hards in HardwareSource.HardwareSourceManager().hardware_sources:  # finding eels camera. If you don't
+            if hasattr(hards, 'hardware_source_id'):
+                if hasattr(hards, '_CameraHardwareSource__instrument_controller_id'):
+                    print(dir(hards))
+                    cams[hards.hardware_source_id]=hards._CameraHardwareSource__instrument_controller_id
+                if hasattr(hards, '_ScanHardwareSource__stem_controller'):
+                    scans[hards.hardware_source_id]=hards._ScanHardwareSource__stem_controller.instrument_id
+
+
+        self.controller_value.items = controllers
+        print(cams)
+
+        if self.controller_value.current_item == 'usim_stem_controller':
+            self.event_loop.create_task(self.do_enable(False, ['controller_label', 'controller_value']))
+
+    def changed_controller(self, widget, current_index):
+        if self.controller_value.current_item == 'usim_stem_controller':
+            self.event_loop.create_task(self.do_enable(False, ['controller_label', 'controller_value']))
+        else:
+            self.event_loop.create_task(self.do_enable(True, []))
+
+        print(self.controller_value.current_item)
+
+    def prepare_widget_enable(self,  value):
         self.event_loop.create_task(self.do_enable(True, []))
 
-    def prepare_widget_disable(self,value):
+    def prepare_widget_disable(self, value):
         self.event_loop.create_task(self.do_enable(False, []))
 
     def cancel_spim(self, widget):
@@ -60,7 +89,11 @@ class ivgSpimView:
 
     def __init__(self, instrument:ivg_inst.ivgInstrument):
         ui = Declarative.DeclarativeUI()
-        
+
+        self.controller_label = ui.create_label(name='controller_label', text='Controller: ')
+        self.controller_value = ui.create_combo_box(name='controller_value', items=['Controllers'], on_current_index_changed='changed_controller')
+        self.controller_row = ui.create_row(self.controller_label, self.controller_value, ui.create_stretch(), spacing=12)
+
         self.type_label=ui.create_label(name='type_label', text='Type: ')
         self.type_value=ui.create_combo_box(name='type_value', items=['Normal', 'Random', 'User-Defined'], current_index='@binding(instrument.spim_type_f)')
         self.subscan_label = ui.create_label(name='subscan_label', text='From Subscan: ')
@@ -91,7 +124,7 @@ class ivgSpimView:
         self.start_button = ui.create_push_button(name='start_button', text='Start', on_clicked='start_spim')
         self.button_row = ui.create_row(ui.create_stretch(), self.cancel_button, self.start_button, spacing=5)
 
-        self.ui_view=ui.create_column(self.type_column, self.trigger_column, self.pixels_column, self.sampling_row, self.time_row, self.bottom_blanker, self.button_row, spacing=5)
+        self.ui_view=ui.create_column(self.controller_row, self.type_column, self.trigger_column, self.pixels_column, self.sampling_row, self.time_row, self.bottom_blanker, self.button_row, spacing=5)
         
 def create_spectro_panel(document_controller, panel_id, properties):
         instrument = properties["instrument"]

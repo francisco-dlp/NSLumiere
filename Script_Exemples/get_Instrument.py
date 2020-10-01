@@ -2,8 +2,9 @@ from nion.utils import Registry
 from nion.swift.model import HardwareSource
 
 my_insts = Registry.get_components_by_type("stem_controller")
-for my_inst in list(my_insts):
+for counter, my_inst in enumerate(list(my_insts)):
     print(my_inst.instrument_id)
+    print(counter)
 
 cams = dict()
 scans = dict()
