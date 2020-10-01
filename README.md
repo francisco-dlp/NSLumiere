@@ -24,7 +24,9 @@ In case of persistence of errors, check if all libraries were properly installed
 
 ## Known Issues
 
-Both Thread.Timer displays error messages in the attempt of closing nionswift or changing library. Altough annoying, this is not supossed to affect any functionality of the microscope.
+a) Both Thread.Timer displays error messages in the attempt of closing nionswift or changing library. Altough annoying, this is not supossed to affect any functionality of the microscope.
+
+b) Stepper.dll must be in the same path of the executor file for the stage. There is a init message ***VG STAGE*** showing the correct path of the current executable. Stepper.dll file is inside stage module and produces no effect in stage folder. Stepper.dll is used together with ctypes to use native library of the VG Stepper Motor.
 
 
 # Found a bug? Report to us!

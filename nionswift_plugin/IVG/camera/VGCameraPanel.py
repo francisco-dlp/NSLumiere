@@ -5,7 +5,6 @@ from nion.utils import Model
 from nion.utils import Registry
 
 from nionswift_plugin.IVG.camera import VGCameraYves
-from nionswift_plugin.IVG.scan import VGScanYves
 
 _ = gettext.gettext
 

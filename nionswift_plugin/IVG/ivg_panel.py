@@ -95,7 +95,6 @@ class ivghandler:
         self.obj_array = numpy.zeros(MAX_PTS) #objective lens temperature
         self.stage_array = numpy.zeros((STAGE_MATRIX_SIZE, STAGE_MATRIX_SIZE)) #stage tracker
 
-
         self.ll_di=None
         self.gun_di=None
         self.obj_di=None

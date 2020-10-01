@@ -65,16 +65,20 @@ class ivgInstrument(stem_controller.STEMController):
         self.append_data=Event.Event()
         self.stage_event=Event.Event()
 
+        self.cam_spim_over = Event.Event()
+        self.spim_over = Event.Event()
+
         self.__blanked = False
         self.__scan_context = stem_controller.ScanContext()
         self.__probe_position = None
         self.__live_probe_position = None
         self.__fov = None
+        self.__is_subscan = [False, 1, 1]
+        self.__spim_time = 0.
         self.__obj_stig = [0, 0]
         self.__gun_stig = [0, 0]
         self.__haadf_gain = 250
         self.__bf_gain = 250
-
 
         self.__EHT=EHT_INITIAL
         self.__obj_res_ref = OBJECTIVE_RESISTANCE
@@ -85,6 +89,16 @@ class ivgInstrument(stem_controller.STEMController):
 
         self.__loop_index=0
 
+        ## spim properties attributes START
+
+        self.__spim_type = 0
+        self.__spim_trigger = 0
+        self.__spim_xpix = 64
+        self.__spim_ypix = 64
+        self.__spim_sampling = [0, 0]
+
+        ## spim properties attributes END
+
         if SLOW_PERIODIC: self.periodic()
         if FAST_PERIODIC: self.stage_periodic()
 
@@ -94,6 +108,8 @@ class ivgInstrument(stem_controller.STEMController):
         self.__StageInstrument=None
         self.__optSpecInstrument=None
         self.__OrsayScanInstrument=None
+        self.__OrsayCamEELS=None
+        self.__OrsayCamEIRE=None
 
         self.__gun_sendmessage = gun.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__gun_gauge= gun.GunVacuum(self.__gun_sendmessage)
@@ -119,6 +135,12 @@ class ivgInstrument(stem_controller.STEMController):
 
     def get_orsay_scan_instrument(self):
         self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+
+    def get_orsay_eire_instrument(self):
+        self.__OrsayCamEIRE = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eire")
+
+    def get_orsay_eels_instrument(self):
+        self.__OrsayCamEELS = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eels")
 
     def stage_periodic(self):
         self.property_changed_event.fire('x_stage_f')
@@ -146,7 +168,7 @@ class ivgInstrument(stem_controller.STEMController):
             self.append_data.fire([self.__LL_vac, self.__gun_vac, self.__obj_temp], self.__loop_index)
             self.__loop_index+=1
             if self.__loop_index==MAX_PTS: self.__loop_index=0
-            if self.__obj_temp>OBJECTIVE_MAX_TEMPERATURE and self.__obj_cur>4.0: self.shutdown_objective()
+            if self.__obj_temp>OBJECTIVE_MAX_TEMPERATURE and self.__obj_cur>6.0: self.shutdown_objective()
         except:
             pass
         self.__thread=threading.Timer(TIME_SLOW_PERIODIC, self.periodic, args=(),)
@@ -173,28 +195,55 @@ class ivgInstrument(stem_controller.STEMController):
             except:
                 pass
 
-
     def fov_change(self, FOV):
-        self.__fov = float(FOV*1e6)
+        self.__fov = float(FOV*1e6) #in microns
+        self.property_changed_event.fire('spim_sampling_f')
+        self.property_changed_event.fire('spim_time_f')
         try:
             self.__StageInstrument.slider_range_f=self.__fov
         except:
             pass
 
-    def warn_instrument_spim(self, value):
-        #Lets warn instrument and make instrument stop any conventional HAADF/BF order he is currently doing. I will
-        #try to do spim basically creating a data_item instead of using my channels? Not sure the best approach. I
-        #would love to let my ScanYves as clean as possible
-        logging.info('***IVG***: SPIM starting. Aborting (if running) HAADF/BF...')
-        #try:
-        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
-        self.__OrsayScanInstrument.scan_device.cancel()
+    def warn_Scan_instrument_spim(self, value, x_pixels = 0, y_pixels = 0):
+        #only set scan pixels if you going to start spim.
+        if value: self.__OrsayScanInstrument.scan_device.set_spim_pixels = (x_pixels, y_pixels)
+        if value:
+            self.__OrsayScanInstrument.start_playing()
+        else:
+            self.__OrsayScanInstrument.stop_playing()
         self.__OrsayScanInstrument.scan_device.set_spim=value
-        #except:
-        #    pass
 
+    def warn_Scan_instrument_spim_over(self, det_data, spim_pixels, detector):
+        self.spim_over.fire(det_data, spim_pixels, detector, self.__spim_sampling)
 
+    def start_spim_push_button(self, x_pix, y_pix):
+        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+        if not self.__OrsayCamEELS: self.get_orsay_eels_instrument()
+        if not self.__OrsayCamEIRE: self.get_orsay_eire_instrument()
 
+        if self.__spim_trigger==0: now_cam = [self.__OrsayCamEELS]
+        elif self.__spim_trigger==1: now_cam = [self.__OrsayCamEIRE]
+        elif self.__spim_trigger==2:
+            now_cam = [self.__OrsayCamEELS, self.__OrsayCamEIRE]
+            logging.info('***IVG***: Both measurement not yet implemented. Please check back later. Using EELS instead.')
+
+        for cam in now_cam:
+            cam.stop_playing()
+            cam.camera._CameraDevice__acqspimon=True
+            cam.camera._CameraDevice__x_pix_spim=int(x_pix)
+            cam.camera._CameraDevice__y_pix_spim=int(y_pix)
+            if not cam.is_playing:
+                cam.start_playing()
+            else:
+                logging.info('**IVG***: Please stop camera before starting spim.')
+
+    def stop_spim_push_button(self):
+        if self.__spim_trigger==0: now_cam = [self.__OrsayCamEELS]
+        elif self.__spim_trigger==1: now_cam = [self.__OrsayCamEIRE]
+        elif self.__spim_trigger==2:
+            now_cam = [self.__OrsayCamEELS, self.__OrsayCamEIRE]
+        for cam in now_cam:
+            cam.stop_playing()
 
     def sendMessageFactory(self):
         def sendMessage(message):
@@ -333,7 +382,7 @@ class ivgInstrument(stem_controller.STEMController):
             self.property_changed_event.fire('obj_vol_f')
             return self.__obj_cur
         except:
-            logging.info('***IVG***: A problem happened Querying my Lens Objective Values. Returning 0.')
+            logging.info('***IVG***: A problem happened Querying my Lens Objective  Values. Returning 0.')
             return 0
 
 
@@ -447,6 +496,90 @@ class ivgInstrument(stem_controller.STEMController):
     def y_stage_f(self):
         return '{:.2f}'.format(self.__y_real_pos*1e6)
 
+    ## spim_panel Properties START ##
+
+    @property
+    def spim_type_f(self):
+        return self.__spim_type
+
+    @spim_type_f.setter
+    def spim_type_f(self, value):
+        self.__spim_type = value
+
+    @property
+    def spim_trigger_f(self):
+        return self.__spim_trigger
+
+    @spim_trigger_f.setter
+    def spim_trigger_f(self, value):
+        self.__spim_trigger = value
+        self.property_changed_event.fire('spim_time_f')
+
+    @property
+    def spim_xpix_f(self):
+        return self.__spim_xpix
+
+    @spim_xpix_f.setter
+    def spim_xpix_f(self, value):
+        try:
+            isinstance(int(value), int)
+            self.__spim_xpix = int(value)
+        except ValueError:
+            logging.info('***SPIM***: Please put an integer number')
+        self.property_changed_event.fire('spim_xpix_f')
+        self.property_changed_event.fire('spim_sampling_f')
+        self.property_changed_event.fire('spim_time_f')
+
+    @property
+    def spim_ypix_f(self):
+        return self.__spim_ypix
+
+    @spim_ypix_f.setter
+    def spim_ypix_f(self, value):
+        try:
+            isinstance(int(value), int)
+            self.__spim_ypix = int(value)
+
+        except ValueError:
+            logging.info('***SPIM***: Please put an integer number')
+        self.property_changed_event.fire('spim_ypix_f')
+        self.property_changed_event.fire('spim_sampling_f')
+        self.property_changed_event.fire('spim_time_f')
+
+    @property
+    def is_subscan_f(self):
+        return str(self.__is_subscan[0])
+
+    @is_subscan_f.setter
+    def is_subscan_f(self, value):
+        self.__is_subscan = value
+
+        self.property_changed_event.fire('is_subscan_f')
+        self.property_changed_event.fire('spim_sampling_f')
+        self.property_changed_event.fire('spim_time_f')
+
+    @property
+    def spim_sampling_f(self):
+        self.__spim_sampling = (self.__fov/self.__spim_xpix*1e3, self.__fov/self.__spim_ypix*1e3) if not self.__is_subscan[0] else (self.__fov*self.__is_subscan[1]/self.__spim_xpix*1e3, self.__fov*self.__is_subscan[2]/self.__spim_ypix*1e3)
+        self.__spim_sampling = [float("%.2f" % member) for member in self.__spim_sampling]
+        return self.__spim_sampling
+
+    @property
+    def spim_time_f(self):
+        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
+        if not self.__OrsayCamEELS: self.get_orsay_eels_instrument()
+        if not self.__OrsayCamEIRE: self.get_orsay_eire_instrument()
+
+        if self.__spim_trigger==0: now_cam = self.__OrsayCamEELS
+        elif self.__spim_trigger==1: now_cam = self.__OrsayCamEIRE
+        elif self.__spim_trigger==2:
+            now_cam = self.__OrsayCamEELS
+            logging.info('***IVG***: Both measurement not yet implemented. Please check back later. Using EELS instead.')
+
+        self.__spim_time = format(((now_cam.camera.current_camera_settings.exposure_ms/1000. + now_cam.camera.readoutTime) * self.__spim_xpix * self.__spim_ypix / 60), '.2f')
+        return self.__spim_time
+
+    ## spim_panel Properties END ##
 
     @property
     def live_probe_position(self):

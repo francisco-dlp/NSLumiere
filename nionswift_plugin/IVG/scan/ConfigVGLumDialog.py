@@ -12,7 +12,6 @@ class Handler:
         self.__bf_pmt = int(self.__OrsayScanInstrument.scan_device.orsayscan.GetPMT(0))
         self.__bot_blanker=False
 
-
     @property
     def hadf_gain_pmt(self):
         return self.__hadf_pmt
