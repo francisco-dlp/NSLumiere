@@ -383,7 +383,10 @@ class Device:
             logging.info('***SCAN***: Spim is done. Handling...')
             self.spimscan.stopImaging(True)
             self.__is_scanning = False
-            self.__instrument.warn_Scan_instrument_spim_over(self.imagedata, self.__spim_pixels, [0])
+            pmts=[]
+            for counter, value in enumerate(self.channels_enabled):
+                if value: pmts.append(counter)
+            self.__instrument.warn_Scan_instrument_spim_over(self.imagedata, self.__spim_pixels, pmts)
 
 
     @property
