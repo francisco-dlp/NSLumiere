@@ -564,6 +564,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__spim_sampling = [float("%.2f" % member) for member in self.__spim_sampling]
         return self.__spim_sampling
 
+
     @property
     def spim_time_f(self):
         if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()

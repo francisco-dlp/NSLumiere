@@ -60,6 +60,7 @@ class probeDevice(Observable.Observable):
             self.obj_stigmateur1_f=data["3"]["obj_stig_01"]
             self.gun_stimateur0_f=data["3"]["gun_stig_02"]
             self.gun_stigmateur1_f=data["3"]["gun_stig_03"]
+            print(self.__ivg)
         except:
             logging.info('***LENSES***: No saved values.')
 

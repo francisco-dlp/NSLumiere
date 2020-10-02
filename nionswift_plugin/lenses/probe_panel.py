@@ -25,7 +25,8 @@ class gainhandler:
         self.property_changed_event_listener = self.instrument.property_changed_event.listen(self.prepare_widget_enable)
         self.busy_event_listener = self.instrument.busy_event.listen(self.prepare_widget_disable)
 
-        self.ivg = None
+    def init_handler(self):
+        self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 
     async def do_enable(self, enabled=True, not_affected_widget_name_list=None):
         for var in self.__dict__:
@@ -41,9 +42,6 @@ class gainhandler:
         self.event_loop.create_task(self.do_enable(False, []))
 
     def save_lenses(self, widget):
-        if not self.ivg:
-            self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
-
         panel_dir = os.path.dirname(__file__)
         abs_path = os.path.join(panel_dir, 'lenses_settings.json')
         with open(abs_path) as savfile:

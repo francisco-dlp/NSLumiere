@@ -23,7 +23,7 @@ def run():
 
     instrument = ivg_inst.ivgInstrument('VG_Lum_controller')
     ivg_panel.run(instrument)
-    ivg_spim_panel.run(instrument)
+    if not DEBUG_CAMERA: ivg_spim_panel.run(instrument)
     if not DEBUG_SCAN: VGScanYves.run(instrument)
     if not DEBUG_CAMERA:
         VGCameraYves.run(instrument)
