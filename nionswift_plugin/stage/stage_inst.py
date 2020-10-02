@@ -33,7 +33,7 @@ class stageDevice(Observable.Observable):
         self.__vgStage=stage.VGStage(self.__sendmessage)
 
         self.__x, self.__y = self.__vgStage.stageGetPosition()
-        self.__slider_range = 2500
+        self.__slider_range = 400
 
         logging.info(f'***VG STAGE***: Please put Stepper.dll at the following folder: {sys.executable}.')
 
@@ -74,7 +74,6 @@ class stageDevice(Observable.Observable):
         self.__vgStage.stageGoTo_x(self.__x)
         self.property_changed_event.fire('x_pos_f')
         self.property_changed_event.fire('x_pos_edit_f')
-        self.busy_event.fire('')
 
     @property
     def x_pos_edit_f(self):
@@ -86,7 +85,6 @@ class stageDevice(Observable.Observable):
         self.__vgStage.stageGoTo_x(self.__x)
         self.property_changed_event.fire('x_pos_f')
         self.property_changed_event.fire('x_pos_edit_f')
-        self.busy_event.fire('')
 
     @property
     def y_pos_f(self):
@@ -98,7 +96,6 @@ class stageDevice(Observable.Observable):
         self.__vgStage.stageGoTo_y(self.__y)
         self.property_changed_event.fire('y_pos_f')
         self.property_changed_event.fire('y_pos_edit_f')
-        self.busy_event.fire('')
 
     @property
     def y_pos_edit_f(self):
@@ -110,7 +107,6 @@ class stageDevice(Observable.Observable):
         self.__vgStage.stageGoTo_y(self.__y)
         self.property_changed_event.fire('y_pos_f')
         self.property_changed_event.fire('y_pos_edit_f')
-        self.busy_event.fire('')
 
     @property
     def slider_range_f(self):

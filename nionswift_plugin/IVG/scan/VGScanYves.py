@@ -56,7 +56,7 @@ class Device:
         self.__frame_number = 0
         self.__instrument = instrument
         self.__sizez = 2
-        self.__probe_position = (0, 0)
+        self.__probe_position = [0, 0]
         self.__rotation = 0.
         self.__is_scanning = False
         self.on_device_state_changed = None
