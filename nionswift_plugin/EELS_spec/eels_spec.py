@@ -2,7 +2,6 @@ import serial
 import sys
 import time
 import threading
-import logging
 
 
 __author__ = "Yves Auad"
@@ -40,7 +39,6 @@ class espec:
             try:
                 if val < 0: val = 0xffff + val
                 string = which + ' 0,' + hex(val)[2:6] + '\r'
-                logging.info(string)
                 self.ser.write(string.encode())
                 return self.ser.read(6)
             except:

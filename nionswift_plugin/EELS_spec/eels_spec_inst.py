@@ -43,16 +43,15 @@ class EELS_SPEC_Device(Observable.Observable):
         self.__q4 = 0
         self.__dx = 0
         self.__dmx = 0
+        self.ene_offset_f=0
 
-        self.focus_wobbler_f=0
         self.__focus_wobbler_int=25
-
-        self.dispersion_wobbler_f=0
         self.__dispersion_wobbler_int=25
+        self.__focus_wobbler_index = 0
+        self.__dispersion_wobbler_index = 0
+
 
         self.__EHT = '3'
-
-        self.ene_offset_f=0
 
         try:
             inst_dir = os.path.dirname(__file__)
@@ -64,31 +63,35 @@ class EELS_SPEC_Device(Observable.Observable):
         except:
             logging.info('***EELS SPEC***: No saved values.')
 
+    def init_handler(self):
+        self.focus_wobbler_f=0
+        self.dispersion_wobbler_f=0
+        self.disp_change_f = self.__dispIndex  # put last index
+
     def set_spec_values(self, value):
         inst_dir = os.path.dirname(__file__)
         abs_path = os.path.join(inst_dir, 'eels_settings.json')
         with open(abs_path) as savfile:
             data = json.load(savfile)
-        #logging.info(json.dumps(data, indent=4))
 
         self.range_f = data[self.__EHT][value]['range']
         self.note_f = data[self.__EHT][value]['note']
-        self.fx_edit_f = data[self.__EHT][value]['fx']
-        self.fy_edit_f = data[self.__EHT][value]['fy']
-        self.sx_edit_f = data[self.__EHT][value]['sx']
-        self.sy_edit_f = data[self.__EHT][value]['sy']
-        self.dy_edit_f = data[self.__EHT][value]['dy']
-        self.q1_edit_f = data[self.__EHT][value]['q1']
-        self.q2_edit_f = data[self.__EHT][value]['q2']
-        self.q3_edit_f = data[self.__EHT][value]['q3']
-        self.q4_edit_f = data[self.__EHT][value]['q4']
-        self.dx_edit_f = data[self.__EHT][value]['dx']
-        self.dmx_edit_f = data[self.__EHT][value]['dmx']
+        self.fx_slider_f = int(data[self.__EHT][value]['fx'])
+        self.fy_slider_f = int(data[self.__EHT][value]['fy'])
+        self.sx_slider_f = int(data[self.__EHT][value]['sx'])
+        self.sy_slider_f = int(data[self.__EHT][value]['sy'])
+        self.dy_slider_f = int(data[self.__EHT][value]['dy'])
+        self.q1_slider_f = int(data[self.__EHT][value]['q1'])
+        self.q2_slider_f = int(data[self.__EHT][value]['q2'])
+        self.q3_slider_f = int(data[self.__EHT][value]['q3'])
+        self.q4_slider_f = int(data[self.__EHT][value]['q4'])
+        self.dx_slider_f = int(data[self.__EHT][value]['dx'])
+        self.dmx_slider_f = int(data[self.__EHT][value]['dmx'])
 
     def EHT_change(self, value):
         self.__EHT = str(
             value)  # next set at disp_change_f will going to be with the new self__EHT. Nice way of doing it
-        self.disp_change_f = 0
+        self.disp_change_f = self.__dispIndex
 
     def sendMessageFactory(self):
         def sendMessage(message):
