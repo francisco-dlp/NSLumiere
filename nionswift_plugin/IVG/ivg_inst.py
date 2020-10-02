@@ -84,6 +84,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__obj_res_ref = OBJECTIVE_RESISTANCE
         self.__amb_temp = AMBIENT_TEMPERATURE
         self.__stand=False
+        self.__stage_moving = False
 
         self.__obj_temp=self.__amb_temp
         self.__obj_res=self.__obj_res_ref
@@ -101,15 +102,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__spim_sampling = [0, 0]
 
         ## spim properties attributes END
-
-        self.__lensInstrument=None
-        self.__EELSInstrument=None
-        self.__AperInstrument=None
-        self.__StageInstrument=None
-        self.__optSpecInstrument=None
-        self.__OrsayScanInstrument=None
-        self.__OrsayCamEELS=None
-        self.__OrsayCamEIRE=None
 
         self.__gun_sendmessage = gun.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__gun_gauge= gun.GunVacuum(self.__gun_sendmessage)
@@ -454,9 +446,16 @@ class ivgInstrument(stem_controller.STEMController):
     def x_stage_f(self):
         try:
             self.__x_real_pos, self.__y_real_pos = self.__StageInstrument.GetPos()
+            if (abs(self.__x_real_pos*1e6 - self.__StageInstrument.x_pos_f/1e2))<0.5 and abs(self.__y_real_pos*1e6 - self.__StageInstrument.y_pos_f/1e2)<0.5:
+                self.__stage_moving=False
+                self.__StageInstrument.free_UI()
+            else:
+                self.__stage_moving=True
+                self.__StageInstrument.busy_UI()
         except:
             self.__x_real_pos = -1.e-5
             self.__y_real_pos = -1.e-5
+
 
         self.property_changed_event.fire('y_stage_f')
         return '{:.2f}'.format(self.__x_real_pos*1e6)

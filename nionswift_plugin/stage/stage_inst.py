@@ -45,6 +45,15 @@ class stageDevice(Observable.Observable):
         #self.__vgStage.stageInit(True, True, True)
         logging.info('Disabled for now. X switch seems to be malfunctioning')
 
+    def free_UI(self):
+        self.property_changed_event.fire('x_pos_f')
+        self.property_changed_event.fire('x_pos_edit_f')
+        self.property_changed_event.fire('y_pos_f')
+        self.property_changed_event.fire('y_pos_edit_f')
+
+    def busy_UI(self):
+        self.busy_event.fire('')
+
     def sendMessageFactory(self):
         def sendMessage(message):
             if message == 1:
@@ -65,6 +74,7 @@ class stageDevice(Observable.Observable):
         self.__vgStage.stageGoTo_x(self.__x)
         self.property_changed_event.fire('x_pos_f')
         self.property_changed_event.fire('x_pos_edit_f')
+        self.busy_event.fire('')
 
     @property
     def x_pos_edit_f(self):
@@ -76,6 +86,7 @@ class stageDevice(Observable.Observable):
         self.__vgStage.stageGoTo_x(self.__x)
         self.property_changed_event.fire('x_pos_f')
         self.property_changed_event.fire('x_pos_edit_f')
+        self.busy_event.fire('')
 
     @property
     def y_pos_f(self):
@@ -87,6 +98,7 @@ class stageDevice(Observable.Observable):
         self.__vgStage.stageGoTo_y(self.__y)
         self.property_changed_event.fire('y_pos_f')
         self.property_changed_event.fire('y_pos_edit_f')
+        self.busy_event.fire('')
 
     @property
     def y_pos_edit_f(self):
@@ -98,6 +110,7 @@ class stageDevice(Observable.Observable):
         self.__vgStage.stageGoTo_y(self.__y)
         self.property_changed_event.fire('y_pos_f')
         self.property_changed_event.fire('y_pos_edit_f')
+        self.busy_event.fire('')
 
     @property
     def slider_range_f(self):

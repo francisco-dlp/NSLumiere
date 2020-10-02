@@ -35,7 +35,12 @@ class stagehandler:
         self.event_loop.create_task(self.do_enable(True, []))
 
     def prepare_widget_disable(self,value):
-        self.event_loop.create_task(self.do_enable(False, []))
+        self.event_loop.create_task(self.do_enable(False, ['reset_ui']))
+
+    def reset_ui_pb(self, widget):
+        self.event_loop.create_task(self.do_enable(True, []))
+        self.instrument.x_pos_f = 0.0
+        self.instrument.y_pos_f = 0.0
 
     def slider_release(self, widget):
         widget.maximum=widget.value+self.slider_max
@@ -82,8 +87,9 @@ class stageView:
         self.full_range_pb=ui.create_push_button(name='full_range_pb', text='Full Range', on_clicked='total_range', width=100)
         self.add_pb=ui.create_push_button(name='add_pb', text='Add', on_clicked='add_value')
         self.set_origin_pb=ui.create_push_button(name='set_origin_pb', text='Set Origin', on_clicked='set_origin')
+        self.reset_ui = ui.create_push_button(name='reset_ui', text='goTo Origin', on_clicked='reset_ui_pb')
         self.list_positions=ui.create_text_edit(name='list_positions')
-        self.button_row=ui.create_row(ui.create_stretch(), self.set_origin_pb, self.add_pb, self.full_range_pb)
+        self.button_row=ui.create_row(ui.create_stretch(), self.reset_ui, self.add_pb, self.full_range_pb)
 
 
         ### SLIDERS ###
