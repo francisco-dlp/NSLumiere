@@ -57,6 +57,7 @@ class Device:
         self.__instrument = instrument
         self.__sizez = 2
         self.__probe_position = [0, 0]
+        self.__probe_position_pixels = [0, 0]
         self.__rotation = 0.
         self.__is_scanning = False
         self.on_device_state_changed = None
@@ -312,7 +313,7 @@ class Device:
 
     @scan_rotation.setter
     def scan_rotation(self, value):
-        self.__rotation = value
+        self.__rotation = value*180/numpy.pi
         self.orsayscan.setScanRotation(self.__rotation)
 
     @property
@@ -336,6 +337,7 @@ class Device:
         self.__probe_position = value
         px, py = round(self.__probe_position[0] * self.__scan_area[0]), round(
             self.__probe_position[1] * self.__scan_area[1])
+        self.__probe_position_pixels = [px, py]
         self.orsayscan.SetProbeAt(py, px)
 
     @property
