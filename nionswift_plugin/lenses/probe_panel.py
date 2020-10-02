@@ -27,6 +27,7 @@ class gainhandler:
 
     def init_handler(self):
         self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
+        self.instrument.init_handler()
 
     async def do_enable(self, enabled=True, not_affected_widget_name_list=None):
         for var in self.__dict__:

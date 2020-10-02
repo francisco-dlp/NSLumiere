@@ -6,6 +6,8 @@ for counter, my_inst in enumerate(list(my_insts)):
     print(my_inst.instrument_id)
     print(counter)
 
+
+
 cams = dict()
 scans = dict()
 

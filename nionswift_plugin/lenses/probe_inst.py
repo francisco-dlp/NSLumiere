@@ -48,6 +48,7 @@ class probeDevice(Observable.Observable):
 
         self.__ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 
+    def init_handler(self):
         try:
             inst_dir = os.path.dirname(__file__)
             abs_path = os.path.join(inst_dir, 'lenses_settings.json')
@@ -60,7 +61,6 @@ class probeDevice(Observable.Observable):
             self.obj_stigmateur1_f=data["3"]["obj_stig_01"]
             self.gun_stimateur0_f=data["3"]["gun_stig_02"]
             self.gun_stigmateur1_f=data["3"]["gun_stig_03"]
-            print(self.__ivg)
         except:
             logging.info('***LENSES***: No saved values.')
 
@@ -146,7 +146,7 @@ class probeDevice(Observable.Observable):
     @obj_stigmateur1_f.setter
     def obj_stigmateur1_f(self, value):
         self.__ivg.obj_stig01_f=value
-        self.property_changed_event.fire('obj_stigmateur01_f')
+        self.property_changed_event.fire('obj_stigmateur1_f')
 
     @property
     def obj_global_f(self):

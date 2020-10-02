@@ -84,11 +84,14 @@ class ivgInstrument(stem_controller.STEMController):
         self.__obj_res_ref = OBJECTIVE_RESISTANCE
         self.__amb_temp = AMBIENT_TEMPERATURE
         self.__stand=False
+
         self.__obj_temp=self.__amb_temp
         self.__obj_res=self.__obj_res_ref
+        self.__c1_vol = self.__c1_res = self.__c2_vol = self.__c2_res = 0.0
+
+        self.__x_real_pos = self.__y_real_pos = 0.0
 
         self.__loop_index=0
-
         ## spim properties attributes START
 
         self.__spim_type = 0
@@ -98,9 +101,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__spim_sampling = [0, 0]
 
         ## spim properties attributes END
-
-        if SLOW_PERIODIC: self.periodic()
-        if FAST_PERIODIC: self.stage_periodic()
 
         self.__lensInstrument=None
         self.__EELSInstrument=None
@@ -117,30 +117,18 @@ class ivgInstrument(stem_controller.STEMController):
         self.__ll_sendmessage = al.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__ll_gauge= al.AirLockVacuum(self.__ll_sendmessage)
 
-
-    def get_lenses_instrument(self):
+    def init_handler(self):
         self.__lensInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("lenses_controller")
-
-    def get_EELS_instrument(self):
         self.__EELSInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_controller")
-
-    def get_diaf_instrument(self):
         self.__AperInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("diaf_controller")
-
-    def get_stage_instrument(self):
         self.__StageInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
-
-    def get_optSpec_instrument(self):
         self.__optSpecInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("optSpec_controller")
-
-    def get_orsay_scan_instrument(self):
         self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-
-    def get_orsay_eire_instrument(self):
         self.__OrsayCamEIRE = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eire")
-
-    def get_orsay_eels_instrument(self):
         self.__OrsayCamEELS = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eels")
+
+        if SLOW_PERIODIC: self.periodic()
+        if FAST_PERIODIC: self.stage_periodic()
 
     def stage_periodic(self):
         self.property_changed_event.fire('x_stage_f')
@@ -217,10 +205,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.spim_over.fire(det_data, spim_pixels, detector, self.__spim_sampling)
 
     def start_spim_push_button(self, x_pix, y_pix):
-        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
-        if not self.__OrsayCamEELS: self.get_orsay_eels_instrument()
-        if not self.__OrsayCamEIRE: self.get_orsay_eire_instrument()
-
         if self.__spim_trigger==0: now_cam = [self.__OrsayCamEELS]
         elif self.__spim_trigger==1: now_cam = [self.__OrsayCamEIRE]
         elif self.__spim_trigger==2:
@@ -269,10 +253,6 @@ class ivgInstrument(stem_controller.STEMController):
     def EHT_f(self, value):
         self.__EHT=value
         try:
-            if not self.__lensInstrument:
-                self.get_lenses_instrument()
-            if not self.__EELSInstrument:
-                self.get_EELS_instrument()
             self.__lensInstrument.EHT_change(value)
             self.__EELSInstrument.EHT_change(value)
         except:
@@ -316,7 +296,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__obj_stig[0] = value / 1e3
         try:
             if not DEBUG_SCAN:
-                if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
                 self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_stig[0], self.__obj_stig[1])
         except:
             logging.info('***LENSES***: Could not acess objective astigmators. Please check Scan Module.')
@@ -331,7 +310,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__obj_stig[1] = value / 1e3
         try:
             if not DEBUG_SCAN:
-                if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
                 self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_stig[0], self.__obj_stig[1])
         except:
             logging.info('***LENSES***: Could not acess objective astigmators. Please check Scan Module.')
@@ -346,7 +324,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__gun_stig[0] = value / 1e3
         try:
             if not DEBUG_SCAN:
-                if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
                 self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__gun_stig[0], self.__gun_stig[1])
         except:
             logging.info('***LENSES***: Could not acess gun astigmators. Please check Scan Module.')
@@ -361,7 +338,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__gun_stig[1] = value / 1e3
         try:
             if not DEBUG_SCAN:
-                if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
                 self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__gun_stig[0], self.__gun_stig[1])
         except:
             logging.info('***LENSES***: Could not acess gun astigmators. Please check Scan Module.')
@@ -370,8 +346,6 @@ class ivgInstrument(stem_controller.STEMController):
     @property
     def obj_cur_f(self):
         try:
-            if not self.__lensInstrument:
-                self.get_lenses_instrument()
             self.__obj_cur, self.__obj_vol = self.__lensInstrument.get_values('OBJ')
             self.__obj_cur = float(self.__obj_cur.decode()[0:5])
             self.__obj_vol = float(self.__obj_vol.decode()[0:5])
@@ -380,10 +354,12 @@ class ivgInstrument(stem_controller.STEMController):
             else:
                 self.__obj_res = -1.
             self.property_changed_event.fire('obj_vol_f')
-            return self.__obj_cur
         except:
             logging.info('***IVG***: A problem happened Querying my Lens Objective  Values. Returning 0.')
-            return 0
+            self.__obj_cur = 'Error'
+            self.__obj_vol = 'Error'
+
+        return self.__obj_cur
 
 
     @property
@@ -398,8 +374,6 @@ class ivgInstrument(stem_controller.STEMController):
     @property
     def c1_cur_f(self):
         try:
-            if not self.__lensInstrument:
-                self.get_lenses_instrument()
             self.__c1_cur, self.__c1_vol = self.__lensInstrument.get_values('C1')
             self.__c1_cur = float(self.__c1_cur.decode()[0:5])
             self.__c1_vol = float(self.__c1_vol.decode()[0:5])
@@ -409,10 +383,11 @@ class ivgInstrument(stem_controller.STEMController):
                 self.__c1_res = -1.
             self.property_changed_event.fire('c1_vol_f')
             self.property_changed_event.fire('c1_res_f')
-            return self.__c1_cur
         except:
-            logging.info('***IVG***: A problem happened Querying my Lens C1 Values. Returning 0')
-            return 0
+            self.__c1_cur = 'Error'
+            self.__c1_vol = 'Error'
+
+        return self.__c1_cur
 
 
     @property
@@ -428,8 +403,6 @@ class ivgInstrument(stem_controller.STEMController):
     @property
     def c2_cur_f(self):
         try:
-            if not self.__lensInstrument:
-                self.get_lenses_instrument()
             self.__c2_cur, self.__c2_vol = self.__lensInstrument.get_values('C2')
             self.__c2_cur = float(self.__c2_cur.decode()[0:5])
             self.__c2_vol = float(self.__c2_vol.decode()[0:5])
@@ -439,10 +412,11 @@ class ivgInstrument(stem_controller.STEMController):
                 self.__c2_res = -1.
             self.property_changed_event.fire('c2_vol_f')
             self.property_changed_event.fire('c2_res_f')
-            return self.__c2_cur
         except:
-            logging.info('***IVG***: A problem happened Querying my Lens C2 Values. Returning 0')
-            return 0
+            self.__c2_cur = 'Error'
+            self.__c2_vol = 'Error'
+
+        return self.__c2_cur
 
 
     @property
@@ -456,41 +430,36 @@ class ivgInstrument(stem_controller.STEMController):
 
     @property
     def voa_val_f(self):
+        vlist=['None', '50 um', '100 um', '150 um', 'Error']
         try:
-            if not self.__AperInstrument:
-                self.get_diaf_instrument()
             self.__voa=self.__AperInstrument.voa_change_f
-            vlist=['None', '50 um', '100 um', '150 um']
-            return vlist[self.__voa]
         except:
-            logging.info('***IVG***: A problem happened Querying my VOA aperture. Returning Error')
-            return 'Error'
+            self.__voa = 4
+
+        return vlist[self.__voa]
 
 
     @property
     def roa_val_f(self):
+        rlist=['None', '50 um', '100 um', '150 um', 'Error']
         try:
-            if not self.__AperInstrument:
-                self.get_diaf_instrument()
             self.__roa=self.__AperInstrument.roa_change_f
-            rlist=['None', '50 um', '100 um', '150 um']
-            return rlist[self.__roa]
         except:
-            logging.info('***IVG***: A problem happened Querying my VOA aperture. Returning Error')
-            return 'Error'
+            self.__roa = 4
+
+        return rlist[self.__roa]
 
 
     @property
     def x_stage_f(self):
         try:
-            if not self.__StageInstrument:
-                self.get_stage_instrument()
             self.__x_real_pos, self.__y_real_pos = self.__StageInstrument.GetPos()
-            self.property_changed_event.fire('y_stage_f')
-            return '{:.2f}'.format(self.__x_real_pos*1e6)
         except:
-            logging.info('***IVG***: A problem happened Querying VG Stage. Returning 0.')
-            return 0
+            self.__x_real_pos = -1.e-5
+            self.__y_real_pos = -1.e-5
+
+        self.property_changed_event.fire('y_stage_f')
+        return '{:.2f}'.format(self.__x_real_pos*1e6)
 
     @property
     def y_stage_f(self):
@@ -567,10 +536,6 @@ class ivgInstrument(stem_controller.STEMController):
 
     @property
     def spim_time_f(self):
-        if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
-        if not self.__OrsayCamEELS: self.get_orsay_eels_instrument()
-        if not self.__OrsayCamEIRE: self.get_orsay_eire_instrument()
-
         if self.__spim_trigger==0: now_cam = self.__OrsayCamEELS
         elif self.__spim_trigger==1: now_cam = self.__OrsayCamEIRE
         elif self.__spim_trigger==2:
@@ -599,7 +564,6 @@ class ivgInstrument(stem_controller.STEMController):
 
     def change_pmt_gain(self, pmt_type, *, factor: float) -> None:
         if not DEBUG_SCAN:
-            if not self.__OrsayScanInstrument: self.get_orsay_scan_instrument()
             if pmt_type==0:
                 self.__haadf_gain = int(self.__OrsayScanInstrument.scan_device.orsayscan.GetPMT(1))
                 self.__haadf_gain=int(self.__haadf_gain*1.05) if factor>1 else int(self.__haadf_gain*0.95)
@@ -616,14 +580,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__StageInstrument.slider_range_f=self.__fov
 
     def TryGetVal(self, s: str) -> (bool, float):
-
-        try:
-            if not self.__EELSInstrument:
-                self.get_EELS_instrument()
-            if not self.__optSpecInstrument:
-                self.get_optSpec_instrument()
-        except:
-            pass
 
         if s == "eels_y_offset":
             return True, 0
