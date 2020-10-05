@@ -188,11 +188,12 @@ class ivgInstrument(stem_controller.STEMController):
     def warn_Scan_instrument_spim(self, value, x_pixels=0, y_pixels=0):
         # only set scan pixels if you going to start spim.
         if value: self.__OrsayScanInstrument.scan_device.set_spim_pixels = (x_pixels, y_pixels)
+        self.__OrsayScanInstrument.scan_device.set_spim = value
         if value:
             self.__OrsayScanInstrument.start_playing()
         else:
             self.__OrsayScanInstrument.stop_playing()
-        self.__OrsayScanInstrument.scan_device.set_spim = value
+
 
     def warn_Scan_instrument_spim_over(self, det_data, spim_pixels, detector):
         self.spim_over.fire(det_data, spim_pixels, detector, self.__spim_sampling)

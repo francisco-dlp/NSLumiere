@@ -111,7 +111,6 @@ class Device:
 
     def stop(self) -> None:
         """Stop acquiring."""
-        pass
 
     def set_idle_position_by_percentage(self, x: float, y: float) -> None:
         """Set the idle position as a percentage of the last used frame parameters."""
@@ -186,6 +185,8 @@ class Device:
             self.__start_next_frame()
 
             if not self.__spim:
+                self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
+                self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
                 self.__is_scanning = self.orsayscan.startImaging(0, 1)
 
             if self.__is_scanning: print('Acquisition Started')
@@ -216,7 +217,7 @@ class Device:
         a 'channel_id' indicating the index of the channel (may be an int or float).
         """
 
-        gotit = self.has_data_event.wait(5.0)
+        #gotit = self.has_data_event.wait(5.0)
 
         if self.__frame is None:
             self.__start_next_frame()
@@ -380,12 +381,17 @@ class Device:
             elif self.__instrument.spim_trigger_f==1:
                 self.spimscan.setScanClock(4)
                 logging.info(f'***SCAN***: Cathodoluminescence Spim')
+
+            self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
+            self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
+
             self.spimscan.startSpim(0, 1)
 
         else:
             logging.info('***SCAN***: Spim is done. Handling...')
             self.spimscan.stopImaging(True)
             self.__is_scanning = False
+
             pmts=[]
             for counter, value in enumerate(self.channels_enabled):
                 if value: pmts.append(counter)
