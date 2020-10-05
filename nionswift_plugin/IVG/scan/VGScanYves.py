@@ -217,7 +217,7 @@ class Device:
         a 'channel_id' indicating the index of the channel (may be an int or float).
         """
 
-        #gotit = self.has_data_event.wait(5.0)
+        gotit = self.has_data_event.wait(5.0)
 
         if self.__frame is None:
             self.__start_next_frame()
@@ -248,6 +248,7 @@ class Device:
                 data_array = self.imagedata[(channel.channel_id) * (self.__spim_pixels[1]):(channel.channel_id + 1) * (
                     self.__spim_pixels[1]),
                              0: (self.__spim_pixels[0])].astype(numpy.float32)
+                #data_array = self.imagedata.astype(numpy.float32)
                 #if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
                 #    data_array = data_array[self.p4:self.p5, self.p2:self.p3]
                 data_element["data"] = data_array
@@ -383,6 +384,7 @@ class Device:
                 logging.info(f'***SCAN***: Cathodoluminescence Spim')
 
             self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
+            print(self.__scan_area)
             self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
 
             self.spimscan.startSpim(0, 1)
