@@ -1,4 +1,5 @@
 import gettext
+import logging
 
 from nion.utils import Converter
 from nion.utils import Model
@@ -121,10 +122,14 @@ class CameraHandler:
         """Initialize the UI after it has been constructed."""
 
         def update_speeds():
-            self.speed_items.value = list(self.camera_device.camera.getSpeeds(self.port_item.value))
-            self.speed_item.value = self.camera_settings.get_current_frame_parameters()["speed"]
-            #self.speed_item_text.value = self.speed_items.value[self.speed_item.value]
-            self.speed_item_text.value = format(float(self.speed_items.value[self.speed_item.value][0:4]), '.2f') + ' ' + self.speed_items.value[self.speed_item.value][-3:]
+            try:
+                self.speed_items.value = list(self.camera_device.camera.getSpeeds(self.port_item.value))
+                self.speed_item.value = self.camera_settings.get_current_frame_parameters()["speed"]
+                self.speed_item_text.value = self.speed_items.value[self.speed_item.value]
+            except:
+                self.speed_item.value = 0
+                self.speed_item_text.value = self.speed_items.value[self.speed_item.value]
+                logging.info('***CAMERA***: The new port values does not support current speed. Please recheck indexes.')
 
         def update_gains():
             self.gain_items.value = list(self.camera_device.camera.getGains(self.port_item.value))
@@ -180,7 +185,6 @@ class CameraHandler:
             frame_parameters = self.camera_settings.get_current_frame_parameters()
             frame_parameters["speed"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
-            self.speed_item_text.value = format(float(self.speed_items.value[self.speed_item.value][0:4]), '.2f') + ' ' + self.speed_items.value[self.speed_item.value][-3:]
 
         def set_gain(value):
             # print(f"Panel: set_gain {value}")

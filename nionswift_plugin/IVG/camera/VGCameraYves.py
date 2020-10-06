@@ -40,6 +40,7 @@ class CameraDevice(camera_base.CameraDevice):
         self.camera_id=id
         self.camera_type=type
         self.camera_name=name
+        self.camera_model = model
         self.instrument=instrument
         self.camera = orsaycamera.orsayCamera(manufacturer, model, sn, simul)
         self.__config_dialog_handler = None
@@ -152,6 +153,13 @@ class CameraDevice(camera_base.CameraDevice):
             if self.__hardware_settings.port != frame_parameters.port:
                 self.__hardware_settings.port = frame_parameters.port
                 self.camera.setCurrentPort(frame_parameters.port)
+                #if self.camera_model=="Newton":
+                #    if frame_parameters.port==0:
+                #        print('port 0')
+                #        self.camera.setMirror(False)
+                #    elif frame_parameters.port==1:
+                #        print('port 1')
+                #        self.camera.setMirror(False)
 
         if "speed" in frame_parameters:
             if self.__hardware_settings.speed != frame_parameters.speed:
