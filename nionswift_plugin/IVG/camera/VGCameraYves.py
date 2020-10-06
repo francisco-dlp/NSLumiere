@@ -354,8 +354,6 @@ class CameraDevice(camera_base.CameraDevice):
                 self.has_spim_data_event.set()
 
     def acquire_image(self) -> dict:
-
-        print(self.current_camera_settings)
         acquisition_mode = self.current_camera_settings.acquisition_mode
         if "Chrono" in acquisition_mode:
             self.acquire_data = self.spimimagedata
