@@ -232,6 +232,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @fx_edit_f.setter
     def fx_edit_f(self, value):
         self.__fx = int(value)
+        self.__eels_spec.set_val(self.__fx, 'FX')
         self.property_changed_event.fire("fx_slider_f")
         self.property_changed_event.fire("fx_edit_f")
 
@@ -254,6 +255,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @fy_edit_f.setter
     def fy_edit_f(self, value):
         self.__fy = int(value)
+        self.__eels_spec.set_val(self.__fy, 'FY')
         self.property_changed_event.fire("fy_slider_f")
         self.property_changed_event.fire("fy_edit_f")
 
@@ -276,6 +278,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @sx_edit_f.setter
     def sx_edit_f(self, value):
         self.__sx = int(value)
+        self.__eels_spec.set_val(self.__sx, 'SX')
         self.property_changed_event.fire("sx_slider_f")
         self.property_changed_event.fire("sx_edit_f")
 
@@ -298,6 +301,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @sy_edit_f.setter
     def sy_edit_f(self, value):
         self.__sy = int(value)
+        self.__eels_spec.set_val(self.__sy, 'SY')
         self.property_changed_event.fire("sy_slider_f")
         self.property_changed_event.fire("sy_edit_f")
 
@@ -320,6 +324,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @dy_edit_f.setter
     def dy_edit_f(self, value):
         self.__dy = int(value)
+        self.__eels_spec.set_val(self.__dy, 'DY')
         self.property_changed_event.fire("dy_slider_f")
         self.property_changed_event.fire("dy_edit_f")
 
@@ -342,6 +347,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @q1_edit_f.setter
     def q1_edit_f(self, value):
         self.__q1 = int(value)
+        self.__eels_spec.set_val(self.__q1, 'Q1')
         self.property_changed_event.fire("q1_slider_f")
         self.property_changed_event.fire("q1_edit_f")
 
@@ -364,6 +370,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @q2_edit_f.setter
     def q2_edit_f(self, value):
         self.__q2 = int(value)
+        self.__eels_spec.set_val(self.__q2, 'Q2')
         self.property_changed_event.fire("q2_slider_f")
         self.property_changed_event.fire("q2_edit_f")
 
@@ -386,6 +393,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @q3_edit_f.setter
     def q3_edit_f(self, value):
         self.__q3 = int(value)
+        self.__eels_spec.set_val(self.__q3, 'Q3')
         self.property_changed_event.fire("q3_slider_f")
         self.property_changed_event.fire("q3_edit_f")
 
@@ -408,6 +416,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @q4_edit_f.setter
     def q4_edit_f(self, value):
         self.__q4 = int(value)
+        self.__eels_spec.set_val(self.__q4, 'Q4')
         self.property_changed_event.fire("q4_slider_f")
         self.property_changed_event.fire("q4_edit_f")
 
@@ -430,6 +439,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @dx_edit_f.setter
     def dx_edit_f(self, value):
         self.__dx = int(value)
+        self.__eels_spec.set_val(self.__dx, 'DX')
         self.property_changed_event.fire("dx_slider_f")
         self.property_changed_event.fire("dx_edit_f")
 
@@ -452,6 +462,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @dmx_edit_f.setter
     def dmx_edit_f(self, value):
         self.__dmx = int(value)
+        self.__eels_spec.set_val(self.__dmx, 'DMX')
         self.property_changed_event.fire("dmx_slider_f")
         self.property_changed_event.fire("dmx_edit_f")
 

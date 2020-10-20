@@ -70,6 +70,7 @@ class Device:
         self.spimscan = orsayScan(2, self.orsayscan.orsayscan, vg=True)
 
         self.orsayscan.SetInputs([1, 0])
+        self.spimscan.SetInputs([1, 0])
 
         self.has_data_event = threading.Event()
 
@@ -384,9 +385,9 @@ class Device:
                 logging.info(f'***SCAN***: Cathodoluminescence Spim')
 
             self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
-            print(self.__scan_area)
             self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
-
+            print(self.orsayscan.GetInputs())
+            print(self.spimscan.GetInputs())
             self.spimscan.startSpim(0, 1)
 
         else:
