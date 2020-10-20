@@ -246,8 +246,8 @@ class Device:
                     data_elements.append(data_element)
 
             else:
-                data_array = self.imagedata[(channel.channel_id) * (self.__spim_pixels[1]):(channel.channel_id + 1) * (
-                    self.__spim_pixels[1]),
+                data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):channel.channel_id * (
+                    self.__scan_area[1]) + self.__spim_pixels[1],
                              0: (self.__spim_pixels[0])].astype(numpy.float32)
                 #data_array = self.imagedata.astype(numpy.float32)
                 #if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
@@ -386,8 +386,6 @@ class Device:
 
             self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
             self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
-            print(self.orsayscan.GetInputs())
-            print(self.spimscan.GetInputs())
             self.spimscan.startSpim(0, 1)
 
         else:
