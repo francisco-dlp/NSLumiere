@@ -451,7 +451,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @dmx_slider_f.setter
     def dmx_slider_f(self, value):
         self.__dmx = value
-        self.__eels_spec.set_val(self.__dmx, 'DMX')
+        self.__eels_spec.set_val(self.__dmx, 'AL')
         self.property_changed_event.fire("dmx_slider_f")
         self.property_changed_event.fire("dmx_edit_f")
 
@@ -462,7 +462,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @dmx_edit_f.setter
     def dmx_edit_f(self, value):
         self.__dmx = int(value)
-        self.__eels_spec.set_val(self.__dmx, 'DMX')
+        self.__eels_spec.set_val(self.__dmx, 'AL')
         self.property_changed_event.fire("dmx_slider_f")
         self.property_changed_event.fire("dmx_edit_f")
 
