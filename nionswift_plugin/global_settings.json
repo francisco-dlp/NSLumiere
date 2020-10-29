@@ -31,7 +31,7 @@
         "STAGE_MATRIX_SIZE": 160
     },
     "SPECTROMETER": {
-        "DEBUG": 1,
+        "DEBUG": 0,
         "GRATINGS": {
             "COMPLET": [
                 "300 g/mm BLZ=  300NM",
