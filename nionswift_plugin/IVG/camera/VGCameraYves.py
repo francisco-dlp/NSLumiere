@@ -192,7 +192,7 @@ class CameraDevice(camera_base.CameraDevice):
         if "processing" in frame_parameters:
             self.__hardware_settings.processing = frame_parameters.processing
 
-        if self.__acqon: self.start_live()
+        if not self.__acqon: self.start_live()
 
     def __numpy_to_orsay_type(self, array: numpy.array):
         orsay_type = Orsay_Data.float

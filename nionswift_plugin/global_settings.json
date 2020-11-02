@@ -25,7 +25,7 @@
         },
         "SENDMAIL": 0,
         "SLOW_PERIODIC": {
-            "ACTIVE": 1,
+            "ACTIVE": 0,
             "PERIOD": 1.0
         },
         "STAGE_MATRIX_SIZE": 160
