@@ -1,6 +1,14 @@
 from nion.swift.model import HardwareSource
 import numpy
 import time
+from nion.typeshed import API_1_0 as API
+from nion.typeshed import UI_1_0 as UI
+
+api = api_broker.get_api(API.version, UI.version)  # type: API
+
+#from nion.swift.model import PlugInManager
+#api_broker = PlugInManager.APIBroker()
+#api = api_broker.get_api(version='~1.0', ui_version='~1.0')
 
 cam_eels = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eels")
 cam_eire = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eire")
@@ -8,7 +16,7 @@ scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_s
 stage = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
 my_inst = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 
-pts = 4
+pts = 16
 sub_region = 0.25
 
 xarray = numpy.linspace(-sub_region, sub_region, pts)
@@ -47,6 +55,7 @@ stage.x_pos_f = initial_stage_x - sub_region*fov*1e8 #You put 400 to have 4 micr
 stage.y_pos_f = initial_stage_y - sub_region*fov*1e8
 cam_eire.start_playing()
 data = list()
+xdata = numpy.zeros((pts, pts, 1600))
 time.sleep(0.25)
 
 sen = -1
@@ -60,7 +69,12 @@ for xi, x in enumerate(xarray):
         stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
         data = cam_eire.grab_next_to_finish()
         data.append([stage.x_pos_f, stage.y_pos_f, data[0]])
+        xdata[xi, yi] = data[0].data
         #scan.scan_device.probe_pos = ((x+0.5), (y+0.5))
+
+si_data_descriptor = api.create_data_descriptor(is_sequence=False, collection_dimension_count=2, datum_dimension_count=1)
+si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descriptor)
+data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
 
 stage.x_pos_f = initial_stage_x
 stage.y_pos_f = initial_stage_y
