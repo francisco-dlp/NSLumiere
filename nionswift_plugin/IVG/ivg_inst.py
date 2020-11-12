@@ -455,12 +455,8 @@ class ivgInstrument(stem_controller.STEMController):
             if self.__stage_moving[0]:
                 self.__StageInstrument.busy_UI(2) #2 is to disable Y
 
-
-
             if not self.__stage_moving[0] and not self.__stage_moving[1]:
                 self.__StageInstrument.free_UI('x', 'y')
-
-
 
         except:
             self.__x_real_pos = -1.e-5

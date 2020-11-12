@@ -44,7 +44,7 @@ class stageDevice(Observable.Observable):
 
     def set_origin(self):
         #self.__vgStage.stageInit(True, True, True)
-        logging.info('Disabled for now. X switch seems to be malfunctioning')
+        logging.info('***VG STAGE***: Disabled for now. X switch seems to be malfunctioning.')
 
 
     def free_UI(self, *args):
