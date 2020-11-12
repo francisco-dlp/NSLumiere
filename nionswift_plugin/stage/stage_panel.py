@@ -20,6 +20,7 @@ class stagehandler:
         self.property_changed_event_listener=self.instrument.property_changed_event.listen(self.prepare_widget_enable)
         self.busy_event_listener=self.instrument.busy_event.listen(self.prepare_widget_disable)
         self.slider_event_listener=self.instrument.slider_event.listen(self.readjust_slider)
+        self.slider_total_range_listener = self.instrument.slider_total_range.listen(self.total_range)
         self.slider_max = 400
 
 
@@ -34,8 +35,13 @@ class stagehandler:
     def prepare_widget_enable(self, value):
         self.event_loop.create_task(self.do_enable(True, []))
 
-    def prepare_widget_disable(self,value):
-        self.event_loop.create_task(self.do_enable(False, ['reset_ui', 'request']))
+    def prepare_widget_disable(self, value=2):
+        if value==2:
+            self.event_loop.create_task(self.do_enable(False, ['reset_ui', 'request', 'y_label', 'y_value_edit', 'y_slider']))
+        elif value==1:
+            self.event_loop.create_task(self.do_enable(False, ['reset_ui', 'request', 'x_label', 'x_value_edit', 'x_slider']))
+        else:
+            self.event_loop.create_task(self.do_enable(False, ['reset_ui', 'request']))
 
     def reset_ui_pb(self, widget):
         self.event_loop.create_task(self.do_enable(True, []))

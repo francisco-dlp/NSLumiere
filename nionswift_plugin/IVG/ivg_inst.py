@@ -82,7 +82,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__obj_res_ref = OBJECTIVE_RESISTANCE
         self.__amb_temp = AMBIENT_TEMPERATURE
         self.__stand = False
-        self.__stage_moving = False
+        self.__stage_moving = [False, False] #x and y stage moving
 
         self.__obj_temp = self.__amb_temp
         self.__obj_res = self.__obj_res_ref
@@ -446,13 +446,22 @@ class ivgInstrument(stem_controller.STEMController):
     def x_stage_f(self):
         try:
             self.__x_real_pos, self.__y_real_pos = self.__StageInstrument.GetPos()
-            if (abs(self.__x_real_pos * 1e6 - self.__StageInstrument.x_pos_f / 1e2) < 0.5 and
-                    abs(self.__y_real_pos * 1e6 - self.__StageInstrument.y_pos_f / 1e2) < 0.5):
-                self.__stage_moving = False
-                self.__StageInstrument.free_UI()
-            else:
-                self.__stage_moving = True
-                self.__StageInstrument.busy_UI()
+            self.__stage_moving[0] = False if abs(self.__x_real_pos * 1e6 - self.__StageInstrument.x_pos_f / 1e2) < 0.5 else True
+            self.__stage_moving[1] = False if abs(self.__y_real_pos * 1e6 - self.__StageInstrument.y_pos_f / 1e2) < 0.5 else True
+
+            if self.__stage_moving[1]:
+                self.__StageInstrument.busy_UI(1) #1 is to disable X
+
+            if self.__stage_moving[0]:
+                self.__StageInstrument.busy_UI(2) #2 is to disable Y
+
+
+
+            if not self.__stage_moving[0] and not self.__stage_moving[1]:
+                self.__StageInstrument.free_UI('x', 'y')
+
+
+
         except:
             self.__x_real_pos = -1.e-5
             self.__y_real_pos = -1.e-5

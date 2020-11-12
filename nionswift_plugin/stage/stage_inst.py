@@ -28,6 +28,7 @@ class stageDevice(Observable.Observable):
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
         self.slider_event=Event.Event()
+        self.slider_total_range=Event.Event()
         
         self.__sendmessage = stage.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__vgStage=stage.VGStage(self.__sendmessage)
@@ -45,14 +46,19 @@ class stageDevice(Observable.Observable):
         #self.__vgStage.stageInit(True, True, True)
         logging.info('Disabled for now. X switch seems to be malfunctioning')
 
-    def free_UI(self):
-        self.property_changed_event.fire('x_pos_f')
-        self.property_changed_event.fire('x_pos_edit_f')
-        self.property_changed_event.fire('y_pos_f')
-        self.property_changed_event.fire('y_pos_edit_f')
 
-    def busy_UI(self):
-        self.busy_event.fire('')
+    def free_UI(self, *args):
+        for arg in args:
+            if arg=='x':
+                self.property_changed_event.fire('x_pos_f')
+                self.property_changed_event.fire('x_pos_edit_f')
+            elif arg=='y':
+                self.property_changed_event.fire('y_pos_f')
+                self.property_changed_event.fire('y_pos_edit_f')
+
+    def busy_UI(self, *args):
+        for arg in args:
+            self.busy_event.fire(arg)
 
     def sendMessageFactory(self):
         def sendMessage(message):
@@ -83,6 +89,7 @@ class stageDevice(Observable.Observable):
     def x_pos_edit_f(self, value):
         self.__x = float(value)/1e6
         self.__vgStage.stageGoTo_x(self.__x)
+        self.slider_total_range.fire('')
         self.property_changed_event.fire('x_pos_f')
         self.property_changed_event.fire('x_pos_edit_f')
 
@@ -105,6 +112,7 @@ class stageDevice(Observable.Observable):
     def y_pos_edit_f(self, value):
         self.__y = float(value)/1e6
         self.__vgStage.stageGoTo_y(self.__y)
+        self.slider_total_range.fire('')
         self.property_changed_event.fire('y_pos_f')
         self.property_changed_event.fire('y_pos_edit_f')
 
