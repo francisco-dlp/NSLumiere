@@ -27,11 +27,11 @@ si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descripto
 data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
 '''
 
-pts = 8
+pts = 4
 sub_region = 0.4
 
-xarray = numpy.linspace(-sub_region, sub_region, pts)
-yarray = numpy.linspace(-sub_region, sub_region, pts)
+xarray = numpy.linspace(-sub_region, sub_region, pts+1)
+yarray = numpy.linspace(-sub_region, sub_region, pts+1)
 
 fov = scan.scan_device.field_of_view
 ia = scan.scan_device.Image_area
@@ -60,7 +60,7 @@ print(f'Image area (pixels): {(ia[0])} and {(ia[1])}')
 print(f'Pixels per step: {(ia[0])/pts} and {(ia[1])/pts}')
 print(f'initial probe position is {initial_probe_x} and {initial_probe_y}')
 
-xdata = numpy.zeros((pts, pts, ia[0], ia[1]))
+xdata = numpy.zeros((pts+1, pts+1, ia[0], ia[1]))
 
 def highlight_data(data, index, shape, w, value, sen):
     x, y = index
@@ -69,8 +69,8 @@ def highlight_data(data, index, shape, w, value, sen):
     data[int(cy-w):int(cy+w), int(cx-w):int(cx+w)] = value
 
 def calib(x, y):
-    xc = (ia[0]/2 + 399.2*x - 45.6*y)/ia[0]
-    yc = (ia[1]/2 + 106.6*x + 376.2*y)/ia[1]
+    xc = (ia[0]/2 + 389.125*x - 45.75*y)/ia[0]
+    yc = (ia[1]/2 + 94.875*x + 380.375*y)/ia[1]
     return (xc, yc)
 
 sen = 1
