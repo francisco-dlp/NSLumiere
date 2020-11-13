@@ -17,10 +17,10 @@ stage = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_contr
 my_inst = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 
 pts = 16
-sub_region = 0.25
+sub_region = 0.4
 
-xarray = numpy.linspace(-sub_region, sub_region, pts)
-yarray = numpy.linspace(-sub_region, sub_region, pts)
+xarray = numpy.linspace(-sub_region, sub_region, pts+1)
+yarray = numpy.linspace(-sub_region, sub_region, pts+1)
 
 fov = scan.scan_device.field_of_view
 ia = scan.scan_device.Image_area
@@ -51,26 +51,34 @@ print(f'Pixels per step: {(ia[3]-ia[2])/pts} and {(ia[5]-ia[4])/pts}')
 print(f'initial probe position is {initial_probe_x} and {initial_probe_y}')
 print(f'initial probe position (in pixels) is {initial_probe_pixel}')
 
-stage.x_pos_f = initial_stage_x - sub_region*fov*1e8 #You put 400 to have 4 microns in this property here
+stage.x_pos_f = initial_stage_x + sub_region*fov*1e8 #You put 400 to have 4 microns in this property here
 stage.y_pos_f = initial_stage_y - sub_region*fov*1e8
 cam_eire.start_playing()
+scan.stop_playing()
 data = list()
-xdata = numpy.zeros((pts, pts, 1600))
-time.sleep(0.25)
+xdata = numpy.zeros((pts+1, pts+1, 1600))
+time.sleep(2.0)
 
-sen = -1
+def calib(x, y):
+    xc = (ia[0]/2 + 389.125*x - 45.750*y)/ia[0]
+    yc = (ia[1]/2 + 94.875*x + 380.375*y)/ia[1]
+    return (xc, yc)
+
+sen = 1
 for xi, x in enumerate(xarray):
-    stage.x_pos_f = initial_stage_x + x*fov*1e8 #You put 400 to have 4 microns in this property here
-    sen = sen * -1
+    print('Percentage done is: ' + format((100*xi/len(xarray)), '.2f') + ' %')
+    stage.x_pos_f = initial_stage_x - x*fov*1e8 #You put 400 to have 4 microns in this property here
+    sen = sen * 1
     for yi, y in enumerate(yarray):
         for val in my_inst._ivgInstrument__stage_moving:
             if val:
                 raise Exception("***MECHANICAL SPECTRA***: Motor move during a new command.")
         stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
         data = cam_eire.grab_next_to_finish()
+        time.sleep(1.5) if yi==0 else time.sleep(0.5)
         data.append([stage.x_pos_f, stage.y_pos_f, data[0]])
         xdata[xi, yi] = data[0].data
-        #scan.scan_device.probe_pos = ((x+0.5), (y+0.5))
+        scan.scan_device.probe_pos = (calib(x, y))
 
 si_data_descriptor = api.create_data_descriptor(is_sequence=False, collection_dimension_count=2, datum_dimension_count=1)
 si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descriptor)
@@ -78,6 +86,5 @@ data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
 
 stage.x_pos_f = initial_stage_x
 stage.y_pos_f = initial_stage_y
-cam_eire.stop_playing()
-#scan.scan_device.probe_pos = (initial_probe_x, initial_probe_y)
+scan.scan_device.probe_pos = (initial_probe_x, initial_probe_y)
 

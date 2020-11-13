@@ -27,7 +27,7 @@ si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descripto
 data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
 '''
 
-pts = 4
+pts = 16
 sub_region = 0.4
 
 xarray = numpy.linspace(-sub_region, sub_region, pts+1)
@@ -86,7 +86,7 @@ for xi, x in enumerate(xarray):
             if val:
                 raise Exception("***MECHANICAL SPECTRA***: Motor move during a new command.")
         stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
-        time.sleep(1.0) if yi==0 else time.sleep(0.5)
+        time.sleep(1.5) if yi==0 else time.sleep(0.5)
         im = scan.grab_next_to_start()
         highlight_data(im[0].data, calib(x, y), (ia[0], ia[1]), 1, 2, sen)
         if sen==1:
