@@ -1,17 +1,17 @@
 {
     "EELS": {
-        "DEBUG": 1
+        "DEBUG": 0
     },
     "IVG": {
         "CAMERA": {
-            "DEBUG": 1,
+            "DEBUG": 0,
             "PIXELS": 1600,
             "SIZE": 25.6
         },
-        "DEBUG_SCAN": 1,
+        "DEBUG_SCAN": 0,
         "AMBIENT_TEMPERATURE": 23,
         "DEBUG_AIRLOCK": 1,
-        "DEBUG_GUN": 1,
+        "DEBUG_GUN": 0,
         "EHT_INITIAL": 3,
         "FAST_PERIODIC": {
             "ACTIVE": 1,
@@ -31,7 +31,7 @@
         "STAGE_MATRIX_SIZE": 160
     },
     "SPECTROMETER": {
-        "DEBUG": 1,
+        "DEBUG": 0,
         "GRATINGS": {
             "COMPLET": [
                 "300 g/mm BLZ=  300NM",
@@ -47,18 +47,18 @@
         "FL": 320
     },
     "diaf": {
-        "DEBUG": 1
+        "DEBUG": 0
     },
     "lenses": {
-        "DEBUG": 1,
+        "DEBUG": 0,
         "MAX_OBJ": 9.5,
         "MAX_C1": 1.5,
         "MAX_C2": 1.5
     },
     "stage": {
-        "DEBUG": 1
+        "DEBUG": 0
     },
     "mirror": {
-        "DEBUG": 1
+        "DEBUG": 0
     }
 }
