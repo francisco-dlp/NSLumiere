@@ -27,8 +27,8 @@ si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descripto
 data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
 '''
 
-pts = 4
-sub_region = 0.25
+pts = 8
+sub_region = 0.4
 
 xarray = numpy.linspace(-sub_region, sub_region, pts)
 yarray = numpy.linspace(-sub_region, sub_region, pts)
@@ -60,12 +60,7 @@ print(f'Image area (pixels): {(ia[0])} and {(ia[1])}')
 print(f'Pixels per step: {(ia[0])/pts} and {(ia[1])/pts}')
 print(f'initial probe position is {initial_probe_x} and {initial_probe_y}')
 
-stage.x_pos_f = initial_stage_x + sub_region*fov*1e8
-stage.y_pos_f = initial_stage_y + sub_region*fov*1e8
-xdata = numpy.zeros((pts, pts, 512, 512))
-x_calib = (1.0, 0.0)
-y_calib = (0.0, 1.0)
-time.sleep(0.5)
+xdata = numpy.zeros((pts, pts, ia[0], ia[1]))
 
 def highlight_data(data, index, shape, w, value, sen):
     x, y = index
@@ -73,13 +68,16 @@ def highlight_data(data, index, shape, w, value, sen):
     cy = (y)*shape[1] if sen==1 else shape[1] - (y)*shape[1]
     data[int(cy-w):int(cy+w), int(cx-w):int(cx+w)] = value
 
-def calib(xi, yi):
-    xc = (165.5 + 66.5*xi - 5.3*yi)/512
-    yc = (141.2 + 14.0*xi + 62.1*yi)/512
-    print((xi, yi, xc, yc))
+def calib(x, y):
+    xc = (ia[0]/2 + 399.2*x - 45.6*y)/ia[0]
+    yc = (ia[1]/2 + 106.6*x + 376.2*y)/ia[1]
     return (xc, yc)
-s
+
 sen = 1
+stage.x_pos_f = initial_stage_x + sub_region*fov*1e8
+stage.y_pos_f = initial_stage_y - sub_region*fov*1e8*sen
+time.sleep(1.0)
+
 for xi, x in enumerate(xarray):
     sen = sen * 1
     stage.x_pos_f = initial_stage_x - x*fov*1e8
@@ -88,9 +86,9 @@ for xi, x in enumerate(xarray):
             if val:
                 raise Exception("***MECHANICAL SPECTRA***: Motor move during a new command.")
         stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
-        time.sleep(1.0)
+        time.sleep(1.0) if yi==0 else time.sleep(0.5)
         im = scan.grab_next_to_start()
-        highlight_data(im[0].data, calib(xi, yi), (ia[0], ia[1]), 1, 2, sen)
+        highlight_data(im[0].data, calib(x, y), (ia[0], ia[1]), 1, 2, sen)
         if sen==1:
             xdata[xi, yi] = im[0].data
         else:
