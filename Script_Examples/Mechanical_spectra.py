@@ -16,7 +16,7 @@ scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_s
 stage = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
 my_inst = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 
-pts = 16
+pts = 4
 sub_region = 0.4
 
 xarray = numpy.linspace(-sub_region, sub_region, pts+1)
@@ -53,6 +53,7 @@ print(f'initial probe position (in pixels) is {initial_probe_pixel}')
 
 stage.x_pos_f = initial_stage_x + sub_region*fov*1e8 #You put 400 to have 4 microns in this property here
 stage.y_pos_f = initial_stage_y - sub_region*fov*1e8
+
 cam_eire.start_playing()
 scan.stop_playing()
 data = list()
@@ -83,7 +84,7 @@ for xi, x in enumerate(xarray):
 si_data_descriptor = api.create_data_descriptor(is_sequence=False, collection_dimension_count=2, datum_dimension_count=1)
 dimensional_calibration_0 = api.create_calibration(0.0, (fov*1e9)/pts, 'nm') #x
 dimensional_calibration_1 = api.create_calibration(0.0, (fov*1e9)/pts, 'nm') #y
-dimensional_calibration_2 = api.create_calibration(0.0, 30, 'nm') #eire
+dimensional_calibration_2 = data[0].get_dimensional_calibration(1) #from camera
 dimensional_calibrations =  [dimensional_calibration_0, dimensional_calibration_1, dimensional_calibration_2]
 si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descriptor,
                                         dimensional_calibrations=dimensional_calibrations)
