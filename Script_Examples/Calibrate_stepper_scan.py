@@ -8,11 +8,10 @@ from nion.swift.model import Graphics
 
 api = api_broker.get_api(API.version, UI.version)
 
-scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("usim_scan_device")
+scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
 stage = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
-my_inst = HardwareSource.HardwareSourceManager().get_instrument_by_id("usim_stem_controller")
+my_inst = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 
-my_inst.SetVal2D("stage_position_m", Geometry.FloatPoint(y=0e-9, x=0e-8))
 
 '''
 xdata = numpy.random.randn(10, 10, 1024)
@@ -28,28 +27,25 @@ si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descripto
 data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
 '''
 
-det = scan.grab_next_to_start()[0]
-
-pts = 8
+pts = 4
 sub_region = 0.25
 
 xarray = numpy.linspace(-sub_region, sub_region, pts)
 yarray = numpy.linspace(-sub_region, sub_region, pts)
 
-
-fov = scan.get_current_frame_parameters()["fov_nm"]
-ia = scan.get_current_frame_parameters()["size"]
+fov = scan.scan_device.field_of_view
+ia = scan.scan_device.Image_area
 
 x_samp = (fov)/(ia[0])
 y_samp = (fov)/(ia[1])
 
-initial_stage_x, initial_stage_y = my_inst.GetVal2D("stage_position_m")
+initial_stage_x = stage.x_pos_f
+initial_stage_y = stage.y_pos_f
 
 if scan.probe_position is None:
     raise Exception("***MECHANICAL SPECTRA***: Probe position not assigned. Position the probe using Scan Control.")
 
 initial_probe_x, initial_probe_y = scan.probe_position
-
 
 
 if abs(initial_probe_x-0.5)>0.01 or abs(initial_probe_y-0.5)>0.01:
@@ -64,29 +60,47 @@ print(f'Image area (pixels): {(ia[0])} and {(ia[1])}')
 print(f'Pixels per step: {(ia[0])/pts} and {(ia[1])/pts}')
 print(f'initial probe position is {initial_probe_x} and {initial_probe_y}')
 
-xdata = numpy.zeros((pts, pts, 256, 256))
+stage.x_pos_f = initial_stage_x + sub_region*fov*1e8
+stage.y_pos_f = initial_stage_y + sub_region*fov*1e8
+xdata = numpy.zeros((pts, pts, 512, 512))
+x_calib = (1.0, 0.0)
+y_calib = (0.0, 1.0)
+time.sleep(0.5)
 
 def highlight_data(data, index, shape, w, value, sen):
     x, y = index
-    cx = (x+0.5)*shape[0]
-    cy = (y+0.5)*shape[1] if sen==1 else shape[1] - (y+0.5)*shape[1]
+    cx = (x)*shape[0]
+    cy = (y)*shape[1] if sen==1 else shape[1] - (y)*shape[1]
     data[int(cy-w):int(cy+w), int(cx-w):int(cx+w)] = value
 
+def calib(xi, yi):
+    xc = (165.5 + 66.5*xi - 5.3*yi)/512
+    yc = (141.2 + 14.0*xi + 62.1*yi)/512
+    print((xi, yi, xc, yc))
+    return (xc, yc)
+s
 sen = 1
 for xi, x in enumerate(xarray):
-    sen = sen * -1
+    sen = sen * 1
+    stage.x_pos_f = initial_stage_x - x*fov*1e8
     for yi, y in enumerate(yarray):
-        my_inst.SetVal2D("stage_position_m", Geometry.FloatPoint(y=y*fov*1e-9*sen, x=x*fov*1e-9))
+        for val in my_inst._ivgInstrument__stage_moving:
+            if val:
+                raise Exception("***MECHANICAL SPECTRA***: Motor move during a new command.")
+        stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
+        time.sleep(1.0)
         im = scan.grab_next_to_start()
-        highlight_data(im[0].data, (x, y), (ia[0], ia[1]), 1, 5, sen)
+        highlight_data(im[0].data, calib(xi, yi), (ia[0], ia[1]), 1, 2, sen)
         if sen==1:
             xdata[xi, yi] = im[0].data
         else:
             xdata[xi, pts-1-yi] = im[0].data
 
+
 si_data_descriptor = api.create_data_descriptor(is_sequence=False, collection_dimension_count=2, datum_dimension_count=2)
 si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descriptor)
 data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
 
-my_inst.SetVal2D("stage_position_m", Geometry.FloatPoint(y=0, x=0))
+stage.x_pos_f = initial_stage_x
+stage.y_pos_f = initial_stage_y
 

@@ -33,7 +33,6 @@ class Diafs:
         try:
             if not self.ser.is_open:
                 self.ser.open()
-                time.sleep(0.1)
         except:
             self.sendmessage(1)
 

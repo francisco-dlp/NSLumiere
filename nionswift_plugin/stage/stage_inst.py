@@ -83,7 +83,7 @@ class stageDevice(Observable.Observable):
 
     @property
     def x_pos_edit_f(self):
-        return '{:.2f}'.format(self.__x*1e6)
+        return '{:.3f}'.format(self.__x*1e6)
 
     @x_pos_edit_f.setter
     def x_pos_edit_f(self, value):
@@ -106,7 +106,7 @@ class stageDevice(Observable.Observable):
 
     @property
     def y_pos_edit_f(self):
-        return '{:.2f}'.format(self.__y*1e6)
+        return '{:.3f}'.format(self.__y*1e6)
 
     @y_pos_edit_f.setter
     def y_pos_edit_f(self, value):
