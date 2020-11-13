@@ -81,7 +81,12 @@ for xi, x in enumerate(xarray):
         scan.scan_device.probe_pos = (calib(x, y))
 
 si_data_descriptor = api.create_data_descriptor(is_sequence=False, collection_dimension_count=2, datum_dimension_count=1)
-si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descriptor)
+dimensional_calibration_0 = api.create_calibration(0.0, (fov*1e9)/pts, 'nm') #x
+dimensional_calibration_1 = api.create_calibration(0.0, (fov*1e9)/pts, 'nm') #y
+dimensional_calibration_2 = api.create_calibration(0.0, 30, 'nm') #eire
+dimensional_calibrations =  [dimensional_calibration_0, dimensional_calibration_1, dimensional_calibration_2]
+si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descriptor,
+                                        dimensional_calibrations=dimensional_calibrations)
 data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
 
 stage.x_pos_f = initial_stage_x
