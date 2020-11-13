@@ -45,7 +45,7 @@ if not ((ia[3]-ia[2])/pts).is_integer() or not ((ia[5]-ia[4])/pts).is_integer():
     raise Exception("***MECHANICAL SPECTRA***: Number of points (pts) is not a divisor of image area (in pixels)")
 
 print(f'Probe Sampling Precision (nm): {x_samp} nm and {y_samp} nm.')
-print(f'Mechanical step is (nm): {(fov*1e9)/pts} and {(fov*1e9)/pts}')
+print(f'Mechanical step is (nm): {(fov*1e9)/(pts+1)} and {(fov*1e9)/(pts+1)}')
 print(f'Image area (pixels): {(ia[3]-ia[2])} and {(ia[5]-ia[4])}')
 print(f'Pixels per step: {(ia[3]-ia[2])/pts} and {(ia[5]-ia[4])/pts}')
 print(f'initial probe position is {initial_probe_x} and {initial_probe_y}')
@@ -61,34 +61,39 @@ xdata = numpy.zeros((pts+1, pts+1, 1600))
 time.sleep(2.0)
 
 def calib(x, y):
-    xc = (ia[0]/2 + 389.125*x - 45.750*y)/ia[0]
-    yc = (ia[1]/2 + 94.875*x + 380.375*y)/ia[1]
+    xc = (ia[0]/2 + 389.125*x - 45.750*y)/ia[0] #from 0 to ia
+    yc = (ia[1]/2 + 94.875*x + 380.375*y)/ia[1] #from 0 to ia
     return (xc, yc)
 
 sen = 1
 for xi, x in enumerate(xarray):
-    print('Percentage done is: ' + format((100*xi/len(xarray)), '.2f') + ' %')
+    print('Percentage dones is: ' + format((100*xi/len(xarray)), '.2f') + ' %')
     stage.x_pos_f = initial_stage_x - x*fov*1e8 #You put 400 to have 4 microns in this property here
     sen = sen * 1
     for yi, y in enumerate(yarray):
         for val in my_inst._ivgInstrument__stage_moving:
             if val:
-                raise Exception("***MECHANICAL SPECTRA***: Motor move during a new command.")
+                print(f"***MECHANICAL SPECTRA***: Motor move during a new command at point {(xi, yi)}")
         stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
         data = cam_eire.grab_next_to_finish()
-        time.sleep(1.5) if yi==0 else time.sleep(0.5)
+        time.sleep(1.0) if yi==0 else time.sleep(0.25)
         data.append([stage.x_pos_f, stage.y_pos_f, data[0]])
-        xdata[xi, yi] = data[0].data
+        xdata[yi, xi] = data[0].data
         scan.scan_device.probe_pos = (calib(x, y))
 
+
+
 si_data_descriptor = api.create_data_descriptor(is_sequence=False, collection_dimension_count=2, datum_dimension_count=1)
-dimensional_calibration_0 = api.create_calibration(0.0, (fov*1e9)/pts, 'nm') #x
-dimensional_calibration_1 = api.create_calibration(0.0, (fov*1e9)/pts, 'nm') #y
+dimensional_calibration_0 = api.create_calibration(0.0, (fov*1e9)/(pts+1), 'nm') #x
+dimensional_calibration_1 = api.create_calibration(0.0, (fov*1e9)/(pts+1), 'nm') #y
 dimensional_calibration_2 = data[0].get_dimensional_calibration(1) #from camera
 dimensional_calibrations =  [dimensional_calibration_0, dimensional_calibration_1, dimensional_calibration_2]
 si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descriptor,
                                         dimensional_calibrations=dimensional_calibrations)
 data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
+data_item.title = 'Mech_Spec_'+format((fov*1e9)/(pts+1), '.2f')+' nm_'+\
+                  str(cam_eire.get_current_frame_parameters()['exposure_ms'])+' ms_' +\
+                  str(scan.scan_device.Image_area) + 'IA'
 
 stage.x_pos_f = initial_stage_x
 stage.y_pos_f = initial_stage_y

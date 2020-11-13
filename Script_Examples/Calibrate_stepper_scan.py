@@ -55,7 +55,7 @@ if not (ia[0]/pts).is_integer() or not (ia[1]/pts).is_integer():
     raise Exception("***MECHANICAL SPECTRA***: Number of points (pts) is not a divisor of image area (in pixels)")
 
 print(f'Probe Sampling Precision (nm): {x_samp} nm and {y_samp} nm.')
-print(f'Mechanical step is (nm): {(fov*1e9)/pts} and {(fov*1e9)/pts}')
+print(f'Mechanical step is (nm): {(fov*1e9)/(pts+1)} and {(fov*1e9)/(pts+1)}')
 print(f'Image area (pixels): {(ia[0])} and {(ia[1])}')
 print(f'Pixels per step: {(ia[0])/pts} and {(ia[1])/pts}')
 print(f'initial probe position is {initial_probe_x} and {initial_probe_y}')
@@ -69,8 +69,8 @@ def highlight_data(data, index, shape, w, value, sen):
     data[int(cy-w):int(cy+w), int(cx-w):int(cx+w)] = value
 
 def calib(x, y):
-    xc = (ia[0]/2 + 389.125*x - 45.75*y)/ia[0]
-    yc = (ia[1]/2 + 94.875*x + 380.375*y)/ia[1]
+    xc = (ia[0]/2 + 389.125*x - 45.75*y)/ia[0] #from 0 to ia
+    yc = (ia[1]/2 + 94.875*x + 380.375*y)/ia[1] #from 0 to ia
     return (xc, yc)
 
 sen = 1
