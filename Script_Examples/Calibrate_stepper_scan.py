@@ -15,6 +15,18 @@ print(my_inst.GetVal2D("stage_position_m"))
 pos = Geometry.FloatPoint(y=1e-9, x=1e-8)
 my_inst.SetVal2D("stage_position_m", pos)
 
+xdata = numpy.random.randn(10, 10, 1024)
+intensity_calibration = api.create_calibration(offset=0.0, scale=4.0, units='counts')
+dimensional_calibration_0 = api.create_calibration(0.0, 10, '0U')
+dimensional_calibration_1 = api.create_calibration(0.0, 20, '1U')
+dimensional_calibration_2 = api.create_calibration(0.0, 30, '2U')
+dimensional_calibrations = [dimensional_calibration_0, dimensional_calibration_1, dimensional_calibration_2]
+si_data_descriptor = api.create_data_descriptor(is_sequence=False, collection_dimension_count=2, datum_dimension_count=1)
+si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descriptor,
+                                        intensity_calibration=intensity_calibration,
+                                        dimensional_calibrations=dimensional_calibrations)
+data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
+
 oi
 
 det = scan.grab_next_to_start()[0]
