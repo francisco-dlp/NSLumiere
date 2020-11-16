@@ -16,7 +16,7 @@ scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_s
 stage = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
 my_inst = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 
-pts = 4
+pts = 32
 sub_region = 0.45
 
 xarray = numpy.linspace(-sub_region, sub_region, pts+1)
@@ -56,7 +56,6 @@ stage.y_pos_f = initial_stage_y - sub_region*fov*1e8
 
 cam_eire.start_playing()
 scan.stop_playing()
-data = list()
 xdata = numpy.zeros((pts+1, pts+1, 1600))
 time.sleep(2.0)
 
@@ -64,6 +63,20 @@ def calib(x, y):
     xc = (0.50288628 + 0.8343099*x - 0.08394821*y) #from 0 to ia
     yc = (0.49774306 + 0.17672164*x + 0.80562789*y) #from 0 to ia
     return (xc, yc)
+
+data = cam_eire.grab_next_to_finish()
+
+si_data_descriptor = api.create_data_descriptor(is_sequence=False, collection_dimension_count=2, datum_dimension_count=1)
+dimensional_calibration_0 = api.create_calibration(0.0, (fov*1e9)/(pts+1), 'nm') #x
+dimensional_calibration_1 = api.create_calibration(0.0, (fov*1e9)/(pts+1), 'nm') #y
+dimensional_calibration_2 = data[0].get_dimensional_calibration(1) #from camera
+dimensional_calibrations =  [dimensional_calibration_0, dimensional_calibration_1, dimensional_calibration_2]
+si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descriptor,
+                                        dimensional_calibrations=dimensional_calibrations)
+data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
+data_item.title = 'Mech_Spec_'+format((fov*1e9)/(pts+1), '.2f')+' nm_'+ \
+                  str(cam_eire.get_current_frame_parameters()['exposure_ms'])+' ms_' + \
+                  str(scan.scan_device.Image_area) + 'IA'
 
 sen = 1
 for xi, x in enumerate(xarray):
@@ -75,27 +88,15 @@ for xi, x in enumerate(xarray):
             if val:
                 print(f"***MECHANICAL SPECTRA***: Motor move during a new command at point {(xi, yi)}")
         stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
+        time.sleep(2.0) if yi==0 else time.sleep(0.3*32/pts)
         data = cam_eire.grab_next_to_finish()
-        time.sleep(1.0) if yi==0 else time.sleep(0.25)
-        data.append([stage.x_pos_f, stage.y_pos_f, data[0]])
-        xdata[yi, xi] = data[0].data
+        data_item.data[yi, xi] = data[0].data
         scan.scan_device.probe_pos = (calib(x, y))
 
-
-
-si_data_descriptor = api.create_data_descriptor(is_sequence=False, collection_dimension_count=2, datum_dimension_count=1)
-dimensional_calibration_0 = api.create_calibration(0.0, (fov*1e9)/(pts+1), 'nm') #x
-dimensional_calibration_1 = api.create_calibration(0.0, (fov*1e9)/(pts+1), 'nm') #y
-dimensional_calibration_2 = data[0].get_dimensional_calibration(1) #from camera
-dimensional_calibrations =  [dimensional_calibration_0, dimensional_calibration_1, dimensional_calibration_2]
-si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descriptor,
-                                        dimensional_calibrations=dimensional_calibrations)
-data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
-data_item.title = 'Mech_Spec_'+format((fov*1e9)/(pts+1), '.2f')+' nm_'+\
-                  str(cam_eire.get_current_frame_parameters()['exposure_ms'])+' ms_' +\
-                  str(scan.scan_device.Image_area) + 'IA'
 
 stage.x_pos_f = initial_stage_x
 stage.y_pos_f = initial_stage_y
 scan.scan_device.probe_pos = (initial_probe_x, initial_probe_y)
+
+scan.start_playing()
 
