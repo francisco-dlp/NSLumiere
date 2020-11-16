@@ -88,7 +88,7 @@ for xi, x in enumerate(xarray):
             if val:
                 print(f"***MECHANICAL SPECTRA***: Motor move during a new command at point {(xi, yi)}")
         stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
-        scan.scan_device.probe_pos = (calib(x, y)) #TODO CHECK THIS
+        scan.scan_device.probe_pos = (calib(x, y))
         time.sleep(2.0) if yi==0 else time.sleep(0.3*32/pts)
         data = cam_eire.grab_next_to_finish()
         data_item.data[yi, xi] = data[0].data

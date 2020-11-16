@@ -343,7 +343,6 @@ class Device:
             self.__probe_position[1] * self.__scan_area[1])
         self.__probe_position_pixels = [px, py]
         self.orsayscan.SetProbeAt(py, px)
-        print(px, py)
 
     @property
     def current_frame_parameters(self) -> scan_base.ScanFrameParameters:
