@@ -40,6 +40,7 @@ class CameraDevice(camera_base.CameraDevice):
         self.camera_id=id
         self.camera_type=type
         self.camera_name=name
+        self.camera_model = model
         self.instrument=instrument
         self.camera = orsaycamera.orsayCamera(manufacturer, model, sn, simul)
         self.__config_dialog_handler = None
@@ -97,6 +98,7 @@ class CameraDevice(camera_base.CameraDevice):
             "video_threshold": self.camera.getVideoThreshold(),
             "fan_enabled": self.camera.getFan(),
             "processing": None,
+            "flipped": False,
         }
 
         self.current_camera_settings = CameraFrameParameters(d)
@@ -190,7 +192,7 @@ class CameraDevice(camera_base.CameraDevice):
         if "processing" in frame_parameters:
             self.__hardware_settings.processing = frame_parameters.processing
 
-        if self.__acqon: self.start_live()
+        if not self.__acqon: self.start_live()
 
     def __numpy_to_orsay_type(self, array: numpy.array):
         orsay_type = Orsay_Data.float
@@ -352,7 +354,6 @@ class CameraDevice(camera_base.CameraDevice):
                 self.has_spim_data_event.set()
 
     def acquire_image(self) -> dict:
-
         acquisition_mode = self.current_camera_settings.acquisition_mode
         if "Chrono" in acquisition_mode:
             self.acquire_data = self.spimimagedata
@@ -372,12 +373,14 @@ class CameraDevice(camera_base.CameraDevice):
             datum_dimensions = 1
 
         else: #Cumul and Focus
-            gotit = self.has_data_event.wait(1)
+            gotit = self.has_data_event.wait(5.0)
             self.has_data_event.clear()
             self.acquire_data = self.imagedata
             if self.acquire_data.shape[0] == 1: #fully binned
                 collection_dimensions = 1
                 datum_dimensions = 1
+                if self.current_camera_settings.flipped:
+                    self.acquire_data=numpy.flip(self.acquire_data[0], 0)
             else: #not binned
                 collection_dimensions = 0
                 datum_dimensions = 2
@@ -391,6 +394,9 @@ class CameraDevice(camera_base.CameraDevice):
         if self.frame_number==self.current_camera_settings.spectra_count and acquisition_mode=='Cumul':
             #self.stop_live()
             self.stop_acquitisition_event.fire("")
+
+
+
 
         return {"data": self.acquire_data, "collection_dimension_count": collection_dimensions,
                 "datum_dimension_count": datum_dimensions, "calibration_controls": calibration_controls,
@@ -478,6 +484,7 @@ class CameraFrameParameters(dict):
         self.turbo_mode_enabled = self.get("turbo_mode_enabled", False)
         self.video_threshold = self.get("video_threshold", 0)
         self.fan_enabled = self.get("fan_enabled", False)
+        self.flipped = self.get("flipped", False)
         self.integration_count = 1  # required
 
     def __copy__(self):
@@ -511,7 +518,8 @@ class CameraFrameParameters(dict):
             "area": self.area,
             "turbo_mode_enabled": self.turbo_mode_enabled,
             "video_threshold": self.video_threshold,
-            "fan_enabled": self.fan_enabled
+            "fan_enabled": self.fan_enabled,
+            "flipped": self.flipped
         }
 
 

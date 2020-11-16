@@ -56,7 +56,8 @@ class Device:
         self.__frame_number = 0
         self.__instrument = instrument
         self.__sizez = 2
-        self.__probe_position = (0, 0)
+        self.__probe_position = [0, 0]
+        self.__probe_position_pixels = [0, 0]
         self.__rotation = 0.
         self.__is_scanning = False
         self.on_device_state_changed = None
@@ -69,6 +70,7 @@ class Device:
         self.spimscan = orsayScan(2, self.orsayscan.orsayscan, vg=True)
 
         self.orsayscan.SetInputs([1, 0])
+        self.spimscan.SetInputs([1, 0])
 
         self.has_data_event = threading.Event()
 
@@ -95,6 +97,7 @@ class Device:
         self.p4 = 0
         self.p5 = 512
         self.Image_area = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
+        self.orsayscan.setScanRotation(35.0)
 
         #Set HADF and BF initial gain values
         self.orsayscan.SetPMT(1, 2200)
@@ -109,7 +112,6 @@ class Device:
 
     def stop(self) -> None:
         """Stop acquiring."""
-        pass
 
     def set_idle_position_by_percentage(self, x: float, y: float) -> None:
         """Set the idle position as a percentage of the last used frame parameters."""
@@ -125,7 +127,7 @@ class Device:
 
     def __get_initial_profiles(self) -> typing.List[scan_base.ScanFrameParameters]:
         profiles = list()
-        profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 0.5, "fov_nm": 4000.}))
+        profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 0.5, "fov_nm": 4000., "rotation_rad": 0.610}))
         profiles.append(scan_base.ScanFrameParameters({"size": (128, 128), "pixel_time_us": 1, "fov_nm": 100.}))
         profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 1, "fov_nm": 100.}))
         return profiles
@@ -184,6 +186,8 @@ class Device:
             self.__start_next_frame()
 
             if not self.__spim:
+                self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
+                self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
                 self.__is_scanning = self.orsayscan.startImaging(0, 1)
 
             if self.__is_scanning: print('Acquisition Started')
@@ -242,9 +246,10 @@ class Device:
                     data_elements.append(data_element)
 
             else:
-                data_array = self.imagedata[(channel.channel_id) * (self.__spim_pixels[1]):(channel.channel_id + 1) * (
-                    self.__spim_pixels[1]),
+                data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):channel.channel_id * (
+                    self.__scan_area[1]) + self.__spim_pixels[1],
                              0: (self.__spim_pixels[0])].astype(numpy.float32)
+                #data_array = self.imagedata.astype(numpy.float32)
                 #if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
                 #    data_array = data_array[self.p4:self.p5, self.p2:self.p3]
                 data_element["data"] = data_array
@@ -312,7 +317,7 @@ class Device:
 
     @scan_rotation.setter
     def scan_rotation(self, value):
-        self.__rotation = value
+        self.__rotation = value*180/numpy.pi
         self.orsayscan.setScanRotation(self.__rotation)
 
     @property
@@ -336,6 +341,7 @@ class Device:
         self.__probe_position = value
         px, py = round(self.__probe_position[0] * self.__scan_area[0]), round(
             self.__probe_position[1] * self.__scan_area[1])
+        self.__probe_position_pixels = [px, py]
         self.orsayscan.SetProbeAt(py, px)
 
     @property
@@ -377,12 +383,16 @@ class Device:
             elif self.__instrument.spim_trigger_f==1:
                 self.spimscan.setScanClock(4)
                 logging.info(f'***SCAN***: Cathodoluminescence Spim')
+
+            self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
+            self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
             self.spimscan.startSpim(0, 1)
 
         else:
             logging.info('***SCAN***: Spim is done. Handling...')
             self.spimscan.stopImaging(True)
             self.__is_scanning = False
+
             pmts=[]
             for counter, value in enumerate(self.channels_enabled):
                 if value: pmts.append(counter)

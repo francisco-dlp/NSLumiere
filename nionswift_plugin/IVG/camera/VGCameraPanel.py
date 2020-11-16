@@ -1,4 +1,5 @@
 import gettext
+import logging
 
 from nion.utils import Converter
 from nion.utils import Model
@@ -74,6 +75,7 @@ class CameraHandler:
         self.speed_items.value = list(self.camera_device.camera.getSpeeds(frame_parameters["port"]))
         self.speed_item = Model.PropertyModel(-1)
         self.speed_item_text = Model.PropertyModel("???s")
+        self.flip_model = Model.PropertyModel(frame_parameters["flipped"])
         self.gain_items = Model.PropertyModel([])
         self.gain_items.value = list(self.camera_device.camera.getGains(frame_parameters["port"]))
         self.gain_item = Model.PropertyModel(frame_parameters["gain"])
@@ -121,10 +123,14 @@ class CameraHandler:
         """Initialize the UI after it has been constructed."""
 
         def update_speeds():
-            self.speed_items.value = list(self.camera_device.camera.getSpeeds(self.port_item.value))
-            self.speed_item.value = self.camera_settings.get_current_frame_parameters()["speed"]
-            #self.speed_item_text.value = self.speed_items.value[self.speed_item.value]
-            self.speed_item_text.value = format(float(self.speed_items.value[self.speed_item.value][0:4]), '.2f') + ' ' + self.speed_items.value[self.speed_item.value][-3:]
+            try:
+                self.speed_items.value = list(self.camera_device.camera.getSpeeds(self.port_item.value))
+                self.speed_item.value = self.camera_settings.get_current_frame_parameters()["speed"]
+                self.speed_item_text.value = self.speed_items.value[self.speed_item.value]
+            except:
+                self.speed_item.value = 0
+                self.speed_item_text.value = self.speed_items.value[self.speed_item.value]
+                logging.info('***CAMERA***: The new port values does not support current speed. Please recheck indexes.')
 
         def update_gains():
             self.gain_items.value = list(self.camera_device.camera.getGains(self.port_item.value))
@@ -159,7 +165,6 @@ class CameraHandler:
             self.v_binning_item.value = self.v_binning_values.index(by) if by in self.v_binning_values else None
 
         def update_exposure():
-            # print("Panel: update_exposure")
             self.exposure_model.value = self.camera_settings.get_current_frame_parameters().exposure_ms
 
         def update_mode():
@@ -168,10 +173,19 @@ class CameraHandler:
             self.mode_item.value = md1
             self.nbspectra_model.value = self.camera_settings.get_current_frame_parameters()["spectra_count"]
 
+        def update_flip():
+            self.flip_model.value=self.camera_settings.get_current_frame_parameters()["flipped"]
+
         def set_port(value):
             frame_parameters = self.camera_settings.get_current_frame_parameters()
             frame_parameters["port"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
+            if self.camera_device.camera_model=='Newton':
+                if frame_parameters["port"] == 0:
+                    set_flip(False)
+                if frame_parameters["port"] == 1:
+                    set_flip(True)
+            update_flip()
             update_speeds()
             update_gains()
             update_multiplier()
@@ -180,7 +194,6 @@ class CameraHandler:
             frame_parameters = self.camera_settings.get_current_frame_parameters()
             frame_parameters["speed"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
-            self.speed_item_text.value = format(float(self.speed_items.value[self.speed_item.value][0:4]), '.2f') + ' ' + self.speed_items.value[self.speed_item.value][-3:]
 
         def set_gain(value):
             # print(f"Panel: set_gain {value}")
@@ -248,6 +261,11 @@ class CameraHandler:
             frame_parameters["soft_binning"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
 
+        def set_flip(value):
+            frame_parameters = self.camera_settings.get_current_frame_parameters()
+            frame_parameters["flipped"] = value
+            self.camera_settings.set_current_frame_parameters(frame_parameters)
+
         def set_threshold(value):
             frame_parameters = self.camera_settings.get_current_frame_parameters()
             frame_parameters["video_threshold"] = value
@@ -268,6 +286,7 @@ class CameraHandler:
         self.exposure_model.on_value_changed = set_exposure
         self.nbspectra_model.on_value_changed = set_nbspectra
         self.soft_binning_model.on_value_changed = set_soft_binning
+        self.flip_model.on_value_changed=set_flip
 
         self.mode_item.on_value_changed = set_mode
 
@@ -404,6 +423,8 @@ class CameraPanelFactory:
 
         speed_row = ui.create_row(ui.create_label(text=_("Speed")), ui.create_stretch(), speed_combo_box, spacing=8)
 
+        flip_value=ui.create_check_box(name='flip_value', text='Flip Spectra', checked='@binding(flip_model.value)')
+
         gain_combo_box = ui.create_combo_box(items_ref="@binding(gain_items.value)",
                                              current_index="@binding(gain_item.value)")
 
@@ -441,7 +462,7 @@ class CameraPanelFactory:
         # shutter_checkbox = ui.create_check_box(name="shutter_check_box", text="Shutter Enabled", checked="@binding(shutter_enabled_model.value)")
 
         if len(ports) > 1:
-            setup_column = ui.create_column(roi_row, port_row, speed_row, gain_group, correction_group, fan_checkbox,
+            setup_column = ui.create_column(roi_row, port_row, speed_row, flip_value, gain_group, correction_group, fan_checkbox,
                                             ui.create_stretch(), spacing=8, margin=4)
         else:
             setup_column = ui.create_column(roi_row, speed_row, gain_group, correction_group, fan_checkbox,

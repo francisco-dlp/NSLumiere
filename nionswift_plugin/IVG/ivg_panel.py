@@ -100,7 +100,8 @@ class ivghandler:
         self.obj_di=None
         self.stage_di=None
         
-
+    def init_handler(self):
+        self.instrument.init_handler()
 
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
         for var in self.__dict__:

@@ -1,6 +1,5 @@
 import serial
 import sys
-import logging
 import time
 import threading
 import os
@@ -79,7 +78,6 @@ class Lenses:
             return None
 
         string = string_init + str(val) + ',0.5\r'
-        logging.info(string)
         with self.lock:
             self.ser.write(string.encode())
             return self.ser.readline()

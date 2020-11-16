@@ -28,12 +28,13 @@ class stageDevice(Observable.Observable):
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
         self.slider_event=Event.Event()
+        self.slider_total_range=Event.Event()
         
         self.__sendmessage = stage.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__vgStage=stage.VGStage(self.__sendmessage)
 
         self.__x, self.__y = self.__vgStage.stageGetPosition()
-        self.__slider_range = 2500
+        self.__slider_range = 400
 
         logging.info(f'***VG STAGE***: Please put Stepper.dll at the following folder: {sys.executable}.')
 
@@ -43,7 +44,21 @@ class stageDevice(Observable.Observable):
 
     def set_origin(self):
         #self.__vgStage.stageInit(True, True, True)
-        logging.info('Disabled for now. X switch seems to be malfunctioning')
+        logging.info('***VG STAGE***: Disabled for now. X switch seems to be malfunctioning.')
+
+
+    def free_UI(self, *args):
+        for arg in args:
+            if arg=='x':
+                self.property_changed_event.fire('x_pos_f')
+                self.property_changed_event.fire('x_pos_edit_f')
+            elif arg=='y':
+                self.property_changed_event.fire('y_pos_f')
+                self.property_changed_event.fire('y_pos_edit_f')
+
+    def busy_UI(self, *args):
+        for arg in args:
+            self.busy_event.fire(arg)
 
     def sendMessageFactory(self):
         def sendMessage(message):
@@ -68,12 +83,13 @@ class stageDevice(Observable.Observable):
 
     @property
     def x_pos_edit_f(self):
-        return '{:.2f}'.format(self.__x*1e6)
+        return '{:.3f}'.format(self.__x*1e6)
 
     @x_pos_edit_f.setter
     def x_pos_edit_f(self, value):
         self.__x = float(value)/1e6
         self.__vgStage.stageGoTo_x(self.__x)
+        self.slider_total_range.fire('')
         self.property_changed_event.fire('x_pos_f')
         self.property_changed_event.fire('x_pos_edit_f')
 
@@ -90,12 +106,13 @@ class stageDevice(Observable.Observable):
 
     @property
     def y_pos_edit_f(self):
-        return '{:.2f}'.format(self.__y*1e6)
+        return '{:.3f}'.format(self.__y*1e6)
 
     @y_pos_edit_f.setter
     def y_pos_edit_f(self, value):
         self.__y = float(value)/1e6
         self.__vgStage.stageGoTo_y(self.__y)
+        self.slider_total_range.fire('')
         self.property_changed_event.fire('y_pos_f')
         self.property_changed_event.fire('y_pos_edit_f')
 
