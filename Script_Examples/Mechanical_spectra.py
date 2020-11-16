@@ -17,7 +17,7 @@ stage = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_contr
 my_inst = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 
 pts = 4
-sub_region = 0.4
+sub_region = 0.45
 
 xarray = numpy.linspace(-sub_region, sub_region, pts+1)
 yarray = numpy.linspace(-sub_region, sub_region, pts+1)
@@ -61,8 +61,8 @@ xdata = numpy.zeros((pts+1, pts+1, 1600))
 time.sleep(2.0)
 
 def calib(x, y):
-    xc = (ia[0]/2 + 389.125*x - 45.750*y)/ia[0] #from 0 to ia
-    yc = (ia[1]/2 + 94.875*x + 380.375*y)/ia[1] #from 0 to ia
+    xc = (0.50288628 + 0.8343099*x - 0.08394821*y) #from 0 to ia
+    yc = (0.49774306 + 0.17672164*x + 0.80562789*y) #from 0 to ia
     return (xc, yc)
 
 sen = 1

@@ -24,7 +24,7 @@ class Mirror:
         self.sendmessage = sendmessage
         self.ser = serial.Serial()
         self.ser.baudrate = 9600
-        self.ser.port = 'COM7'
+        self.ser.port = 'COM8'
         self.ser.parity = serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
         self.ser.bytesize = serial.EIGHTBITS

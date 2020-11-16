@@ -27,8 +27,8 @@ si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descripto
 data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
 '''
 
-pts = 16
-sub_region = 0.4
+pts = 2
+sub_region = 0.45
 
 xarray = numpy.linspace(-sub_region, sub_region, pts+1)
 yarray = numpy.linspace(-sub_region, sub_region, pts+1)
@@ -69,8 +69,8 @@ def highlight_data(data, index, shape, w, value, sen):
     data[int(cy-w):int(cy+w), int(cx-w):int(cx+w)] = value
 
 def calib(x, y):
-    xc = (ia[0]/2 + 389.125*x - 45.75*y)/ia[0] #from 0 to ia
-    yc = (ia[1]/2 + 94.875*x + 380.375*y)/ia[1] #from 0 to ia
+    xc = (0.50288628 + 0.8343099*x - 0.08394821*y) #from 0 to ia
+    yc = (0.49774306 + 0.17672164*x + 0.80562789*y) #from 0 to ia
     return (xc, yc)
 
 sen = 1
@@ -84,9 +84,9 @@ for xi, x in enumerate(xarray):
     for yi, y in enumerate(yarray):
         for val in my_inst._ivgInstrument__stage_moving:
             if val:
-                raise Exception("***MECHANICAL SPECTRA***: Motor move during a new command.")
+                print(f"***MECHANICAL SPECTRA***: Motor move during a new command at point {(xi, yi)}")
         stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
-        time.sleep(1.5) if yi==0 else time.sleep(0.5)
+        time.sleep(3.5) if yi==0 else time.sleep(3.0)
         im = scan.grab_next_to_start()
         highlight_data(im[0].data, calib(x, y), (ia[0], ia[1]), 1, 2, sen)
         if sen==1:
