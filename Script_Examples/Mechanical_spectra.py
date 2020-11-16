@@ -64,8 +64,8 @@ def calib(x, y):
     yc = (0.49774306 + 0.17672164*x + 0.80562789*y) #from 0 to ia
     return (xc, yc)
 
+## Setting our first Data_Item
 data = cam_eire.grab_next_to_finish()
-
 si_data_descriptor = api.create_data_descriptor(is_sequence=False, collection_dimension_count=2, datum_dimension_count=1)
 dimensional_calibration_0 = api.create_calibration(0.0, (fov*1e9)/(pts+1), 'nm') #x
 dimensional_calibration_1 = api.create_calibration(0.0, (fov*1e9)/(pts+1), 'nm') #y
@@ -88,10 +88,11 @@ for xi, x in enumerate(xarray):
             if val:
                 print(f"***MECHANICAL SPECTRA***: Motor move during a new command at point {(xi, yi)}")
         stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
+        scan.scan_device.probe_pos = (calib(x, y)) #TODO CHECK THIS
         time.sleep(2.0) if yi==0 else time.sleep(0.3*32/pts)
         data = cam_eire.grab_next_to_finish()
         data_item.data[yi, xi] = data[0].data
-        scan.scan_device.probe_pos = (calib(x, y))
+
 
 
 stage.x_pos_f = initial_stage_x
