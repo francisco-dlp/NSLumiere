@@ -339,10 +339,14 @@ class Device:
     @probe_pos.setter
     def probe_pos(self, value):
         self.__probe_position = value
-        px, py = round(self.__probe_position[0] * self.__scan_area[0]), round(
-            self.__probe_position[1] * self.__scan_area[1])
+        #This is a very strange behavior of geometry class. Very misleading. Value is a tuple like
+        #(x=0.1, y=0.3) but value[0] gives y value while value[1] gives x value. You can check here
+        #print(f'value is {value} and first is {value[0]}. Second is {value[1]}')
+        #If you using this func, please call it with (y, x)
+        px, py = round(self.__probe_position[1] * self.__scan_area[1]), round(
+            self.__probe_position[0] * self.__scan_area[0])
         self.__probe_position_pixels = [px, py]
-        self.orsayscan.SetProbeAt(py, px)
+        self.orsayscan.SetProbeAt(px, py)
 
     @property
     def current_frame_parameters(self) -> scan_base.ScanFrameParameters:

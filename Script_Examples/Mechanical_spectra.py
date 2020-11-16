@@ -59,10 +59,11 @@ scan.stop_playing()
 xdata = numpy.zeros((pts+1, pts+1, 1600))
 time.sleep(2.0)
 
-def calib(x, y):
+def calib_and_invert(x, y):
+    #For explanation of why you invert please see VGScanYves.py
     xc = (0.50288628 + 0.8343099*x - 0.08394821*y) #from 0 to ia
     yc = (0.49774306 + 0.17672164*x + 0.80562789*y) #from 0 to ia
-    return (xc, yc)
+    return (yc, xc)
 
 ## Setting our first Data_Item
 data = cam_eire.grab_next_to_finish()
@@ -88,7 +89,7 @@ for xi, x in enumerate(xarray):
             if val:
                 print(f"***MECHANICAL SPECTRA***: Motor move during a new command at point {(xi, yi)}")
         stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
-        scan.scan_device.probe_pos = (calib(x, y))
+        scan.scan_device.probe_pos = (calib_and_invert(x, y))
         time.sleep(2.0) if yi==0 else time.sleep(0.3*32/pts)
         data = cam_eire.grab_next_to_finish()
         data_item.data[yi, xi] = data[0].data
