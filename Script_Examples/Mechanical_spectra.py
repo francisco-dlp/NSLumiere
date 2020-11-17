@@ -16,7 +16,7 @@ scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_s
 stage = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
 my_inst = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 
-pts = 32
+pts = 16
 sub_region = 0.45
 
 xarray = numpy.linspace(-sub_region, sub_region, pts+1)
@@ -68,8 +68,8 @@ def calib_and_invert(x, y):
 ## Setting our first Data_Item
 data = cam_eire.grab_next_to_finish()
 si_data_descriptor = api.create_data_descriptor(is_sequence=False, collection_dimension_count=2, datum_dimension_count=1)
-dimensional_calibration_0 = api.create_calibration(0.0, (fov*1e9)/(pts+1), 'nm') #x
-dimensional_calibration_1 = api.create_calibration(0.0, (fov*1e9)/(pts+1), 'nm') #y
+dimensional_calibration_0 = api.create_calibration(-(sub_region*fov*1e9), (2*sub_region*fov*1e9)/(pts+1), 'nm') #x
+dimensional_calibration_1 = api.create_calibration(-(sub_region*fov*1e9), (2*sub_region*fov*1e9)/(pts+1), 'nm') #y
 dimensional_calibration_2 = data[0].get_dimensional_calibration(1) #from camera
 dimensional_calibrations =  [dimensional_calibration_0, dimensional_calibration_1, dimensional_calibration_2]
 si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descriptor,
@@ -90,7 +90,8 @@ for xi, x in enumerate(xarray):
                 print(f"***MECHANICAL SPECTRA***: Motor move during a new command at point {(xi, yi)}")
         stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
         scan.scan_device.probe_pos = (calib_and_invert(x, y))
-        time.sleep(2.0) if yi==0 else time.sleep(0.3*32/pts)
+        time.sleep(2.0) if yi==0 else time.sleep(max(cam_eire.get_current_frame_parameters()['exposure_ms']/1000., 0.2*(32/pts)*(fov/6.4e-5)))
+
         data = cam_eire.grab_next_to_finish()
         data_item.data[yi, xi] = data[0].data
 
