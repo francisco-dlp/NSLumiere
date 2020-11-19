@@ -4,7 +4,7 @@ from nion.typeshed import API_1_0 as API
 from nion.typeshed import UI_1_0 as UI
 
 api = api_broker.get_api(API.version, UI.version)  # type: API
-DI = api.library.get_data_item_by_uuid(uuid.UUID("0900f18a-e8f7-40a8-ab87-8f5b70a8a771"))
+DI = api.library.get_data_item_by_uuid(uuid.UUID("fcd81687-234e-4014-b01c-5e1e8aa4b11e"))
 
 print(f'Data Item title is {DI.title}')
 print(f'Data item has shape of {DI.data.shape}')
@@ -26,9 +26,6 @@ xmax, ymax = numpy.where(sumval==1)
 xmax=xmax[0]
 ymax=ymax[0]
 maxpos = numpy.where(sumval==1)
-print((xmax, ymax))
-
-print((maxpos[0], maxpos[1]))
 
 dimensional_calibrations = DI.dimensional_calibrations[:-1]
 xdata = api.create_data_and_metadata(sumval,
@@ -37,7 +34,7 @@ data_item = api.library.create_data_item_from_data_and_metadata(xdata)
 data_item.title = '**SCRIPTED**'+DI.title
 
 d = numpy.zeros(x)
-d[0]+=1
+d[1]+=1
 for xpos in range(x):
     print('2nd Part: Done '+format(100*xpos/x, '.1f')+' %')
     for ypos in range(y):
