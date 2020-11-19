@@ -16,8 +16,10 @@ scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_s
 stage = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
 my_inst = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 
-pts = 16
+pts = 32
 sub_region = 0.45
+
+i_obj = my_inst._ivgInstrument__obj_cur
 
 xarray = numpy.linspace(-sub_region, sub_region, pts+1)
 yarray = numpy.linspace(-sub_region, sub_region, pts+1)
@@ -36,8 +38,11 @@ initial_probe_y = scan.scan_device.probe_pos[1]
 
 initial_probe_pixel = scan.scan_device._Device__probe_position_pixels
 
+if ia!=[1024, 1024, 0, 1024, 0, 1024]:
+    raise Exception("***MECHANICAL SPECTRA***: Put scan with 1024x1024 pixels.")
+
 if abs(initial_probe_x-0.5)>0.01 or abs(initial_probe_y-0.5)>0.01:
-    raise Exception("***MECHANICAL SPECTRA***: Put probe close to (0.5, 0.5). 1% tolerance allowed. ")
+    raise Exception("***MECHANICAL SPECTRA***: Put probe close to (0.5, 0.5). 1% tolerance allowed.")
 
 print(((ia[3]-ia[2])/pts).is_integer())
 
@@ -77,7 +82,7 @@ si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descripto
 data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
 data_item.title = 'Mech_Spec_'+format((fov*1e9)/(pts+1), '.2f')+' nm_'+ \
                   str(cam_eire.get_current_frame_parameters()['exposure_ms'])+' ms_' + \
-                  str(scan.scan_device.Image_area) + 'IA'
+                  str(scan.scan_device.Image_area) + 'IA_' + str(i_obj) + 'Obj. Amps'
 
 sen = 1
 for xi, x in enumerate(xarray):
