@@ -1,6 +1,6 @@
 {
     "EELS": {
-        "DEBUG": 1
+        "DEBUG": 0
     },
     "IVG": {
         "CAMERA": {
@@ -11,10 +11,10 @@
         "DEBUG_SCAN": 0,
         "AMBIENT_TEMPERATURE": 23,
         "DEBUG_AIRLOCK": 1,
-        "DEBUG_GUN": 1,
+        "DEBUG_GUN": 0,
         "EHT_INITIAL": 3,
         "FAST_PERIODIC": {
-            "ACTIVE": 0,
+            "ACTIVE": 1,
             "PERIOD": 0.1
         },
         "MAX_PTS": 5000,
@@ -25,13 +25,13 @@
         },
         "SENDMAIL": 0,
         "SLOW_PERIODIC": {
-            "ACTIVE": 0,
+            "ACTIVE": 1,
             "PERIOD": 1.0
         },
         "STAGE_MATRIX_SIZE": 160
     },
     "SPECTROMETER": {
-        "DEBUG": 1,
+        "DEBUG": 0,
         "GRATINGS": {
             "COMPLET": [
                 "300 g/mm BLZ=  300NM",

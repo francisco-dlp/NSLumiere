@@ -26,6 +26,8 @@ yarray = numpy.linspace(-sub_region, sub_region, pts+1)
 
 fov = scan.scan_device.field_of_view
 ia = scan.scan_device.Image_area
+texp = cam_eire.get_current_frame_parameters()['exposure_ms']/1000.
+tstepper = 0.20*(32/pts)*(fov/6.4e-5)
 
 x_samp = (fov*1e9)/(ia[3]-ia[2])
 y_samp = (fov*1e9)/(ia[5]-ia[4])
@@ -37,6 +39,9 @@ initial_probe_x = scan.scan_device.probe_pos[0]
 initial_probe_y = scan.scan_device.probe_pos[1]
 
 initial_probe_pixel = scan.scan_device._Device__probe_position_pixels
+
+if texp<tstepper:
+    raise Exception("***MECHANICAL SPECTRA***: Camera exposition is smaller than the stepper sleep. You might lose exposition time for no reason.")
 
 if ia!=[1024, 1024, 0, 1024, 0, 1024]:
     raise Exception("***MECHANICAL SPECTRA***: Put scan with 1024x1024 pixels.")
@@ -55,6 +60,7 @@ print(f'Image area (pixels): {(ia[3]-ia[2])} and {(ia[5]-ia[4])}')
 print(f'Pixels per step: {(ia[3]-ia[2])/pts} and {(ia[5]-ia[4])/pts}')
 print(f'initial probe position is {initial_probe_x} and {initial_probe_y}')
 print(f'initial probe position (in pixels) is {initial_probe_pixel}')
+print('Approximate measurement time is '+format((pts*2.0/60. + 1/60.*pts**2*max(texp, tstepper)), '.1f')+' min.')
 
 stage.x_pos_f = initial_stage_x + sub_region*fov*1e8 #You put 400 to have 4 microns in this property here
 stage.y_pos_f = initial_stage_y - sub_region*fov*1e8
@@ -95,7 +101,7 @@ for xi, x in enumerate(xarray):
                 print(f"***MECHANICAL SPECTRA***: Motor move during a new command at point {(xi, yi)}")
         stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
         scan.scan_device.probe_pos = (calib_and_invert(x, y))
-        time.sleep(2.0) if yi==0 else time.sleep(max(cam_eire.get_current_frame_parameters()['exposure_ms']/1000., 0.2*(32/pts)*(fov/6.4e-5)))
+        time.sleep(2.0) if yi==0 else time.sleep(max(texp, tstepper))
 
         data = cam_eire.grab_next_to_finish()
         data_item.data[yi, xi] = data[0].data
