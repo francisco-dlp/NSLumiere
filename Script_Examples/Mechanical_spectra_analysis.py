@@ -9,22 +9,41 @@ DI = api.library.get_data_item_by_uuid(uuid.UUID("0900f18a-e8f7-40a8-ab87-8f5b70
 print(f'Data Item title is {DI.title}')
 print(f'Data item has shape of {DI.data.shape}')
 
+def dist(val1, val2):
+    return numpy.sum(numpy.power(numpy.subtract(val1, val2), 2))**(0.5)
+
 x, y, pixels = DI.data.shape
-minval = numpy.zeros((x, y))
-maxval = numpy.zeros((x, y))
+sumval = numpy.zeros((x, y))
 for xpos in range(x):
-    print('Done '+format(100*xpos/x, '.1f')+' %')
+    print('1st Part: Done '+format(100*xpos/x, '.1f')+' %')
     for ypos in range(y):
         spec = DI.data[xpos, ypos]
-        minval[xpos, ypos], maxval[xpos, ypos] = min(spec[750:850]), max(spec[750:850])
+        spec = numpy.subtract(spec, spec.min())
+        sumval[xpos, ypos] = numpy.sum(spec[775:825])
 
+sumval = numpy.divide(sumval, sumval.max())
+xmax, ymax = numpy.where(sumval==1)
+xmax=xmax[0]
+ymax=ymax[0]
+maxpos = numpy.where(sumval==1)
+print((xmax, ymax))
 
-maxval = numpy.subtract(maxval, minval)
-maxval = numpy.divide(maxval, maxval.max())
-
+print((maxpos[0], maxpos[1]))
 
 dimensional_calibrations = DI.dimensional_calibrations[:-1]
-xdata = api.create_data_and_metadata(maxval,
+xdata = api.create_data_and_metadata(sumval,
                                      dimensional_calibrations=dimensional_calibrations)
 data_item = api.library.create_data_item_from_data_and_metadata(xdata)
 data_item.title = '**SCRIPTED**'+DI.title
+
+d = numpy.zeros(x)
+d[0]+=1
+for xpos in range(x):
+    print('2nd Part: Done '+format(100*xpos/x, '.1f')+' %')
+    for ypos in range(y):
+        index = round(dist([xpos, ypos], [xmax, ymax]))
+        d[index]+=sumval[xpos, ypos] / (dist([xpos, ypos], [xmax, ymax])+1.0)
+
+xdata02 = api.create_data_and_metadata(d[1:])
+data_item = api.library.create_data_item_from_data_and_metadata(xdata02)
+data_item.title = '**SCRIPTED_PD**'+DI.title
