@@ -86,7 +86,7 @@ dimensional_calibrations =  [dimensional_calibration_0, dimensional_calibration_
 si_xdata = api.create_data_and_metadata(xdata, data_descriptor=si_data_descriptor,
                                         dimensional_calibrations=dimensional_calibrations)
 data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
-data_item.title = 'Mech_Spec_'+format((fov*1e9)/(pts+1), '.2f')+' nm_'+ \
+data_item.title = 'Mech_Spec_'+format(2*sub_region*(fov*1e9)/(pts+1), '.2f')+' nm_'+ \
                   str(cam_eire.get_current_frame_parameters()['exposure_ms'])+' ms_' + \
                   str(scan.scan_device.Image_area) + 'IA_' + str(i_obj) + 'Obj. Amps'
 
