@@ -10,6 +10,7 @@ abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.j
 with open(abs_path) as savfile:
     settings = json.load(savfile)
 DEBUG = settings["diaf"]["DEBUG"]
+START_DIAF = True
 
 if DEBUG:
     from . import diaf_vi as diaf
@@ -29,16 +30,17 @@ class diafDevice(Observable.Observable):
         self.__sendmessage = diaf.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__apert = diaf.Diafs(self.__sendmessage)
 
-        try:
-            inst_dir = os.path.dirname(__file__)
-            abs_path = os.path.join(inst_dir, 'diafs_settings.json')
-            with open(abs_path) as savfile:
-                data = json.load(savfile)  # data is load json
-            self.roa_change_f = int(data['ROA']['last'])
-            self.voa_change_f = int(data['VOA']['last'])
+        if START_DIAF:
+            try:
+                inst_dir = os.path.dirname(__file__)
+                abs_path = os.path.join(inst_dir, 'diafs_settings.json')
+                with open(abs_path) as savfile:
+                    data = json.load(savfile)  # data is load json
+                self.roa_change_f = int(data['ROA']['last'])
+                self.voa_change_f = int(data['VOA']['last'])
 
-        except:
-            logging.info('***APERTURES***: No saved values. Check your json file.')
+            except:
+                logging.info('***APERTURES***: No saved values. Check your json file.')
 
     def sendMessageFactory(self):
         def sendMessage(message):
