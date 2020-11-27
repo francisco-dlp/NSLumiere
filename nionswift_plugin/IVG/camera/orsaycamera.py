@@ -268,9 +268,13 @@ class orsayCamera(object):
         self.orsaycamera = self.__OrsayCameraInit(manufacturer, modelb,  _toString23(sn), self.fnlog, simul)
         if not self.orsaycamera:
             raise Exception ("Camera not created")
-        self.addConnectionListener(self.fnconnection)
-        self.messagesevent.wait(5.0)
-        self.messagesevent.clear()
+        # Marcel
+        # Connection is only valid for Quantumdetector cameras.from
+        #
+        if manufacturer == 3:
+            self.addConnectionListener(self.fnconnection)
+            self.messagesevent.wait(5.0)
+            self.messagesevent.clear()
         if not self.__OrsayCameraInit_data_structures(self.orsaycamera):
             raise Exception ("Camera not initialised properly")
         print(f"Camera: {self.__OrsayCameraIsCameraThere(self.orsaycamera)}")

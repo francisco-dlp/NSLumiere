@@ -5,16 +5,16 @@
         "type": "eire",
         "id": "orsay_camera_eire",
         "name": "EIRE",
-        "simulation": false
+        "simulation": true
     },
 
     {
-        "manufacturer": 2,
-        "model": "Newton",
+        "manufacturer": 1,
+        "model": "KURO: 2048B",
         "type": "eels",
         "id": "orsay_camera_eels",
         "name": "EELS",
-        "simulation": false
+        "simulation": true
     }
 
 
