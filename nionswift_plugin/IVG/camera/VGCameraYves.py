@@ -628,11 +628,33 @@ def run(instrument: ivg_inst.ivgInstrument):
         cameras.append({"manufacturer": 1, "model": "KURO: 2048B", "type": "eels", "id": "orsay_camera_kuro", "name": "EELS", "simulation": True})
         cameras.append({"manufacturer": 1, "model": "ProEM+: 1600xx(2)B eXcelon", "type":"eire", "id":"orsay_camera_eire", "name": "EIRE", "simulation":True})
 
+    # Marcel
+    # Continue camera liste in case one camera failed.
+    # for instance camera is powered off or not there at the moment.
+    # do not try to simulate Andor as it is not possible, just skip over it.
+    #
+    manufacturer = ""
+    model = ""
     for camera in cameras:
-        sn=""
-        camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"], instrument, camera["id"], camera["name"], camera["type"])
+        try:
+            if camera["manufacturer"] == 1:
+                manufacturer = "Roperscientific"
+            elif camera["manufacturer"] == 2:
+                manufacturer = "Andor"
+            elif camera["manufacturer"] == 3:
+                manufacturer = "QuantumDetectors"
+            model = camera["model"]
+            sn=""
+            if (camera["manufacturer"] == 2) and camera["simulation"]:
+                print(f"No simulation for {manufacturer} cameras")
+            else:
+                camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"], instrument, camera["id"], camera["name"], camera["type"])
 
-        camera_settings = CameraSettings(camera_device)
+                camera_settings = CameraSettings(camera_device)
 
-        Registry.register_component(CameraModule("VG_Lum_controller", camera_device, camera_settings),
-                                        {"camera_module"})
+                Registry.register_component(CameraModule("VG_Lum_controller", camera_device, camera_settings),
+                                                {"camera_module"})
+        except:
+            print(f"Failed to start camera: manufacturer: {manufacturer}  model: {model}")
+        finally:
+            pass
