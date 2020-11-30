@@ -8,6 +8,9 @@ import threading
 import typing
 import time
 import logging
+from json import load as json_load
+from json import dump as json_dump
+import os
 
 # local libraries
 from nion.utils import Registry
@@ -51,7 +54,6 @@ class Device:
         self.scan_device_id = "orsay_scan_device"
         self.scan_device_name = _("VG Lumiere")
         self.stem_controller_id = "VG_Lum_controller"
-        self.__channels = self.__get_channels()
         self.__frame = None
         self.__frame_number = 0
         self.__instrument = instrument
@@ -61,13 +63,44 @@ class Device:
         self.__rotation = 0.
         self.__is_scanning = False
         self.on_device_state_changed = None
-        self.__profiles = self.__get_initial_profiles()
-        self.__frame_parameters = copy.deepcopy(self.__profiles[0])
-        self.flyback_pixels = 2
-        self.__buffer = list()
-
         self.orsayscan = orsayScan(1, vg=True)
         self.spimscan = orsayScan(2, self.orsayscan.orsayscan, vg=True)
+
+        #list all inputs
+        totalinputs = self.orsayscan.getInputsCount()
+        self.dinputs = dict()
+        for index in range(totalinputs):
+            prop = self.orsayscan.getInputProperties(index)
+            self.dinputs[index] = [prop, False]
+        self.usedinputs = list()
+        self.__isSpim = False
+        __inputs = self.orsayscan.GetInputs()
+        self.__used_inputs = [[0, False, self.dinputs[0][0]],
+                         [1, False, self.dinputs[1][0]],
+                         [2, False, self.dinputs[2][0]],
+                         [3, False, self.dinputs[3][0]],
+                         #[4, False, self.dinputs[4][0]],
+                         #[5, False, self.dinputs[5][0]],
+                         [6, False, self.dinputs[6][0]],
+                         [7, False, self.dinputs[7][0]],
+                         [100, False,  [0, 0, "eels", 100]],
+                         [200, False,  [0, 0, "spim_eels_spectrum", 200]],
+                         [101, False,  [0, 0, "cl", 101]],
+                         [201, False,  [0, 0, "spim_cl_spectrum", 201]]]
+
+        def make_inputs_table(profile_index):
+            for inp in __inputs[1]:
+                for k in self.usedinputs[profile_index]:
+                    if k[0] == inp:
+                        k[1] = True
+
+        self.__profiles = self.__get_initial_profiles()
+        self.__currentprofileindex = 0
+        # self.profiles = self.__profiles
+        self.__channels = self.__get_channels()
+        self.__frame_parameters = copy.deepcopy(self.__profiles[0])
+        self.flyback_pixels = 0
+        self.__buffer = list()
 
         self.orsayscan.SetInputs([1, 0])
         self.spimscan.SetInputs([1, 0])
@@ -123,14 +156,77 @@ class Device:
         self.__is_scanning = False
 
     def __get_channels(self) -> typing.List[Channel]:
-        return [Channel(0, "ADF", True), Channel(1, "BF", False)]
+        return list(Channel(i, self.get_channel_name(i), self.__profiles[self.__currentprofileindex].channels[i]) for i in range(len(self.__profiles[self.__currentprofileindex].channels)))
 
     def __get_initial_profiles(self) -> typing.List[scan_base.ScanFrameParameters]:
+        def make_channels(input_list):
+            return list(input_list[ch][1] for ch in range(len(input_list)))
+
+        config_file = os.environ['ALLUSERSPROFILE'] + "\\Nion\\Nion Swift\\Orsay_scan_profiles.json"
         profiles = list()
-        profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 0.5, "fov_nm": 4000., "rotation_rad": 0.610}))
-        profiles.append(scan_base.ScanFrameParameters({"size": (128, 128), "pixel_time_us": 1, "fov_nm": 100.}))
-        profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 1, "fov_nm": 100.}))
+        try:
+            with open(config_file) as fp:
+                profiles_dict = json_load(fp)
+                pr = 0
+                for prof in profiles_dict:
+                    value = profiles_dict[prof]
+                    self.usedinputs.append(value["inputs"])
+                    # make_inputs_table(pr)
+                    profiles.append(scan_base.ScanFrameParameters({"name": prof, "size": value["size"], "pixel_time_us": value["pixel_time_us"],
+                                                                  "channels":make_channels(self.usedinputs[pr])}))
+                    pr = pr+1
+        except Exception as e:
+            self.usedinputs.clear()
+            self.usedinputs.append([[0, False, self.dinputs[0][0]],
+                                    [1, False, self.dinputs[1][0]],
+                                    [2, False, self.dinputs[2][0]],
+                                    [3, False, self.dinputs[3][0]]])
+            self.usedinputs.append([[0, False, self.dinputs[0][0]],
+                                    [1, False, self.dinputs[1][0]],
+                                    [6, False, self.dinputs[6][0]],
+                                    [7, False, self.dinputs[7][0]]])
+            self.usedinputs.append([[0, False, self.dinputs[0][0]],
+                                    [1, False, self.dinputs[1][0]],
+                                   [100, False, [0, 0, "eels", 100]]])
+            self.usedinputs.append([[0, False, self.dinputs[0][0]],
+                                    [1, False, self.dinputs[1][0]],
+                                   [101, False, [0, 0, "eire", 101]]])
+            self.usedinputs.append([[0, False, self.dinputs[0][0]],
+                                    [1, False, self.dinputs[1][0]],
+                                   [102, False, [0, 0, "dpc", 102]]])
+            # for lp in range(0, len(self.usedinputs)):
+            #     make_inputs_table(lp)
+            profiles.append(scan_base.ScanFrameParameters({"name": _("Focus"),
+                                                                  "size": (512, 512),
+                                                                  "pixel_time_us": 0.2,
+                                                                  "channels":make_channels(self.usedinputs[0])}))
+            profiles.append(scan_base.ScanFrameParameters({"name": _("Photo"),
+                                                                  "size": (1024, 1024),
+                                                                  "pixel_time_us": 2,
+                                                                  "channels":make_channels(self.usedinputs[1])}))
+            profiles.append(scan_base.ScanFrameParameters({"name": _("Spim-eels"),
+                                                                  "size": (64, 64),
+                                                                  "pixel_time_us": 1000,
+                                                                  "channels":make_channels(self.usedinputs[2])}))
+            profiles.append(scan_base.ScanFrameParameters({"name": _("Spim-cl"),
+                                                                  "size": (100, 100),
+                                                                  "pixel_time_us": 2000,
+                                                                  "channels":make_channels(self.usedinputs[3])}))
+            profiles.append(scan_base.ScanFrameParameters({"name": _("dpc"),
+                                                                  "size": (200, 200),
+                                                                  "pixel_time_us": 100,
+                                                                  "channels":make_channels(self.usedinputs[4])}))
+            profiles_dict = dict()
+            for pr in range(0, len(profiles)):
+                profiles_dict[profiles[pr]["name"]] = {"size": profiles[pr]["size"],
+                                                              "pixel_time_us": profiles[pr]["pixel_time_us"],
+                                                              "inputs": self.usedinputs[pr]}
+            with open(config_file, "w") as fp:
+                json_dump(profiles_dict, fp, skipkeys=True, indent=4)
         return profiles
+
+    def get_initial_profiles(self):
+        return self.__get_initial_profiles()
 
     def get_profile_frame_parameters(self, profile_index: int) -> scan_base.ScanFrameParameters:
         return copy.deepcopy(self.__profiles[profile_index])
@@ -140,7 +236,23 @@ class Device:
         self.__profiles[profile_index] = copy.deepcopy(frame_parameters)
 
     def get_channel_name(self, channel_index: int) -> str:
-        return self.__channels[channel_index].name
+        res = ""
+        try:
+            res = self.usedinputs[self.__currentprofileindex][channel_index][2][2]
+        except IndexError as e:
+            res = "Pb"
+        return res
+
+    def get_input_index(self, channel_index :int) -> int:
+        value = 0
+        subscan = False
+        lg = len(self.__profiles[self.__currentprofileindex].channels)
+        if channel_index < lg:
+            value = channel_index
+        else:
+            value = channel_index - lg
+            subscan = True
+        return subscan, self.usedinputs[self.__currentprofileindex][value][0]
 
     def set_frame_parameters(self, frame_parameters: scan_base.ScanFrameParameters) -> None:
         """Called just before and during acquisition.
@@ -358,11 +470,13 @@ class Device:
 
     @property
     def channel_count(self):
-        return len(self.__channels)
+        return len(self.__profiles[self.__currentprofileindex].channels)
 
     @property
     def channels_enabled(self) -> typing.Tuple[bool, ...]:
-        return tuple(channel.enabled for channel in self.__channels)
+        old_channels = tuple(channel.enabled for channel in self.__channels)
+        new_channels = tuple(self.__profiles[self.__currentprofileindex].channels)
+        return new_channels
 
     @property
     def set_spim(self):
@@ -430,6 +544,9 @@ class Device:
             self.has_data_event.set()
 
     def show_configuration_dialog(self, api_broker) -> None:
+        from json import load as json_load
+        from json import dump as json_dump
+        import os
         """Open settings dialog, if any."""
         api = api_broker.get_api(version="1", ui_version="1")
         document_controller = api.application.document_controllers[0]._document_controller
