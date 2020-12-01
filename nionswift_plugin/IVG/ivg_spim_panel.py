@@ -64,8 +64,8 @@ class ivgSpimhandler:
             if hasattr(hards, 'hardware_source_id'):
                 if hasattr(hards, '_CameraHardwareSource__instrument_controller_id'):
                     self.__cams[self.__controllers[hards._CameraHardwareSource__instrument_controller_id]].append(hards._HardwareSource__display_name)
-                if hasattr(hards, '_ScanHardwareSource__stem_controller'):
-                    self.__scans[self.__controllers[hards._ScanHardwareSource__stem_controller.instrument_id]].append(hards.hardware_source_id)
+                    if hasattr(hards, '_ScanHardwareSource__stem_controller'):
+                        self.__scans[self.__controllers[hards._ScanHardwareSource__stem_controller.instrument_id]].append(hards.hardware_source_id)
 
 
         self.controller_value.items = self.__controllers

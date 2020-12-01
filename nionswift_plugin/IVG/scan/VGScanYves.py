@@ -225,6 +225,14 @@ class Device:
                 json_dump(profiles_dict, fp, skipkeys=True, indent=4)
         return profiles
 
+    @property
+    def profile_index(self):
+        return self.__currentprofileindex
+
+    @profile_index.setter
+    def profile_index(self, value):
+        self.__currentprofileindex = value
+
     def get_initial_profiles(self):
         return self.__get_initial_profiles()
 

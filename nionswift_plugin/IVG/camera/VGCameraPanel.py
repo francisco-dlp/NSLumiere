@@ -1,5 +1,8 @@
 import gettext
+from json import load as json_load
+from json import dump as json_dump
 import logging
+import os
 
 from nion.utils import Converter
 from nion.utils import Model
@@ -47,18 +50,49 @@ class CameraHandler:
         self.__stop_acquisition_event_listener = camera_device.stop_acquitisition_event.listen(self.stop_clicked)
 
         sx, sy = camera_device.camera.getCCDSize()
-
-        self.__areas = [(0, 0, sy, sx), (sy / 4, 0, 3 * sy / 4, sx), (3 * sy / 8, 0, 5 * sy / 8, sx),(sy / 2 - 5, 0, sy / 2 + 5, sx)]
-        self.__areas_names = [_("Full"), _("Half"), _("Quater"), _("Skinny")]
-        self.h_binning_values = [1, 2, 4, 8, 16]
-        if sy == 200:
-            self.v_binning_values = [1, 2, 5, 10, 20, 50, 100, 200]
-        elif sy == 100:
-            self.v_binning_values = [1, 2, 5, 10, 20, 50, 100]
-        elif sy == 256:
-            self.v_binning_values = [1, 2, 4, 8, 16, 32, 64, 128, 256]
-        else:
+        if camera_device.isKURO:
+            # self.__areas = [(0, 0, 2048, 2048), (810, 0, 1194, 2048), (954, 0, 1034, 2048), (992, 0, 1008, 2048), (992, 0, 1000, 2048)]
+            config_file = os.environ['ALLUSERSPROFILE'] + "\\Nion\\Nion Swift\\Orsay_camera_kuro_areas.json"
+            try:
+                with open(config_file) as f:
+                    areas_dict = json_load(f)
+                    self.__areas = list(areas_dict.values())
+                    self.__areas_names = list()
+                    for area in areas_dict:
+                        self.__areas_names.append(area)
+            except Exception as e:
+                self.__areas = [(0, 0, 2048, 2048), (1008, 0, 1392, 2048), (1160, 0, 1240, 2048), (1192, 0, 1208, 2048),
+                                (1992, 0, 1200, 2048)]
+                self.__areas_names = [_("Full"), _("3mm"), _("Skinny"), _("16 lines"), _("8 lines")]
+                with open(config_file, "w") as fp:
+                    areas_dict = dict()
+                    for i in range(0, len(self.__areas_names)):
+                        areas_dict[self.__areas_names[i]] = self.__areas[i]
+                    json_dump(areas_dict, fp, skipkeys=True, indent=4)
+            self.h_binning_values = [1]
             self.v_binning_values = [1]
+        # elif camera_device.isProEM:
+        #     self.__areas = [(0, 0, 200, 1600), (50, 0, 150, 1600), (75, 0, 125, 1600), (90, 0, 110, 1600)]
+        #     self.__areas_names = [_("Full"), _("Half"), _("Quater"), _("Skinny")]
+        elif camera_device.isMedipix:
+            self.__areas = [(0, 0, sy, sx), (sy / 4, 0, 3 * sy / 4, sx), (3 * sy / 8, 0, 5 * sy / 8, sx),
+                            (sy / 2 - 5, 0, sy / 2 + 5, sx)]
+            self.__areas_names = [_("Full"), _("Half"), _("Quater"), _("Skinny")]
+            self.h_binning_values = [1, 2, 4, 8, 16]
+            self.v_binning_values = [1,sy]
+        else:
+            self.__areas = [(0, 0, sy, sx), (sy / 4, 0, 3 * sy / 4, sx), (3 * sy / 8, 0, 5 * sy / 8, sx),
+                            (sy / 2 - 5, 0, sy / 2 + 5, sx)]
+            self.__areas_names = [_("Full"), _("Half"), _("Quater"), _("Skinny")]
+            self.h_binning_values = [1, 2, 4, 8, 16]
+            if sy == 200:
+                self.v_binning_values = [1, 2, 5, 10, 20, 50, 100, 200]
+            elif sy == 100:
+                self.v_binning_values = [1, 2, 5, 10, 20, 50, 100]
+            elif sy == 256:
+                self.v_binning_values = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+            else:
+                self.v_binning_values = [1]
 
         frame_parameters = camera_settings.get_current_frame_parameters()
 

@@ -19,7 +19,7 @@ from nion.utils import Registry
 
 from nion.instrumentation import camera_base
 
-from nionswift_plugin.IVG.camera import orsaycamera
+from . import orsaycamera
 
 from nionswift_plugin.IVG import ivg_inst
 
@@ -114,8 +114,32 @@ class CameraDevice(camera_base.CameraDevice):
         self.__x_pix_spim = 30
         self.__y_pix_spim = 30
 
+        # self.__area = 0, 0, self.__readout_area[3], self.__readout_area[2]
+        self.isKURO = model.find("KURO") >= 0
+        self.isProEM = model.find("ProEM") >= 0
+        self.isMedipix = model.find("Merlin") >= 0
         self.__calibration_controls = {}
+        if self.isProEM:
+            self.__calibration_controls = {
+                "x_scale_control": "ProEM_EELS_eVperpixel",
+                "x_offset_control": "ProEM_EELS_eVOffset",
+                "x_units_value": "eV",
+                "y_scale_control": "ProEM_EELS_radsperpixel",
+                "y_units_value": "rad",
+                "intensity_units_value": "counts",
+                "counts_per_electron_control": "ProEM_EELS_CountsPerElectron"
+            }
 
+        if self.isKURO:
+            self.__calibration_controls = {
+                "x_scale_control": "KURO_EELS_eVperpixel",
+                "x_offset_control": "KURO_EELS_eVOffset",
+                "x_units_value": "eV",
+                "y_scale_control": "ProEM_EELS_radsperpixel",
+                "y_units_value": "rad",
+                "intensity_units_value": "counts",
+                "counts_per_electron_control": "KURO_EELS_CountsPerElectron"
+            }
         if manufacturer == 2:
             self.camera.setCCDOverscan(128,0)
 
@@ -131,8 +155,10 @@ class CameraDevice(camera_base.CameraDevice):
         return self.current_camera_settings
 
     def set_frame_parameters(self, frame_parameters : dict) -> None:
-        if self.__acqon: self.stop_live()
-            
+        acqon = self.__acqon
+        if acqon:
+            self.stop_live()
+
         if self.__hardware_settings.exposure_ms != frame_parameters.exposure_ms:
             self.__hardware_settings.exposure_ms = frame_parameters.exposure_ms
             self.camera.setExposureTime(frame_parameters.exposure_ms/1000.)
@@ -147,13 +173,16 @@ class CameraDevice(camera_base.CameraDevice):
             self.__hardware_settings.soft_binning = frame_parameters.soft_binning
             if self.__hardware_settings.acquisition_mode != frame_parameters.acquisition_mode:
                 self.__hardware_settings.acquisition_mode = frame_parameters.acquisition_mode
-            print(f"***CAMERA***: acquisition mode[camera]: {self.__hardware_settings.acquisition_mode}")
+            # print(f"***CAMERA***: acquisition mode[camera]: {self.__hardware_settings.acquisition_mode}")
             self.__hardware_settings.spectra_count = frame_parameters.spectra_count
 
         if "port" in frame_parameters:
             if self.__hardware_settings.port != frame_parameters.port:
                 self.__hardware_settings.port = frame_parameters.port
                 self.camera.setCurrentPort(frame_parameters.port)
+
+        if self.isKURO:
+            frame_parameters.speed = 1
 
         if "speed" in frame_parameters:
             if self.__hardware_settings.speed != frame_parameters.speed:
@@ -192,7 +221,8 @@ class CameraDevice(camera_base.CameraDevice):
         if "processing" in frame_parameters:
             self.__hardware_settings.processing = frame_parameters.processing
 
-        if not self.__acqon: self.start_live()
+        # if acqon:
+        #     self.start_live()
 
     def __numpy_to_orsay_type(self, array: numpy.array):
         orsay_type = Orsay_Data.float
@@ -240,13 +270,23 @@ class CameraDevice(camera_base.CameraDevice):
         sx[0] = self.sizex
         sy[0] = self.sizey
         sz[0] = self.sizez
+        #data_type >= 100 force spectrum data on first axis.
         data_type[0] = 100 + self.__numpy_to_orsay_type(self.spimimagedata)
         return self.spimimagedata_ptr.value
 
     def __spim_data_unlocker(self, gene :int, new_data : bool, running : bool):
         status = self.camera.getCCDStatus()
+        if status["mode"] == "Spectrum imaging":
+            self.frame_number = status["current spectrum"]
+        if "Chrono" in status["mode"]:
+            if new_data:
+                self.has_data_event.set()
+        else:
+            if not running:
+                # just stopped, send last data anyway.
+                self.has_spim_data_event.set()
+                print("spim done")
         if not running:
-            self.has_spim_data_event.set()
             hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 self.camera_id)
             hardware_source.stop_playing()
@@ -293,7 +333,8 @@ class CameraDevice(camera_base.CameraDevice):
         self.sizex, self.sizey = self.camera.getImageSize()
         if self.current_camera_settings.soft_binning:
             self.sizey = 1
-        print(f"***CAMERA***: Start live, Image size: {self.sizex} x {self.sizey}"
+
+        print(f"***CAMERA {self.camera_name} ***: Start live, Image size: {self.sizex} x {self.sizey}"
               f"  soft_binning: {self.current_camera_settings.soft_binning}"
               f"    mode: {self.current_camera_settings.acquisition_mode}"
               f"    nb spectra {self.current_camera_settings.spectra_count}")
@@ -302,19 +343,24 @@ class CameraDevice(camera_base.CameraDevice):
             self.camera_id)
 
         if "Chrono" in self.current_camera_settings.acquisition_mode:
-            if self.current_camera_settings.acquisition_mode == '2D-Chrono':
+            self.sizez = 1
+            if (self.current_camera_settings.acquisition_mode == "2D-Chrono"):
                 self.sizez = self.current_camera_settings.spectra_count
                 self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype = numpy.float32)
             else:
                 self.sizey = self.current_camera_settings.spectra_count
                 self.sizez = 1
-                self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype = numpy.float32)
+                self.spimimagedata = numpy.zeros((self.sizey, self.sizex), dtype = numpy.float32)
             self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
             self.camera.startSpim(self.current_camera_settings.spectra_count, 1, self.current_camera_settings.exposure_ms / 1000., self.current_camera_settings.acquisition_mode == "2D-Chrono")
             self.camera.resumeSpim(4)
             if self.current_camera_settings.acquisition_mode == "1D-Chrono-Live":
                 self.camera.setSpimMode(1)
 
+        elif "Spim" in self.current_camera_settings.acquisition_mode:
+            self.camera.resumeSpim(4)  # stop eof
+            self.__acqspimon = True
+            print(f"resumed")
         elif "Focus" in self.current_camera_settings.acquisition_mode and self.__acqspimon:
 
             self.sizey = self.__x_pix_spim
@@ -339,10 +385,12 @@ class CameraDevice(camera_base.CameraDevice):
         self._last_time = time.time()
 
     def stop_live(self) -> None:
-        if self.__acqon:
-            self.camera.stopFocus()
+        if ("Chrono" in self.current_camera_settings.acquisition_mode) \
+                or ("Spim " in self.current_camera_settings.acquisition_mode):
+            self.camera.stopSpim(True)
+            self.has_data_event.set()
             self.__acqon = False
-        if "Chrono" in self.current_camera_settings.acquisition_mode or ("Focus" in self.current_camera_settings.acquisition_mode and self.__acqspimon):
+        elif "Focus" in self.current_camera_settings.acquisition_mode and self.__acqspimon:
             self.camera.stopSpim(True)
             self.has_data_event.set()
             self.__acqon = False
@@ -352,8 +400,12 @@ class CameraDevice(camera_base.CameraDevice):
         else:
             if self.__acqspimon:
                 self.has_spim_data_event.set()
+            else:
+                self.__acqon = self.camera.stopFocus()
 
     def acquire_image(self) -> dict:
+        gotit = self.has_data_event.wait(1)
+        self.has_data_event.clear()
         acquisition_mode = self.current_camera_settings.acquisition_mode
         if "Chrono" in acquisition_mode:
             self.acquire_data = self.spimimagedata
@@ -361,61 +413,68 @@ class CameraDevice(camera_base.CameraDevice):
                 collection_dimensions = 1
                 datum_dimensions = 2
             else:
-                collection_dimensions = 1
+                collection_dimensions = 0
                 datum_dimensions = 2
-
-        elif "Focus" in acquisition_mode and self.__acqspimon:
-            spnb = self.frame_number
-            y0 = int(spnb / 10)
-            x0 = int(spnb - y0 * 10)
-            self.acquire_data = self.spimimagedata
-            collection_dimensions = 2
-            datum_dimensions = 1
-
-        else: #Cumul and Focus
-            gotit = self.has_data_event.wait(5.0)
-            self.has_data_event.clear()
-            self.acquire_data = self.imagedata
+        else:
+            if ("Focus" in acquisition_mode and self.__acqspimon)\
+                    or acquisition_mode == "Spim":
+                spnb = self.frame_number
+                y0 = int(spnb // self.scan_shape[0])
+                x0 = int(spnb - y0 * self.scan_shape[0])
+                print(f"spnb: {spnb}   x0: {x0}   y0: {y0}")
+                if spnb < self.scan_shape[0] * self.scan_shape[1]:
+                    self.acquire_data = self.spimimagedata[y0, x0, :]
+                    self.acquire_data = numpy.reshape(self.acquire_data,(1,-1))
+            else: #Cumul and Focus
+                self.acquire_data = self.imagedata
             if self.acquire_data.shape[0] == 1: #fully binned
-                collection_dimensions = 1
+                self.acquire_data = self.acquire_data.reshape(self.acquire_data.shape[1])
                 datum_dimensions = 1
+                collection_dimensions = 1
                 if self.current_camera_settings.flipped:
                     self.acquire_data=numpy.flip(self.acquire_data[0], 0)
             else: #not binned
-                collection_dimensions = 0
                 datum_dimensions = 2
-
-
+                collection_dimensions = 0
         properties = dict()
         properties["frame_number"] = self.frame_number
         properties["acquisition_mode"] = acquisition_mode
         calibration_controls = copy.deepcopy(self.calibration_controls)
-
-        if self.frame_number==self.current_camera_settings.spectra_count and acquisition_mode=='Cumul':
-            #self.stop_live()
-            self.stop_acquitisition_event.fire("")
-
-
-
-
+        if acquisition_mode != "Focus" and acquisition_mode != "Cumul":
+            if acquisition_mode == "1D-Chrono" or acquisition_mode == "1D-Chrono-Live":
+                calibration_controls["y_offset_value"] = 0
+                calibration_controls["y_scale_value"] = self.readoutTime
+                calibration_controls["y_units_value"] = "s"
+            else:
+                calibration_controls["z_offset_value"] = 0
+                calibration_controls["z_scale_value"] = self.readoutTime
+                calibration_controls["z_units_value"] = "s"
         return {"data": self.acquire_data, "collection_dimension_count": collection_dimensions,
                 "datum_dimension_count": datum_dimensions, "calibration_controls": calibration_controls,
                 "properties": properties}
 
     @property
     def calibration_controls(self) -> dict:
+        """Define the AS2 calibration controls for this camera.
+        The controls should be unique for each camera if there are more than one.
+        """
+        return self.__calibration_controls
 
-        return {
-            "x_scale_control": self.camera_type + "_x_scale",
-            "x_offset_control": self.camera_type + "_x_offset",
-            "x_units_value": "eV" if self.camera_type=='eels' else "nm",
-            "y_scale_control": self.camera_type + "_y_scale",
-            "y_offset_control": self.camera_type + "_y_offset",
-            "y_units_value": "",
-            "intensity_units_value": "counts",
-            "counts_per_electron_value": 1
-        }
+        # return {
+        #     "x_scale_control": self.camera_type + "_x_scale",
+        #     "x_offset_control": self.camera_type + "_x_offset",
+        #     "x_units_value": "eV" if self.camera_type=='eels' else "nm",
+        #     "y_scale_control": self.camera_type + "_y_scale",
+        #     "y_offset_control": self.camera_type + "_y_offset",
+        #     "y_units_value": "",
+        #     "intensity_units_value": "counts",
+        #     "counts_per_electron_value": 1
+        # }
 
+    @calibration_controls.setter
+    def calibrations_controls(self, value: dict):
+        """ Instrument owner will give controls names, override default camera eels calibration"""
+        self.__calibration_controls = value
 
     @property
     def processing(self) -> typing.Optional[str]:
@@ -427,6 +486,60 @@ class CameraDevice(camera_base.CameraDevice):
 
     def get_expected_dimensions(self, binning: int) -> (int, int):
         return self.__sensor_dimensions
+
+    def acquire_synchronized_prepare(self, data_shape, **kwargs) -> None:
+        # data_shape is a (w, h) or just (length) for 1D scans
+        self.scan_shape = data_shape
+        scansize = int(numpy.product(data_shape))
+        # now this works as before
+        self.frame_number = 0
+        print(f"preparing spim acquisition")
+        self.__twoD = self.current_camera_settings.processing != "sum_project"\
+        and not self.current_camera_settings.soft_binning
+        self.current_camera_settings.processing = "None"
+        if self.__twoD:
+            self.sizex, self.sizey = self.camera.getImageSize()
+            self.sizez = scansize
+            self.spimimagedata = numpy.zeros((scansize, self.sizey, self.sizex), dtype=numpy.float32)
+        else:
+            self.sizex, tmpy = self.camera.getImageSize()
+            self.sizey = scansize
+            self.sizez = 1
+            self.spimimagedata = numpy.zeros((scansize, self.sizex), dtype=numpy.float32)
+        print(f"{self.sizex} {self.sizey} {self.sizez}")
+        self.spimimagedata = numpy.ascontiguousarray(self.spimimagedata, dtype=numpy.float32)
+        self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
+        print(f"allocated {self.spimimagedata_ptr}")
+        if self.__acqon:
+            self.camera.stopFocus()
+        self.camera.startSpim(scansize, 1, self.current_camera_settings.exposure_ms / 1000, self.__twoD)
+        print(f"prepared")
+
+    def acquire_synchronized(self, data_shape, **kwargs) -> dict:
+        n = int(numpy.product(data_shape))
+        self.camera.resumeSpim(4)  # stop eof
+        self.__acqspimon = True
+        print(f"resumed")
+        print(f"acquiring {n}")
+        gotit = self.has_spim_data_event.wait(10000.0)
+        self.has_spim_data_event.clear()
+        self.camera.stopSpim(True)
+        self.__acqspimon = False
+        data = numpy.copy(self.spimimagedata)
+        print(f"returned data shape {data.shape}")
+        # data = data.reshape((n, ) + data.shape[2:])  # this needed today, until I update scan_base
+        self.camera.setBinning(self.__orsay_binning[0], self.__orsay_binning[1])  # restore, this is only needed until regular binning is used instead of orsay binning
+        properties = dict()
+        properties["frame_number"] = self.frame_number
+        properties["acquisition_mode"] = "spim"
+        calibration_controls = copy.deepcopy(self.calibration_controls)
+        return {"data": data, "calibration_controls": calibration_controls, "properties": properties}
+
+    def acquire_sequence_orsay(self, mode = 4) -> None:
+        self.camera.resumeSpim(mode)  # stop eof
+        self.__acqspimon = True
+        print(f"resumed")
+        print(f"acquisition mode {mode}")
 
     def start_monitor(self) -> None:
         pass
@@ -535,7 +648,7 @@ class CameraSettings:
         self.frame_parameters_changed_event = Event.Event()
         self.settings_changed_event = Event.Event()
         # the list of possible modes should be defined here
-        self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live"]
+        self.modes = ["Focus", "Cumul", "1D-Chrono","1D-Chrono-Live", "2D-Chrono", "Spim"]
 
         self.__camera_device = camera_device
         self.settings_id = camera_device.camera_id
@@ -629,7 +742,7 @@ def run(instrument: ivg_inst.ivgInstrument):
         cameras.append({"manufacturer": 1, "model": "ProEM+: 1600xx(2)B eXcelon", "type":"eire", "id":"orsay_camera_eire", "name": "EIRE", "simulation":True})
 
     # Marcel
-    # Continue camera liste in case one camera failed.
+    # Continue camera list in case one camera failed.
     # for instance camera is powered off or not there at the moment.
     # do not try to simulate Andor as it is not possible, just skip over it.
     #

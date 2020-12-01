@@ -4,7 +4,8 @@ Class controlling orsay scan hardware.
 import sys
 import threading
 from ctypes import cdll, create_string_buffer, POINTER, byref
-from ctypes import c_uint, c_int, c_char, c_char_p, c_void_p, c_short, c_long, c_bool, c_double, c_uint64, c_uint32, Array, CFUNCTYPE, WINFUNCTYPE
+from ctypes import c_uint, c_int, c_char, c_char_p, c_void_p, c_short, c_long, c_bool, c_double, c_uint64, c_uint32, \
+    Array, CFUNCTYPE, WINFUNCTYPE
 from ctypes import c_ushort, c_ulong, c_float
 from shutil import copy2
 
@@ -43,10 +44,10 @@ if (sys.maxsize > 2**32):
     libpath = os.path.dirname(__file__)
     python_folder = sys.executable
     pos = python_folder.find("python.exe")
-    if pos>0:
-        python_folder=python_folder.replace("python.exe","")
-        lib2name=os.path.join(libpath, "STEMSerial.dll")
-        copy2(lib2name,python_folder)
+    if pos > 0:
+        python_folder = python_folder.replace("python.exe", "")
+        lib2name = os.path.join(libpath, "STEMSerial.dll")
+        copy2(lib2name, python_folder)
         lib3name = os.path.join(libpath, "Connection.dll")
         copy2(lib3name, python_folder)
         lib3nameconfig = os.path.join(libpath, "Connection.dll.config")
@@ -74,8 +75,9 @@ class orsayCamera(object):
     """
     def __initialize_library(self):
         #	void CAMERAS_EXPORT *OrsayCamerasInit(int manufacturer, const char *model, void(*logger)(const char *buf, bool debug), bool simul);
-        self.__OrsayCameraInit = _buildFunction(_library.OrsayCamerasInit, [c_int, c_char_p, c_char_p, LOGGERFUNC, c_bool],
-                                           c_void_p)
+        self.__OrsayCameraInit = _buildFunction(_library.OrsayCamerasInit,
+                                                [c_int, c_char_p, c_char_p, LOGGERFUNC, c_bool],
+                                                c_void_p)
         # void CAMERAS_EXPORT OrsayCamerasClose(void* o);
         self.__OrsayCameraClose = _buildFunction(_library.OrsayCamerasClose, [c_void_p], None)
 
@@ -89,54 +91,60 @@ class orsayCamera(object):
         self.__AddConnectionListener = _buildFunction(_library.AddConnectionListener, [c_void_p, CONNECTIONFUNC], None)
 
         # void CAMERAS_EXPORT RegisterDataLocker(void * o, void *(*LockDataPointer)(int cam,  int *datatype, int *sx, int *sy, int *sz));
-        self.__OrsayCameraRegisterDataLocker = _buildFunction(_library.RegisterDataLocker, [c_void_p, DATALOCKFUNC], None)
+        self.__OrsayCameraRegisterDataLocker = _buildFunction(_library.RegisterDataLocker, [c_void_p, DATALOCKFUNC],
+                                                              None)
         # void CAMERAS_EXPORT RegisterDataUnlocker(void *o, void(*UnLockDataPointer)(int cam, bool newdata));
-        self.__OrsayCameraRegisterDataUnlocker = _buildFunction(_library.RegisterDataUnlocker, [c_void_p, DATAUNLOCKFUNC],
-                                                           None)
+        self.__OrsayCameraRegisterDataUnlocker = _buildFunction(_library.RegisterDataUnlocker,
+                                                                [c_void_p, DATAUNLOCKFUNC],
+                                                                None)
         # void CAMERAS_EXPORT RegisterSpimDataLocker(void *o, void(*LockSpimDataPointer)(int cam, int *datatype, int *sx, int *sy, int *sz));
-        self.__OrsayCameraRegisterSpimDataLocker = _buildFunction(_library.RegisterSpimDataLocker, [c_void_p, SPIMLOCKFUNC],
-                                                             None)
+        self.__OrsayCameraRegisterSpimDataLocker = _buildFunction(_library.RegisterSpimDataLocker,
+                                                                  [c_void_p, SPIMLOCKFUNC],
+                                                                  None)
         # void CAMERAS_EXPORT RegisterSpimDataUnlocker(void *o, void *(*UnLockSpimDataPointer)(int cam, bool newdata, bool running));
         self.__OrsayCameraRegisterSpimDataUnlocker = _buildFunction(_library.RegisterSpimDataUnlocker,
-                                                               [c_void_p, SPIMUNLOCKFUNC], None)
+                                                                    [c_void_p, SPIMUNLOCKFUNC], None)
         # //void ** (*LockOnlineSpimDataPointer)(void *o, short cam, short *datatype, short *sx, short *sy, short *sz);
         # //void(*UnLockOnlineSpimDataPointer)(void *o, int cam, bool newdata, bool running);
         # void CAMERAS_EXPORT RegisterSpectrumDataLocker(void *o, void *(*LockSpectrumDataPointer)(int cam, int *datatype, int *sx));
         self.__OrsayCameraRegisterSpectrumDataLocker = _buildFunction(_library.RegisterSpectrumDataLocker,
-                                                                 [c_void_p, SPECTLOCKFUNC], None)
+                                                                      [c_void_p, SPECTLOCKFUNC], None)
         # void CAMERAS_EXPORT RegisterSpectrumDataUnlocker(void *o, void(*UnLockSpectrumDataPointer)(int cam, bool newdata));
         self.__OrsayCameraRegisterSpectrumDataUnlocker = _buildFunction(_library.RegisterSpectrumDataUnlocker,
-                                                                   [c_void_p, SPECTUNLOCKFUNC], None)
+                                                                        [c_void_p, SPECTUNLOCKFUNC], None)
         # void CAMERAS_EXPORT RegisterSpimUpdateInfo(void *o, void(*UpdateSpimInfo)(unsigned long currentspectrum, bool running));
         self.__OrsayCameraRegisterSpimUpdateLocker = _buildFunction(_library.RegisterSpimUpdateInfo,
-                                                               [c_void_p, SPIMUPDATEFUNC], None)
+                                                                    [c_void_p, SPIMUPDATEFUNC], None)
 
         # bool CAMERAS_EXPORT init_data_structures(void *o);
         self.__OrsayCameraInit_data_structures = _buildFunction(_library.init_data_structures, [c_void_p], c_bool)
 
         # void CAMERAS_EXPORT GetCCDSize(void *o, long *sx, long *sy);
         self.__OrsayCameraGetCCDSize = _buildFunction(_library.GetCCDSize, [c_void_p, POINTER(c_long), POINTER(c_long)],
-                                                 None)
+                                                      None)
         # void CAMERAS_EXPORT GetImageSize(void *o, long *sx, long *sy);
         self.__OrsayCameraGetImageSize = _buildFunction(_library.GetImageSize, [c_void_p, ], None)
 
         # //myrgn_type GetArea(void *o, );
         # //bool CAMERAS_EXPORT SetCameraArea(void *o, short top, short left, short bottom, short right);
-        self.__OrsayCameraSetArea = _buildFunction(_library.SetCameraArea, [c_void_p, c_short, c_short, c_short, c_short],
-                                              c_bool)
+        self.__OrsayCameraSetArea = _buildFunction(_library.SetCameraArea,
+                                                   [c_void_p, c_short, c_short, c_short, c_short],
+                                                   c_bool)
         # bool CAMERAS_EXPORT GetCameraArea(void *o, short *top, short *left, short *bottom, short *right);#void CAMERAS_EXPORT SetCCDOverscan(void *o, int x, int y);
         self.__OrsayCameraGetArea = _buildFunction(_library.GetCameraArea,
-                                              [c_void_p, POINTER(c_short), POINTER(c_short), POINTER(c_short),
-                                               POINTER(c_short)], c_bool)
+                                                   [c_void_p, POINTER(c_short), POINTER(c_short), POINTER(c_short),
+                                                    POINTER(c_short)], c_bool)
         # void CAMERAS_EXPORT SetCCDOverscan(void *o, int x, int y);
         self.__OrsayCameraSetCCDOverscan = _buildFunction(_library.SetCCDOverscan, [c_void_p, c_int, c_int], None)
         # void CAMERAS_EXPORT DisplayOverscan(void *o, bool on);
         self.__OrsayCameraDisplayOverscan = _buildFunction(_library.DisplayOverscan, [c_void_p, c_bool], None)
         # void CAMERAS_EXPORT GetBinning(void *o, unsigned short *bx, unsigned short *by);
-        self.__OrsayCameraGetBinning = _buildFunction(_library.GetBinning, [c_void_p, POINTER(c_ushort), POINTER(c_ushort)],
-                                                 None)
+        self.__OrsayCameraGetBinning = _buildFunction(_library.GetBinning,
+                                                      [c_void_p, POINTER(c_ushort), POINTER(c_ushort)],
+                                                      None)
         # bool CAMERAS_EXPORT SetBinning(void *o, unsigned short bx, unsigned short by, bool estimatedark = true);
-        self.__OrsayCameraSetBinning = _buildFunction(_library.SetBinning, [c_void_p, c_ushort, c_ushort, c_bool], c_bool)
+        self.__OrsayCameraSetBinning = _buildFunction(_library.SetBinning, [c_void_p, c_ushort, c_ushort, c_bool],
+                                                      c_bool)
         # void CAMERAS_EXPORT SetMirror(void *o, bool On);
         self.__OrsayCameraSetMirror = _buildFunction(_library.SetMirror, [c_void_p, c_bool], None)
         # void CAMERAS_EXPORT SetNbCumul(void *o, long n);
@@ -147,7 +155,7 @@ class orsayCamera(object):
         self.__OrsayCameraSetSpimMode = _buildFunction(_library.SetSpimMode, [c_void_p, c_ushort], None)
         # bool CAMERAS_EXPORT StartSpim(void *o, unsigned long nbSpectra, unsigned long nbsp, float pose, bool saveK);
         self.__OrsayCameraStartSpim = _buildFunction(_library.StartSpim, [c_void_p, c_ulong, c_ulong, c_float, c_bool],
-                                                c_bool)
+                                                     c_bool)
         # bool CAMERAS_EXPORT ResumeSpim(void *o, int mode);
         self.__OrsayCameraResumeSpim = _buildFunction(_library.ResumeSpim, [c_void_p, c_int], c_bool)
         # bool CAMERAS_EXPORT PauseSpim(void *o);
@@ -161,13 +169,14 @@ class orsayCamera(object):
         self.__OrsayCameraIsCameraThere = _buildFunction(_library.isCameraThere, [c_void_p], c_bool)
         # bool CAMERAS_EXPORT GetTemperature(void *o, float *temperature, bool *status);
         self.__OrsayCameraGetTemperature = _buildFunction(_library.GetCameraTemperature,
-                                                     [c_void_p, POINTER(c_float), POINTER(c_bool)], c_bool)
+                                                          [c_void_p, POINTER(c_float), POINTER(c_bool)], c_bool)
         # bool CAMERAS_EXPORT SetTemperature(void *o, float temperature);
         self.__OrsayCameraSetTemperature = _buildFunction(_library.SetCameraTemperature, [c_void_p, c_float], c_bool)
         # bool CAMERAS_EXPORT SetupBinning(void *o);
         self.__OrsayCameraSetupBinning = _buildFunction(_library.SetupBinning, [c_void_p], c_bool)
         # bool CAMERAS_EXPORT StartFocus(void *o, float pose, short display, short accumulate);
-        self.__OrsayCameraStartFocus = _buildFunction(_library.StartFocus, [c_void_p, c_float, c_short, c_short], c_bool)
+        self.__OrsayCameraStartFocus = _buildFunction(_library.StartFocus, [c_void_p, c_float, c_short, c_short],
+                                                      c_bool)
         # bool CAMERAS_EXPORT StopFocus(void *o);
         self.__OrsayCameraStopFocus = _buildFunction(_library.StopFocus, [c_void_p], c_bool)
         # bool CAMERAS_EXPORT SetCameraExposureTime(void *o, double pose);
@@ -200,13 +209,14 @@ class orsayCamera(object):
         self.__OrsayCameraSetCameraPort = _buildFunction(_library.SetCameraPort, [c_void_p, c_long], c_bool)
         # unsigned short CAMERAS_EXPORT GetMultiplication(void *o, unsigned short *pmin, unsigned short *pmax);
         self.__OrsayCameraGetMultiplication = _buildFunction(_library.GetMultiplication,
-                                                        [c_void_p, POINTER(c_ushort), POINTER(c_ushort)], c_ushort)
+                                                             [c_void_p, POINTER(c_ushort), POINTER(c_ushort)], c_ushort)
         # void CAMERAS_EXPORT SetMultiplication(void *o, unsigned short mult);
         self.__OrsayCameraSetMultiplication = _buildFunction(_library.SetMultiplication, [c_void_p, c_ushort], None)
         # void CAMERAS_EXPORT getCCDStatus(void *o, short *mode, double *p1, double *p2, double *p3, double *p4);
         self.__OrsayCameragetCCDStatus = _buildFunction(_library.getCCDStatus,
-                                                   [c_void_p, POINTER(c_short), POINTER(c_double), POINTER(c_double),
-                                                    POINTER(c_double), POINTER(c_double)], None)
+                                                        [c_void_p, POINTER(c_short), POINTER(c_double),
+                                                         POINTER(c_double),
+                                                         POINTER(c_double), POINTER(c_double)], None)
         # double CAMERAS_EXPORT GetReadoutSpeed(void *o);
         self.__OrsayCameraGetReadoutSpeed = _buildFunction(_library.GetReadoutSpeed, [c_void_p], c_double)
         # long CAMERAS_EXPORT GetPixelTime(void *o, short p, short v);
@@ -214,18 +224,22 @@ class orsayCamera(object):
         # void CAMERAS_EXPORT AdjustOverscan(void *o, int sx, int sy);
         self.__OrsayCameraAdjustOverscan = _buildFunction(_library.AdjustOverscan, [c_void_p, c_int, c_int], None)
         # void CAMERAS_EXPORT SetTurboMode(void *o, int active, short horizontalsize, short verticalsize);
-        self.__OrsayCameraSetTurboMode = _buildFunction(_library.SetTurboMode, [c_void_p, c_short, c_short, c_short], None)
+        self.__OrsayCameraSetTurboMode = _buildFunction(_library.SetTurboMode, [c_void_p, c_short, c_short, c_short],
+                                                        None)
         # int CAMERAS_EXPORT GetTurboMode(void *o, short *horizontalsize, short *verticalsize);
         self.__OrsayCameraGetTurboMode = _buildFunction(_library.GetTurboMode,
-                                                   [c_void_p, POINTER(c_short), POINTER(c_short)], c_int)
+                                                        [c_void_p, POINTER(c_short), POINTER(c_short)], c_int)
         # bool CAMERAS_EXPORT SetExposureMode(void *o, short mode, short edge);
-        self.__OrsayCameraSetExposureMode = _buildFunction(_library.SetExposureMode, [c_void_p, c_short, c_short], c_bool)
+        self.__OrsayCameraSetExposureMode = _buildFunction(_library.SetExposureMode, [c_void_p, c_short, c_short],
+                                                           c_bool)
         # short CAMERAS_EXPORT GetExposureMode(void *o, short *edge);
-        self.__OrsayCameraGetExposureMode = _buildFunction(_library.GetExposureMode, [c_void_p, POINTER(c_short)], c_short)
+        self.__OrsayCameraGetExposureMode = _buildFunction(_library.GetExposureMode, [c_void_p, POINTER(c_short)],
+                                                           c_short)
         # bool CAMERAS_EXPORT SetPulseMode(void *o, short mode);
         self.__OrsayCameraSetPulseMode = _buildFunction(_library.SetPulseMode, [c_void_p, c_int], c_bool)
         # bool CAMERAS_EXPORT SetVerticalShift(void *o, double shift, int clear);
-        self.__OrsayCameraSetVerticalShift = _buildFunction(_library.SetVerticalShift, [c_void_p, c_double, c_int], c_bool)
+        self.__OrsayCameraSetVerticalShift = _buildFunction(_library.SetVerticalShift, [c_void_p, c_double, c_int],
+                                                            c_bool)
         # bool CAMERAS_EXPORT SetFan(void *o, bool OnOff);
         self.__OrsayCameraSetFan = _buildFunction(_library.SetFan, [c_void_p, c_bool], c_bool)
         # bool CAMERAS_EXPORT GetFan(void *o);
@@ -238,6 +252,7 @@ class orsayCamera(object):
     def close(self):
         self.__OrsayCameraClose(self.orsaycamera)
         self.orsaycamera = None
+
     def __logger(self, message, debug):
         print(f"log: {_convertToString23(message)}")
 
@@ -265,20 +280,23 @@ class orsayCamera(object):
         self.dataevent = threading.Event()
 
         modelb = _toString23(model)
-        self.orsaycamera = self.__OrsayCameraInit(manufacturer, modelb,  _toString23(sn), self.fnlog, simul)
+        self.orsaycamera = self.__OrsayCameraInit(manufacturer, modelb, _toString23(sn), self.fnlog, simul)
         if not self.orsaycamera:
-            raise Exception ("Camera not created")
+            raise Exception("Camera not created")
         # Marcel
         # Connection is only valid for Quantumdetector cameras.from
         #
+        connected = True
         if manufacturer == 3:
             self.addConnectionListener(self.fnconnection)
-            self.messagesevent.wait(5.0)
+            connected = self.messagesevent.wait(5.0)
             self.messagesevent.clear()
-        if not self.__OrsayCameraInit_data_structures(self.orsaycamera):
-            raise Exception ("Camera not initialised properly")
-        print(f"Camera: {self.__OrsayCameraIsCameraThere(self.orsaycamera)}")
-        self.setAccumulationNumber(10)
+        if connected:
+            if not self.__OrsayCameraInit_data_structures(self.orsaycamera):
+                raise Exception("Camera not initialised properly")
+            self.setAccumulationNumber(10)
+        if not self.__OrsayCameraIsCameraThere(self.orsaycamera):
+            print(f"Camera {modelb} not found")
 
     def registerLogger(self, fn):
         """
@@ -328,10 +346,10 @@ class orsayCamera(object):
         self.__OrsayCameraRegisterDataUnlocker(self.orsaycamera, fn)
 
     def registerSpimDataLocker(self, fn):
-       """
-       Function called to get data storage for a spectrum image readout
-       """
-       self.__OrsayCameraRegisterSpimDataLocker(self.orsaycamera, fn)
+        """
+        Function called to get data storage for a spectrum image readout
+        """
+        self.__OrsayCameraRegisterSpimDataLocker(self.orsaycamera, fn)
 
     def registerSpimDataUnlocker(self, fn):
         """
@@ -340,10 +358,10 @@ class orsayCamera(object):
         self.__OrsayCameraRegisterSpimDataUnlocker(self.orsaycamera, fn)
 
     def registerSpectrumDataLocker(self, fn):
-       """
-       Function called to get data storage for the current spectrum in spim readout
-       """
-       self.__OrsayCameraRegisterSpectrumDataLocker(self.orsaycamera, fn)
+        """
+        Function called to get data storage for the current spectrum in spim readout
+        """
+        self.__OrsayCameraRegisterSpectrumDataLocker(self.orsaycamera, fn)
 
     def registerSpectrumDataUnlocker(self, fn):
         """
@@ -475,7 +493,7 @@ class orsayCamera(object):
         """
         Find the number of speeds available for a specific readout port, they can be port dependant on some cameras
         """
-        return  self.__OrsayCameraGetNumOfSpeed(self.orsaycamera, cameraport)
+        return self.__OrsayCameraGetNumOfSpeed(self.orsaycamera, cameraport)
 
     def getSpeeds(self, cameraport):
         """
@@ -509,17 +527,17 @@ class orsayCamera(object):
         nbports = self.getNumofPorts()
         allportsparams = ()
         for p in range(nbports):
-            #self.setCurrentPort(p)
+            # self.setCurrentPort(p)
             portparams = (self.getPortName(p),)
             nbspeeds = self.getNumofSpeeds(p)
             speeds = ()
-            #roperscientific gives pixel time in nanoseconds.
+            # roperscientific gives pixel time in nanoseconds.
             for s in range(nbspeeds):
-                #self.setSpeed(p, s)
+                # self.setSpeed(p, s)
                 pixeltime = self.getPixelTime(p, s)
                 speed = 1000 / pixeltime
                 if speed < 1:
-                    speed = str(1000000 /pixeltime) + " KHz"
+                    speed = str(1000000 / pixeltime) + " KHz"
                 else:
                     speed = str(speed) + " MHz"
                 speeds = speeds + (speed,)
@@ -542,7 +560,7 @@ class orsayCamera(object):
         """
         Find the number of gains available for a specific readout port, they can be port dependant on some cameras
         """
-        return  self.__OrsayCameraGetNumOfGains(self.orsaycamera, cameraport)
+        return self.__OrsayCameraGetNumOfGains(self.orsaycamera, cameraport)
 
     def getGains(self, cameraport):
         """
@@ -570,7 +588,7 @@ class orsayCamera(object):
         """
         Select speed used on this port
         """
-        #print(f"orsaycamera: setGain {gain}")
+        # print(f"orsaycamera: setGain {gain}")
         res = self.__OrsayCameraSetGain(self.orsaycamera, gain)
         return res
 
@@ -729,7 +747,7 @@ class orsayCamera(object):
         """
         return self.__OrsayCameraSetVerticalShift(self.orsaycamera, shift, clear).value
 
-    def setFan(self, On_Off : bool):
+    def setFan(self, On_Off: bool):
         """
         Turns the camera fan on or off
         """
@@ -741,11 +759,15 @@ class orsayCamera(object):
         """
         return self.__OrsayCameraGetFan(self.orsaycamera)
 
-    def setArea(self, area : tuple):
+    def setArea(self, area: tuple):
         """
         Set the ROI read on the camera (tof, left, bottom, right)
         """
-        return self.__OrsayCameraSetArea(self.orsaycamera, area[0], area[1], area[2], area[3])
+        top = int(area[0])
+        left = int(area[1])
+        bottom = int(area[2])
+        right = int(area[3])
+        return self.__OrsayCameraSetArea(self.orsaycamera, top, left, bottom, right)
 
     def getArea(self):
         """

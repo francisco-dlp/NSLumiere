@@ -255,11 +255,14 @@ def create_spectro_panel(document_controller, panel_id, properties):
         finishes = list()
         panel.widget = Declarative.construct(document_controller.ui, None, ui_view.ui_view, ui_handler, finishes)
 
+        # Marcel - fix
+        # should be done bvefore finish()
+        #
+        if ui_handler and hasattr(ui_handler, "init_handler"):
+            ui_handler.init_handler()
 
         for finish in finishes:
             finish()
-        if ui_handler and hasattr(ui_handler, "init_handler"):
-            ui_handler.init_handler()
         return panel
 
 
