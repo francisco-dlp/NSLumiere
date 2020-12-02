@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Simu>
+<Period>30</Period>
+<Xdrift>5</Xdrift>
+<Ydrift>2</Ydrift>
+<PeriodCoef>0.05</PeriodCoef>
+<Background>100</Background>
+<Signal>30</Signal>
+</Simu>

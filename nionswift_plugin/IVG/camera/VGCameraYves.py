@@ -13,14 +13,17 @@ import logging
 
 # local libraries
 
+from nion.data import Core
+from nion.data import DataAndMetadata
+from nion.data import Calibration
 from nion.swift.model import PlugInManager
+from nion.swift.model import ImportExportManager
 from nion.swift.model import HardwareSource
 from nion.utils import Registry
-
+from nion.utils import Event
 from nion.instrumentation import camera_base
 
 from . import orsaycamera
-
 from nionswift_plugin.IVG import ivg_inst
 
 _ = gettext.gettext
@@ -34,14 +37,21 @@ class Orsay_Data(Enum):
     float = 11
     real = 12
 
+
 class CameraDevice(camera_base.CameraDevice):
 
-    def __init__(self, manufacturer, model, sn, simul, instrument: ivg_inst.ivgInstrument, id, name, type):
+    def __init__(self, manufacturer, model, sn, simul, id, name, type):
         self.camera_id=id
         self.camera_type=type
         self.camera_name=name
         self.camera_model = model
-        self.instrument=instrument
+        # find instrument to be compatible with nion base
+        # remove instrument from init parameters
+        self.instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id('autostem_controller')
+        if not self.instrument:
+            self.instrument = Registry.get_component('stem_controller')
+        if not self.instrument:
+            HardwareSource.HardwareSourceManager().get_instrument_by_id('VG_Lum_controller')
         self.camera = orsaycamera.orsayCamera(manufacturer, model, sn, simul)
         self.__config_dialog_handler = None
         self.__sensor_dimensions = self.camera.getCCDSize()
@@ -53,7 +63,7 @@ class CameraDevice(camera_base.CameraDevice):
         self.sizez = 1
         self._last_time = time.time()
         self.frame_parameter_changed_event = Event.Event()
-        self.stop_acquitisition_event = Event.Event()
+        self.stop_acquisition_event = Event.Event()
 
         # register data locker for focus acquisition
         self.fnlock = orsaycamera.DATALOCKFUNC(self.__data_locker)
@@ -487,53 +497,131 @@ class CameraDevice(camera_base.CameraDevice):
     def get_expected_dimensions(self, binning: int) -> (int, int):
         return self.__sensor_dimensions
 
-    def acquire_synchronized_prepare(self, data_shape, **kwargs) -> None:
-        # data_shape is a (w, h) or just (length) for 1D scans
-        self.scan_shape = data_shape
-        scansize = int(numpy.product(data_shape))
-        # now this works as before
-        self.frame_number = 0
-        print(f"preparing spim acquisition")
-        self.__twoD = self.current_camera_settings.processing != "sum_project"\
-        and not self.current_camera_settings.soft_binning
-        self.current_camera_settings.processing = "None"
-        if self.__twoD:
-            self.sizex, self.sizey = self.camera.getImageSize()
-            self.sizez = scansize
-            self.spimimagedata = numpy.zeros((scansize, self.sizey, self.sizex), dtype=numpy.float32)
-        else:
-            self.sizex, tmpy = self.camera.getImageSize()
-            self.sizey = scansize
-            self.sizez = 1
-            self.spimimagedata = numpy.zeros((scansize, self.sizex), dtype=numpy.float32)
-        print(f"{self.sizex} {self.sizey} {self.sizez}")
-        self.spimimagedata = numpy.ascontiguousarray(self.spimimagedata, dtype=numpy.float32)
-        self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
-        print(f"allocated {self.spimimagedata_ptr}")
-        if self.__acqon:
-            self.camera.stopFocus()
-        self.camera.startSpim(scansize, 1, self.current_camera_settings.exposure_ms / 1000, self.__twoD)
-        print(f"prepared")
+    PartialData = camera_base.CameraHardwareSource.PartialData
 
-    def acquire_synchronized(self, data_shape, **kwargs) -> dict:
-        n = int(numpy.product(data_shape))
-        self.camera.resumeSpim(4)  # stop eof
-        self.__acqspimon = True
-        print(f"resumed")
-        print(f"acquiring {n}")
-        gotit = self.has_spim_data_event.wait(10000.0)
-        self.has_spim_data_event.clear()
-        self.camera.stopSpim(True)
-        self.__acqspimon = False
-        data = numpy.copy(self.spimimagedata)
-        print(f"returned data shape {data.shape}")
-        # data = data.reshape((n, ) + data.shape[2:])  # this needed today, until I update scan_base
-        self.camera.setBinning(self.__orsay_binning[0], self.__orsay_binning[1])  # restore, this is only needed until regular binning is used instead of orsay binning
-        properties = dict()
-        properties["frame_number"] = self.frame_number
-        properties["acquisition_mode"] = "spim"
-        calibration_controls = copy.deepcopy(self.calibration_controls)
-        return {"data": data, "calibration_controls": calibration_controls, "properties": properties}
+    class CameraTask:
+        def __init__(self, camera_device: "Camera", camera_frame_parameters, scan_shape: typing.Tuple[int, ...]):
+            self.__camera_device = camera_device
+            self.__camera_frame_parameters = camera_frame_parameters
+            self.__scan_shape = scan_shape
+            self.__scan_count = int(numpy.product(self.__scan_shape))
+            self.__aborted = False
+            self.spimdata = None
+            self.__xdata = None
+            self.__start = 0
+            self.__last_rows = 0
+
+        @property
+        def xdata(self) -> typing.Optional[DataAndMetadata.DataAndMetadata]:
+            return self.__xdata
+
+        def prepare(self) -> None:
+            # returns the full scan readout, including flyback pixels
+            scansize = int(numpy.product(self.__scan_shape))
+            # now this works as before
+            self.__last_rows = 0
+            self.__camera_device.frame_number = 0
+            print(f"preparing spim acquisition")
+            twoD = self.__camera_device.current_camera_settings.processing != "sum_project" \
+                          and not self.__camera_device.current_camera_settings.soft_binning
+            self.__camera_device.current_camera_settings.processing = "None"
+            if twoD:
+                self.sizex, self.sizey = self.__camera_device.camera.getImageSize()
+                self.sizez = scansize
+                self.spimdata = numpy.zeros((self.__scan_shape[1], self.__scan_shape[0], self.sizey, self.sizex), dtype=numpy.float32)
+                camera_readout_shape = (self.sizey, self.sizex)
+            else:
+                self.sizex, tmpy = self.__camera_device.camera.getImageSize()
+                self.sizey = scansize
+                self.sizez = 1
+                self.spimdata = numpy.zeros((self.__scan_shape[1], self.__scan_shape[0], self.sizex), dtype=numpy.float32)
+                camera_readout_shape = (self.sizex,)
+            print(f"Spim dimensions {self.sizex} {self.sizey} {self.sizez}")
+            self.__camera_device.camera.startSpim(scansize, 1, self.__camera_device.current_camera_settings.exposure_ms / 1000, twoD)
+            data_descriptor = DataAndMetadata.DataDescriptor(False, len(self.__scan_shape), len(camera_readout_shape))
+            self.__xdata = DataAndMetadata.new_data_and_metadata(self.spimdata, data_descriptor=data_descriptor)
+
+        def start(self) -> typing.Optional[DataAndMetadata.DataAndMetadata]:
+            self.__camera_device.camera.resumeSpim(4)  # stop eof
+            return self.__xdata
+
+        def grab_partial(self, *, update_period: float = 1.0) -> typing.Tuple[bool, bool, int]:
+            # updates the full scan readout data, returns a tuple of is complete, is canceled, and
+            # the number of valid rows.
+            if not self.__aborted:
+                rows = self.__camera_device.frame_number // self.__scan_shape[0]
+                self.__xdata.metadata.setdefault("hardware_source", dict())["valid_rows"] = rows
+                is_complete = self.__camera_device.frame_number >= self.__scan_count
+                if self.__last_rows != rows:
+                    self.__last_rows = rows
+                    print(f"valid rows {rows}")
+                return is_complete, False, rows
+            return True, True, 0
+
+    def acquire_synchronized_begin(self, camera_frame_parameters: typing.Mapping, scan_shape: typing.Tuple[int, ...],
+                                   **kwargs) -> PartialData:
+        self.__camera_task = CameraDevice.CameraTask(self, camera_frame_parameters, scan_shape)
+        self.__camera_task.prepare()
+        self.spimimagedata = self.__camera_task.spimdata
+        self.spimimagedata_ptr = self.__camera_task.spimdata.ctypes.data_as(ctypes.c_void_p)
+        self.__camera_task.start()
+        return CameraDevice.PartialData(self.__camera_task.xdata, False, False, 0)
+
+    def acquire_synchronized_continue(self, *, update_period: float = 1.0, **kwargs) -> PartialData:
+        is_complete, is_canceled, valid_rows = self.__camera_task.grab_partial(update_period=update_period)
+        return CameraDevice.PartialData(self.__camera_task.xdata, is_complete, is_canceled, valid_rows)
+
+    def acquire_synchronized_end(self) -> None:
+        # self.__camera_device.setBinning(self.__orsay_binning[0], self.__orsay_binning[1])  # restore, this is only needed until regular binning is used instead of orsay binning
+        self.__camera_task = None
+
+    # def acquire_synchronized_prepare(self, data_shape, **kwargs) -> None:
+    #     # data_shape is a (w, h) or just (length) for 1D scans
+    #     self.scan_shape = data_shape
+    #     scansize = int(numpy.product(data_shape))
+    #     # now this works as before
+    #     self.frame_number = 0
+    #     print(f"preparing spim acquisition")
+    #     self.__twoD = self.current_camera_settings.processing != "sum_project"\
+    #     and not self.current_camera_settings.soft_binning
+    #     self.current_camera_settings.processing = "None"
+    #     if self.__twoD:
+    #         self.sizex, self.sizey = self.camera.getImageSize()
+    #         self.sizez = scansize
+    #         self.spimimagedata = numpy.zeros((scansize, self.sizey, self.sizex), dtype=numpy.float32)
+    #     else:
+    #         self.sizex, tmpy = self.camera.getImageSize()
+    #         self.sizey = scansize
+    #         self.sizez = 1
+    #         self.spimimagedata = numpy.zeros((scansize, self.sizex), dtype=numpy.float32)
+    #     print(f"{self.sizex} {self.sizey} {self.sizez}")
+    #     self.spimimagedata = numpy.ascontiguousarray(self.spimimagedata, dtype=numpy.float32)
+    #     self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
+    #     print(f"allocated {self.spimimagedata_ptr}")
+    #     if self.__acqon:
+    #         self.camera.stopFocus()
+    #     self.camera.startSpim(scansize, 1, self.current_camera_settings.exposure_ms / 1000, self.__twoD)
+    #     print(f"prepared")
+
+    # def acquire_synchronized(self, data_shape, **kwargs) -> dict:
+    #     n = int(numpy.product(data_shape))
+    #     self.camera.resumeSpim(4)  # stop eof
+    #     self.__acqspimon = True
+    #     print(f"resumed")
+    #     print(f"acquiring {n}")
+    #     gotit = self.has_spim_data_event.wait(10000.0)
+    #     self.has_spim_data_event.clear()
+    #     self.camera.stopSpim(True)
+    #     self.__acqspimon = False
+    #     data = numpy.copy(self.spimimagedata)
+    #     print(f"returned data shape {data.shape}")
+    #     # data = data.reshape((n, ) + data.shape[2:])  # this needed today, until I update scan_base
+    #     self.camera.setBinning(self.__orsay_binning[0], self.__orsay_binning[1])  # restore, this is only needed until regular binning is used instead of orsay binning
+    #     properties = dict()
+    #     properties["frame_number"] = self.frame_number
+    #     properties["acquisition_mode"] = "spim"
+    #     calibration_controls = copy.deepcopy(self.calibration_controls)
+    #     return {"data": data, "calibration_controls": calibration_controls, "properties": properties}
 
     def acquire_sequence_orsay(self, mode = 4) -> None:
         self.camera.resumeSpim(mode)  # stop eof
@@ -636,8 +724,6 @@ class CameraFrameParameters(dict):
         }
 
 
-from nion.utils import Event
-
 class CameraSettings:
 
     def __init__(self, camera_device: CameraDevice):
@@ -729,7 +815,7 @@ def periodic_logger():
     return messages, data_elements
 
 
-def run(instrument: ivg_inst.ivgInstrument):
+def run():
     cameras = list()
     try:
         #config_file = os.environ['ALLUSERSPROFILE'] + "\\Nion\\Nion Swift\\Orsay_cameras_list.json"
@@ -761,7 +847,7 @@ def run(instrument: ivg_inst.ivgInstrument):
             if (camera["manufacturer"] == 2) and camera["simulation"]:
                 print(f"No simulation for {manufacturer} cameras")
             else:
-                camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"], instrument, camera["id"], camera["name"], camera["type"])
+                camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"], camera["id"], camera["name"], camera["type"])
 
                 camera_settings = CameraSettings(camera_device)
 

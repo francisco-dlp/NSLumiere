@@ -5,6 +5,7 @@ import sys
 from ctypes import cdll, create_string_buffer, POINTER, byref
 from ctypes import c_uint, c_int, c_char, c_char_p, c_void_p, c_short, c_long, c_bool, c_double, c_uint64, c_uint32, Array, CFUNCTYPE, WINFUNCTYPE
 import os
+from shutil import copy2
 
 __author__  = "Marcel Tence"
 __status__  = "alpha"
@@ -33,14 +34,39 @@ def _toString23(string):
         return string.encode("utf-8")
     return string
 
-#is64bit = sys.maxsize > 2**32
-if (sys.maxsize > 2**32):
-    libname = os.path.dirname(__file__)
-    libname = os.path.join(libname, "Scan.dll")
+
+def copyfile_if_newer(file_name: str, destination_folder: str):
+    dest = os.path.join(destination_folder, file_name)
+    file_name = os.path.join(os.path.dirname(__file__), file_name)
+    if not os.path.exists(os.path.join(destination_folder, file_name)):
+        copy2(file_name, dest)
+    else:
+        t1 = os.stat(file_name).st_ctime
+        t2 = os.stat(dest).st_ctime
+        is_newer = (t1 - t2) > 0
+        if is_newer:
+            os.remove(dest)
+            copy2(file_name, dest)
+
+
+if sys.platform.startswith("win") and (sys.maxsize > 2**32):
+    # check if library configuration file is present
+    # if not copy default configuration
+    programdata = os.getenv("ProgramData")
+    microscope_path = os.path.join(os.getenv("ProgramData"), "Microscope")
+    if not os.path.exists(microscope_path):
+        os.makedirs(microscope_path)
+    scan_path = os.path.join(microscope_path, "Scan")
+    if not os.path.exists:
+        os.makedirs(scan_path)
+    if not os.path.exists(os.path.join(scan_path, "scan.xml")):
+        copy2("scan.xml", scan_path)
+    if not os.path.exists(os.path.join(scan_path, "Simulation.xml")):
+        copy2("Simulation.xml", scan_path)
+    libname = os.path.join(os.path.dirname(__file__), "Scan.dll")
     _library = cdll.LoadLibrary(libname)
-    #print(f"OrsayScan library: {_library}")
 else:
-    raise Exception("It must a python 64 bit version")
+    raise Exception("This module is only python 64 bit on windows compatible")
 
 # void *(*LockScanDataPointer)(int gene, int *datatype, int *sx, int *sy, int *sz);
 LOCKERFUNC = WINFUNCTYPE(c_void_p, c_int, POINTER(c_int), POINTER(c_int), POINTER(c_int), POINTER(c_int))

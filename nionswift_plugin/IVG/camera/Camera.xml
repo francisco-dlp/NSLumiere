@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Cameras>
+  <Debugger_On></Debugger_On>
+  <EELSCCD>
+    <Temperatures>
+      <Run>-15.0</Run>
+      <Stop>-10.0</Stop>
+    </Temperatures>
+    <Area>
+      <Horizontal>
+        <Begin>0</Begin>
+        <End>1600</End>
+        <Bin>1</Bin>
+      </Horizontal>
+      <Vertical>
+        <Begin>0</Begin>
+        <End>100</End>
+        <Bin>1</Bin>
+      </Vertical>
+    </Area>
+    <Gains>
+      <Port>Low Noise, 1, 2, 4</Port>
+      <Port>High Capacity, 0.25, 0.5, 1</Port>
+      <Bias>100 100</Bias>
+    </Gains>
+  </EELSCCD>
+  
+  <EIRECCD>
+    <Temperatures>
+      <Run>-70.0</Run>
+      <Stop>-10.0</Stop>
+    </Temperatures>
+    <Area>
+      <Horizontal>
+        <Begin>0</Begin>
+        <End>1340</End>
+        <Bin>1</Bin>
+      </Horizontal>
+      <Vertical>
+        <Begin>0</Begin>
+        <End>100</End>
+        <Bin>1</Bin>
+      </Vertical>
+    </Area>
+    <Gains>
+      <Port>Low Noise, 1, 2, 4</Port>
+      <Port>High Capacity, 0.25, 0.5, 1</Port>
+	  <Bias>100 100</Bias>
+    </Gains>
+    <Port>COM3</Port>
+  </EIRECCD>
+</Cameras>

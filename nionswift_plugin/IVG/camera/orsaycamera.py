@@ -33,30 +33,51 @@ def _convertToString23(binaryString):
         return binaryString.decode("utf-8")
     return binaryString
 
+
 def _toString23(string):
     if (_isPython3()):
         return string.encode("utf-8")
     return string
 
-# library must be in the same folder as this file.
-if (sys.maxsize > 2**32):
-    #first copy the extra dll to python folder
-    libpath = os.path.dirname(__file__)
-    python_folder = sys.executable
-    pos = python_folder.find("python.exe")
-    if pos > 0:
-        python_folder = python_folder.replace("python.exe", "")
-        lib2name = os.path.join(libpath, "STEMSerial.dll")
-        copy2(lib2name, python_folder)
-        lib3name = os.path.join(libpath, "Connection.dll")
-        copy2(lib3name, python_folder)
-        lib3nameconfig = os.path.join(libpath, "Connection.dll.config")
-        copy2(lib3nameconfig, python_folder)
-    libname = os.path.dirname(__file__)
-    libname = os.path.join(libname, "Cameras.dll")
+
+def copyfile_if_newer(file_name: str, destination_folder: str):
+    dest = os.path.join(destination_folder, file_name)
+    file_name = os.path.join(os.path.dirname(__file__), file_name)
+    if not os.path.exists(os.path.join(destination_folder, file_name)):
+        copy2(file_name, dest)
+    else:
+        t1 = os.stat(file_name).st_ctime
+        t2 = os.stat(dest).st_ctime
+        is_newer = (t1 - t2) > 0
+        if is_newer:
+            os.remove(dest)
+            copy2(file_name, dest)
+
+
+if sys.platform.startswith("win") and (sys.maxsize > 2**32):
+    # library must be in the same folder as this file.
+    # check if library configuration file is present
+    # if not copy default configuration
+    programdata = os.getenv("ProgramData")
+
+    microscope_path = os.path.join(os.getenv("ProgramData"), "Microscope")
+    if not os.path.exists(microscope_path):
+        os.makedirs(microscope_path)
+    camera_path = os.path.join(microscope_path, "EELS")
+    if not os.path.exists:
+        os.makedirs(camera_path)
+    if not os.path.exists(os.path.join(camera_path, "camera.xml")):
+        copy2("camera.xml", camera_path)
+    #first copy the latest version of required dlls to application folder
+    python_folder = os.path.dirname(sys.executable)
+    if python_folder is not None:
+        copyfile_if_newer("STEMSerial.dll", python_folder)
+        copyfile_if_newer("Connection.dll", python_folder)
+        copyfile_if_newer("Connection.dll.config", python_folder)
+    libname = os.path.join(os.path.dirname(__file__), "Cameras.dll")
     _library = cdll.LoadLibrary(libname)
 else:
-    raise Exception("It must a python 64 bit version")
+    raise Exception("This module is only python 64 bit on windows compatible")
 
 LOGGERFUNC = WINFUNCTYPE(None, c_char_p, c_bool)
 DATALOCKFUNC = WINFUNCTYPE(c_void_p, c_int, POINTER(c_int), POINTER(c_int), POINTER(c_int), POINTER(c_int))

@@ -47,7 +47,7 @@ class CameraHandler:
         self.__frame_parameter_changed_event_listener = camera_device.frame_parameter_changed_event.listen(
             frame_parameter_changed)
 
-        self.__stop_acquisition_event_listener = camera_device.stop_acquitisition_event.listen(self.stop_clicked)
+        self.__stop_acquisition_event_listener = camera_device.stop_acquisition_event.listen(self.stop_clicked)
 
         sx, sy = camera_device.camera.getCCDSize()
         if camera_device.isKURO:

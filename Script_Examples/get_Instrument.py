@@ -15,7 +15,6 @@ for hards in HardwareSource.HardwareSourceManager().hardware_sources:  # finding
         if hasattr(hards, '_CameraHardwareSource__instrument_controller_id'):
             cams[hards.hardware_source_id]=hards._CameraHardwareSource__instrument_controller_id
         if hasattr(hards, '_ScanHardwareSource__stem_controller'):
-            printç
             scans[hards.hardware_source_id]=hards._ScanHardwareSource__stem_controller.instrument_id
 
 print('Cameras:')
