@@ -463,11 +463,11 @@ class ivgInstrument(stem_controller.STEMController):
             self.__y_real_pos = -1.e-5
 
         self.property_changed_event.fire('y_stage_f')
-        return '{:.2f}'.format(self.__x_real_pos * 1e6)
+        return '{:.3f}'.format(self.__x_real_pos * 1e6)
 
     @property
     def y_stage_f(self):
-        return '{:.2f}'.format(self.__y_real_pos * 1e6)
+        return '{:.3f}'.format(self.__y_real_pos * 1e6)
 
     ## spim_panel Properties START ##
 

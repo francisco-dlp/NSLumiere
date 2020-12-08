@@ -23,6 +23,9 @@ else:
 class stageDevice(Observable.Observable):
 
     def __init__(self):
+        logging.info(f'***VG STAGE***: Please put Stepper.dll at the following folder: {sys.executable}.')
+
+
         self.property_changed_event = Event.Event()
         self.property_changed_power_event = Event.Event()
         self.communicating_event = Event.Event()
@@ -35,9 +38,6 @@ class stageDevice(Observable.Observable):
 
         self.__x, self.__y = self.__vgStage.stageGetPosition()
         self.__slider_range = 400
-
-        logging.info(f'***VG STAGE***: Please put Stepper.dll at the following folder: {sys.executable}.')
-
 
     def GetPos(self):
         return self.__vgStage.stageGetPosition()

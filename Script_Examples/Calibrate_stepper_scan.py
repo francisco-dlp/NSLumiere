@@ -76,7 +76,10 @@ def calib(x, y):
 sen = 1
 stage.x_pos_f = initial_stage_x + sub_region*fov*1e8
 stage.y_pos_f = initial_stage_y - sub_region*fov*1e8*sen
-time.sleep(1.0)
+#for lp in range(pts):
+#    stage.x_pos_f = stage.x_pos_f + sub_region*fov*1e8/pts
+#    stage.y_pos_f = stage.y_pos_f - sub_region*fov*1e8/pts
+#    time.sleep(1.0)
 
 for xi, x in enumerate(xarray):
     sen = sen * 1
@@ -101,4 +104,7 @@ data_item = api.library.create_data_item_from_data_and_metadata(si_xdata)
 
 stage.x_pos_f = initial_stage_x
 stage.y_pos_f = initial_stage_y
-
+#for lp in range(pts):
+#    stage.x_pos_f = stage.x_pos_f + sub_region*fov*1e8/pts
+#    stage.y_pos_f = stage.y_pos_f - sub_region*fov*1e8/pts
+#    time.sleep(1.0)
