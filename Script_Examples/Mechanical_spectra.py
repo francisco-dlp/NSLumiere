@@ -39,8 +39,8 @@ initial_probe_pixel = scan.scan_device._Device__probe_position_pixels
 
 IMAGING = False
 
-#if texp<tstepper:
-#    raise Exception("***MECHANICAL SPECTRA***: Camera exposition is smaller than the stepper sleep. You might lose exposition time for no reason.")
+if texp<tstepper:
+    raise Exception("***MECHANICAL SPECTRA***: Camera exposition is smaller than the stepper sleep. You might lose exposition time for no reason.")
 
 if ia!=[1024, 1024, 0, 1024, 0, 1024]:
     raise Exception("***MECHANICAL SPECTRA***: Put scan with 1024x1024 pixels.")
@@ -68,8 +68,8 @@ def highlight_data(data, index, shape, w, value, sen):
     data[int(cy-w):int(cy+w), int(cx-w):int(cx+w)] = value
 
 def calib_and_invert(x, y):
-    xc = (0.4800625 + 0.79845486*x - 0.08020833*y)
-    yc = (0.45892969 + 0.17607639*x + 0.73942708*y)
+    xc = (0.50288628 + 0.8343099*x - 0.08394821*y)
+    yc = (0.49774306 + 0.17672164*x + 0.80562789*y)
     return (yc, xc)
 
 def calib(x, y):
@@ -115,15 +115,14 @@ for xi, x in enumerate(xarray):
     for yi, y in enumerate(yarray):
         if moving(): print(f"***MECHANICAL SPECTRA***: Motor move during a new command at point {(xi, yi)}")
         stage.y_pos_f = initial_stage_y + y*fov*1e8*sen
-        time.sleep(1.0) if yi==0 else time.sleep(0.1)
-
-        while moving():
-            #print('***MECHANICAL SPECTRA***: Still moving. Will set probe afterwards')
-            time.sleep(0.1)
-
         scan.scan_device.probe_pos = (calib_and_invert(x, y))
 
-        data = cam_eire.grab_next_to_start()
+        time.sleep(1.0) if yi==0 else time.sleep(max(texp, tstepper))
+        while moving():
+            print('***MECHANICAL SPECTRA***: Still moving. Will set probe afterwards')
+            time.sleep(0.1)
+
+        data = cam_eire.grab_next_to_finish()
         data_item.data[yi, xi] = data[0].data
 
         if IMAGING:
@@ -134,7 +133,7 @@ for xi, x in enumerate(xarray):
             highlight_data(im[0].data, calib(x, y), (ia[0], ia[1]), 3, 2, sen)
             xdata02[xi, yi] = im[0].data
             while scan.is_playing:
-                #print('***MECHANICAL SPECTRA***: Still scanning')
+                print('***MECHANICAL SPECTRA***: Still scanning')
                 time.sleep(0.1)
 
 if IMAGING:
