@@ -16,7 +16,7 @@ from . import ivg_spim_panel
 if not DEBUG_CAMERA:
     from .camera import VGCameraPanel, VGCameraYves
 if not DEBUG_SCAN:
-    from .scan import VGScanYves
+    from .scan import VGScanYves, OrsayScanControlPanel
 
 
 def run():
@@ -25,7 +25,9 @@ def run():
     Registry.register_component(instrument, {"instrument_controller", "stem_controller"})
     ivg_panel.run(instrument)
     if not DEBUG_CAMERA: ivg_spim_panel.run(instrument)
-    if not DEBUG_SCAN: VGScanYves.run(instrument)
+    if not DEBUG_SCAN:
+        VGScanYves.run(instrument)
+        # OrsayScanControlPanel.run()
     if not DEBUG_CAMERA:
         VGCameraYves.run()
         VGCameraPanel.run()

@@ -109,6 +109,7 @@ class CameraDevice(camera_base.CameraDevice):
             "fan_enabled": self.camera.getFan(),
             "processing": None,
             "flipped": False,
+            "simulated": False,
         }
 
         self.current_camera_settings = CameraFrameParameters(d)
@@ -277,8 +278,8 @@ class CameraDevice(camera_base.CameraDevice):
             hardware_source.stop_playing()
 
     def __spim_data_locker(self, gene, data_type, sx, sy, sz):
-        sx[0] = self.sizex
-        sy[0] = self.sizey
+        sx[0] = self.__x_pix_spim
+        sy[0] = self.__y_pix_spim
         sz[0] = self.sizez
         #data_type >= 100 force spectrum data on first axis.
         data_type[0] = 100 + self.__numpy_to_orsay_type(self.spimimagedata)
@@ -362,6 +363,8 @@ class CameraDevice(camera_base.CameraDevice):
                 self.sizez = 1
                 self.spimimagedata = numpy.zeros((self.sizey, self.sizex), dtype = numpy.float32)
             self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
+            self.__x_pix_spim = self.sizex
+            self.__y_pix_spim = self.sizey
             self.camera.startSpim(self.current_camera_settings.spectra_count, 1, self.current_camera_settings.exposure_ms / 1000., self.current_camera_settings.acquisition_mode == "2D-Chrono")
             self.camera.resumeSpim(4)
             if self.current_camera_settings.acquisition_mode == "1D-Chrono-Live":
@@ -495,7 +498,9 @@ class CameraDevice(camera_base.CameraDevice):
         self.__processing = value
 
     def get_expected_dimensions(self, binning: int) -> (int, int):
-        return self.__sensor_dimensions
+        """Return expected dimensions for the given binning value."""
+        sx, sy = self.camera.getImageSize()
+        return sy, sx
 
     PartialData = camera_base.CameraHardwareSource.PartialData
 
@@ -528,13 +533,13 @@ class CameraDevice(camera_base.CameraDevice):
             if twoD:
                 self.sizex, self.sizey = self.__camera_device.camera.getImageSize()
                 self.sizez = scansize
-                self.spimdata = numpy.zeros((self.__scan_shape[1], self.__scan_shape[0], self.sizey, self.sizex), dtype=numpy.float32)
+                self.spimdata = numpy.zeros((self.__scan_shape[0], self.__scan_shape[1], self.sizey, self.sizex), dtype=numpy.float32)
                 camera_readout_shape = (self.sizey, self.sizex)
             else:
                 self.sizex, tmpy = self.__camera_device.camera.getImageSize()
                 self.sizey = scansize
                 self.sizez = 1
-                self.spimdata = numpy.zeros((self.__scan_shape[1], self.__scan_shape[0], self.sizex), dtype=numpy.float32)
+                self.spimdata = numpy.zeros((self.__scan_shape[0], self.__scan_shape[1], self.sizex), dtype=numpy.float32)
                 camera_readout_shape = (self.sizex,)
             print(f"Spim dimensions {self.sizex} {self.sizey} {self.sizez}")
             self.__camera_device.camera.startSpim(scansize, 1, self.__camera_device.current_camera_settings.exposure_ms / 1000, twoD)
@@ -549,7 +554,7 @@ class CameraDevice(camera_base.CameraDevice):
             # updates the full scan readout data, returns a tuple of is complete, is canceled, and
             # the number of valid rows.
             if not self.__aborted:
-                rows = self.__camera_device.frame_number // self.__scan_shape[0]
+                rows = self.__camera_device.frame_number // self.__scan_shape[1]
                 self.__xdata.metadata.setdefault("hardware_source", dict())["valid_rows"] = rows
                 is_complete = self.__camera_device.frame_number >= self.__scan_count
                 if self.__last_rows != rows:
@@ -562,7 +567,10 @@ class CameraDevice(camera_base.CameraDevice):
                                    **kwargs) -> PartialData:
         self.__camera_task = CameraDevice.CameraTask(self, camera_frame_parameters, scan_shape)
         self.__camera_task.prepare()
+        self.__x_pix_spim = scan_shape[1]
+        self.__y_pix_spim = scan_shape[0]
         self.spimimagedata = self.__camera_task.spimdata
+        self.sizez = self.spimimagedata.shape[2]
         self.spimimagedata_ptr = self.__camera_task.spimdata.ctypes.data_as(ctypes.c_void_p)
         self.__camera_task.start()
         return CameraDevice.PartialData(self.__camera_task.xdata, False, False, 0)
@@ -666,7 +674,7 @@ class CameraDevice(camera_base.CameraDevice):
         return { "acquisition_time": acquisition_time, "acquisition_memory": acquisition_memory, "storage_memory": storage_memory }
 
 
-class CameraFrameParameters(dict):
+class CameraFrameParameters(camera_base.CameraFrameParameters):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -686,7 +694,8 @@ class CameraFrameParameters(dict):
         self.video_threshold = self.get("video_threshold", 0)
         self.fan_enabled = self.get("fan_enabled", False)
         self.flipped = self.get("flipped", False)
-        self.integration_count = 1  # required
+        self.integration_count = self.get("integration_count", 1)  # required
+        self.simulated = self.get("simulated", False)
 
     def __copy__(self):
         return self.__class__(copy.copy(dict(self)))
@@ -704,6 +713,14 @@ class CameraFrameParameters(dict):
     def binning(self, value):
         self.h_binning = value
 
+    @property
+    def simulated(self):
+        return self.__simulated
+
+    @simulated.setter
+    def simulated(self, value : bool):
+        self.__simulated = value
+
     def as_dict(self):
         return {
             "exposure_ms": self.exposure_ms,
@@ -720,7 +737,9 @@ class CameraFrameParameters(dict):
             "turbo_mode_enabled": self.turbo_mode_enabled,
             "video_threshold": self.video_threshold,
             "fan_enabled": self.fan_enabled,
-            "flipped": self.flipped
+            "integration_count": self.integration_count,
+            "flipped": self.flipped,
+            "simulated": self.simulated
         }
 
 
@@ -853,6 +872,9 @@ def run():
 
                 Registry.register_component(CameraModule("VG_Lum_controller", camera_device, camera_settings),
                                                 {"camera_module"})
+                frame_parameters = camera_settings.get_current_frame_parameters()
+                frame_parameters["simulated"] = camera["simulation"]
+                camera_settings.set_current_frame_parameters(frame_parameters)
         except:
             print(f"Failed to start camera: manufacturer: {manufacturer}  model: {model}")
         finally:

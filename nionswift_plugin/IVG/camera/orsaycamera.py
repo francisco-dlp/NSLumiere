@@ -43,7 +43,15 @@ def _toString23(string):
 def copyfile_if_newer(file_name: str, destination_folder: str):
     dest = os.path.join(destination_folder, file_name)
     file_name = os.path.join(os.path.dirname(__file__), file_name)
-    if not os.path.exists(os.path.join(destination_folder, file_name)):
+    exists = True
+    try:
+        t2 = os.stat(dest).st_ctime
+    except:
+        exists = False
+        print(f"File {file_name} does not exists")
+    finally:
+        pass
+    if not exists:
         copy2(file_name, dest)
     else:
         t1 = os.stat(file_name).st_ctime
