@@ -180,11 +180,11 @@ class CameraHandler:
             frame_parameters = self.camera_settings.get_current_frame_parameters()
             frame_parameters["port"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
-            if self.camera_device.camera_model=='Newton':
-                if frame_parameters["port"] == 0:
-                    set_flip(False)
-                if frame_parameters["port"] == 1:
-                    set_flip(True)
+            #if self.camera_device.camera_model=='Newton':
+            #    if frame_parameters["port"] == 0:
+            #        set_flip(False)
+            #    if frame_parameters["port"] == 1:
+            #        set_flip(True)
             update_flip()
             update_speeds()
             update_gains()

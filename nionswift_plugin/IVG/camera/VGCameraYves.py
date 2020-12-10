@@ -131,7 +131,6 @@ class CameraDevice(camera_base.CameraDevice):
         return self.current_camera_settings
 
     def set_frame_parameters(self, frame_parameters : dict) -> None:
-        if self.__acqon: self.stop_live()
             
         if self.__hardware_settings.exposure_ms != frame_parameters.exposure_ms:
             self.__hardware_settings.exposure_ms = frame_parameters.exposure_ms
@@ -191,8 +190,6 @@ class CameraDevice(camera_base.CameraDevice):
 
         if "processing" in frame_parameters:
             self.__hardware_settings.processing = frame_parameters.processing
-
-        if not self.__acqon: self.start_live()
 
     def __numpy_to_orsay_type(self, array: numpy.array):
         orsay_type = Orsay_Data.float
@@ -310,6 +307,7 @@ class CameraDevice(camera_base.CameraDevice):
                 self.sizez = 1
                 self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype = numpy.float32)
             self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
+            self.camera.stopFocus()
             self.camera.startSpim(self.current_camera_settings.spectra_count, 1, self.current_camera_settings.exposure_ms / 1000., self.current_camera_settings.acquisition_mode == "2D-Chrono")
             self.camera.resumeSpim(4)
             if self.current_camera_settings.acquisition_mode == "1D-Chrono-Live":
@@ -384,7 +382,6 @@ class CameraDevice(camera_base.CameraDevice):
             else: #not binned
                 collection_dimensions = 0
                 datum_dimensions = 2
-
 
         properties = dict()
         properties["frame_number"] = self.frame_number
