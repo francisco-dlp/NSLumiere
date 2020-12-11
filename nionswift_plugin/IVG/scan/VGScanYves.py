@@ -363,8 +363,8 @@ class Device:
 
     def start_frame(self, is_continuous: bool) -> int:
         """Start acquiring. Return the frame number."""
-        # if not self.__is_scanning:
-        #     self.__buffer = list()
+        if not self.__is_scanning:
+            self.__buffer = list()
         #     self.__start_next_frame()
         #
         #     if not self.__spim:
@@ -436,6 +436,8 @@ class Device:
                     self.__is_scanning = scan.startSpim(0,1)
                     self.eels_camera.acquire_synchronized_begin(settings, scan_shape)
             else:
+                scan_size = self.__frame_parameters.subscan_pixel_size if self.__frame_parameters.subscan_pixel_size\
+                    else self.__frame_parameters.size
                 self.__is_scanning = scan.startImaging(0, 1)
             self.__frame_number = 0
             self.__last_time = time.time()

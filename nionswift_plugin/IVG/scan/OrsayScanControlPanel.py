@@ -1936,7 +1936,7 @@ def run():
             Workspace.WorkspaceManager().register_panel(ScanControlPanel, panel_id, name, ["left", "right"], "left", properties)
 
     def unregister_scan_panel(hardware_source):
-        if hardware_source.features.get("is_scanning", False):
+        if hardware_source.features.get("is_scanning", False) and hardware_source.hardware_source_id == "orsay_scan_device":
             factory_id = "scan-live-" + hardware_source.hardware_source_id
             DisplayPanel.DisplayPanelManager().unregister_display_panel_controller_factory(factory_id)
             panel_id = scan_control_panels.get(hardware_source.hardware_source_id)

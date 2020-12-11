@@ -109,11 +109,14 @@ class ivgSpimhandler:
             self.event_loop.create_task(self.data_item_show(data_item))
 
     def cancel_spim(self, widget):
+        # acquire_synchronized_end
         self.instrument.stop_spim_push_button()
         self.start_button.enabled=True
         self.cancel_button.enabled=False
 
     def start_spim(self, widget):
+        # scan_shape = list()
+        # acquire_synchronized_begin()
         self.instrument.start_spim_push_button(self.x_pixels_value.text, self.y_pixels_value.text)
         self.start_button.enabled=False
         self.cancel_button.enabled=True

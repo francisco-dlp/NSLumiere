@@ -16,7 +16,7 @@ from . import ivg_spim_panel
 if not DEBUG_CAMERA:
     from .camera import VGCameraPanel, VGCameraYves
 if not DEBUG_SCAN:
-    from .scan import VGScanYves, OrsayScanControlPanel
+    from .scan import VGScanYves, OrsayScanControlPanel, orsay_scan_base
 
 
 def run():
@@ -27,7 +27,8 @@ def run():
     if not DEBUG_CAMERA: ivg_spim_panel.run(instrument)
     if not DEBUG_SCAN:
         VGScanYves.run(instrument)
-        # OrsayScanControlPanel.run()
+        orsay_scan_base.run()
+        OrsayScanControlPanel.run()
     if not DEBUG_CAMERA:
         VGCameraYves.run()
         VGCameraPanel.run()

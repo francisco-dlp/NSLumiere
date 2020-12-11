@@ -26,6 +26,8 @@ from nion.instrumentation import camera_base
 from nion.instrumentation.scan_base import ScanFrameParameters as BaseScanFrameParameters
 from nion.instrumentation.scan_base import SynchronizedDataChannelInterface, SynchronizedScanBehaviorAdjustments,\
     SynchronizedScanBehaviorInterface, ScanAcquisitionTask, RecordTask
+from nion.instrumentation.scan_base import update_scan_properties, update_scan_data_element, update_scan_metadata,\
+    update_detector_metadata, update_instrument_properties
 from nion.instrumentation import stem_controller
 from nion.swift.model import HardwareSource
 from nion.swift.model import ImportExportManager
@@ -50,88 +52,6 @@ class ScanFrameParameters(BaseScanFrameParameters):
         d = super(ScanFrameParameters, self).as_dict()
         if self.channels is not None:
             d["channels"] = self.channels
-
-
-def update_scan_properties(properties: typing.MutableMapping, scan_frame_parameters: ScanFrameParameters, scan_id_str: str) -> None:
-    if scan_id_str:
-        properties["scan_id"] = scan_id_str
-    properties["center_x_nm"] = float(scan_frame_parameters.get("center_x_nm", 0.0))
-    properties["center_y_nm"] = float(scan_frame_parameters.get("center_y_nm", 0.0))
-    properties["fov_nm"] = float(scan_frame_parameters["fov_nm"])
-    properties["rotation"] = float(scan_frame_parameters.get("rotation_rad", math.radians(scan_frame_parameters.get("rotation_deg", 0.0))))
-    properties["rotation_deg"] = math.degrees(properties["rotation"])
-    properties["scan_context_size"] = tuple(scan_frame_parameters["size"])
-    if scan_frame_parameters.subscan_fractional_size is not None:
-        properties["subscan_fractional_size"] = tuple(scan_frame_parameters.subscan_fractional_size)
-    if scan_frame_parameters.subscan_pixel_size is not None:
-        properties["scan_size"] = (int(scan_frame_parameters.subscan_pixel_size[0]), int(scan_frame_parameters.subscan_pixel_size[1]))
-    elif scan_frame_parameters.subscan_fractional_size is not None:
-        properties["scan_size"] = (int(properties["scan_context_size"][0] * properties["subscan_fractional_size"][0]),
-                                   int(properties["scan_context_size"][0] * properties["subscan_fractional_size"][1]))
-    else:
-        properties["scan_size"] = properties["scan_context_size"]
-    if scan_frame_parameters.subscan_fractional_center is not None:
-        properties["subscan_fractional_center"] = tuple(scan_frame_parameters.subscan_fractional_center)
-    if scan_frame_parameters.subscan_rotation:
-        properties["subscan_rotation"] = scan_frame_parameters.subscan_rotation
-
-
-# set the calibrations for this image. does not touch metadata.
-def update_scan_data_element(data_element, scan_frame_parameters, data_shape, channel_name, channel_id, scan_properties):
-    scan_properties = copy.deepcopy(scan_properties)
-    pixel_time_us = float(scan_properties["pixel_time_us"])
-    line_time_us = float(scan_properties["line_time_us"]) if "line_time_us" in scan_properties else pixel_time_us * data_shape[1]
-    center_x_nm = float(scan_properties.get("center_x_nm", 0.0))
-    center_y_nm = float(scan_properties.get("center_y_nm", 0.0))
-    fov_nm = float(scan_frame_parameters["fov_nm"])  # context fov_nm, not actual fov_nm returned from low level
-    if scan_frame_parameters.size[0] > scan_frame_parameters.size[1]:
-        fractional_size = scan_frame_parameters.subscan_fractional_size[0] if scan_frame_parameters.subscan_fractional_size else 1.0
-        pixel_size = scan_frame_parameters.subscan_pixel_size[0] if scan_frame_parameters.subscan_pixel_size else scan_frame_parameters.size[0]
-        pixel_size_nm = fov_nm * fractional_size / pixel_size
-    else:
-        fractional_size = scan_frame_parameters.subscan_fractional_size[1] if scan_frame_parameters.subscan_fractional_size else 1.0
-        pixel_size = scan_frame_parameters.subscan_pixel_size[1] if scan_frame_parameters.subscan_pixel_size else scan_frame_parameters.size[1]
-        pixel_size_nm = fov_nm * fractional_size / pixel_size
-    data_element["title"] = channel_name
-    data_element["version"] = 1
-    data_element["channel_id"] = channel_id  # needed to match to the channel
-    data_element["channel_name"] = channel_name  # needed to match to the channel
-    if scan_properties.get("calibration_style") == "time":
-        data_element["spatial_calibrations"] = (
-            {"offset": 0.0, "scale": line_time_us / 1E6, "units": "s"},
-            {"offset": 0.0, "scale": pixel_time_us / 1E6, "units": "s"}
-        )
-    else:
-        data_element["spatial_calibrations"] = (
-            {"offset": -center_y_nm - pixel_size_nm * data_shape[0] * 0.5, "scale": pixel_size_nm, "units": "nm"},
-            {"offset": -center_x_nm - pixel_size_nm * data_shape[1] * 0.5, "scale": pixel_size_nm, "units": "nm"}
-        )
-
-
-def update_scan_metadata(scan_metadata: typing.MutableMapping, hardware_source_id: str, display_name: str, scan_frame_parameters, scan_id: typing.Optional[uuid.UUID], scan_properties: typing.Mapping) -> None:
-    scan_metadata["hardware_source_id"] = hardware_source_id
-    scan_metadata["hardware_source_name"] = display_name
-    update_scan_properties(scan_metadata, scan_frame_parameters, str(scan_id) if scan_id else None)
-    if scan_frame_parameters:
-        scan_metadata["scan_device_parameters"] = dict(scan_frame_parameters)
-    if scan_properties:
-        scan_properties = dict(scan_properties)
-        scan_properties.pop("channel_id", None)  # not part of scan description
-        scan_metadata["scan_device_properties"] = scan_properties
-
-
-def update_detector_metadata(detector_metadata: typing.MutableMapping, hardware_source_id: str, display_name: str, data_shape, frame_number: typing.Optional[int], channel_name: str, channel_id: str, scan_properties: typing.Mapping) -> None:
-    detector_metadata["hardware_source_id"] = hardware_source_id
-    detector_metadata["hardware_source_name"] = display_name
-    pixel_time_us = float(scan_properties["pixel_time_us"])
-    line_time_us = float(scan_properties["line_time_us"]) if "line_time_us" in scan_properties else pixel_time_us * data_shape[1]
-    exposure_s = data_shape[0] * data_shape[1] * pixel_time_us / 1000000
-    detector_metadata["exposure"] = exposure_s
-    detector_metadata["frame_index"] = frame_number
-    detector_metadata["channel_id"] = channel_id  # needed for info after acquisition
-    detector_metadata["channel_name"] = channel_name  # needed for info after acquisition
-    detector_metadata["pixel_time_us"] = pixel_time_us
-    detector_metadata["line_time_us"] = line_time_us
 
 
 def apply_section_rect(scan_frame_parameters: typing.MutableMapping, section_rect: Geometry.IntRect, scan_size: Geometry.IntSize, fractional_area: Geometry.FloatRect, channel_modifier: str) -> typing.MutableMapping:
@@ -164,10 +84,7 @@ def crop_and_calibrate(uncropped_xdata: DataAndMetadata.DataAndMetadata, flyback
     data_shape = uncropped_xdata.data_shape
     scan_shape = uncropped_xdata.collection_dimension_shape
     scan_calibrations = scan_calibrations or uncropped_xdata.collection_dimensional_calibrations
-    if flyback_pixels > 0:
-        data = uncropped_xdata.data.reshape(*scan_shape, *data_shape[len(scan_shape):])[:, flyback_pixels:scan_shape[1], :]
-    else:
-        data = uncropped_xdata.data.reshape(*scan_shape, *data_shape[len(scan_shape):])
+    data = uncropped_xdata.data.reshape(*scan_shape, *data_shape[len(scan_shape):])
     dimensional_calibrations = tuple(scan_calibrations) + tuple(data_calibrations)
     return DataAndMetadata.new_data_and_metadata(data, data_intensity_calibration,
                                                  dimensional_calibrations,
@@ -1312,4 +1229,36 @@ _component_registered_listener = None
 _component_unregistered_listener = None
 
 def run():
-    pass
+    def component_registered(component, component_types):
+        if "scan_device" in component_types and component.scan_device_id == "orsay-scan-device":
+            stem_controller = None
+            stem_controller_id = getattr(component, "stem_controller_id", None)
+            if not stem_controller and stem_controller_id:
+                stem_controller = HardwareSource.HardwareSourceManager().get_instrument_by_id(component.stem_controller_id)
+            if not stem_controller and not stem_controller_id:
+                stem_controller = Registry.get_component("stem_controller")
+            if not stem_controller:
+                print("STEM Controller (" + component.stem_controller_id + ") for (" + component.scan_device_id + ") not found. Using proxy.")
+                from nion.instrumentation import stem_controller
+                stem_controller = stem_controller.STEMController()
+            scan_hardware_source = ScanHardwareSource(stem_controller, component, component.scan_device_id, component.scan_device_name)
+            if hasattr(component, "priority"):
+                scan_hardware_source.priority = component.priority
+            Registry.register_component(scan_hardware_source, {"hardware_source", "scan_hardware_source"})
+            HardwareSource.HardwareSourceManager().register_hardware_source(scan_hardware_source)
+            component.hardware_source = scan_hardware_source
+
+    def component_unregistered(component, component_types):
+        if "scan_device" in component_types and component.scan_device_id == "orsay-scan-device":
+            scan_hardware_source = component.hardware_source
+            Registry.unregister_component(scan_hardware_source)
+            HardwareSource.HardwareSourceManager().unregister_hardware_source(scan_hardware_source)
+
+    global _component_registered_listener
+    global _component_unregistered_listener
+
+    _component_registered_listener = Registry.listen_component_registered_event(component_registered)
+    _component_unregistered_listener = Registry.listen_component_unregistered_event(component_unregistered)
+
+    for component in Registry.get_components_by_type("scan_device"):
+        component_registered(component, {"scan_device"})
