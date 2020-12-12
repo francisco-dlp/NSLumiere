@@ -140,9 +140,9 @@ class ScanHardwareSource(HardwareSource.HardwareSource):
         for channel_info in channel_info_list:
             self.add_data_channel(channel_info.channel_id, channel_info.name)
         # add an associated sub-scan channel for each device channel
-        for channel_index, channel_info in enumerate(channel_info_list):
-            subscan_channel_index, subscan_channel_id, subscan_channel_name = self.get_subscan_channel_info(channel_index, channel_info.channel_id , channel_info.name)
-            self.add_data_channel(subscan_channel_id, subscan_channel_name)
+        # for channel_index, channel_info in enumerate(channel_info_list):
+        #     subscan_channel_index, subscan_channel_id, subscan_channel_name = self.get_subscan_channel_info(channel_index, channel_info.channel_id , channel_info.name)
+        #     self.add_data_channel(subscan_channel_id, subscan_channel_name)
         self.add_data_channel("drift", _("Drift"))
 
         self.__last_idle_position = None  # used for testing
@@ -868,17 +868,13 @@ class ScanHardwareSource(HardwareSource.HardwareSource):
                 self.__frame_parameters.channels = self.__device.channels_enabled
 
     def get_subscan_channel_info(self, channel_index: int, channel_id: str, channel_name: str) -> typing.Tuple[int, str, str]:
-        return channel_index + self.channel_count, channel_id + "_subscan", " ".join((channel_name, _("SubScan")))
+        return channel_index, channel_id, channel_name
 
     def get_data_channel_state(self, channel_index) -> typing.Tuple[str, str, bool]:
         # channel indexes larger than then the channel count will be subscan channels
         if channel_index < self.channel_count:
             channel_id, name, enabled = self.get_channel_state(channel_index)
             return channel_id, name, enabled if not self.subscan_enabled else False
-        elif channel_index < self.channel_count * 2:
-            channel_id, name, enabled = self.get_channel_state(channel_index - self.channel_count)
-            subscan_channel_index, subscan_channel_id, subscan_channel_name = self.get_subscan_channel_info(channel_index, channel_id, name)
-            return subscan_channel_id, subscan_channel_name, enabled if self.subscan_enabled else False
         else:
             return self.data_channels[channel_index].channel_id, self.data_channels[channel_index].name, False
 
@@ -1037,10 +1033,7 @@ class ScanHardwareSource(HardwareSource.HardwareSource):
         if reference_key:
             return "_".join([self.hardware_source_id, str(reference_key)])
         if channel_index is not None:
-            if is_subscan:
-                return "_".join([self.hardware_source_id, self.__make_channel_id(channel_index), "subscan"])
-            else:
-                return "_".join([self.hardware_source_id, self.__make_channel_id(channel_index)])
+            return "_".join([self.hardware_source_id, self.__make_channel_id(channel_index)])
         return self.hardware_source_id
 
     def clean_display_items(self, document_model, display_items, **kwargs) -> None:
@@ -1075,8 +1068,6 @@ class ScanHardwareSource(HardwareSource.HardwareSource):
                 for channel_index, (_data_element, channel_state) in enumerate(zip(data_element_group, enabled_channel_states)):
                     channel_name = channel_state.name
                     channel_id = channel_state.channel_id
-                    if self.subscan_enabled:
-                        channel_id += "_subscan"
                     _data = _data_element["data"]
                     _scan_properties = _data_element["properties"]
 
