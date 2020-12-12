@@ -27,6 +27,29 @@ from nionswift_plugin.IVG import ivg_inst
 
 _ = gettext.gettext
 
+class Orsay_Data():
+    def __init__(self):
+        self.__s16 = 2
+        self.__s32 = 3
+        self.__uns16 = 6
+        self.__uns32 = 7
+        self.__float = 11
+        self.__real = 12
+
+    def numpy_to_orsay_type(self, array: numpy.array):
+        orsay_type = self.__float
+        if array.dtype == numpy.double:
+            orsay_type = self.__real
+        elif array.dtype == numpy.int16:
+            orsay_type = self.__s16
+        elif array.dtype == numpy.int32:
+            orsay_type = self.__s32
+        elif array.dtype == numpy.uint16:
+            orsay_type = self.__uns16
+        elif array.dtype == numpy.uint32:
+            orsay_type = self.__uns32
+        return orsay_type
+
 
 class Channel:
     def __init__(self, channel_id: int, name: str, enabled: bool):
@@ -68,6 +91,7 @@ class Device:
         self.on_device_state_changed = None
         self.orsayscan = orsayScan(1, vg=True)
         self.spimscan = orsayScan(2, self.orsayscan.orsayscan, vg=True)
+        self.__orsay_data_type = Orsay_Data()
 
         #list all inputs
         totalinputs = self.orsayscan.getInputsCount()
@@ -365,15 +389,7 @@ class Device:
         """Start acquiring. Return the frame number."""
         if not self.__is_scanning:
             self.__buffer = list()
-        #     self.__start_next_frame()
-        #
-        #     if not self.__spim:
-        #         self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
-        #         self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
-        #         self.__is_scanning = self.orsayscan.startImaging(0, 1)
-        #
-        #     if self.__is_scanning: print('Acquisition Started')
-        # return self.__frame_number
+            self.__start_next_frame()
         self.__acquisition_stop_request = False
         scan = self.orsayscan
         if not self.is_scanning:
@@ -495,8 +511,8 @@ class Device:
                     data_array = self.imagedata[channel_index * (self.__scan_area[1]):(channel_index + 1) * (
                     self.__scan_area[1]),
                                  0: (self.__scan_area[0])].astype(numpy.float32)
-                    if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
-                        data_array = data_array[self.p4:self.p5, self.p2:self.p3]
+                    # if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
+                    #     data_array = data_array[self.p4:self.p5, self.p2:self.p3]
                     data_element["data"] = data_array
                     sub_area = ((0, 0), data_array.shape)
                     properties['sub_area'] = sub_area
@@ -720,7 +736,7 @@ class Device:
         sx[0] = self.__scan_area[0]
         sy[0] = self.__scan_area[1]
         sz[0] = self.__sizez
-        datatype[0] = 2
+        datatype[0] = self.__orsay_data_type.numpy_to_orsay_type(self.imagedata)
         return self.imagedata_ptr.value
 
     def __data_unlockerA(self, gene, newdata, imagenb, rect):
