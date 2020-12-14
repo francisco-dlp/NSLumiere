@@ -407,7 +407,6 @@ class CameraDevice(camera_base.CameraDevice):
             self.camera.stopSpim(True)
             self.has_data_event.set()
             self.__acqon = False
-            self.__acqspimon = False
             logging.info('***CAMERA***: Spim stopped. Handling...')
             self.instrument.warn_Scan_instrument_spim(False)
         else:
@@ -415,6 +414,7 @@ class CameraDevice(camera_base.CameraDevice):
                 self.has_spim_data_event.set()
             else:
                 self.__acqon = self.camera.stopFocus()
+        self.__acqspimon = False
 
     def acquire_image(self) -> dict:
         gotit = self.has_data_event.wait(1)
@@ -502,6 +502,26 @@ class CameraDevice(camera_base.CameraDevice):
         sx, sy = self.camera.getImageSize()
         return sy, sx
 
+    def add_metadata(self, image_data_element):
+        data_element = dict()
+        data_element["metadata"] = dict()
+        data_element["metadata"]["hardware_source"] = copy.deepcopy(image_data_element["properties"])
+        data_element["data"] = image_data_element.data
+        data_element["version"] = 1
+        data_element["state"] = "complete"
+        data_element["timestamp"] = image_data_element.get("timestamp", datetime.datetime.utcnow())
+        update_spatial_calibrations(data_element, self.instrument, self, self.__camera_category, cumulative_data.shape, binning, binning)
+        update_intensity_calibration(data_element, self.instrument, self)
+        instrument_metadata = dict()
+        update_instrument_properties(instrument_metadata, self.instrument, self)
+        if instrument_metadata:
+            data_element["metadata"].setdefault("instrument", dict()).update(instrument_metadata)
+        update_camera_properties(data_element["metadata"]["hardware_source"], self.current_camera_settings, self.camera_id, self.camera_name, data_element.get("signal_type", self.__signal_type))
+        data_element["metadata"]["hardware_source"]["valid_rows"] = image_data_element.data.shape[0]
+        data_element["metadata"]["hardware_source"]["frame_index"] = data_element["metadata"]["hardware_source"]["frame_number"]
+        data_element["metadata"]["hardware_source"]["integration_count"] = 1
+        return data_element
+
     PartialData = camera_base.CameraHardwareSource.PartialData
 
     class CameraTask:
@@ -515,6 +535,12 @@ class CameraDevice(camera_base.CameraDevice):
             self.__xdata = None
             self.__start = 0
             self.__last_rows = 0
+            #
+            # look for camera data channel to display live spectra during synchronized acquisition.
+            #
+            hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                camera_device.camera_id)
+            self.__data_channel = hardware_source.data_channels[0]
 
         @property
         def xdata(self) -> typing.Optional[DataAndMetadata.DataAndMetadata]:

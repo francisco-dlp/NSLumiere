@@ -25,8 +25,8 @@ from nion.data import Core
 from nion.instrumentation import camera_base
 from nion.instrumentation.scan_base import ScanFrameParameters as BaseScanFrameParameters
 from nion.instrumentation.scan_base import SynchronizedDataChannelInterface, SynchronizedScanBehaviorAdjustments,\
-    SynchronizedScanBehaviorInterface, ScanAcquisitionTask, RecordTask
-from nion.instrumentation.scan_base import update_scan_properties, update_scan_data_element, update_scan_metadata,\
+    SynchronizedScanBehaviorInterface, RecordTask
+from nion.instrumentation.scan_base import update_scan_properties, update_scan_metadata,\
     update_detector_metadata, update_instrument_properties
 from nion.instrumentation import stem_controller
 from nion.swift.model import HardwareSource
@@ -43,15 +43,297 @@ SubscanState = stem_controller.SubscanState
 LineScanState = stem_controller.LineScanState
 DriftCorrectionSettings = stem_controller.DriftCorrectionSettings
 
+#
+# force acquistion task to use local function
+# no longer required if one cand sepctrum directly to camera channel
+#
+class ScanAcquisitionTask(HardwareSource.AcquisitionTask):
+
+    def __init__(self, stem_controller_: stem_controller.STEMController, scan_hardware_source, device,
+                 hardware_source_id: str, is_continuous: bool, frame_parameters: ScanFrameParameters,
+                 channel_ids: typing.List[str], display_name: str):
+        # channel_ids is the channel id for each acquired channel
+        # for instance, there may be 4 possible channels (0-3, a-d) and acquisition from channels 1,2
+        # in that case channel_ids would be [b, c]
+        super().__init__(is_continuous)
+        self.__stem_controller = stem_controller_
+        self.hardware_source_id = hardware_source_id
+        self.__device = device
+        self.__weak_scan_hardware_source = weakref.ref(scan_hardware_source)
+        self.__is_continuous = is_continuous
+        self.__display_name = display_name
+        self.__hardware_source_id = hardware_source_id
+        self.__frame_parameters = ScanFrameParameters(frame_parameters)
+        self.__frame_number = None
+        self.__scan_id = None
+        self.__last_scan_id = None
+        self.__fixed_scan_id = uuid.UUID(frame_parameters["scan_id"]) if "scan_id" in frame_parameters else None
+        self.__pixels_to_skip = 0
+        self.__channel_ids = channel_ids
+        self.__last_read_time = 0
+        self.__subscan_enabled = False
+
+    def set_frame_parameters(self, frame_parameters):
+        self.__frame_parameters = ScanFrameParameters(frame_parameters)
+        self.__activate_frame_parameters()
+
+    @property
+    def scan_device(self):
+        return self.__device
+
+    @property
+    def frame_parameters(self):
+        return self.__frame_parameters
+
+    def _start_acquisition(self) -> bool:
+        if not super()._start_acquisition():
+            return False
+        self.__weak_scan_hardware_source()._enter_scanning_state()
+        if not any(self.__device.channels_enabled):
+            return False
+        self._resume_acquisition()
+        self.__frame_number = None
+        self.__scan_id = self.__fixed_scan_id
+        return True
+
+    def _suspend_acquisition(self) -> None:
+        super()._suspend_acquisition()
+        self.__device.cancel()
+        self.__device.stop()
+        start_time = time.time()
+        while self.__device.is_scanning and time.time() - start_time < 1.0:
+            time.sleep(0.01)
+        self.__last_scan_id = self.__scan_id
+
+    def _resume_acquisition(self) -> None:
+        super()._resume_acquisition()
+        self.__activate_frame_parameters()
+        self.__frame_number = self.__device.start_frame(self.__is_continuous)
+        self.__scan_id = self.__last_scan_id
+        self.__pixels_to_skip = 0
+
+    def _abort_acquisition(self) -> None:
+        super()._abort_acquisition()
+        self._suspend_acquisition()
+
+    def _request_abort_acquisition(self) -> None:
+        super()._request_abort_acquisition()
+        self.__device.cancel()
+
+    def _mark_acquisition(self) -> None:
+        super()._mark_acquisition()
+        self.__device.stop()
+
+    def _stop_acquisition(self) -> None:
+        super()._stop_acquisition()
+        self.__device.stop()
+        start_time = time.time()
+        while self.__device.is_scanning and time.time() - start_time < 1.0:
+            time.sleep(0.01)
+        self.__frame_number = None
+        self.__scan_id = self.__fixed_scan_id
+        self.__weak_scan_hardware_source()._exit_scanning_state()
+
+    def _acquire_data_elements(self):
+
+        def update_data_element(data_element, complete, sub_area, npdata):
+            data_element["data"] = npdata
+            data_element["data_shape"] = self.__frame_parameters.get("data_shape_override")
+            data_element["sub_area"] = sub_area
+            data_element["dest_sub_area"] = Geometry.IntRect.make(sub_area) + Geometry.IntPoint.make(
+                self.__frame_parameters.get("top_left_override", (0, 0)))
+            data_element["state"] = self.__frame_parameters.get("state_override", "complete") if complete else "partial"
+            data_element["section_state"] = "complete" if complete else "partial"
+            data_element["metadata"].setdefault("hardware_source", dict())["valid_rows"] = sub_area[0][0] + sub_area[1][
+                0]
+            data_element["metadata"].setdefault("scan", dict())["valid_rows"] = sub_area[0][0] + sub_area[1][0]
+
+        _data_elements, complete, bad_frame, sub_area, self.__frame_number, self.__pixels_to_skip = self.__device.read_partial(
+            self.__frame_number, self.__pixels_to_skip)
+
+        min_period = 0.05
+        current_time = time.time()
+        if current_time - self.__last_read_time < min_period:
+            time.sleep(min_period - (current_time - self.__last_read_time))
+        self.__last_read_time = time.time()
+
+        if not self.__scan_id:
+            self.__scan_id = uuid.uuid4()
+
+        # merge the _data_elements into data_elements
+        data_elements = []
+        for _data_element in _data_elements:
+            # calculate the valid sub area for this iteration
+            channel_index = int(_data_element["properties"]["channel_id"])
+            channel_id = self.__channel_ids[channel_index]
+            _data = _data_element["data"]
+            _scan_properties = _data_element["properties"]
+            scan_id = self.__scan_id
+            channel_name = self.__device.get_channel_name(channel_index)
+            channel_override = self.__frame_parameters.channel_override
+            channel_modifier = None
+            channel_id = channel_override or (channel_id + (("_" + channel_modifier) if channel_modifier else ""))
+
+            # create the 'data_element' in the format that must be returned from this method
+            # '_data_element' is the format returned from the Device.
+            data_element = {"metadata": dict()}
+            instrument_metadata = dict()
+            update_instrument_properties(instrument_metadata, self.__stem_controller, self.__device)
+            if instrument_metadata:
+                data_element["metadata"].setdefault("instrument", dict()).update(instrument_metadata)
+            update_scan_data_element(data_element, self.__frame_parameters, _data.shape, channel_name, channel_id,
+                                     _scan_properties)
+            update_scan_metadata(data_element["metadata"].setdefault("scan", dict()), self.hardware_source_id,
+                                 self.__display_name, self.__frame_parameters, scan_id, _scan_properties)
+            update_detector_metadata(data_element["metadata"].setdefault("hardware_source", dict()),
+                                     self.hardware_source_id, self.__display_name, _data.shape, self.__frame_number,
+                                     channel_name, channel_id, _scan_properties)
+            update_data_element(data_element, complete, sub_area, _data)
+            data_elements.append(data_element)
+
+        if complete or bad_frame:
+            # proceed to next frame
+            self.__frame_number = None
+            self.__scan_id = self.__fixed_scan_id
+            self.__pixels_to_skip = 0
+
+        return data_elements
+
+    def __activate_frame_parameters(self):
+        device_frame_parameters = ScanFrameParameters(self.__frame_parameters)
+        context_size = Geometry.FloatSize.make(device_frame_parameters.size)
+        device_frame_parameters.fov_size_nm = device_frame_parameters.fov_nm * context_size.aspect_ratio, device_frame_parameters.fov_nm
+        self.__device.set_frame_parameters(device_frame_parameters)
+
+
 class ScanFrameParameters(BaseScanFrameParameters):
 
-    def __init__(self):
-        super.__init__()
+    def __init__(self, *args, **kwargs):
+        super(ScanFrameParameters, self).__init__(*args, **kwargs)
 
     def as_dict(self):
         d = super(ScanFrameParameters, self).as_dict()
         if self.channels is not None:
             d["channels"] = self.channels
+        return d
+
+    def _acquire_data_elements(self):
+
+        def update_data_element(data_element, complete, sub_area, npdata):
+            data_element["data"] = npdata
+            data_element["data_shape"] = self.__frame_parameters.get("data_shape_override")
+            data_element["sub_area"] = sub_area
+            data_element["dest_sub_area"] = Geometry.IntRect.make(sub_area) + Geometry.IntPoint.make(self.__frame_parameters.get("top_left_override", (0, 0)))
+            data_element["state"] = self.__frame_parameters.get("state_override", "complete") if complete else "partial"
+            data_element["section_state"] = "complete" if complete else "partial"
+            data_element["metadata"].setdefault("hardware_source", dict())["valid_rows"] = sub_area[0][0] + sub_area[1][0]
+            data_element["metadata"].setdefault("scan", dict())["valid_rows"] = sub_area[0][0] + sub_area[1][0]
+
+        _data_elements, complete, bad_frame, sub_area, self.__frame_number, self.__pixels_to_skip = self.__device.read_partial(self.__frame_number, self.__pixels_to_skip)
+
+        min_period = 0.05
+        current_time = time.time()
+        if current_time - self.__last_read_time < min_period:
+            time.sleep(min_period - (current_time - self.__last_read_time))
+        self.__last_read_time = time.time()
+
+        if not self.__scan_id:
+            self.__scan_id = uuid.uuid4()
+
+        # merge the _data_elements into data_elements
+        data_elements = []
+        for _data_element in _data_elements:
+            # calculate the valid sub area for this iteration
+            channel_index = int(_data_element["properties"]["channel_id"])
+            channel_id = self.__channel_ids[channel_index]
+            _data = _data_element["data"]
+            _scan_properties = _data_element["properties"]
+            scan_id = self.__scan_id
+            channel_name = self.__device.get_channel_name(channel_index)
+            channel_override = self.__frame_parameters.channel_override
+            channel_modifier = None
+            channel_id = channel_override or (channel_id + (("_" + channel_modifier) if channel_modifier else ""))
+
+            # create the 'data_element' in the format that must be returned from this method
+            # '_data_element' is the format returned from the Device.
+            data_element = {"metadata": dict()}
+            instrument_metadata = dict()
+            update_instrument_properties(instrument_metadata, self.__stem_controller, self.__device)
+            if instrument_metadata:
+                data_element["metadata"].setdefault("instrument", dict()).update(instrument_metadata)
+            update_scan_data_element(data_element, self.__frame_parameters, _data.shape, channel_name, channel_id, _scan_properties)
+            update_scan_metadata(data_element["metadata"].setdefault("scan", dict()), self.hardware_source_id, self.__display_name, self.__frame_parameters, scan_id, _scan_properties)
+            update_detector_metadata(data_element["metadata"].setdefault("hardware_source", dict()), self.hardware_source_id, self.__display_name, _data.shape, self.__frame_number, channel_name, channel_id, _scan_properties)
+            update_data_element(data_element, complete, sub_area, _data)
+            data_elements.append(data_element)
+
+        if complete or bad_frame:
+            # proceed to next frame
+            self.__frame_number = None
+            self.__scan_id = self.__fixed_scan_id
+            self.__pixels_to_skip = 0
+
+        return data_elements
+
+
+
+# set the calibrations for this image. does not touch metadata.
+def update_scan_data_element(data_element, scan_frame_parameters, data_shape, channel_name, channel_id, scan_properties):
+    scan_properties = copy.deepcopy(scan_properties)
+    pixel_time_us = float(scan_properties["pixel_time_us"])
+    center_x_nm = float(scan_properties.get("center_x_nm", 0.0))
+    center_y_nm = float(scan_properties.get("center_y_nm", 0.0))
+    fov_nm = float(scan_frame_parameters["fov_nm"])  # context fov_nm, not actual fov_nm returned from low level
+    if scan_frame_parameters.size[0] > scan_frame_parameters.size[1]:
+        fractional_size = scan_frame_parameters.subscan_fractional_size[0] if scan_frame_parameters.subscan_fractional_size else 1.0
+        pixel_size = scan_frame_parameters.subscan_pixel_size[0] if scan_frame_parameters.subscan_pixel_size else scan_frame_parameters.size[0]
+        pixel_size_nm = fov_nm * fractional_size / pixel_size
+    else:
+        fractional_size = scan_frame_parameters.subscan_fractional_size[1] if scan_frame_parameters.subscan_fractional_size else 1.0
+        pixel_size = scan_frame_parameters.subscan_pixel_size[1] if scan_frame_parameters.subscan_pixel_size else scan_frame_parameters.size[1]
+        pixel_size_nm = fov_nm * fractional_size / pixel_size
+    data_element["title"] = channel_name
+    data_element["version"] = 1
+    data_element["channel_id"] = channel_id  # needed to match to the channel
+    data_element["channel_name"] = channel_name  # needed to match to the channel
+    if len(data_shape) > 1:
+        line_time_us = float(scan_properties["line_time_us"]) if "line_time_us" in scan_properties else pixel_time_us * data_shape[1]
+    else:
+        line_time_us = pixel_time_us
+    if scan_properties.get("calibration_style") == "time":
+        data_element["spatial_calibrations"] = (
+            {"offset": 0.0, "scale": line_time_us / 1E6, "units": "s"},
+            {"offset": 0.0, "scale": pixel_time_us / 1E6, "units": "s"}
+        )
+    else:
+        if len(data_shape) > 1:
+            data_element["spatial_calibrations"] = (
+            {"offset": - center_y_nm - pixel_size_nm * data_shape[0] * 0.5, "scale": pixel_size_nm, "units": "nm"},
+            {"offset": - center_x_nm - pixel_size_nm * data_shape[1] * 0.5, "scale": pixel_size_nm, "units": "nm"}
+            )
+        else:
+            data_element["spatial_calibrations"] = (
+            {"offset": - center_y_nm - 0, "scale": pixel_size_nm, "units": "nm"},
+            {"offset": - center_x_nm - 0, "scale": pixel_size_nm, "units": "nm"}
+            )
+
+def update_detector_metadata(detector_metadata: typing.MutableMapping, hardware_source_id: str, display_name: str, data_shape, frame_number: typing.Optional[int], channel_name: str, channel_id: str, scan_properties: typing.Mapping) -> None:
+    detector_metadata["hardware_source_id"] = hardware_source_id
+    detector_metadata["hardware_source_name"] = display_name
+    detector_metadata["frame_index"] = frame_number
+    detector_metadata["channel_id"] = channel_id  # needed for info after acquisition
+    detector_metadata["channel_name"] = channel_name  # needed for info after acquisition
+    pixel_time_us = float(scan_properties["pixel_time_us"])
+    detector_metadata["pixel_time_us"] = pixel_time_us
+    if len(data_shape) > 1:
+        line_time_us = float(scan_properties["line_time_us"]) if "line_time_us" in scan_properties else pixel_time_us * data_shape[1]
+        exposure_s = data_shape[0] * data_shape[1] * pixel_time_us / 1000000
+        detector_metadata["exposure"] = exposure_s
+        detector_metadata["line_time_us"] = line_time_us
+    else:
+        detector_metadata["exposure"] = pixel_time_us / 1000000
+        detector_metadata["line_time_us"] = pixel_time_us / 1000000
+
 
 
 def apply_section_rect(scan_frame_parameters: typing.MutableMapping, section_rect: Geometry.IntRect, scan_size: Geometry.IntSize, fractional_area: Geometry.FloatRect, channel_modifier: str) -> typing.MutableMapping:
@@ -1221,7 +1503,7 @@ _component_unregistered_listener = None
 
 def run():
     def component_registered(component, component_types):
-        if "scan_device" in component_types and component.scan_device_id == "orsay-scan-device":
+        if "scan_device" in component_types and component.scan_device_id == "orsay_scan_device":
             stem_controller = None
             stem_controller_id = getattr(component, "stem_controller_id", None)
             if not stem_controller and stem_controller_id:
@@ -1240,8 +1522,7 @@ def run():
             component.hardware_source = scan_hardware_source
 
     def component_unregistered(component, component_types):
-        if "scan_device" in component_types and component.scan_device_id == "orsay-scan-device":
-            scan_hardware_source = component.hardware_source
+        if "scan_device" in component_types and component.scan_device_id == "orsay_scan_device":
             Registry.unregister_component(scan_hardware_source)
             HardwareSource.HardwareSourceManager().unregister_hardware_source(scan_hardware_source)
 

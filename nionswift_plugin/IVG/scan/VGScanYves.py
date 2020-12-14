@@ -166,6 +166,7 @@ class Device:
         self.__spim_pixels = (0, 0)
         self.subscan_status = True
         self.__spim = False
+        self.__live_spectrum = None
 
         self.p0 = 512
         self.p1 = 512
@@ -504,7 +505,8 @@ class Device:
                 properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
                 properties["channel_id"] = channel.channel_id
                 for key, value in self.__profiles[self.__currentprofileindex].as_dict().items():
-                    properties[key] = value
+                    if key not in properties:
+                        properties[key] = value
                 input_index, subscan = self.get_input_index(channel.channel_id)
                 if input_index < 100:
                 # if not self.__spim:
@@ -521,28 +523,47 @@ class Device:
                         data_elements.append(data_element)
 
                 elif self.__isSpim:
-                    partial_data_info = self.eels_camera.acquire_synchronized_continue(update_period=1.0)
-                    if not partial_data_info.is_canceled:
-                        sub_area = ((0, 0, 0), (data_array.shape[1], data_array.shape[0], 1))
-                        properties['sub_area'] = sub_area
-                        data_element["data"] = partial_data_info.xdata.data
-                        properties['sub_area'] = sub_area
-                        data_element["properties"] = properties
-                        _name = self.usedinputs[self.__currentprofileindex][channel_index][2][2]
-                        # if _name == "eels":
-                        #     self.__eelscamera.camera.update_spatial_calibrations_a(data_element)
-                        #     self.__eelscamera.camera.update_intensity_calibrations_a(data_element)
-                        # else:
-                        data_element["spatial_calibrations"] = (
-                            {"offset": 0, "scale": 1, "units": "eV"},
-                        )
-                        data_element["collection_dimension_count"] = 1
-                        data_element["datum_dimension_count"] = 1
-                        data_elements.append(data_element)
-                        if partial_data_info.is_complete:
+                    if input_index < 200:
+                        partial_data_info = self.eels_camera.acquire_synchronized_continue(update_period=1.0)
+                        if not partial_data_info.is_canceled:
                             hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                                 self.scan_device_id)
-                            hardware_source.stop_playing()
+                            data_channel = hardware_source.data_channels[channel_index]
+                            # data_channel.update(partial_data_info.xdata, "complete", partial_data_info.xdata.data.shape, sub_area, sub_area, None)
+                            sub_area = ((0, 0, 0), (data_array.shape[1], data_array.shape[0], 1))
+                            properties['sub_area'] = sub_area
+                            data_element["data"] = partial_data_info.xdata.data
+                            properties['sub_area'] = sub_area
+                            data_element["properties"] = properties
+                            _name = self.usedinputs[self.__currentprofileindex][channel_index][2][2]
+                            # if _name == "eels":
+                            #     self.__eelscamera.camera.update_spatial_calibrations_a(data_element)
+                            #     self.__eelscamera.camera.update_intensity_calibrations_a(data_element)
+                            # else:
+                            data_element["spatial_calibrations"] = (
+                                {"offset": 0, "scale": 1, "units": "eV"},
+                            )
+                            data_element["collection_dimension_count"] = 1
+                            data_element["datum_dimension_count"] = 1
+                            data_elements.append(data_element)
+                            if partial_data_info.is_complete:
+                                hardware_source.stop_playing()
+                            _x = partial_data_info.xdata.data.shape[1] - 1
+                            _y = int(partial_data_info.valid_rows - 1)
+                            self.__live_spectrum = partial_data_info.xdata.data[_y, _x, :]
+                    # now directly placed in camera data channel
+                    # elif type(self.__live_spectrum) is numpy.ndarray:   # live spectrum channel
+                    #     sub_area = ((0,), (data_array.shape[0],))
+                    #     properties['sub_area'] = sub_area
+                    #     data_element["data"] = self.__live_spectrum
+                    #     properties['sub_area'] = sub_area
+                    #     data_element["properties"] = properties
+                    #     data_element["spatial_calibrations"] = (
+                    #         {"offset": 0, "scale": 1, "units": "eV"},
+                    #     )
+                    #     data_element["collection_dimension_count"] = 1
+                    #     data_element["datum_dimension_count"] = 1
+                    #     data_elements.append(data_element)
                 channel_index = channel_index + 1
 
         # else:
