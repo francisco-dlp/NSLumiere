@@ -1,7 +1,7 @@
 [
     {
-        "manufacturer": 1,
-        "model": "ProEM+: 1600xx(2)B eXcelon",
+        "manufacturer": 2,
+        "model": "Newton",
         "type": "eire",
         "id": "orsay_camera_eire",
         "name": "EIRE",
