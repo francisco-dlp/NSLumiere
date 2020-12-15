@@ -166,6 +166,8 @@ class ivgInstrument(stem_controller.STEMController):
 
     def shutdown_objective(self):
         self.__lensInstrument.obj_global_f = False
+        self.__lensInstrument.c1_global_f = False
+        self.__lensInstrument.c2_global_f = False
         logging.info('*** LENSES / IVG ***: Shutdown objective lens because of high temperature.')
         if SENDMAIL:
             try:
@@ -348,8 +350,8 @@ class ivgInstrument(stem_controller.STEMController):
     def obj_cur_f(self):
         try:
             self.__obj_cur, self.__obj_vol = self.__lensInstrument.get_values('OBJ')
-            self.__obj_cur = float(self.__obj_cur.decode()[0:5])
-            self.__obj_vol = float(self.__obj_vol.decode()[0:5])
+            self.__obj_cur = float(self.__obj_cur.decode())
+            self.__obj_vol = float(self.__obj_vol.decode())
             if self.__obj_cur > 0:
                 self.__obj_res = self.__obj_vol / self.__obj_cur
             else:
@@ -360,7 +362,7 @@ class ivgInstrument(stem_controller.STEMController):
             self.__obj_cur = 'Error'
             self.__obj_vol = 'Error'
 
-        return self.__obj_cur
+        return format(self.__obj_cur, '.3f')
 
     @property
     def obj_vol_f(self):
