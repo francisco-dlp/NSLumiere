@@ -358,26 +358,26 @@ class ivgInstrument(stem_controller.STEMController):
                 self.__obj_res = -1.
             self.property_changed_event.fire('obj_vol_f')
         except:
-            logging.info('***IVG***: A problem happened Querying my Lens Objective  Values. Returning 0.')
-            self.__obj_cur = 'Error'
-            self.__obj_vol = 'Error'
+            logging.info('***IVG***: A problem happened querying lens Ojective value. Returning -1.0.')
+            self.__obj_cur = -1.
+            self.__obj_vol = -1.
 
-        return format(self.__obj_cur, '.3f')
+        return format(self.__obj_cur, '.4f')
 
     @property
     def obj_vol_f(self):
-        return self.__obj_vol
+        return format(self.__obj_vol, '.4f')
 
     @property
     def obj_temp_f(self):
-        return '{:.2f}'.format(self.__obj_temp)
+        return '{:.4f}'.format(self.__obj_temp)
 
     @property
     def c1_cur_f(self):
         try:
             self.__c1_cur, self.__c1_vol = self.__lensInstrument.get_values('C1')
-            self.__c1_cur = float(self.__c1_cur.decode()[0:5])
-            self.__c1_vol = float(self.__c1_vol.decode()[0:5])
+            self.__c1_cur = float(self.__c1_cur.decode())
+            self.__c1_vol = float(self.__c1_vol.decode())
             if self.__c1_cur > 0:
                 self.__c1_res = self.__c1_vol / self.__c1_cur
             else:
@@ -385,25 +385,24 @@ class ivgInstrument(stem_controller.STEMController):
             self.property_changed_event.fire('c1_vol_f')
             self.property_changed_event.fire('c1_res_f')
         except:
-            self.__c1_cur = 'Error'
-            self.__c1_vol = 'Error'
-
-        return self.__c1_cur
+            self.__c1_cur = -1.
+            self.__c1_vol = -1.
+        return format(self.__c1_cur, '.3f')
 
     @property
     def c1_vol_f(self):
-        return self.__c1_vol
+        return format(self.__c1_vol, '.3f')
 
     @property
     def c1_res_f(self):
-        return '{:.2f}'.format(self.__c1_res)
+        return '{:.3f}'.format(self.__c1_res)
 
     @property
     def c2_cur_f(self):
         try:
             self.__c2_cur, self.__c2_vol = self.__lensInstrument.get_values('C2')
-            self.__c2_cur = float(self.__c2_cur.decode()[0:5])
-            self.__c2_vol = float(self.__c2_vol.decode()[0:5])
+            self.__c2_cur = float(self.__c2_cur.decode())
+            self.__c2_vol = float(self.__c2_vol.decode())
             if self.__c2_cur > 0:
                 self.__c2_res = self.__c2_vol / self.__c2_cur
             else:
@@ -411,18 +410,17 @@ class ivgInstrument(stem_controller.STEMController):
             self.property_changed_event.fire('c2_vol_f')
             self.property_changed_event.fire('c2_res_f')
         except:
-            self.__c2_cur = 'Error'
-            self.__c2_vol = 'Error'
-
-        return self.__c2_cur
+            self.__c2_cur = -1.
+            self.__c2_vol = -1.
+        return format(self.__c2_cur, '.3f')
 
     @property
     def c2_vol_f(self):
-        return self.__c2_vol
+        return format(self.__c2_vol, '.3f')
 
     @property
     def c2_res_f(self):
-        return '{:.2f}'.format(self.__c2_res)
+        return '{:.3f}'.format(self.__c2_res)
 
     @property
     def voa_val_f(self):
