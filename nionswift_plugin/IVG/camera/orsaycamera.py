@@ -238,6 +238,7 @@ class orsayCamera(object):
     def close(self):
         self.__OrsayCameraClose(self.orsaycamera)
         self.orsaycamera = None
+
     def __logger(self, message, debug):
         print(f"log: {_convertToString23(message)}")
 

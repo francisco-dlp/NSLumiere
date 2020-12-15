@@ -19,11 +19,11 @@
         },
         "MAX_PTS": 5000,
         "OBJECTIVE": {
-            "MAX_TEMP": 70,
+            "MAX_TEMP": 55.0,
             "RESISTANCE": 5.18,
             "TEMP_COEF": 0.004041
         },
-        "SENDMAIL": 0,
+        "SENDMAIL": 1,
         "SLOW_PERIODIC": {
             "ACTIVE": 1,
             "PERIOD": 1.0
@@ -31,7 +31,7 @@
         "STAGE_MATRIX_SIZE": 160
     },
     "SPECTROMETER": {
-        "DEBUG": 0,
+        "DEBUG": 1,
         "GRATINGS": {
             "COMPLET": [
                 "300 g/mm BLZ=  300NM",
@@ -59,6 +59,6 @@
         "DEBUG": 0
     },
     "mirror": {
-        "DEBUG": 0
+        "DEBUG": 1
     }
 }
