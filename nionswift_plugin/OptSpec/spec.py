@@ -27,58 +27,57 @@ class OptSpectrometer:
         self.ser.bytesize = serial.EIGHTBITS
         self.ser.timeout = 60
 
-        try:
-            if not self.ser.is_open:
-                self.ser.open()
-                time.sleep(0.1)
+        #try:
+        if not self.ser.is_open:
+            self.ser.open()
 
-                self.ser.write(b'?NM\r')
-                wav_line = self.ser.readline()
-                self.wavelength = float(wav_line[1:6].decode())
+            self.ser.write(b'?NM\r')
+            wav_line = self.ser.readline()
+            self.wavelength = float(wav_line.split(b'nm')[0].decode())
 
-                self.ser.write(b'?GRATING\r')
-                grating_line = self.ser.readline()
-                self.now_grating = int(grating_line[1:2].decode()) - 1
+            self.ser.write(b'?GRATING\r')
+            grating_line = self.ser.readline()
+            self.now_grating = int(grating_line.split(b'ok')[0].decode()) - 1
 
-                self.ser.write(b'EXIT-MIRROR ?MIRROR\r')
-                mirror_line = self.ser.readline()
-                if mirror_line[1:6].decode() == 'front':
-                    self.which_slit = 0
-                else:
-                    self.which_slit = 1
+            self.ser.write(b'EXIT-MIRROR ?MIRROR\r')
+            mirror_line = self.ser.readline()
+            if mirror_line[1:6].decode() == 'front':
+                self.which_slit = 0
+            else:
+                self.which_slit = 1
 
-                self.ser.write(b'SIDE-ENT-SLIT ?MICRONS\r')
-                entrance_line = self.ser.readline()
-                self.entrance_slit = float(entrance_line[1:5].decode())
+            self.ser.write(b'SIDE-ENT-SLIT ?MICRONS\r')
+            entrance_line = self.ser.readline()
+            self.entrance_slit = float(entrance_line.split(b'um')[0].decode())
 
-                self.ser.write(b'SIDE-EXIT-SLIT ?MICRONS\r')
-                exit_line = self.ser.readline()
-                self.exit_slit = float(exit_line[1:5].decode())
+            self.ser.write(b'SIDE-EXIT-SLIT ?MICRONS\r')
+            exit_line = self.ser.readline()
+            self.exit_slit = float(exit_line.split(b'um')[0].decode())
 
-                gratings = list()
-                self.lp_mm = list()
-                self.ser.write(b'?GRATINGS\r')
-                msg = True
-                while msg:
-                    line = self.ser.readline()
-                    if line:
-                        if b'g/mm' in line:
-                            gratings.append(line[4:-3].decode())
-                            self.lp_mm.append(float(line[4:8].decode()))
-                    if line[-4:-2] == b'ok':
-                        msg = False
+            gratings = list()
+            self.lp_mm = list()
+            self.ser.write(b'?GRATINGS\r')
+            msg = True
+            while msg:
+                line = self.ser.readline()
+                if line:
+                    if b'g/mm' in line:
+                        gratings.append(line[4:-3].decode())
+                        self.lp_mm.append(float(line[4:8].decode()))
+                if line[-4:-2] == b'ok':
+                    msg = False
 
-                abs_path = os.path.abspath(os.path.join((__file__ + "/../../"), 'global_settings.json'))
-                with open(abs_path) as savfile:
-                    json_object = json.load(savfile)
+            abs_path = os.path.abspath(os.path.join((__file__ + "/../../"), 'global_settings.json'))
+            with open(abs_path) as savfile:
+                json_object = json.load(savfile)
 
-                json_object["SPECTROMETER"]["GRATINGS"]["COMPLET"] = gratings
-                json_object["SPECTROMETER"]["GRATINGS"]["LP_MM"] = self.lp_mm
+            json_object["SPECTROMETER"]["GRATINGS"]["COMPLET"] = gratings
+            json_object["SPECTROMETER"]["GRATINGS"]["LP_MM"] = self.lp_mm
 
-                with open(abs_path, 'w') as json_file:
-                    json.dump(json_object, json_file, indent=4)
-        except:
-            self.sendmessage(1)
+            with open(abs_path, 'w') as json_file:
+                json.dump(json_object, json_file, indent=4)
+        #except:
+        #    self.sendmessage(1)
 
     def set_grating(self, value):
         string = str(value + 1) + ' GRATING\r'
