@@ -42,7 +42,7 @@ class OptSpecDevice(Observable.Observable):
         self.__running=False
 
     def init(self):
-        logging.info('***MONOCHROMATOR***: Initializing hardware...')
+        logging.info('***OPT SPECTROMETER***: Initializing hardware...')
 
 
     def sendMessageFactory(self):
