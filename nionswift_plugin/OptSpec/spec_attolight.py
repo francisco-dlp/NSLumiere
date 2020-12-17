@@ -177,7 +177,7 @@ class OptSpectrometer:
         else:
             self.OrsayMonoCL=_OrsayMonoCLWithMirrorInit(manufacturer, portnb, sendmessage, sendmirrormessage)
 
-        time.sleep(0.25)
+        time.sleep(1)
                 
     def OrsayMonoCLCLose(self) -> None:
         _OrsayMonoCLClose(self.OrsayMonoCL)

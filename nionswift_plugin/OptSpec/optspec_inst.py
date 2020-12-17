@@ -32,6 +32,7 @@ class OptSpecDevice(Observable.Observable):
         self.send_gratings = Event.Event()
 
         self.__running=False
+        self.__successful = False
 
     def init(self):
         self.__sendmessage = optSpec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
@@ -48,12 +49,7 @@ class OptSpecDevice(Observable.Observable):
         self.__eirecamera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "usim_eels_camera")
 
-        return True and self.__eirecamera is not None
-
-    def upt_calibs(self):
-        self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
-                                                {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
-                                                 "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels, "units": "nm"}]
+        return (True and self.__eirecamera is not None)
 
     def upt(self):
         self.property_changed_event.fire('wav_f')
@@ -65,18 +61,24 @@ class OptSpecDevice(Observable.Observable):
         self.property_changed_event.fire('camera_size_f')
         self.property_changed_event.fire('focalLength_f')
         self.upt_calibs()
+        if not self.__successful: self.__successful = True
 
     def upt_info(self):
         self.property_changed_event.fire('fov_f')
         self.property_changed_event.fire('dispersion_pixels_f')
         self.property_changed_event.fire('pixel_size_f')
 
+    def upt_calibs(self):
+        self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
+                                                {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
+                                                 "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels, "units": "nm"}]
+
     def sendMessageFactory(self):
         def sendMessage(message):
             if message:
                 self.__running=False
                 self.property_changed_event.fire("")
-                self.upt_calibs()
+                if self.__successful: self.upt_calibs()
         return sendMessage
 
     @property

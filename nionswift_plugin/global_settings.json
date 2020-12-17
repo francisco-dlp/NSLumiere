@@ -31,8 +31,8 @@
         "STAGE_MATRIX_SIZE": 160
     },
     "SPECTROMETER": {
-        "DEBUG": 1,
-        "MANUFACTURER": "PRINCETON"
+        "DEBUG": 0,
+        "MANUFACTURER": "ATTOLIGHT"
     },
     "diaf": {
         "DEBUG": 1
