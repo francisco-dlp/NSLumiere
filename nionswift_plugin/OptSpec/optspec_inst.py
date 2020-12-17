@@ -1,7 +1,4 @@
 # standard libraries
-import logging
-import os
-import json
 import threading
 import numpy
 
@@ -9,24 +6,8 @@ from nion.utils import Event
 from nion.utils import Observable
 from nion.swift.model import HardwareSource
 
-try:
-    abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
-    DEBUG = settings["SPECTROMETER"]["DEBUG"]
-    MANUFACTURER = settings["SPECTROMETER"]["MANUFACTURER"]
-except KeyError:
-    DEBUG = False
-    MANUFACTURER = "ATTOLIGHT"
-
-if DEBUG:
-    from . import spec_vi as optSpec
-else:
-    if MANUFACTURER=='PRINCETON': from . import spec as optSpec
-    elif MANUFACTURER=='ATTOLIGHT': from . import spec_attolight as optSpec
-
 class OptSpecDevice(Observable.Observable):
-    def __init__(self):
+    def __init__(self, MANUFACTURER='DEBUG'):
         self.property_changed_event = Event.Event()
         self.property_changed_power_event = Event.Event()
         self.communicating_event = Event.Event()
@@ -35,8 +16,13 @@ class OptSpecDevice(Observable.Observable):
 
         self.__running=False
         self.__successful = False
+        self.__model = MANUFACTURER
 
     def init(self):
+        if self.__model=='DEBUG': from . import spec_vi as optSpec
+        elif self.__model=='ATTOLIGHT': from . import spec_attolight as optSpec
+        elif self.__model=='PRINCETON': from . import spec as optSpec
+
         self.__sendmessage = optSpec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__Spec = optSpec.OptSpectrometer(self.__sendmessage)
 

@@ -1,7 +1,5 @@
 # standard libraries
 import gettext
-import os
-import json
 
 from nion.swift import Panel
 from nion.swift import Workspace
@@ -10,11 +8,6 @@ from nion.ui import UserInterface
 
 from . import optspec_inst
 _ = gettext.gettext
-
-#abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
-#with open(abs_path) as savfile:
-#    settings = json.load(savfile)
-#GRATINGS = settings["SPECTROMETER"]["GRATINGS"]["COMPLET"]
 
 GRATINGS = list()
 
@@ -174,7 +167,7 @@ def create_spectro_panel(document_controller, panel_id, properties):
 
 
 def run(instrument: optspec_inst.OptSpecDevice) -> None:
-    panel_id = "Optical Spectrometer"#make sure it is unique, otherwise only one of the panel will be displayed
-    name = _("Optical Spectrometer")
+    panel_id = 'Optical Spectrometer'#make sure it is unique, otherwise only one of the panel will be displayed
+    name = _('Optical Spectrometer')
     Workspace.WorkspaceManager().register_panel(create_spectro_panel, panel_id, name, ["left", "right"], "left",
                                                 {"instrument": instrument})
