@@ -56,6 +56,9 @@ class OptSpechandler:
     def upt(self, widget):
         self.instrument.upt()
 
+    def upt_info(self, widget):
+        self.instrument.upt_info()
+
     def receive_gratings(self, grat_received):
         GRATINGS = grat_received
         self.gratings_combo_box.items = GRATINGS
@@ -96,12 +99,57 @@ class OptSpecView:
 
         self.slit_choice_row = ui.create_row(self.slit_choice, ui.create_stretch())
 
-        self.ui_view=ui.create_column(
+        self.main_tab=ui.create_tab(label='Main', content=ui.create_column(
             self.pb_row,
             self.wl_row,
             self.gratings_row,
             self.slit_row,
-            self.slit_choice_row)
+            self.slit_choice_row))
+
+        #Second TAB
+
+        self.focal_length_label = ui.create_label(name='focal_length_label', text='Spec. FL (nm): ')
+        self.focal_length_value = ui.create_line_edit(name='focal_length_value',
+                                                      text='@binding(instrument.focalLength_f)')
+        self.focal_length_row = ui.create_row(self.focal_length_label, self.focal_length_value, ui.create_stretch())
+
+        self.camsize_label = ui.create_label(name='camsize_label', text='Hor. Camera Size (mm): ')
+        self.camsize_value = ui.create_line_edit(name='camsize_value',
+                                                      text='@binding(instrument.camera_size_f)')
+        self.camsize_row = ui.create_row(self.camsize_label, self.camsize_value, ui.create_stretch())
+
+        self.campixels_label = ui.create_label(name='campixels_label', text='Hor. Camera Pixels: ')
+        self.campixels_value = ui.create_line_edit(name='campixels_value',
+                                                      text='@binding(instrument.camera_pixels_f)')
+        self.campixels_row = ui.create_row(self.campixels_label, self.campixels_value, ui.create_stretch())
+
+
+        self.setting_tab = ui.create_tab(label='Settings', content=ui.create_column(
+            self.focal_length_row, self.camsize_row, self.campixels_row))
+
+
+        #THIRD TAB
+
+        self.upt_pb02 = ui.create_push_button(name='upt_pb02', text='Update', on_clicked='upt_info')
+
+        self.pixelSize_label = ui.create_label(name='pixelSize_label', text='Pixel Size (um): ')
+        self.pixelSize_value = ui.create_label(name='pixelSize_value', text='@binding(instrument.pixel_size_f)')
+        self.pixelSize_row = ui.create_row(self.pixelSize_label, self.pixelSize_value, ui.create_stretch())
+
+        self.dispersion_pixel_label = ui.create_label(name='dispersion_pixel_label', text='Dispersion (nm/pixels): ')
+        self.dispersion_pixel_value = ui.create_label(name='dispersion_pixels_label', text='@binding(instrument.dispersion_pixels_f)')
+        self.dispersion_pixel_row = ui.create_row(self.dispersion_pixel_label, self.dispersion_pixel_value, ui.create_stretch())
+
+        self.range_label = ui.create_label(name='range_label', text='Range (nm): ')
+        self.range_value = ui.create_label(name='range_value', text='@binding(instrument.fov_f)')
+        self.range_row = ui.create_row(self.range_label, self.range_value, ui.create_stretch())
+
+        self.info_tab = ui.create_tab(label='Info', content=ui.create_column(
+            self.upt_pb02, self.pixelSize_row, self.dispersion_pixel_row, self.range_row))
+
+        self.tabs = ui.create_tabs(self.main_tab, self.info_tab, self.setting_tab)
+
+        self.ui_view = ui.create_column(self.tabs)
 
 
 

@@ -8,6 +8,7 @@ import time
 
 from nion.utils import Event
 from nion.utils import Observable
+from nion.swift.model import HardwareSource
 
 abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
 with open(abs_path) as savfile:
@@ -18,7 +19,7 @@ MANUFACTURER = settings["SPECTROMETER"]["MANUFACTURER"]
 if DEBUG:
     from . import spec_vi as optSpec
 else:
-    if MANUFACTURER=='Princeton': from . import spec as optSpec
+    if MANUFACTURER=='PRINCETON': from . import spec as optSpec
     elif MANUFACTURER=='ATTOLIGHT': from . import spec_attolight as optSpec
 
 class OptSpecDevice(Observable.Observable):
@@ -34,14 +35,25 @@ class OptSpecDevice(Observable.Observable):
 
     def init(self):
         self.__sendmessage = optSpec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        self.__Spec = optSpec.OptSpectrometer(2, 6, self.__sendmessage)
+        if MANUFACTURER=='ATTOLIGHT': self.__Spec = optSpec.OptSpectrometer(2, 6, self.__sendmessage)
+        elif MANUFACTURER=='PRINCETON': self.__Spec = optSpec.OptSpectrometer(self.__sendmessage)
 
         self.__gratings = self.__Spec.gratingNames()
         self.send_gratings.fire(self.__gratings)
         self.__lpmms = self.__Spec.gratingLPMM()
         self.__fl = self.__Spec.get_specFL()
+        self.__cameraSize = 25.6
+        self.__cameraPixels = 1600
 
-        return True
+        self.__eirecamera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "usim_eels_camera")
+
+        return True and self.__eirecamera is not None
+
+    def upt_calibs(self):
+        self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
+                                                {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
+                                                 "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels, "units": "nm"}]
 
     def upt(self):
         self.property_changed_event.fire('wav_f')
@@ -49,28 +61,22 @@ class OptSpecDevice(Observable.Observable):
         self.property_changed_event.fire('entrance_slit_f')
         self.property_changed_event.fire('exit_slit_f')
         self.property_changed_event.fire('which_slit_f')
+        self.property_changed_event.fire('camera_pixels_f')
+        self.property_changed_event.fire('camera_size_f')
+        self.property_changed_event.fire('focalLength_f')
+        self.upt_calibs()
+
+    def upt_info(self):
+        self.property_changed_event.fire('fov_f')
+        self.property_changed_event.fire('dispersion_pixels_f')
+        self.property_changed_event.fire('pixel_size_f')
 
     def sendMessageFactory(self):
         def sendMessage(message):
-            '''if message == 1:
-                logging.info("***OPT SPECTROMETER***: Serial Communication was not possible. Check instrument")
-            if message == 2:
-                logging.info("***OPT SPECTROMETER***: Grating changed successfully.")
-            if message == 3:
-                logging.info("***OPT SPECTROMETER***: Wavelength changed successfully.")
-            if message == 4:
-                logging.info("***OPT SPECTROMETER***: Entrance slit width changed successfully.")
-            if message == 5:
-                logging.info("***OPT SPECTROMETER***: Exit slit width changed successfully.")
-            if message == 6:
-                logging.info("***OPT SPECTROMETER***: Axial/Lateral slit changed successfully.")
-            if message == 7:
-                logging.info("***OPT SPECTROMETER***: Attempted to set a property outside allowed range. Setting stard value..")'''
-            print(message)
             if message:
                 self.__running=False
                 self.property_changed_event.fire("")
-
+                self.upt_calibs()
         return sendMessage
 
     @property
@@ -164,3 +170,60 @@ class OptSpecDevice(Observable.Observable):
             self.busy_event.fire("")
             if not self.__running: threading.Thread(target=self.__Spec.set_which, args=(self.__slit_choice,)).start()
             self.__running = True
+
+    @property
+    def camera_size_f(self):
+        try:
+            return format(self.__cameraSize, '.1f')
+        except AttributeError:
+            return 'None'
+
+    @camera_size_f.setter
+    def camera_size_f(self, value):
+        self.__cameraSize = float(value)
+        self.upt_calibs()
+
+    @property
+    def camera_pixels_f(self):
+        try:
+            return format(self.__cameraPixels, '.0f')
+        except AttributeError:
+            return 'None'
+
+    @camera_pixels_f.setter
+    def camera_pixels_f(self, value):
+        self.__cameraPixels = int(value)
+        self.upt_calibs()
+
+    @property
+    def focalLength_f(self):
+        try:
+            return format(self.__fl, '.0f')
+        except AttributeError:
+            return 'None'
+
+    @focalLength_f.setter
+    def focalLength_f(self, value):
+        self.__fl = int(value)
+        self.upt_calibs()
+
+    @property
+    def pixel_size_f(self):
+        try:
+            return self.__cameraSize / self.__cameraPixels * 1e3
+        except AttributeError:
+            return 'None'
+
+    @property
+    def dispersion_pixels_f(self):
+        try:
+            return format(self.dispersion_f * self.__cameraSize / self.__cameraPixels, '.3f')
+        except AttributeError:
+            return 'None'
+
+    @property
+    def fov_f(self):
+        try:
+            return format(self.dispersion_f * self.__cameraSize, '.3f')
+        except AttributeError:
+            return 'None'

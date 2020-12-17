@@ -11,7 +11,7 @@
         "DEBUG_SCAN": 1,
         "AMBIENT_TEMPERATURE": 23,
         "DEBUG_AIRLOCK": 1,
-        "DEBUG_GUN": 0,
+        "DEBUG_GUN": 1,
         "EHT_INITIAL": 3,
         "FAST_PERIODIC": {
             "ACTIVE": 1,
@@ -31,21 +31,8 @@
         "STAGE_MATRIX_SIZE": 160
     },
     "SPECTROMETER": {
-        "DEBUG": 0,
-        "MANUFACTURER": "ATTOLIGHT",
-        "GRATINGS": {
-            "COMPLET": [
-                "300 g/mm BLZ=  300NM",
-                "300 g/mm BLZ=  1.0UM",
-                "150 g/mm BLZ=  500NM"
-            ],
-            "LP_MM": [
-                300.0,
-                300.0,
-                150.0
-            ]
-        },
-        "FL": 320
+        "DEBUG": 1,
+        "MANUFACTURER": "PRINCETON"
     },
     "diaf": {
         "DEBUG": 1
