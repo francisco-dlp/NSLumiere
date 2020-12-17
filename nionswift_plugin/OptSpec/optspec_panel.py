@@ -103,7 +103,7 @@ class OptSpecView:
 
         #Second TAB
 
-        self.focal_length_label = ui.create_label(name='focal_length_label', text='Spec. FL (nm): ')
+        self.focal_length_label = ui.create_label(name='focal_length_label', text='Spec. FL (mm): ')
         self.focal_length_value = ui.create_line_edit(name='focal_length_value',
                                                       text='@binding(instrument.focalLength_f)')
         self.focal_length_row = ui.create_row(self.focal_length_label, self.focal_length_value, ui.create_stretch())
