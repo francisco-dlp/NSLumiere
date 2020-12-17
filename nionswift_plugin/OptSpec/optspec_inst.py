@@ -4,7 +4,6 @@ import os
 import json
 import threading
 import numpy
-import time
 
 from nion.utils import Event
 from nion.utils import Observable
@@ -23,7 +22,6 @@ else:
     elif MANUFACTURER=='ATTOLIGHT': from . import spec_attolight as optSpec
 
 class OptSpecDevice(Observable.Observable):
-
     def __init__(self):
         self.property_changed_event = Event.Event()
         self.property_changed_power_event = Event.Event()
@@ -36,8 +34,7 @@ class OptSpecDevice(Observable.Observable):
 
     def init(self):
         self.__sendmessage = optSpec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        if MANUFACTURER=='ATTOLIGHT': self.__Spec = optSpec.OptSpectrometer(2, 6, self.__sendmessage)
-        elif MANUFACTURER=='PRINCETON': self.__Spec = optSpec.OptSpectrometer(self.__sendmessage)
+        self.__Spec = optSpec.OptSpectrometer(self.__sendmessage)
 
         self.__gratings = self.__Spec.gratingNames()
         self.send_gratings.fire(self.__gratings)

@@ -155,7 +155,7 @@ class OptSpectrometer:
     """ class wrapping the spectrometer class from CMonoCL.dll
     requires CMonoCL.dll to run """
     
-    def __init__(self, manufacturer: int, portnb: int,sendmessage:callable,sendmirrormessage=None)->None:
+    def __init__(self, sendmessage:callable, manufacturer=2, portnb=6, sendmirrormessage=None)->None:
         """
         sendmessage is a python callback you provide to the dll. The callback will be called when some property of the spectro is actullay set, afer a "send" method has been called
         the integer value gives the type of property being set
