@@ -4,6 +4,7 @@ import os
 import json
 import threading
 import numpy
+import time
 
 from nion.utils import Event
 from nion.utils import Observable
@@ -33,14 +34,13 @@ class OptSpecDevice(Observable.Observable):
 
     def init(self):
         self.__sendmessage = optSpec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        self.__Spec = optSpec.OptSpectrometer(self.__sendmessage)
+        self.__Spec = optSpec.OptSpectrometer(2, 6, self.__sendmessage)
 
         self.__gratings = self.__Spec.gratingNames()
         self.send_gratings.fire(self.__gratings)
         self.__lpmms = self.__Spec.gratingLPMM()
         self.__fl = self.__Spec.get_specFL()
 
-        self.upt()
         return True
 
     def upt(self):
@@ -66,6 +66,7 @@ class OptSpecDevice(Observable.Observable):
                 logging.info("***OPT SPECTROMETER***: Axial/Lateral slit changed successfully.")
             if message == 7:
                 logging.info("***OPT SPECTROMETER***: Attempted to set a property outside allowed range. Setting stard value..")'''
+            print(message)
             if message:
                 self.__running=False
                 self.property_changed_event.fire("")
@@ -76,7 +77,7 @@ class OptSpecDevice(Observable.Observable):
     def wav_f(self):
         try:
             self.__wl = self.__Spec.get_wavelength()
-            return self.__wl
+            return format(self.__wl, '.3f')
         except AttributeError:
             return 'None'
 

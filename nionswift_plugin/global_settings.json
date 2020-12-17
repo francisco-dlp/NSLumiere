@@ -1,14 +1,14 @@
 {
     "EELS": {
-        "DEBUG": 0
+        "DEBUG": 1
     },
     "IVG": {
         "CAMERA": {
-            "DEBUG": 0,
+            "DEBUG": 1,
             "PIXELS": 1600,
             "SIZE": 25.6
         },
-        "DEBUG_SCAN": 0,
+        "DEBUG_SCAN": 1,
         "AMBIENT_TEMPERATURE": 23,
         "DEBUG_AIRLOCK": 1,
         "DEBUG_GUN": 0,
@@ -31,7 +31,7 @@
         "STAGE_MATRIX_SIZE": 160
     },
     "SPECTROMETER": {
-        "DEBUG": 1,
+        "DEBUG": 0,
         "MANUFACTURER": "ATTOLIGHT",
         "GRATINGS": {
             "COMPLET": [
@@ -48,16 +48,16 @@
         "FL": 320
     },
     "diaf": {
-        "DEBUG": 0
+        "DEBUG": 1
     },
     "lenses": {
-        "DEBUG": 0,
+        "DEBUG": 1,
         "MAX_OBJ": 9.5,
         "MAX_C1": 1.5,
         "MAX_C2": 1.5
     },
     "stage": {
-        "DEBUG": 0
+        "DEBUG": 1
     },
     "mirror": {
         "DEBUG": 1

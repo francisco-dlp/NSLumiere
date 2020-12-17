@@ -51,6 +51,7 @@ class OptSpechandler:
         if self.instrument.init():
             self.init_pb.enabled = False
             self.event_loop.create_task(self.do_enable(True, ['init_pb']))
+            self.instrument.upt()
 
     def upt(self, widget):
         self.instrument.upt()

@@ -8,6 +8,7 @@ from ctypes import c_uint, c_int, c_char, c_char_p, c_void_p, c_int, c_long, c_b
 from shutil import copy2
 import os
 import logging
+import time
 
 __author__  = "Marcel Tence & Mathieu Kociak"
 __status__  = "alpha"
@@ -175,6 +176,8 @@ class OptSpectrometer:
             self.OrsayMonoCL=_OrsayMonoCLInit(manufacturer, portnb, sendmessage)
         else:
             self.OrsayMonoCL=_OrsayMonoCLWithMirrorInit(manufacturer, portnb, sendmessage, sendmirrormessage)
+
+        time.sleep(0.25)
                 
     def OrsayMonoCLCLose(self) -> None:
         _OrsayMonoCLClose(self.OrsayMonoCL)
@@ -283,16 +286,15 @@ class OptSpectrometer:
     ## Second Version. Compatible with VG Lumiere and ChromaTEM
 
     def gratingLPMM(self):
-        return [
-            300.0,
-            300.0,
-            150.0
-        ]
+        lpmms = list()
+        for i in range(3):
+            lpmms.append(float(self.GratingsNames(i).decode().split('/')[0]))
+        return lpmms
 
     def gratingNames(self):
         grat = list()
         for i in range(3):
-            grat.append(self.GratingsNames(i))
+            grat.append(self.GratingsNames(i).decode())
         return grat
 
     def get_specFL(self):
@@ -324,7 +326,7 @@ class OptSpectrometer:
         return self.EntranceAxialSlitValue()*1e6
 
     def set_exit(self, value):
-        self.EntranceAxialSlitValue(value*1e-6)
+        self.SendSlitEntranceFront(value*1e-6)
         return True
 
     def get_which(self):
