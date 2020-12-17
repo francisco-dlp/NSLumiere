@@ -166,8 +166,8 @@ def create_spectro_panel(document_controller, panel_id, properties):
         return panel
 
 
-def run(instrument: optspec_inst.OptSpecDevice) -> None:
-    panel_id = 'Optical Spectrometer'#make sure it is unique, otherwise only one of the panel will be displayed
-    name = _('Optical Spectrometer')
+def run(instrument: optspec_inst.OptSpecDevice, name='Optical Spectrometer') -> None:
+    panel_id = name #make sure it is unique, otherwise only one of the panel will be displayed
+    name = _(name)
     Workspace.WorkspaceManager().register_panel(create_spectro_panel, panel_id, name, ["left", "right"], "left",
                                                 {"instrument": instrument})

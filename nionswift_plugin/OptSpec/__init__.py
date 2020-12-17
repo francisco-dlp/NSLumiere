@@ -16,10 +16,10 @@ except KeyError:
     DEBUG = False
     MANUFACTURER = ["ATTOLIGHT"]
 
-for MAN in MANUFACTURER:
-    def run():
+def run():
+    for MAN in MANUFACTURER:
         simpleInstrument=optspec_inst.OptSpecDevice(MAN)
-        HardwareSource.HardwareSourceManager().register_instrument("_optSpec_controller", simpleInstrument)
-        optspec_panel.run(simpleInstrument)
+        HardwareSource.HardwareSourceManager().register_instrument("optSpec_controller "+MAN.lower(), simpleInstrument)
+        optspec_panel.run(simpleInstrument, 'Optical Spectrometer '+MAN.lower())
 
 

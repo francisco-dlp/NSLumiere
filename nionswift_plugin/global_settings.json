@@ -32,7 +32,7 @@
     },
     "SPECTROMETER": {
         "DEBUG": 1,
-        "MANUFACTURER": ["DEBUG"]
+        "MANUFACTURER": ["DEBUG", "ATTOLIGHT"]
     },
     "diaf": {
         "DEBUG": 1
