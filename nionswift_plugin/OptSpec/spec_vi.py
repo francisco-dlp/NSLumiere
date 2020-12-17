@@ -92,4 +92,4 @@ class OptSpectrometer:
         ]
 
     def get_specFL(self):
-        return 300
+        return 300.0

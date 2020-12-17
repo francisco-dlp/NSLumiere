@@ -12,11 +12,13 @@ abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.j
 with open(abs_path) as savfile:
     settings = json.load(savfile)
 DEBUG = settings["SPECTROMETER"]["DEBUG"]
+MANUFACTURER = settings["SPECTROMETER"]["MANUFACTURER"]
 
 if DEBUG:
     from . import spec_vi as optSpec
 else:
-    from . import spec as optSpec
+    if MANUFACTURER=='Princeton': from . import spec as optSpec
+    elif MANUFACTURER=='ATTOLIGHT': from . import spec_attolight as optSpec
 
 class OptSpecDevice(Observable.Observable):
 
@@ -35,10 +37,7 @@ class OptSpecDevice(Observable.Observable):
 
         self.__gratings = self.__Spec.gratingNames()
         self.send_gratings.fire(self.__gratings)
-        self.property_changed_event.fire('grating_f')
-
         self.__lpmms = self.__Spec.gratingLPMM()
-
         self.__fl = self.__Spec.get_specFL()
 
         self.upt()
