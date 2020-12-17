@@ -9,11 +9,15 @@ from nion.utils import Event
 from nion.utils import Observable
 from nion.swift.model import HardwareSource
 
-abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
-with open(abs_path) as savfile:
-    settings = json.load(savfile)
-DEBUG = settings["SPECTROMETER"]["DEBUG"]
-MANUFACTURER = settings["SPECTROMETER"]["MANUFACTURER"]
+try:
+    abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
+    with open(abs_path) as savfile:
+        settings = json.load(savfile)
+    DEBUG = settings["SPECTROMETER"]["DEBUG"]
+    MANUFACTURER = settings["SPECTROMETER"]["MANUFACTURER"]
+except KeyError:
+    DEBUG = False
+    MANUFACTURER = "ATTOLIGHT"
 
 if DEBUG:
     from . import spec_vi as optSpec
@@ -88,7 +92,7 @@ class OptSpecDevice(Observable.Observable):
 
     @wav_f.setter
     def wav_f(self, value):
-        if self.__wl != float(value):
+        if self.__wl != float(value) and 0<=float(value)<=1500:
             self.__wl = float(value)
             self.busy_event.fire("")
             if not self.__running: threading.Thread(target=self.__Spec.set_wavelength, args=(self.__wl,)).start()
@@ -132,7 +136,7 @@ class OptSpecDevice(Observable.Observable):
 
     @entrance_slit_f.setter
     def entrance_slit_f(self, value):
-        if self.__entrance_slit != float(value):
+        if self.__entrance_slit != float(value) and 0<=float(value)<=5000:
             self.__entrance_slit = float(value)
             self.busy_event.fire("")
             if not self.__running: threading.Thread(target=self.__Spec.set_entrance, args=(self.__entrance_slit,)).start()
@@ -148,7 +152,7 @@ class OptSpecDevice(Observable.Observable):
 
     @exit_slit_f.setter
     def exit_slit_f(self, value):
-        if self.__exit_slit != float(value):
+        if self.__exit_slit != float(value) and 0<=float(value)<=5000:
             self.__exit_slit = float(value)
             self.busy_event.fire("")
             if not self.__running: threading.Thread(target=self.__Spec.set_exit, args=(self.__exit_slit,)).start()

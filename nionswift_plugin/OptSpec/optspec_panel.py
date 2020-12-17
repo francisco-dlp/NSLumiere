@@ -52,6 +52,8 @@ class OptSpechandler:
             self.init_pb.enabled = False
             self.event_loop.create_task(self.do_enable(True, ['init_pb']))
             self.instrument.upt()
+        else:
+            logging.info('***OPT SPECTROMETER***: Check if camera and spectrometer are connected.')
 
     def upt(self, widget):
         self.instrument.upt()
