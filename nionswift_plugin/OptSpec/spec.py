@@ -79,15 +79,10 @@ class OptSpectrometer:
         #except:
         #    self.sendmessage(1)
 
-    def set_grating(self, value):
-        string = str(value + 1) + ' GRATING\r'
-        self.ser.write(string.encode())
-        msg = True
-        while msg:
-            line = self.ser.readline()
-            if b'ok' in line:
-                msg = False
-        self.sendmessage(2)
+    def get_wavelength(self):
+        self.ser.write(b'?NM\r')
+        wav_line = self.ser.readline()
+        return float(wav_line.split(b'nm')[0].decode())
 
     def set_wavelength(self, value):
         if value >= 0 and value <= 1000:
@@ -104,6 +99,26 @@ class OptSpectrometer:
                 msg = False
         self.sendmessage(3)
 
+    def get_grating(self):
+        self.ser.write(b'?GRATING\r')
+        grating_line = self.ser.readline()
+        return int(grating_line.split(b'ok')[0].decode()) - 1
+
+    def set_grating(self, value):
+        string = str(value + 1) + ' GRATING\r'
+        self.ser.write(string.encode())
+        msg = True
+        while msg:
+            line = self.ser.readline()
+            if b'ok' in line:
+                msg = False
+        self.sendmessage(2)
+
+    def get_entrance(self):
+        self.ser.write(b'SIDE-ENT-SLIT ?MICRONS\r')
+        entrance_line = self.ser.readline()
+        return float(entrance_line.split(b'um')[0].decode())
+
     def set_entrance(self, value):
         if value >= 0 and value <= 5000:
             string = 'SIDE-ENT-SLIT ' + format(value, '.0f') + ' MICRONS\r'
@@ -118,6 +133,11 @@ class OptSpectrometer:
                 msg = False
         self.sendmessage(4)
 
+    def get_exit(self):
+        self.ser.write(b'SIDE-EXIT-SLIT ?MICRONS\r')
+        exit_line = self.ser.readline()
+        return float(exit_line.split(b'um')[0].decode())
+
     def set_exit(self, value):
         if value >= 0 and value <= 5000:
             string = 'SIDE-EXIT-SLIT ' + format(value, '.0f') + ' MICRONS\r'
@@ -130,8 +150,15 @@ class OptSpectrometer:
             line = self.ser.readline()
             if b'ok' in line:
                 msg = False
-
         self.sendmessage(5)
+
+    def get_which(self):
+        self.ser.write(b'EXIT-MIRROR ?MIRROR\r')
+        mirror_line = self.ser.readline()
+        if mirror_line[1:6].decode() == 'front':
+            return 0
+        else:
+            return 1
 
     def set_which(self, value):
         if value == 0:
@@ -144,5 +171,19 @@ class OptSpectrometer:
             line = self.ser.readline()
             if b'ok' in line:
                 msg = False
-
         self.sendmessage(6)
+
+    def gratingNames(self):
+        gratings = list()
+        self.lp_mm = list()
+        self.ser.write(b'?GRATINGS\r')
+        msg = True
+        while msg:
+            line = self.ser.readline()
+            if line:
+                if b'g/mm' in line:
+                    gratings.append(line[4:-3].decode())
+                    self.lp_mm.append(float(line[4:8].decode()))
+            if line[-4:-2] == b'ok':
+                msg = False
+        return gratings

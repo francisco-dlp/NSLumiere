@@ -25,24 +25,23 @@ class OptSpecDevice(Observable.Observable):
         self.property_changed_power_event = Event.Event()
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
-
-        self.__sendmessage = optSpec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        self.__Spec = optSpec.OptSpectrometer(self.__sendmessage)
-
-        self.__wl = self.__Spec.wavelength
-        self.__grating = self.__Spec.now_grating
-        self.__entrance_slit = self.__Spec.entrance_slit
-        self.__exit_slit = self.__Spec.exit_slit
-        self.__slit_choice = self.__Spec.which_slit
-
-        self.__lp_mm=self.__Spec.lp_mm[self.__grating]
-        self.__dif=numpy.arcsin(self.__wl * self.__lp_mm / 1e6)
-        self.__disp = 1e6/self.__lp_mm * numpy.cos(self.__dif) / 320
+        self.send_gratings = Event.Event()
 
         self.__running=False
 
     def init(self):
         logging.info('***OPT SPECTROMETER***: Initializing hardware...')
+        self.__sendmessage = optSpec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
+        self.__Spec = optSpec.OptSpectrometer(self.__sendmessage)
+
+        self.__gratings = self.__Spec.gratingNames()
+        self.send_gratings.fire(self.__gratings)
+
+        self.property_changed_event.fire('grating_f')
+
+        #self.__lp_mm = self.__Spec.lp_mm[self.__grating]
+        #self.__dif = numpy.arcsin(self.__wl * self.__lp_mm / 1e6)
+        #self.__disp = 1e6 / self.__lp_mm * numpy.cos(self.__dif) / 320
 
 
     def sendMessageFactory(self):
@@ -68,28 +67,36 @@ class OptSpecDevice(Observable.Observable):
 
     @property
     def wav_f(self):
-        return self.__wl
+        try:
+            self.__wl = self.__Spec.get_wavelength()
+            return self.__wl
+        except AttributeError:
+            return 'None'
 
     @wav_f.setter
     def wav_f(self, value):
-        self.__wl=float(value)
-        self.__dif=numpy.arcsin(self.__wl * self.__lp_mm / 1e6)
-        self.busy_event.fire("")
-        if not self.__running: threading.Thread(target=self.__Spec.set_wavelength, args=(self.__wl,)).start()
-        self.__running=True
+        if self.__wl != value:
+            self.__dif=numpy.arcsin(self.__wl * self.__lp_mm / 1e6)
+            self.busy_event.fire("")
+            if not self.__running: threading.Thread(target=self.__Spec.set_wavelength, args=(self.__wl,)).start()
+            self.__running=True
 
     @property
     def grating_f(self):
-        return self.__grating
+        try:
+            self.__grating = self.__Spec.get_grating()
+            return self.__grating
+        except AttributeError:
+            return 0
 
     @grating_f.setter
     def grating_f(self, value):
-        self.__grating = value
-        self.__lp_mm=self.__Spec.lp_mm[self.__grating]
-        self.__dif=numpy.arcsin(self.__wl * self.__lp_mm / 1e6)
-        self.busy_event.fire("")
-        if not self.__running: threading.Thread(target=self.__Spec.set_grating, args=(self.__grating,)).start()
-        self.__running = True
+        #self.__lp_mm=self.__Spec.lp_mm[self.__grating]
+        #self.__dif=numpy.arcsin(self.__wl * self.__lp_mm / 1e6)
+        if self.__grating != value:
+            self.busy_event.fire("")
+            if not self.__running: threading.Thread(target=self.__Spec.set_grating, args=(self.__grating,)).start()
+            self.__running = True
 
     @property
     def lp_mm_f(self):
@@ -106,7 +113,11 @@ class OptSpecDevice(Observable.Observable):
 
     @property
     def entrance_slit_f(self):
-        return self.__entrance_slit
+        try:
+            self.__entrance_slit = self.__Spec.get_entrance()
+            return self.__entrance_slit
+        except AttributeError:
+            return 'None'
 
     @entrance_slit_f.setter
     def entrance_slit_f(self, value):
@@ -117,7 +128,11 @@ class OptSpecDevice(Observable.Observable):
 
     @property
     def exit_slit_f(self):
-        return self.__exit_slit
+        try:
+            self.__exit_slit = self.__Spec.get_exit()
+            return self.__exit_slit
+        except AttributeError:
+            return 'None'
 
     @exit_slit_f.setter
     def exit_slit_f(self, value):
@@ -128,7 +143,11 @@ class OptSpecDevice(Observable.Observable):
 
     @property
     def which_slit_f(self):
-        return self.__slit_choice
+        try:
+            self.__slit_choice = self.__Spec.get_which()
+            return self.__slit_choice
+        except AttributeError:
+            return 0
 
     @which_slit_f.setter
     def which_slit_f(self, value):

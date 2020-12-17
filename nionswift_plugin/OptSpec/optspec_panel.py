@@ -11,11 +11,12 @@ from nion.ui import UserInterface
 from . import optspec_inst
 _ = gettext.gettext
 
-abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
-with open(abs_path) as savfile:
-    settings = json.load(savfile)
-GRATINGS = settings["SPECTROMETER"]["GRATINGS"]["COMPLET"]
+#abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
+#with open(abs_path) as savfile:
+#    settings = json.load(savfile)
+#GRATINGS = settings["SPECTROMETER"]["GRATINGS"]["COMPLET"]
 
+GRATINGS = list()
 
 class OptSpechandler:
 
@@ -27,7 +28,7 @@ class OptSpechandler:
         self.enabled = False
         self.property_changed_event_listener=self.instrument.property_changed_event.listen(self.prepare_widget_enable)
         self.busy_event_listener=self.instrument.busy_event.listen(self.prepare_widget_disable)
-
+        self.send_gratings_listener = self.instrument.send_gratings.listen(self.receive_gratings)
 
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
 
@@ -48,12 +49,16 @@ class OptSpechandler:
 
     def init(self, widget):
         self.init_pb.enabled = False
-        abs_path = os.path.abspath(os.path.join((__file__ + "/../../"), 'global_settings.json'))
-        with open(abs_path) as savfile:
-            settings = json.load(savfile)
-        GRATINGS = settings["SPECTROMETER"]["GRATINGS"]["COMPLET"]
+        #abs_path = os.path.abspath(os.path.join((__file__ + "/../../"), 'global_settings.json'))
+        #with open(abs_path) as savfile:
+        #    settings = json.load(savfile)
+        #GRATINGS = settings["SPECTROMETER"]["GRATINGS"]["COMPLET"]
         self.event_loop.create_task(self.do_enable(True, ['init_pb']))
         self.instrument.init()
+
+    def receive_gratings(self, grat_received):
+        GRATINGS = grat_received
+        self.gratings_combo_box.items = GRATINGS
 
 class OptSpecView:
 
@@ -70,7 +75,7 @@ class OptSpecView:
         self.gratings_label=ui.create_label(name='gratings_label', text='Grating: ')
         self.gratings_combo_box=ui.create_combo_box(name='gratings_combo_box', items=GRATINGS,
                                                     current_index='@binding(instrument.grating_f)')
-        self.gratings_row=ui.create_row(self.gratings_label, self.gratings_combo_box, ui.create_stretch())
+        self.gratings_row=ui.create_row(self.gratings_label, self.gratings_combo_box)
 
         self.entrance_slit_label=ui.create_label(name='entrance_slit_label', text='Entrance Slit: ')
         self.entrance_slit_value = ui.create_line_edit(name='entrance_slit_value',
