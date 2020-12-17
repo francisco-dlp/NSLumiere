@@ -83,3 +83,13 @@ class OptSpectrometer:
             "300 g/mm BLZ=  1.0UM",
             "150 g/mm BLZ=  500NM"
         ]
+
+    def gratingLPMM(self):
+        return [
+            300.0,
+            300.0,
+            150.0
+        ]
+
+    def get_specFL(self):
+        return 300

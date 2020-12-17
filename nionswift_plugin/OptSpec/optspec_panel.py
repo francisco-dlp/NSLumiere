@@ -48,13 +48,12 @@ class OptSpechandler:
         self.event_loop.create_task(self.do_enable(False, ['init_pb']))
 
     def init(self, widget):
-        self.init_pb.enabled = False
-        #abs_path = os.path.abspath(os.path.join((__file__ + "/../../"), 'global_settings.json'))
-        #with open(abs_path) as savfile:
-        #    settings = json.load(savfile)
-        #GRATINGS = settings["SPECTROMETER"]["GRATINGS"]["COMPLET"]
-        self.event_loop.create_task(self.do_enable(True, ['init_pb']))
-        self.instrument.init()
+        if self.instrument.init():
+            self.init_pb.enabled = False
+            self.event_loop.create_task(self.do_enable(True, ['init_pb']))
+
+    def upt(self, widget):
+        self.instrument.upt()
 
     def receive_gratings(self, grat_received):
         GRATINGS = grat_received
@@ -62,20 +61,21 @@ class OptSpechandler:
 
 class OptSpecView:
 
-
     def __init__(self, instrument:optspec_inst.OptSpecDevice):
         ui = Declarative.DeclarativeUI()
 
         self.init_pb = ui.create_push_button(name='init_pb', text='Init Hardware', on_clicked='init')
+        self.upt_pb = ui.create_push_button(name='upt_pb', text='Update', on_clicked='upt')
+        self.pb_row = ui.create_row(self.init_pb, self.upt_pb)
 
         self.wl_label = ui.create_label(text='Wavelength (nm): ', name='wl_label')
         self.wl_value = ui.create_line_edit(name='wl_value', text='@binding(instrument.wav_f)')
         self.wl_row=ui.create_row(self.wl_label, self.wl_value, ui.create_stretch())
 
         self.gratings_label=ui.create_label(name='gratings_label', text='Grating: ')
-        self.gratings_combo_box=ui.create_combo_box(name='gratings_combo_box', items=GRATINGS,
+        self.gratings_combo_box=ui.create_combo_box(name='gratings_combo_box', items=GRATINGS, width=150,
                                                     current_index='@binding(instrument.grating_f)')
-        self.gratings_row=ui.create_row(self.gratings_label, self.gratings_combo_box)
+        self.gratings_row=ui.create_row(self.gratings_label, self.gratings_combo_box, ui.create_stretch())
 
         self.entrance_slit_label=ui.create_label(name='entrance_slit_label', text='Entrance Slit: ')
         self.entrance_slit_value = ui.create_line_edit(name='entrance_slit_value',
@@ -96,7 +96,7 @@ class OptSpecView:
         self.slit_choice_row = ui.create_row(self.slit_choice, ui.create_stretch())
 
         self.ui_view=ui.create_column(
-            self.init_pb,
+            self.pb_row,
             self.wl_row,
             self.gratings_row,
             self.slit_row,
