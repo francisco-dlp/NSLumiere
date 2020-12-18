@@ -31,10 +31,11 @@ class OptSpecDevice(Observable.Observable):
         self.__lpmms = self.__Spec.gratingLPMM()
         self.__fl = self.__Spec.get_specFL()
         self.__cameraSize = 25.6
-        self.__cameraPixels = 1600
+        self.__cameraPixels = self.__Spec.camera_pixels()
+        self.__cameraName = self.__Spec.which_camera()
 
         self.__eirecamera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            "usim_eels_camera")
+            self.__cameraName)
 
         return (True and self.__eirecamera is not None)
 
@@ -78,6 +79,9 @@ class OptSpecDevice(Observable.Observable):
 
     @wav_f.setter
     def wav_f(self, value):
+        print(self.lpmm_f)
+        print(self.dif_angle_f)
+        print(self.dispersion_f)
         if self.__wl != float(value) and 0<=float(value)<=1500:
             self.__wl = float(value)
             self.busy_event.fire("")
@@ -106,7 +110,8 @@ class OptSpecDevice(Observable.Observable):
 
     @property
     def dif_angle_f(self):
-        return numpy.arcsin(self.__wl * self.lpmm_f / 1e6)
+        # This is in Littrow configuration. Grating is blazed.
+        return numpy.arcsin(1/2. * self.__wl * self.lpmm_f / 1e6)
 
     @property
     def dispersion_f(self):

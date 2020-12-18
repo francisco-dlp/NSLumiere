@@ -69,17 +69,23 @@ class OptSpectrometer:
 
     def gratingNames(self):
         return [
-            "300 g/mm BLZ=  300NM",
-            "300 g/mm BLZ=  1.0UM",
+            "1800 g/mm BLZ=  300NM",
+            "1200 g/mm BLZ=  500NM",
             "150 g/mm BLZ=  500NM"
         ]
 
     def gratingLPMM(self):
         return [
-            300.0,
-            300.0,
+            1800.0,
+            1200.0,
             150.0
         ]
 
     def get_specFL(self):
-        return 300.0
+        return 320.0
+
+    def which_camera(self):
+        return 'usim_eels_camera'
+
+    def camera_pixels(self):
+        return 1024

@@ -112,7 +112,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__EELSInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_controller")
         self.__AperInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("diaf_controller")
         self.__StageInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
-        self.__optSpecInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("optSpec_controller")
+        #self.__optSpecInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("optSpec_controller")
         self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_scan_device")
         self.__OrsayCamEIRE = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
@@ -599,14 +599,14 @@ class ivgInstrument(stem_controller.STEMController):
         elif s == "eels_x_scale":
             return True, self.__EELSInstrument.range_f
 
-        if s == "eire_y_offset":
-            return True, 0
-        elif s == "eire_x_offset":
-            return True, (self.__optSpecInstrument.wav_f - self.__optSpecInstrument.dispersion_f * CAMERA_SIZE / 2.)
-        elif s == "eire_y_scale":
-            return True, 1
-        elif s == "eire_x_scale":
-            return True, self.__optSpecInstrument.dispersion_f * CAMERA_SIZE / CAMERA_PIXELS
+        #if s == "eire_y_offset":
+        #    return True, 0
+        #elif s == "eire_x_offset":
+        #    return True, (float(self.__optSpecInstrument.wav_f) - self.__optSpecInstrument.dispersion_f * CAMERA_SIZE / 2.)
+        #elif s == "eire_y_scale":
+        #    return True, 1
+        #elif s == "eire_x_scale":
+        #    return True, self.__optSpecInstrument.dispersion_f * CAMERA_SIZE / CAMERA_PIXELS
 
         else:
             return False, 0
