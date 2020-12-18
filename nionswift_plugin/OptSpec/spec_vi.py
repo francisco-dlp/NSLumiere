@@ -1,8 +1,6 @@
 import sys
 import time
 import numpy
-import os
-import json
 
 __author__ = "Yves Auad"
 
@@ -69,23 +67,26 @@ class OptSpectrometer:
 
     def gratingNames(self):
         return [
-            "1800 g/mm BLZ=  300NM",
-            "1200 g/mm BLZ=  500NM",
+            "600 g/mm BLZ=  300NM",
+            "300 g/mm BLZ=  500NM",
             "150 g/mm BLZ=  500NM"
         ]
 
     def gratingLPMM(self):
         return [
-            1800.0,
-            1200.0,
+            600.0,
+            300.0,
             150.0
         ]
 
     def get_specFL(self):
-        return 320.0
+        return 300.0
 
     def which_camera(self):
         return 'usim_eels_camera'
 
     def camera_pixels(self):
         return 1024
+
+    def deviation_angle(self):
+        return 0.53

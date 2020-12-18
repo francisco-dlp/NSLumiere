@@ -346,3 +346,6 @@ class OptSpectrometer:
 
     def camera_pixels(self):
         return 1600
+
+    def deviation_angle(self):
+        return 0.34

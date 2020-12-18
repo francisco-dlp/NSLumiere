@@ -1,6 +1,4 @@
-import serial
 import sys
-import logging
 import time
 import threading
 
@@ -24,7 +22,6 @@ class espec:
             else:
                 val = 0xffff - val
             string = which+' 0,'+hex(val)[2:6]+'\r'
-            logging.info(string)
             return None
         else:
             self.sendmessage(3)

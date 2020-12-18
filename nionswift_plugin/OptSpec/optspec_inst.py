@@ -33,6 +33,7 @@ class OptSpecDevice(Observable.Observable):
         self.__cameraSize = 25.6
         self.__cameraPixels = self.__Spec.camera_pixels()
         self.__cameraName = self.__Spec.which_camera()
+        self.__devAngle = self.__Spec.deviation_angle()
 
         self.__eirecamera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             self.__cameraName)
@@ -109,12 +110,28 @@ class OptSpecDevice(Observable.Observable):
         return self.__lpmms[self.__grating]
 
     @property
+    def inc_angle_f(self):
+        return self.dif_angle_f - self.__devAngle
+
+    @property
     def dif_angle_f(self):
-        # This is in Littrow configuration. Grating is blazed.
-        return numpy.arcsin(1/2. * self.__wl * self.lpmm_f / 1e6)
+        '''
+        This is somewhat complicated. devAngle is a spectrometer property and are simple a
+        contraint between two slits (central and camera center) and two angles. Incidence
+        minus diffraction angle is always constant in a given spectrometer. Please see equation
+        2.4 in diffraction grating handbook by Christopher Palmer. abs2 is the incidence plus
+        the diffracted angle divided by two.
+        '''
+        ab2 = numpy.arcsin((1/2. * 1e-6 * self.__wl * self.lpmm_f) / numpy.cos(self.__devAngle/2.))
+        return (2*ab2 + self.__devAngle)/2.
 
     @property
     def dispersion_f(self):
+        '''
+        Also confusing but just derivate diffraction equation. Note that alpha depends on wavelength
+        but its derivative is zero because input is fixed. We wanna see difracted beam angle dispersion
+        and not entrance. See diffraction grating handbook by Christopher Palmer.
+        '''
         return 1e6/self.lpmm_f * numpy.cos(self.dif_angle_f) / self.__fl
 
     @property
