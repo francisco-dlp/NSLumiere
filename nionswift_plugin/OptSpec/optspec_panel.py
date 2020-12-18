@@ -127,6 +127,10 @@ class OptSpecView:
 
         self.upt_pb02 = ui.create_push_button(name='upt_pb02', text='Update', on_clicked='upt_info')
 
+        self.disp_label = ui.create_label(name='disp_label', text='Dispersion (nm/mm): ')
+        self.disp_value = ui.create_label(name='disp_value', text='@binding(instrument.dispersion_nmmm_f)')
+        self.disp_row = ui.create_row(self.disp_label, self.disp_value, ui.create_stretch())
+
         self.pixelSize_label = ui.create_label(name='pixelSize_label', text='Pixel Size (um): ')
         self.pixelSize_value = ui.create_label(name='pixelSize_value', text='@binding(instrument.pixel_size_f)')
         self.pixelSize_row = ui.create_row(self.pixelSize_label, self.pixelSize_value, ui.create_stretch())
@@ -140,7 +144,9 @@ class OptSpecView:
         self.range_row = ui.create_row(self.range_label, self.range_value, ui.create_stretch())
 
         self.info_tab = ui.create_tab(label='Info', content=ui.create_column(
-            self.upt_pb02, self.pixelSize_row, self.dispersion_pixel_row, self.range_row))
+            self.upt_pb02,
+            self.disp_row,
+            self.pixelSize_row, self.dispersion_pixel_row, self.range_row))
 
         self.tabs = ui.create_tabs(self.main_tab, self.info_tab, self.setting_tab)
 

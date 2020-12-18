@@ -53,6 +53,7 @@ class OptSpecDevice(Observable.Observable):
         if not self.__successful: self.__successful = True
 
     def upt_info(self):
+        self.property_changed_event.fire('dispersion_nmmm_f')
         self.property_changed_event.fire('fov_f')
         self.property_changed_event.fire('dispersion_pixels_f')
         self.property_changed_event.fire('pixel_size_f')
@@ -80,9 +81,6 @@ class OptSpecDevice(Observable.Observable):
 
     @wav_f.setter
     def wav_f(self, value):
-        print(self.lpmm_f)
-        print(self.dif_angle_f)
-        print(self.dispersion_f)
         if self.__wl != float(value) and 0<=float(value)<=1500:
             self.__wl = float(value)
             self.busy_event.fire("")
@@ -111,7 +109,10 @@ class OptSpecDevice(Observable.Observable):
 
     @property
     def inc_angle_f(self):
-        return self.dif_angle_f - self.__devAngle
+        try:
+            return self.dif_angle_f - self.__devAngle
+        except AttributeError:
+            return 'None'
 
     @property
     def dif_angle_f(self):
@@ -122,8 +123,11 @@ class OptSpecDevice(Observable.Observable):
         2.4 in diffraction grating handbook by Christopher Palmer. abs2 is the incidence plus
         the diffracted angle divided by two.
         '''
-        ab2 = numpy.arcsin((1/2. * 1e-6 * self.__wl * self.lpmm_f) / numpy.cos(self.__devAngle/2.))
-        return (2*ab2 + self.__devAngle)/2.
+        try:
+            ab2 = numpy.arcsin((1/2. * 1e-6 * self.__wl * self.lpmm_f) / numpy.cos(self.__devAngle/2.))
+            return (2*ab2 + self.__devAngle)/2.
+        except AttributeError:
+            return 'None'
 
     @property
     def dispersion_f(self):
@@ -131,8 +135,12 @@ class OptSpecDevice(Observable.Observable):
         Also confusing but just derivate diffraction equation. Note that alpha depends on wavelength
         but its derivative is zero because input is fixed. We wanna see difracted beam angle dispersion
         and not entrance. See diffraction grating handbook by Christopher Palmer.
+        This is often called reciprocal linear dispersion. It is measured in nm/mm.
         '''
-        return 1e6/self.lpmm_f * numpy.cos(self.dif_angle_f) / self.__fl
+        try:
+            return 1e6/self.lpmm_f * numpy.cos(self.dif_angle_f) / self.__fl
+        except AttributeError:
+            return 'None'
 
     @property
     def entrance_slit_f(self):
@@ -222,6 +230,15 @@ class OptSpecDevice(Observable.Observable):
     def pixel_size_f(self):
         try:
             return self.__cameraSize / self.__cameraPixels * 1e3
+        except AttributeError:
+            return 'None'
+
+    @property
+    def dispersion_nmmm_f(self):
+        try:
+            return format(self.dispersion_f, '.3f')
+        except ValueError:
+            return 'None'
         except AttributeError:
             return 'None'
 
