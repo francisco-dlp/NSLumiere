@@ -342,7 +342,7 @@ class OptSpectrometer:
         return 320.0
 
     def which_camera(self):
-        return 'orsay_camera_eels'
+        return 'orsay_camera_eire'
 
     def camera_pixels(self):
         return 1600

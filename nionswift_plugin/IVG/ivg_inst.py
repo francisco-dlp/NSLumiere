@@ -541,19 +541,22 @@ class ivgInstrument(stem_controller.STEMController):
 
     @property
     def spim_time_f(self):
-        if self.__spim_trigger == 0:
-            now_cam = self.__OrsayCamEELS
-        elif self.__spim_trigger == 1:
-            now_cam = self.__OrsayCamEIRE
-        elif self.__spim_trigger == 2:
-            now_cam = self.__OrsayCamEELS
-            logging.info(
-                '***IVG***: Both measurement not yet implemented. Please check back later. Using EELS instead.')
+        try:
+            if self.__spim_trigger == 0:
+                now_cam = self.__OrsayCamEELS
+            elif self.__spim_trigger == 1:
+                now_cam = self.__OrsayCamEIRE
+            elif self.__spim_trigger == 2:
+                now_cam = self.__OrsayCamEELS
+                logging.info(
+                    '***IVG***: Both measurement not yet implemented. Please check back later. Using EELS instead.')
 
-        self.__spim_time = format(((
-                                               now_cam.camera.current_camera_settings.exposure_ms / 1000. + now_cam.camera.readoutTime) * self.__spim_xpix * self.__spim_ypix / 60),
-                                  '.2f')
-        return self.__spim_time
+            self.__spim_time = format(((
+                                                   now_cam.camera.current_camera_settings.exposure_ms / 1000. + now_cam.camera.readoutTime) * self.__spim_xpix * self.__spim_ypix / 60),
+                                      '.2f')
+            return self.__spim_time
+        except AttributeError:
+            return 'None'
 
     ## spim_panel Properties END ##
 
