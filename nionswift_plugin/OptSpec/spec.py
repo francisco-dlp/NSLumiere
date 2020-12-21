@@ -54,7 +54,7 @@ class OptSpectrometer:
             exit_line = self.ser.readline()
             self.exit_slit = float(exit_line.split(b'um')[0].decode())
 
-            gratings = list()
+            '''gratings = list()
             self.lp_mm = list()
             self.ser.write(b'?GRATINGS\r')
             msg = True
@@ -75,7 +75,7 @@ class OptSpectrometer:
             json_object["SPECTROMETER"]["GRATINGS"]["LP_MM"] = self.lp_mm
 
             with open(abs_path, 'w') as json_file:
-                json.dump(json_object, json_file, indent=4)
+                json.dump(json_object, json_file, indent=4)'''
         #except:
         #    self.sendmessage(1)
 
@@ -175,7 +175,6 @@ class OptSpectrometer:
 
     def gratingNames(self):
         gratings = list()
-        self.lp_mm = list()
         self.ser.write(b'?GRATINGS\r')
         msg = True
         while msg:
@@ -183,7 +182,31 @@ class OptSpectrometer:
             if line:
                 if b'g/mm' in line:
                     gratings.append(line[4:-3].decode())
-                    self.lp_mm.append(float(line[4:8].decode()))
             if line[-4:-2] == b'ok':
                 msg = False
         return gratings
+
+    def gratingLPMM(self):
+        self.lp_mm = list()
+        self.ser.write(b'?GRATINGS\r')
+        msg = True
+        while msg:
+            line = self.ser.readline()
+            if line:
+                if b'g/mm' in line:
+                    self.lp_mm.append(float(line[4:8].decode()))
+            if line[-4:-2] == b'ok':
+                msg = False
+        return self.lp_mm
+
+    def get_specFL(self):
+        return 300.0
+
+    def which_camera(self):
+        return 'orsay_camera_eireB'
+
+    def camera_pixels(self):
+        return 1600
+
+    def deviation_angle(self):
+        return 0.53

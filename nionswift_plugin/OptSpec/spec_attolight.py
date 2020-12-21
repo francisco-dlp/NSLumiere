@@ -155,7 +155,7 @@ class OptSpectrometer:
     """ class wrapping the spectrometer class from CMonoCL.dll
     requires CMonoCL.dll to run """
     
-    def __init__(self, manufacturer: int, portnb: int,sendmessage:callable,sendmirrormessage=None)->None:
+    def __init__(self, sendmessage:callable, manufacturer=2, portnb=6, sendmirrormessage=None)->None:
         """
         sendmessage is a python callback you provide to the dll. The callback will be called when some property of the spectro is actullay set, afer a "send" method has been called
         the integer value gives the type of property being set
@@ -177,7 +177,9 @@ class OptSpectrometer:
         else:
             self.OrsayMonoCL=_OrsayMonoCLWithMirrorInit(manufacturer, portnb, sendmessage, sendmirrormessage)
 
-        time.sleep(0.25)
+        self.sendmessage = sendmessage
+
+        time.sleep(1)
                 
     def OrsayMonoCLCLose(self) -> None:
         _OrsayMonoCLClose(self.OrsayMonoCL)
@@ -288,7 +290,7 @@ class OptSpectrometer:
     def gratingLPMM(self):
         lpmms = list()
         for i in range(3):
-            lpmms.append(float(self.GratingsNames(i).decode().split('/')[0]))
+            lpmms.append(float(self.GratingsNames(i).decode().split('g/mm')[0]))
         return lpmms
 
     def gratingNames(self):
@@ -296,9 +298,6 @@ class OptSpectrometer:
         for i in range(3):
             grat.append(self.GratingsNames(i).decode())
         return grat
-
-    def get_specFL(self):
-        return 320.0
 
     def get_wavelength(self):
         wav = self.GetCurrentWaveLength()*1e9
@@ -315,17 +314,18 @@ class OptSpectrometer:
         self.SendGrating(value)
         return True
 
-    def get_entrance(self):
+    def get_exit(self):
         return self.EntranceSideSlitValue()*1e6
 
-    def set_entrance(self, value):
+    def set_exit(self, value):
         self.SendSlitEntranceSide(value*1e-6)
+        self.sendmessage(14)
         return True
 
-    def get_exit(self):
+    def get_entrance(self):
         return self.EntranceAxialSlitValue()*1e6
 
-    def set_exit(self, value):
+    def set_entrance(self, value):
         self.SendSlitEntranceFront(value*1e-6)
         return True
 
@@ -337,3 +337,15 @@ class OptSpectrometer:
             self.SendSwitchToAxialEntry()
         elif value==1: #LATERAL
             self.SendSwitchToLateralEntry()
+
+    def get_specFL(self):
+        return 320.0
+
+    def which_camera(self):
+        return 'orsay_camera_eire'
+
+    def camera_pixels(self):
+        return 1600
+
+    def deviation_angle(self):
+        return 0.34

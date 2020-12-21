@@ -6,24 +6,14 @@ import json
 # local libraries
 from nion.swift import Panel
 from nion.swift import Workspace
-from nion.ui import Widgets
-from nion.utils import Binding
-from nion.utils import Converter
-from nion.utils import Geometry
+
 from nion.ui import Declarative
 from nion.ui import UserInterface
 from nion.swift.model import HardwareSource
-import threading
 
 from . import eels_spec_inst
 
-import logging
-
 _ = gettext.gettext
-from nion.utils import Model
-
-import inspect
-
 
 class eels_spec_handler:
 

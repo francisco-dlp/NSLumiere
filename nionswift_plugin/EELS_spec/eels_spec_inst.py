@@ -13,8 +13,6 @@ with open(abs_path) as savfile:
 DEBUG = settings["EELS"]["DEBUG"]
 
 
-
-
 if DEBUG:
     from . import eels_spec_vi as spec
 else:
