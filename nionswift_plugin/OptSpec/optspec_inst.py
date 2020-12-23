@@ -1,6 +1,7 @@
 # standard libraries
 import threading
 import numpy
+import queue
 
 from nion.utils import Event
 from nion.utils import Observable
@@ -14,6 +15,7 @@ class OptSpecDevice(Observable.Observable):
         self.busy_event = Event.Event()
         self.send_gratings = Event.Event()
 
+        self.__queue = queue.Queue()
         self.__running=False
         self.__successful = False
         self.__model = MANUFACTURER
@@ -63,11 +65,13 @@ class OptSpecDevice(Observable.Observable):
                                                 {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
                                                  "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels, "units": "nm"}]
 
+
     def sendMessageFactory(self):
         def sendMessage(message):
             if message:
                 self.__running=False
-                self.property_changed_event.fire("")
+                self.property_changed_event.fire('wav_f')
+                #self.property_changed_event.fire("")
                 if self.__successful: self.upt_calibs()
         return sendMessage
 
@@ -101,6 +105,10 @@ class OptSpecDevice(Observable.Observable):
             self.__grating = value
             self.busy_event.fire("")
             if not self.__running: threading.Thread(target=self.__Spec.set_grating, args=(self.__grating,)).start()
+                #self.__thread = threading.Thread(target=self.__Spec.set_grating, args=(self.__grating,))
+                #self.__thread.start()
+                #self.__queue.put(lambda: self.__Spec.set_grating(self.__grating))
+                #self.__Spec.set_grating(self.__grating)
             self.__running = True
 
     @property
