@@ -116,11 +116,6 @@ class OptSpecDevice(Observable.Observable):
             self.__grating = value
             self.busy_event.fire("")
             if not self.__running: threading.Thread(target=self.__Spec.set_grating, args=(self.__grating,)).start()
-                #threading.Thread(target=self.__Spec.set_grating, args=(self.__grating,)).start()
-                #self.__thread = threading.Thread(target=self.__Spec.set_grating, args=(self.__grating,))
-                #self.__thread.start()
-                #self.__queue.put(lambda: self.__Spec.set_grating(self.__grating))
-                #self.__Spec.set_grating(self.__grating)
             self.__running = True
 
     @property

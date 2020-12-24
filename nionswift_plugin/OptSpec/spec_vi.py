@@ -1,7 +1,6 @@
 import sys
 import time
 import numpy
-import threading
 
 __author__ = "Yves Auad"
 
@@ -19,7 +18,6 @@ class OptSpectrometer:
         self.entrance_slit = 3000
         self.exit_slit = 3000
         self.which_slit = 1
-        self.event = threading.Event()
 
     def get_wavelength(self):
         return self.wavelength + self.wavelength*numpy.random.randn(1)[0]/1e5
@@ -34,9 +32,6 @@ class OptSpectrometer:
         return self.now_grating
 
     def set_grating(self, value):
-        threading.Thread(target=self.set_grating_thread, args=(value,)).start()
-
-    def set_grating_thread(self, value):
         self.now_grating = value
         a = abs(numpy.random.randn(1)[0])
         time.sleep(a + 1)
