@@ -11,11 +11,10 @@
     {
         "manufacturer": 2,
         "model": "Newton",
-        "type": "eire",
-        "id": "orsay_camera_eire",
-        "name": "EIRE",
+        "type": "eels",
+        "id": "orsay_camera_eels",
+        "name": "EELS",
         "simulation": false
     }
-
 
 ]

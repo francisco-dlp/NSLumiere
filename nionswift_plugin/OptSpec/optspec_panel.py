@@ -1,5 +1,6 @@
 # standard libraries
 import gettext
+import logging
 
 from nion.swift import Panel
 from nion.swift import Workspace
