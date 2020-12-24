@@ -48,17 +48,28 @@ class OptSpecDevice(Observable.Observable):
         self.property_changed_event.fire('entrance_slit_f')
         self.property_changed_event.fire('exit_slit_f')
         self.property_changed_event.fire('which_slit_f')
-        self.property_changed_event.fire('camera_pixels_f')
+        self.property_changed_event.fire('lpmm_f')
+        self.property_changed_event.fire('dispersion_nmmm_f')
+        self.property_changed_event.fire('pixel_size_f')
+        self.property_changed_event.fire('dispersion_pixels_f')
+        self.property_changed_event.fire('fov_f')
         self.property_changed_event.fire('camera_size_f')
+        self.property_changed_event.fire('camera_pixels_f')
         self.property_changed_event.fire('focalLength_f')
         self.upt_calibs()
         if not self.__successful: self.__successful = True
 
-    def upt_info(self):
+    def upt_values(self):
+        self.property_changed_event.fire('wav_f')
+        self.property_changed_event.fire('lpmm_f')
         self.property_changed_event.fire('dispersion_nmmm_f')
-        self.property_changed_event.fire('fov_f')
-        self.property_changed_event.fire('dispersion_pixels_f')
         self.property_changed_event.fire('pixel_size_f')
+        self.property_changed_event.fire('dispersion_pixels_f')
+        self.property_changed_event.fire('fov_f')
+        self.property_changed_event.fire('camera_size_f')
+        self.property_changed_event.fire('camera_pixels_f')
+        self.property_changed_event.fire('focalLength_f')
+        self.upt_calibs()
 
     def upt_calibs(self):
         self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
@@ -70,8 +81,8 @@ class OptSpecDevice(Observable.Observable):
         def sendMessage(message):
             if message:
                 self.__running=False
+                self.upt_values()
                 self.property_changed_event.fire('wav_f')
-                #self.property_changed_event.fire("")
                 if self.__successful: self.upt_calibs()
         return sendMessage
 
@@ -105,6 +116,7 @@ class OptSpecDevice(Observable.Observable):
             self.__grating = value
             self.busy_event.fire("")
             if not self.__running: threading.Thread(target=self.__Spec.set_grating, args=(self.__grating,)).start()
+                #threading.Thread(target=self.__Spec.set_grating, args=(self.__grating,)).start()
                 #self.__thread = threading.Thread(target=self.__Spec.set_grating, args=(self.__grating,))
                 #self.__thread.start()
                 #self.__queue.put(lambda: self.__Spec.set_grating(self.__grating))
@@ -113,7 +125,10 @@ class OptSpecDevice(Observable.Observable):
 
     @property
     def lpmm_f(self):
-        return self.__lpmms[self.__grating]
+        try:
+            return self.__lpmms[self.__grating]
+        except AttributeError:
+            return 'None'
 
     @property
     def inc_angle_f(self):
@@ -146,7 +161,7 @@ class OptSpecDevice(Observable.Observable):
         This is often called reciprocal linear dispersion. It is measured in nm/mm.
         '''
         try:
-            return 1e6/self.lpmm_f * numpy.cos(self.dif_angle_f) / self.__fl
+            return 1e6/self.__lpmms[self.__grating] * numpy.cos(self.dif_angle_f) / self.__fl
         except AttributeError:
             return 'None'
 
@@ -208,7 +223,7 @@ class OptSpecDevice(Observable.Observable):
     @camera_size_f.setter
     def camera_size_f(self, value):
         self.__cameraSize = float(value)
-        self.upt_calibs()
+        self.upt_values()
 
     @property
     def camera_pixels_f(self):
@@ -220,7 +235,7 @@ class OptSpecDevice(Observable.Observable):
     @camera_pixels_f.setter
     def camera_pixels_f(self, value):
         self.__cameraPixels = int(value)
-        self.upt_calibs()
+        self.upt_values()
 
     @property
     def focalLength_f(self):
@@ -232,7 +247,7 @@ class OptSpecDevice(Observable.Observable):
     @focalLength_f.setter
     def focalLength_f(self, value):
         self.__fl = int(value)
-        self.upt_calibs()
+        self.upt_values()
 
     @property
     def pixel_size_f(self):
