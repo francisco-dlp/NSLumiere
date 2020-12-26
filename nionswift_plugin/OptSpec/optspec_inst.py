@@ -14,11 +14,14 @@ class OptSpecDevice(Observable.Observable):
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
         self.send_gratings = Event.Event()
+        self.warn_panel = Event.Event()
+        self.send_data = Event.Event()
 
         self.__queue = queue.Queue()
         self.__running=False
         self.__successful = False
         self.__model = MANUFACTURER
+        self.__thread = None
 
     def init(self):
         if self.__model=='DEBUG': from . import spec_vi as optSpec
@@ -76,6 +79,25 @@ class OptSpecDevice(Observable.Observable):
                                                 {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
                                                  "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels, "units": "nm"}]
 
+    def measure(self):
+        self.__running = True
+        self.busy_event.fire('')
+        self.warn_panel.fire()
+        self.__thread = threading.Thread(target=self.measureThread)
+        self.__thread.start()
+
+    def measureThread(self):
+        index = 0
+        while self.__running:
+            cam_data = self.__eirecamera.grab_next_to_finish()[0]
+            cam_hor = numpy.sum(cam_data.data, axis=0) if len(cam_data.data.shape) > 1 else cam_data.data
+            cam_total = numpy.sum(cam_hor)
+            self.send_data.fire(cam_total, index)
+            index+=1
+
+    def abort(self):
+        self.__running = False
+        self.property_changed_event.fire('')
 
     def sendMessageFactory(self):
         def sendMessage(message):

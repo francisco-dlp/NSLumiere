@@ -1,11 +1,16 @@
 # standard libraries
 import gettext
 import logging
+import numpy
 
 from nion.swift import Panel
 from nion.swift import Workspace
 from nion.ui import Declarative
 from nion.ui import UserInterface
+from nion.swift.model import Utility
+from nion.data import Calibration
+from nion.data import DataAndMetadata
+from nion.swift.model import DataItem
 
 from . import optspec_inst
 _ = gettext.gettext
@@ -15,14 +20,17 @@ GRATINGS = list()
 class OptSpechandler:
 
 
-    def __init__(self, instrument:optspec_inst.OptSpecDevice, event_loop):
+    def __init__(self, instrument:optspec_inst.OptSpecDevice, document_controller):
 
-        self.event_loop=event_loop
+        self.event_loop = document_controller.event_loop
+        self.document_controller = document_controller
         self.instrument=instrument
         self.enabled = False
         self.property_changed_event_listener=self.instrument.property_changed_event.listen(self.prepare_widget_enable)
         self.busy_event_listener=self.instrument.busy_event.listen(self.prepare_widget_disable)
         self.send_gratings_listener = self.instrument.send_gratings.listen(self.receive_gratings)
+        self.warn_panel_listener = self.instrument.warn_panel.listen(self.prepare_data)
+        self.send_data_listener = self.instrument.send_data.listen(self.receive_data)
 
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
 
@@ -32,11 +40,17 @@ class OptSpechandler:
                     widg=getattr(self,var)
                     setattr(widg, "enabled", enabled)
 
+    async def data_item_show(self, DI):
+        self.document_controller.document_model.append_data_item(DI)
+
+    async def data_item_exit_live(self, DI):
+        DI._exit_live_state()
+
     def prepare_widget_enable(self, value):
         self.event_loop.create_task(self.do_enable(True, ['init_pb']))
 
     def prepare_widget_disable(self,value):
-        self.event_loop.create_task(self.do_enable(False, ['init_pb']))
+        self.event_loop.create_task(self.do_enable(False, ['init_pb', 'abort_pb']))
 
     def init_handler(self):
         self.event_loop.create_task(self.do_enable(False, ['init_pb']))
@@ -55,9 +69,41 @@ class OptSpechandler:
     def upt_info(self, widget):
         self.instrument.upt_info()
 
+    def measure(self, widget):
+        self.instrument.measure()
+
+    def abort(self, widget):
+        self.instrument.abort()
+
     def receive_gratings(self, grat_received):
         GRATINGS = grat_received
         self.gratings_combo_box.items = GRATINGS
+
+    def prepare_data(self):
+        self.array = numpy.zeros(200)
+
+        self.timezone = Utility.get_local_timezone()
+        self.timezone_offset = Utility.TimezoneMinutesToStringConverter().convert(Utility.local_utcoffset_minutes())
+        self.calibration = Calibration.Calibration()
+        self.dimensional_calibrations = [Calibration.Calibration()]
+        self.xdata = DataAndMetadata.new_data_and_metadata(self.array, self.calibration, self.dimensional_calibrations,
+                                                           timezone=self.timezone, timezone_offset=self.timezone_offset)
+        self.data_item = DataItem.DataItem()
+        self.data_item.set_xdata(self.xdata)
+        self.data_item._enter_live_state()
+
+        self.event_loop.create_task(self.data_item_show(self.data_item))
+
+
+    def receive_data(self, value, index):
+        if index == 0:
+            self.array = numpy.zeros(200)
+        self.array[index] = value
+        self.data_item.set_data(self.array)
+
+    def end_live_data(self):
+        if self.data_item: self.event_loop.create_task(self.data_item_exit_live(self.data_item))
+
 
 class OptSpecView:
 
@@ -152,14 +198,23 @@ class OptSpecView:
         self.settings_group = ui.create_group(title='Settings', content=ui.create_column(
             self.focal_length_row, self.camsize_row, self.campixels_row))
 
-        self.ui_view = ui.create_column(self.main_group, self.info_group, self.settings_group)
+        # Measurement group
+
+        self.meas_pb = ui.create_push_button(name='meas_pb', text='Measure Intensity', on_clicked='measure')
+        self.abort_pb = ui.create_push_button(name='abort_pb', text='Abort', on_clicked='abort')
+        self.meas_row = ui.create_row(self.meas_pb, self.abort_pb, ui.create_stretch())
+
+        self.meas_group = ui.create_group(title='Measurements', content=ui.create_column(
+            self.meas_row))
+
+        self.ui_view = ui.create_column(self.main_group, self.info_group, self.settings_group, self.meas_group)
 
 
 
         
 def create_spectro_panel(document_controller, panel_id, properties):
         instrument = properties["instrument"]
-        ui_handler =OptSpechandler(instrument, document_controller.event_loop)
+        ui_handler =OptSpechandler(instrument, document_controller)
         ui_view=OptSpecView(instrument)
         panel = Panel.Panel(document_controller, panel_id, properties)
 
