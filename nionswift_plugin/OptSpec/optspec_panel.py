@@ -31,6 +31,7 @@ class OptSpechandler:
         self.send_gratings_listener = self.instrument.send_gratings.listen(self.receive_gratings)
         self.warn_panel_listener = self.instrument.warn_panel.listen(self.prepare_data)
         self.send_data_listener = self.instrument.send_data.listen(self.receive_data)
+        self.warn_panel_over_listener = self.instrument.warn_panel_over.listen(self.finish_data)
 
     async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
 
@@ -45,6 +46,9 @@ class OptSpechandler:
 
     async def data_item_exit_live(self, DI):
         DI._exit_live_state()
+
+    async def data_item_remove(self, DI):
+        self.document_controller.document_model.remove_data_item(DI)
 
     def prepare_widget_enable(self, value):
         self.event_loop.create_task(self.do_enable(True, ['init_pb']))
@@ -84,10 +88,7 @@ class OptSpechandler:
 
         self.timezone = Utility.get_local_timezone()
         self.timezone_offset = Utility.TimezoneMinutesToStringConverter().convert(Utility.local_utcoffset_minutes())
-        self.calibration = Calibration.Calibration()
-        self.dimensional_calibrations = [Calibration.Calibration()]
-        self.xdata = DataAndMetadata.new_data_and_metadata(self.array, self.calibration, self.dimensional_calibrations,
-                                                           timezone=self.timezone, timezone_offset=self.timezone_offset)
+        self.xdata = DataAndMetadata.new_data_and_metadata(self.array, timezone=self.timezone, timezone_offset=self.timezone_offset)
         self.data_item = DataItem.DataItem()
         self.data_item.set_xdata(self.xdata)
         self.data_item._enter_live_state()
@@ -101,9 +102,11 @@ class OptSpechandler:
         self.array[index] = value
         self.data_item.set_data(self.array)
 
-    def end_live_data(self):
-        if self.data_item: self.event_loop.create_task(self.data_item_exit_live(self.data_item))
-
+    def finish_data(self):
+        if self.data_item:
+            self.event_loop.create_task(self.data_item_exit_live(self.data_item))
+            self.event_loop.create_task(self.data_item_remove(self.data_item))
+            self.data_item = None
 
 class OptSpecView:
 
@@ -204,7 +207,7 @@ class OptSpecView:
         self.abort_pb = ui.create_push_button(name='abort_pb', text='Abort', on_clicked='abort')
         self.meas_row = ui.create_row(self.meas_pb, self.abort_pb, ui.create_stretch())
 
-        self.meas_group = ui.create_group(title='Measurements', content=ui.create_column(
+        self.meas_group = ui.create_group(title='Alignment', content=ui.create_column(
             self.meas_row))
 
         self.ui_view = ui.create_column(self.main_group, self.info_group, self.settings_group, self.meas_group)

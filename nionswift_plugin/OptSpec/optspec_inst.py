@@ -16,6 +16,7 @@ class OptSpecDevice(Observable.Observable):
         self.send_gratings = Event.Event()
         self.warn_panel = Event.Event()
         self.send_data = Event.Event()
+        self.warn_panel_over = Event.Event()
 
         self.__queue = queue.Queue()
         self.__running=False
@@ -94,9 +95,12 @@ class OptSpecDevice(Observable.Observable):
             cam_total = numpy.sum(cam_hor)
             self.send_data.fire(cam_total, index)
             index+=1
+            if index==200: index=0
 
     def abort(self):
-        self.__running = False
+        if self.__running:
+            self.__running = False
+            self.warn_panel_over.fire()
         self.property_changed_event.fire('')
 
     def sendMessageFactory(self):
