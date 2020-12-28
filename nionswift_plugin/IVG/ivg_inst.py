@@ -84,6 +84,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__stand = False
         self.__stage_moving = [False, False] #x and y stage moving
 
+        self.__objWarning = False
         self.__obj_temp = self.__amb_temp
         self.__obj_res = self.__obj_res_ref
         self.__c1_vol = self.__c1_res = self.__c2_vol = self.__c2_res = 0.0
@@ -149,7 +150,14 @@ class ivgInstrument(stem_controller.STEMController):
             self.append_data.fire([self.__LL_vac, self.__gun_vac, self.__obj_temp], self.__loop_index)
             self.__loop_index += 1
             if self.__loop_index == MAX_PTS: self.__loop_index = 0
-            if self.__obj_temp > OBJECTIVE_MAX_TEMPERATURE and self.__obj_cur > 6.0: self.shutdown_objective()
+            if self.__obj_temp > OBJECTIVE_MAX_TEMPERATURE and self.__obj_cur > 6.0:
+                if not self.__objWarning:
+                    self.__objWarning = True
+                else:
+                    self.shutdown_objective()
+                    self.__objWarning = False
+            else:
+                self.__objWarning = False
         except:
             pass
         self.__thread = threading.Timer(TIME_SLOW_PERIODIC, self.periodic, args=(), )
@@ -170,13 +178,11 @@ class ivgInstrument(stem_controller.STEMController):
         self.__lensInstrument.c2_global_f = False
         logging.info('*** LENSES / IVG ***: Shutdown objective lens because of high temperature.')
         if SENDMAIL:
-            try:
-                context = ssl.create_default_context()
-                with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
-                    server.login(sender_email, 'vgStem27!')
-                    server.sendmail(sender_email, receiver_email, message)
-            except:
-                pass
+            server = smtplib.SMTP('smtp.gmail.com:587')
+            server.ehlo()
+            server.starttls()
+            server.login(sender_email, 'vgStem27!')
+            server.sendmail(sender_email, receiver_email, message)
 
     def fov_change(self, FOV):
         self.__fov = float(FOV * 1e6)  # in microns

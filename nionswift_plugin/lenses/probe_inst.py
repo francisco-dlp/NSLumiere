@@ -269,7 +269,7 @@ class probeDevice(Observable.Observable):
             self.__lenses_ps.set_val(self.__c2, 'C2')
         else:
             self.__lenses_ps.set_val(0.01, 'C2')
-        self.property_changed_event.fire('c2_global_setter')
+        self.property_changed_event.fire('c2_global_f')
 
     @property
     def c2_wobbler_f(self):
