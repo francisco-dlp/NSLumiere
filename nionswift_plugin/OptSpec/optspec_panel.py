@@ -91,22 +91,21 @@ class OptSpechandler:
         self.xdata = DataAndMetadata.new_data_and_metadata(self.array, timezone=self.timezone, timezone_offset=self.timezone_offset)
         self.data_item = DataItem.DataItem()
         self.data_item.set_xdata(self.xdata)
+        self.data_item.define_property("title", "EIRE total intensity")
         self.data_item._enter_live_state()
 
         self.event_loop.create_task(self.data_item_show(self.data_item))
 
 
     def receive_data(self, value, index):
-        if index == 0:
-            self.array = numpy.zeros(200)
-        self.array[index] = value
-        self.data_item.set_data(self.array)
+            if index == 0:
+                self.array = numpy.zeros(200)
+            self.array[index] = value
+            self.data_item.set_data(self.array)
 
     def finish_data(self):
         if self.data_item:
             self.event_loop.create_task(self.data_item_exit_live(self.data_item))
-            self.event_loop.create_task(self.data_item_remove(self.data_item))
-            self.data_item = None
 
 class OptSpecView:
 

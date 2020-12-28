@@ -100,6 +100,7 @@ class OptSpecDevice(Observable.Observable):
     def abort(self):
         if self.__running:
             self.__running = False
+            self.__thread.join()
             self.warn_panel_over.fire()
         self.property_changed_event.fire('')
 
