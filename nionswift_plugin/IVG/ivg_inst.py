@@ -145,6 +145,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.property_changed_event.fire('obj_cur_f')
         self.property_changed_event.fire('c1_cur_f')
         self.property_changed_event.fire('c2_cur_f')
+        self.property_changed_event.fire('thread_cts_f')
         self.estimate_temp()
         try:
             self.append_data.fire([self.__LL_vac, self.__gun_vac, self.__obj_temp], self.__loop_index)
@@ -281,6 +282,10 @@ class ivgInstrument(stem_controller.STEMController):
             pass
 
         self.property_changed_event.fire('stand_f')
+
+    @property
+    def thread_cts_f(self):
+        return int(threading.active_count())
 
     @property
     def gun_vac_f(self):

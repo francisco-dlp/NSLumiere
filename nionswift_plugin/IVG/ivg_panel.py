@@ -169,7 +169,11 @@ class ivgView:
         self.stand_label = ui.create_label(name='stand_label', text='Stand By:')
         self.stand_value=ui.create_check_box(name='stand_value', checked='@binding(instrument.stand_f)')
 
-        self.EHT_row=ui.create_row(self.EHT_label, self.EHT_combo_box, ui.create_spacing(25), self.stand_label, self.stand_value, ui.create_stretch())
+        self.thread_counter = ui.create_label(name='thread_coubter', text='# Threads: ')
+        self.thread_counter_value = ui.create_label(name='thread_counter_value', text='@binding(instrument.thread_cts_f)')
+
+        self.EHT_row=ui.create_row(self.EHT_label, self.EHT_combo_box, ui.create_spacing(25), self.stand_label, self.stand_value, ui.create_stretch(),
+                                   self.thread_counter, self.thread_counter_value)
 
         self.gun_label=ui.create_label(name='gun_label', text='Gun Vacuum: ')
         self.gun_vac=ui.create_label(name='gun_vac', text='@binding(instrument.gun_vac_f)')
