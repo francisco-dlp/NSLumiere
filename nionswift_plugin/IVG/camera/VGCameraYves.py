@@ -222,10 +222,7 @@ class CameraDevice(camera_base.CameraDevice):
         self.frame_number += 1
         status = self.camera.getCCDStatus()
         if new_data:
-            t = time.time()
-            if t - self._last_time > 0.1:
-                self.has_data_event.set()
-                self._last_time = t
+            self.has_data_event.set()
         if status["mode"] == "Cumul":
             self.frame_number = status["accumulation_count"]
         if status["mode"] == "idle":
@@ -247,7 +244,6 @@ class CameraDevice(camera_base.CameraDevice):
             hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 self.camera_id)
             hardware_source.stop_playing()
-
 
     def __spectrum_data_locker(self, gene, data_type, sx) -> None:
         if self.__acqon and self.__acqspimon and (self.current_camera_settings.exposure_ms >= 10):
@@ -346,7 +342,7 @@ class CameraDevice(camera_base.CameraDevice):
             self.__acqon = False
             self.__acqspimon = False
             logging.info('***CAMERA***: Spim stopped. Handling...')
-            self.instrument.warn_Scan_instrument_spim(False)
+            if not "Chrono" in self.current_camera_settings.acquisition_mode: self.instrument.warn_Scan_instrument_spim(False)
         else:
             if self.__acqspimon:
                 self.has_spim_data_event.set()
@@ -371,8 +367,8 @@ class CameraDevice(camera_base.CameraDevice):
             datum_dimensions = 1
 
         else: #Cumul and Focus
-            gotit = self.has_data_event.wait(5.0)
-            self.has_data_event.clear()
+            self.has_data_event.wait(1.0) #wait until True
+            self.has_data_event.clear() #Puts back false
             self.acquire_data = self.imagedata
             if self.acquire_data.shape[0] == 1: #fully binned
                 collection_dimensions = 1
@@ -389,11 +385,7 @@ class CameraDevice(camera_base.CameraDevice):
         calibration_controls = copy.deepcopy(self.calibration_controls)
 
         if self.frame_number==self.current_camera_settings.spectra_count and acquisition_mode=='Cumul':
-            #self.stop_live()
             self.stop_acquitisition_event.fire("")
-
-
-
 
         return {"data": self.acquire_data, "collection_dimension_count": collection_dimensions,
                 "datum_dimension_count": datum_dimensions, "calibration_controls": calibration_controls,
