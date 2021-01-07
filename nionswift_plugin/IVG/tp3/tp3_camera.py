@@ -3,12 +3,7 @@ import copy
 import socket
 import gettext
 import numpy
-import threading
-import time
 import typing
-import pathlib
-import requests
-import json
 import logging
 
 # local libraries
@@ -16,6 +11,7 @@ from nion.utils import Event
 from nion.utils import Registry
 
 from nionswift_plugin.IVG import ivg_inst
+from . import tp3func
 
 # other plug-ins
 from nion.instrumentation import camera_base
@@ -31,21 +27,12 @@ class Camera(camera_base.CameraDevice):
         self.camera_type = camera_type
         self.camera_name = camera_name
 
-        self.__serverURL = 'http://129.175.108.52:8080'
         self.__frame_number = 0
         self.__is_playing = False
         self.__readout_area = (0, 0, 256, 1024)
         self.__lastImage = None
-        self.__acqThread = None
 
-        initial_status_code = self.tp3x_status_code()
-        if initial_status_code==200: logging.info('***TP3***: Timepix has initialized correctly.')
-        else: logging.info('***TP3***: Problem initializing Timepix')
-
-        #Loading bpc and dacs
-        bpcFile = '/home/asi/load_files/tpx3-demo.bpc'
-        dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
-        self.tp3x_cam_init(bpcFile, dacsFile)
+        self.__tp3 = tp3func.TimePix3('http://129.175.108.52:8080')
 
     def close(self):
         self.__is_playing = False
@@ -85,10 +72,9 @@ class Camera(camera_base.CameraDevice):
         return (readout_area[2] - readout_area[0]) // binning, (readout_area[3] - readout_area[1]) // binning
 
     def set_frame_parameters(self, frame_parameters) -> None:
-        det_config = self.tp3x_get_config()
-        self.tp3x_acq_init(det_config, 1, frame_parameters['exposure_ms'], 10)
-        self.tp3x_set_destination()
-
+        det_config = self.__tp3.get_config()
+        self.__tp3.acq_init(det_config, 1, frame_parameters['exposure_ms'], 10)
+        self.__tp3.set_destination()
 
     @property
     def calibration_controls(self) -> dict:
@@ -122,16 +108,17 @@ class Camera(camera_base.CameraDevice):
         """Acquire the most recent data."""
         self.__frame_number += 1
 
-        self.__acqThread = threading.Thread(target=self.tp3x_acq_single, args=(),)
-        self.__acqThread.start()
-        data = self.acquire_single_frame(8088)
-        self.__acqThread.join()
+        self.__tp3.acq_single()
+        data = self.acquire_single_frame(port = 8088)
+        self.__tp3.acq_wait()
 
         if data[0]:
             image_data=data[1]
             print(image_data)
         else:
             image_data=self.__lastImage
+
+        #image_data = numpy.random.randn(256, 1024)
 
         collection_dimensions = 0
         datum_dimensions = 2
@@ -190,81 +177,7 @@ class Camera(camera_base.CameraDevice):
 
         return (True, self.__lastImage)
 
-    def tp3x_status_code(self):
-        try:
-            resp = requests.get(url=self.__serverURL)
-        except requests.exceptions.RequestException as e:  # Exceptions handling example
-            return -1
-        status_code = resp.status_code
-        return status_code
 
-    def tpx3_dashboard(self):
-        resp = requests.get(url=self.__serverURL + '/dashboard')
-        data = resp.text
-        dashboard = json.loads(data)
-        return dashboard
-
-    def tp3x_cam_init(self, bpc_file, dacs_file):
-        resp = requests.get(url = self.__serverURL + '/config/load?format=pixelconfig&file=' + bpc_file)
-        data = resp.text
-        logging.info(f'***TP3***: Response of loading binary pixel configuration file: ' + data)
-
-        resp = requests.get(url=self.__serverURL + '/config/load?format=dacs&file=' + dacs_file)
-        data=resp.text
-        logging.info(f'***TP3***: Response of loading dacs file: ' + data)
-
-    def tp3x_get_config(self):
-        resp = requests.get(url=self.__serverURL + '/detector/config')
-        data = resp.text
-        detectorConfig = json.loads(data)
-        return detectorConfig
-
-    def tp3x_acq_init(self, detector_config, ntrig=1, shutter_open_ms=490, shutter_closed_ms=10):
-        detector_config["nTriggers"] = ntrig
-        detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
-        detector_config["TriggerPeriod"] = (shutter_open_ms + shutter_closed_ms) / 1000
-        detector_config["ExposureTime"] = shutter_open_ms / 1000
-
-        resp = requests.put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
-        data = resp.text
-        #logging.info('Response of updating Detector Configuration: ' + data)
-
-    def tp3x_set_destination(self):
-        destination = {
-            #"Raw": [{
-            #    # URI to a folder where to place the raw files.
-            #    # "Base": pathlib.Path(os.path.join(os.getcwd(), 'data')).as_uri(),
-            #    "Base": 'file:///home/asi/load_files/data',
-            #    # How to name the files for the various frames.
-            #    "FilePattern": "raw%Hms_",
-            #}],
-            "Image": [{
-                "Base": "tcp://localhost:8088",
-                "Format": "jsonimage",
-                "Mode": "count"
-            }]
-        }
-        resp = requests.put(url=self.__serverURL + '/server/destination', data=json.dumps(destination))
-        data = resp.text
-        #logging.info('Response of uploading the Destination Configuration to SERVAL : ' + data)
-
-
-    def tp3x_acq_single(self):
-        resp = requests.get(url=self.__serverURL + '/measurement/start')
-        data = resp.text
-        logging.info('Response of acquisition start: ' + data)
-        taking_data = True
-        while taking_data:
-            dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
-            logging.info(dashboard)
-            if dashboard["Measurement"]["Status"] == "DA_IDLE":
-                taking_data = False
-                resp = requests.get(url=self.__serverURL + '/measurement/stop')
-                data = resp.text
-                logging.info('Acquisition was stopped with response: ' + data)
-
-    def _tp3x_acq_simple(self):
-        pass
 
 class CameraFrameParameters(dict):
 
@@ -436,8 +349,8 @@ class CameraModule:
 
 def run(instrument: ivg_inst.ivgInstrument):
 
-    camera_device = Camera("tp3", "eels", _("tp3_camera"), instrument)
+    camera_device = Camera("TimePix3", "eels", _("TimePix3"), instrument)
     camera_device.camera_panel_type = "eels"
-    camera_settings = CameraSettings("tp3")
+    camera_settings = CameraSettings("TimePix3")
 
     Registry.register_component(CameraModule("VG_Lum_controller", camera_device, camera_settings), {"camera_module"})
