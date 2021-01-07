@@ -36,6 +36,7 @@ class Camera(camera_base.CameraDevice):
         self.__is_playing = False
         self.__readout_area = (0, 0, 256, 1024)
         self.__lastImage = None
+        self.__acqThread = None
 
         initial_status_code = self.tp3x_status_code()
         if initial_status_code==200: logging.info('***TP3***: Timepix has initialized correctly.')
@@ -86,6 +87,8 @@ class Camera(camera_base.CameraDevice):
     def set_frame_parameters(self, frame_parameters) -> None:
         det_config = self.tp3x_get_config()
         self.tp3x_acq_init(det_config, 1, frame_parameters['exposure_ms'], 10)
+        self.tp3x_set_destination()
+
 
     @property
     def calibration_controls(self) -> dict:
@@ -107,22 +110,28 @@ class Camera(camera_base.CameraDevice):
         """Start live acquisition. Required before using acquire_image."""
         if not self.__is_playing:
             self.__is_playing = True
-            print('camera starting')
+            logging.info('***TP3***: Starting acquisition...')
 
     def stop_live(self) -> None:
         """Stop live acquisition."""
         self.__is_playing = False
-        print('stoping camera')
+        logging.info('***TP3***: Stopping acquisition...')
 
 
     def acquire_image(self):
         """Acquire the most recent data."""
         self.__frame_number += 1
 
+        self.__acqThread = threading.Thread(target=self.tp3x_acq_single, args=(),)
+        self.__acqThread.start()
+        data = self.acquire_single_frame(8088)
+        self.__acqThread.join()
 
-        self.tp3x_set_destination()
-        threading.Thread(target=self.tp3x_acq_single, args=(),).start()
-        data = self.acquire_single_frame()
+        if data[0]:
+            image_data=data[1]
+            print(image_data)
+        else:
+            image_data=self.__lastImage
 
         collection_dimensions = 0
         datum_dimensions = 2
@@ -131,17 +140,20 @@ class Camera(camera_base.CameraDevice):
         properties["frame_number"] = self.__frame_number
         calibration_controls = copy.deepcopy(self.calibration_controls)
 
-        return {"data": data, "collection_dimension_count": collection_dimensions,
+        return {"data": image_data, "collection_dimension_count": collection_dimensions,
                 "datum_dimension_count": datum_dimensions,
                 "properties": properties}
 
-    def acquire_single_frame(self):
+    def acquire_single_frame(self, port=8088):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.setblocking(True)
+        client.settimeout(10)
         ip = socket.gethostbyname('129.175.108.52')
-        port = 8088
         adress = (ip, port)
-        client.connect(adress)
+        try:
+            client.connect(adress)
+        except ConnectionRefusedError:
+            print('***TP3***: Bad frame')
+            return (False, None)
 
         cam_properties = dict()
         header = ''
@@ -176,7 +188,7 @@ class Camera(camera_base.CameraDevice):
                         self.__lastImage = frame_int
                         done = True
 
-        return self.__lastImage
+        return (True, self.__lastImage)
 
     def tp3x_status_code(self):
         try:
@@ -219,15 +231,14 @@ class Camera(camera_base.CameraDevice):
 
     def tp3x_set_destination(self):
         destination = {
-            "Raw": [{
-                # URI to a folder where to place the raw files.
-                # "Base": pathlib.Path(os.path.join(os.getcwd(), 'data')).as_uri(),
-                "Base": 'file:///home/asi/load_files/data',
-                # How to name the files for the various frames.
-                "FilePattern": "raw%Hms_",
-            }],
+            #"Raw": [{
+            #    # URI to a folder where to place the raw files.
+            #    # "Base": pathlib.Path(os.path.join(os.getcwd(), 'data')).as_uri(),
+            #    "Base": 'file:///home/asi/load_files/data',
+            #    # How to name the files for the various frames.
+            #    "FilePattern": "raw%Hms_",
+            #}],
             "Image": [{
-                # "Base": "tcp://129.175.108.52:8088",
                 "Base": "tcp://localhost:8088",
                 "Format": "jsonimage",
                 "Mode": "count"
@@ -241,17 +252,19 @@ class Camera(camera_base.CameraDevice):
     def tp3x_acq_single(self):
         resp = requests.get(url=self.__serverURL + '/measurement/start')
         data = resp.text
-        #logging.info('Response of acquisition start: ' + data)
+        logging.info('Response of acquisition start: ' + data)
         taking_data = True
         while taking_data:
             dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
-            #logging.info(dashboard)
+            logging.info(dashboard)
             if dashboard["Measurement"]["Status"] == "DA_IDLE":
                 taking_data = False
                 resp = requests.get(url=self.__serverURL + '/measurement/stop')
                 data = resp.text
-                #logging.info('Acquisition was stopped with response: ' + data)
+                logging.info('Acquisition was stopped with response: ' + data)
 
+    def _tp3x_acq_simple(self):
+        pass
 
 class CameraFrameParameters(dict):
 
