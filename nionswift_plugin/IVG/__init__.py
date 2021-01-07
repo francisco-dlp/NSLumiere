@@ -12,12 +12,14 @@ DEBUG_SCAN = settings["IVG"]["DEBUG_SCAN"]
 from . import ivg_inst
 from . import ivg_panel
 from . import ivg_spim_panel
+from .tp3 import tp3_camera
 
 if not DEBUG_CAMERA:
     from .camera import VGCameraPanel, VGCameraYves
 if not DEBUG_SCAN:
     from .scan import VGScanYves
 
+TIMEPIX = True
 
 def run():
 
@@ -28,4 +30,7 @@ def run():
     if not DEBUG_CAMERA:
         VGCameraYves.run(instrument)
         VGCameraPanel.run()
+    if TIMEPIX:
+        tp3_camera.run(instrument)
+
     Registry.register_component(instrument, {"instrument_controller", "stem_controller"})
