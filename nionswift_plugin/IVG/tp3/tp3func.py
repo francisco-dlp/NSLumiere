@@ -2,6 +2,7 @@ import json
 import requests
 import threading
 import logging
+import time
 
 class TimePix3():
     def __init__(self, url):
@@ -94,6 +95,9 @@ class TimePix3():
     def acq_wait(self):
         self.__thread.join()
 
+    def acq_alive(self):
+        return self.__thread.is_alive()
+
     def _acq_simple(self):
         resp = requests.get(url=self.__serverURL + '/measurement/start')
         data = resp.text
@@ -101,7 +105,8 @@ class TimePix3():
         taking_data = True
         while taking_data:
             dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
-            logging.info(dashboard)
+            #logging.info(dashboard)
+            time.sleep(0.01)
             if dashboard["Measurement"]["Status"] == "DA_IDLE":
                 taking_data = False
                 resp = requests.get(url=self.__serverURL + '/measurement/stop')

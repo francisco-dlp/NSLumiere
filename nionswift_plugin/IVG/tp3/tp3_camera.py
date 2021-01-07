@@ -5,6 +5,7 @@ import gettext
 import numpy
 import typing
 import logging
+import time
 
 # local libraries
 from nion.utils import Event
@@ -114,11 +115,9 @@ class Camera(camera_base.CameraDevice):
 
         if data[0]:
             image_data=data[1]
-            print(image_data)
         else:
-            image_data=self.__lastImage
-
-        #image_data = numpy.random.randn(256, 1024)
+            #image_data=self.__lastImage
+            image_data = numpy.random.randn(256, 1024)
 
         collection_dimensions = 0
         datum_dimensions = 2
@@ -132,21 +131,18 @@ class Camera(camera_base.CameraDevice):
                 "properties": properties}
 
     def acquire_single_frame(self, port=8088):
+        start = time.time()
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.settimeout(10)
         ip = socket.gethostbyname('129.175.108.52')
         adress = (ip, port)
-        try:
-            client.connect(adress)
-        except ConnectionRefusedError:
-            print('***TP3***: Bad frame')
-            return (False, None)
+        client.connect(adress)
 
         cam_properties = dict()
         header = ''
         frame_data = b''
-
         done = False
+
+        print('Client Connected')
 
         def check_string_value(header, prop):
             start_index = header.index(prop)
@@ -155,26 +151,28 @@ class Camera(camera_base.CameraDevice):
             end_value = header.index(',', end_index, len(header))
             return float(header[begin_value:end_value])
 
-        while not done:
-            data = client.recv(2048)
+        while True:
+            data = client.recv(512)
             if len(data) <= 0:
-                done = True
+                break
             elif b'timeAtFrame' in data:
                 header = data[:-1].decode()
                 for properties in ['timeAtFrame', 'frameNumber', 'dataSize', 'width']:
                     cam_properties[properties] = (check_string_value(header, properties))
-                frame_data = b''
-                #print(cam_properties)
+                end_header = header.index('}')
+                frame_data = data[end_header+2:]
             else:
                 frame_data += data
                 if len(frame_data) >= cam_properties['dataSize']:
-                    if frame_data[-1] == 10:
-                        frame_data = numpy.array(frame_data[:-1])
-                        frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
-                        frame_int = numpy.reshape(frame_int, (256, 1024))
-                        self.__lastImage = frame_int
-                        done = True
+                    finish = time.time()
+                    print(len(frame_data))
+                    frame_data = numpy.array(frame_data[:]) if len(frame_data) == cam_properties['dataSize'] else numpy.array(frame_data[:-1])
+                    frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
+                    frame_int = numpy.reshape(frame_int, (256, 1024))
+                    self.__lastImage = frame_int
+                    break
 
+        print(finish-start)
         return (True, self.__lastImage)
 
 
