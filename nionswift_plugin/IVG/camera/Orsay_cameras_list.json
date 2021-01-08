@@ -15,7 +15,24 @@
         "id": "orsay_camera_eels",
         "name": "EELS",
         "simulation": true
+    },
+       {
+        "manufacturer": 3,
+        "model": "Merlin",
+		"ip_address": "127.0.0.1",
+        "type": "eels",
+        "id": "orsay_camera_medipix3",
+        "name": "EELS",
+        "simulation": true
+    },
+       {
+        "manufacturer": 4,
+        "model": "CheeTah",
+		"ip_address": "129.175.108.52",
+        "type": "eels",
+        "id": "orsay_camera_timepix3",
+        "name": "EELS",
+        "simulation": false
     }
-
 
 ]
