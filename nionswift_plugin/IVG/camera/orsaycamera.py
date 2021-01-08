@@ -10,6 +10,7 @@ from ctypes import c_ushort, c_ulong, c_float
 from shutil import copy2
 
 import os
+from . import orsay_camera_base
 
 __author__  = "Marcel Tence"
 __status__  = "alpha"
@@ -97,7 +98,7 @@ SPECTUNLOCKFUNC = WINFUNCTYPE(None, c_int, c_bool)
 SPIMUPDATEFUNC = WINFUNCTYPE(None, c_int, c_bool)
 CONNECTIONFUNC = WINFUNCTYPE(None, c_bool, c_bool)
 
-class orsayCamera(object):
+class orsayCamera(orsay_camera_base.Orsay_Camera_Base):
     """
     Class controlling orsay camera class
     Requires Cameras.dll library to run.
@@ -282,10 +283,10 @@ class orsayCamera(object):
         self.__OrsayCameraClose(self.orsaycamera)
         self.orsaycamera = None
 
-    def __logger(self, message, debug):
+    def __logger(self, message, debug) -> None:
         print(f"log: {_convertToString23(message)}")
 
-    def __connection_listener(self, message, connected):
+    def __connection_listener(self, message, connected) -> None:
         print("listener")
         if message:
             self.messagesevent.set()
@@ -327,13 +328,13 @@ class orsayCamera(object):
         if not self.__OrsayCameraIsCameraThere(self.orsaycamera):
             print(f"Camera {modelb} not found")
 
-    def registerLogger(self, fn):
+    def registerLogger(self, fn) -> None:
         """
         Replaces the original logger function
         """
         self.__OrsayCameraRegisterLogger(self.orsaycamera, fn)
 
-    def addConnectionListener(self, fn):
+    def addConnectionListener(self, fn) -> None:
         self.__AddConnectionListener(self.orsaycamera, fn)
 
     @property
