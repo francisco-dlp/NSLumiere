@@ -138,9 +138,7 @@ class Camera(camera_base.CameraDevice):
         client.connect(adress)
 
         cam_properties = dict()
-        header = ''
         frame_data = b''
-        done = False
 
         print('Client Connected')
 
@@ -154,6 +152,7 @@ class Camera(camera_base.CameraDevice):
         while True:
             data = client.recv(512)
             if len(data) <= 0:
+                #client.close()
                 break
             elif b'timeAtFrame' in data:
                 header = data[:-1].decode()
@@ -163,6 +162,7 @@ class Camera(camera_base.CameraDevice):
                 frame_data = data[end_header+2:]
             else:
                 frame_data += data
+                #try bigger than instead of both
                 if len(frame_data) >= cam_properties['dataSize']:
                     finish = time.time()
                     print(len(frame_data))
@@ -170,6 +170,7 @@ class Camera(camera_base.CameraDevice):
                     frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
                     frame_int = numpy.reshape(frame_int, (256, 1024))
                     self.__lastImage = frame_int
+                    #client.close()
                     break
 
         print(finish-start)

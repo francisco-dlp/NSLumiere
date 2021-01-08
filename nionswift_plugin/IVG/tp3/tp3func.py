@@ -114,9 +114,10 @@ class TimePix3():
         return self.__thread.is_alive()
 
     def _acq_simple(self):
+        logging.info(self.detector_status())
         resp = requests.get(url=self.__serverURL + '/measurement/start')
         data = resp.text
-        logging.info('Response of acquisition start: ' + data)
+        logging.info('Response of acquisition start: ' + data + self.detector_status())
         taking_data = True
         while taking_data:
             dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
@@ -126,4 +127,4 @@ class TimePix3():
                 taking_data = False
                 resp = requests.get(url=self.__serverURL + '/measurement/stop')
                 data = resp.text
-                logging.info('Acquisition was stopped with response: ' + data)
+                logging.info('Acquisition was stopped with response: ' + data + self.detector_status())
