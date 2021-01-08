@@ -6,6 +6,7 @@ import numpy
 import typing
 import logging
 import time
+import threading
 
 # local libraries
 from nion.utils import Event
@@ -32,6 +33,8 @@ class Camera(camera_base.CameraDevice):
         self.__is_playing = False
         self.__readout_area = (0, 0, 256, 1024)
         self.__lastImage = None
+        self.__clientThread = None
+        self.__hasData = threading.Event()
 
         self.__tp3 = tp3func.TimePix3('http://129.175.108.52:8080')
 
@@ -74,7 +77,7 @@ class Camera(camera_base.CameraDevice):
 
     def set_frame_parameters(self, frame_parameters) -> None:
         det_config = self.__tp3.get_config()
-        self.__tp3.acq_init(det_config, 1, frame_parameters['exposure_ms'], 1)
+        self.__tp3.acq_init(det_config, 9999, frame_parameters['exposure_ms'])
         self.__tp3.set_destination()
 
     @property
@@ -98,39 +101,32 @@ class Camera(camera_base.CameraDevice):
         if not self.__is_playing:
             self.__is_playing = True
             logging.info('***TP3***: Starting acquisition...')
+            self.__tp3.start_acq_simple()
+            self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(8088,))
+            self.__clientThread.start()
+
 
     def stop_live(self) -> None:
         """Stop live acquisition."""
         self.__is_playing = False
         logging.info('***TP3***: Stopping acquisition...')
         self.__tp3.finish_acq_simple()
+        self.__clientThread.join()
 
 
     def acquire_image(self):
         """Acquire the most recent data."""
-        start = time.time()
-        self.__frame_number += 1
+        self.__hasData.wait(10)
 
-        self.__tp3.start_acq_simple()
-        acq_time = time.time()
-        logging.info(f'Acq is over. Total time is {acq_time - start}.')
-        data = self.acquire_single_frame(port = 8088)
-        client_time = time.time()
-        logging.info(f'Client got it. Total time is {client_time - acq_time}.')
-
-        if data[0]:
-            image_data=data[1]
-            self.__tp3.finish_acq_simple()
-        else:
-            #image_data=self.__lastImage
-            image_data = numpy.random.randn(256, 1024)
+        #image_data = numpy.random.randn(256, 1024)
+        image_data = self.__lastImage
+        self.__hasData.clear()
 
         collection_dimensions = 0
         datum_dimensions = 2
 
         properties = dict()
         properties["frame_number"] = self.__frame_number
-        calibration_controls = copy.deepcopy(self.calibration_controls)
 
         return {"data": image_data, "collection_dimension_count": collection_dimensions,
                 "datum_dimension_count": datum_dimensions,
@@ -139,11 +135,12 @@ class Camera(camera_base.CameraDevice):
     def acquire_single_frame(self, port=8088):
 
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.settimeout(0.1)
+        client.settimeout(2.5)
         ip = socket.gethostbyname('129.175.108.52')
         adress = (ip, port)
         try:
             client.connect(adress)
+            logging.info(f'***TP3***: Client connected.')
         except ConnectionRefusedError:
             return (False, None)
 
@@ -158,29 +155,68 @@ class Camera(camera_base.CameraDevice):
             end_value = header.index(',', end_index, len(header))
             return float(header[begin_value:end_value])
 
-        while True:
-            data = client.recv(8192)
-            if len(data) <= 0:
-                client.close()
-                success = True
-                break
-            elif b'timeAtFrame' in data:
-                header = data[:-1].decode()
-                for properties in ['timeAtFrame', 'frameNumber', 'dataSize', 'width']:
-                    cam_properties[properties] = (check_string_value(header, properties))
-                end_header = header.index('}')
-                frame_data = data[end_header+2:]
-            else:
-                try:
-                    frame_data += data
-                except Exception as e:
-                    logging.info(f'Exception is {e}')
-                if len(frame_data) > cam_properties['dataSize']:
-                    print(len(frame_data))
-                    frame_data = numpy.array(frame_data[:-1])
-                    frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
-                    frame_int = numpy.reshape(frame_int, (256, 1024))
-                    self.__lastImage = frame_int
+        def create_last_image(frame_data):
+            frame_data = numpy.array(frame_data[:-1])
+            frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
+            frame_int = numpy.reshape(frame_int, (256, 1024))
+            self.__lastImage = frame_int
+            self.__hasData.set()
+
+        while self.__is_playing:
+            '''
+            Notes
+            -----
+            Loop based on self.__is_playing. 
+            if b'timeAtFrame' is in data, header is there. A few unlikely issues will kill a tiny percentage of
+            frames. They are basically headers chopped with a part in one chunk data (4096 bytes) to other chunk
+            data. 
+            
+            I get both the beginning and the end of header. Most of data are:
+                b'{HEADER}\n\x00\x00... ...\x00\n'
+            This means initial frame_data is everything after header. So the beginning of a frame_data is simply
+            data[end_header+2:].
+            
+            In some cases, however, you have a data like this:
+                b'\x00\x00\x00{HEADER}\n\x00\x00... ...\x00\n'
+            This means everything before HEADER actually is part of an previous imcomplete frame. This is handled
+            in begin_header!=0. In this case, your new frame will always be data[end_header+2:]. I handle good frames
+            using create_last_image, which creates this shared memory variable self.__lastImage and also sets the
+            event thread to True so image can advance.
+            '''
+            try:
+                data = client.recv(512)
+                if len(data) <= 0:
+                    client.close()
+                    success = True
+                    break
+                elif b'timeAtFrame' in data:
+                    print(data)
+                    begin_header = data.index(b'{')
+                    end_header = data.index(b'}')
+                    header = data[begin_header:end_header+1].decode()
+
+                    for properties in ['timeAtFrame', 'frameNumber', 'dataSize', 'width']:
+                        cam_properties[properties] = (check_string_value(header, properties))
+                    self.__frame_number = int(cam_properties['frameNumber'])
+
+                    if begin_header!=0:
+                        frame_data += data[:begin_header]
+                        if len(frame_data) > cam_properties['dataSize']: create_last_image(frame_data)
+
+                    frame_data = data[end_header+2:]
+                else:
+                    try:
+                        frame_data += data
+                    except Exception as e:
+                        logging.info(f'Exception is {e}')
+                    if len(frame_data) > cam_properties['dataSize']: create_last_image(frame_data)
+
+
+            except socket.timeout:
+                logging.info('***TP3***: Socket timeout.')
+            #except ValueError:
+            #    print(data)
+            #    logging.info('***TP3***: Header did not arrived as supossed.')
 
         return (success, self.__lastImage)
 
