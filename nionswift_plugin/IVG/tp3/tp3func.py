@@ -95,6 +95,21 @@ class TimePix3():
     def acq_wait(self):
         self.__thread.join()
 
+    def detector_status(self):
+        '''
+        Returns
+        -------
+        str
+
+        Notes
+        -----
+        DA_IDLE is idle. DA_PREPARING is busy to setup recording. DA_RECORDING is busy recording
+        and output data to destinations. DA_STOPPING is busy to stop the recording process
+        '''
+        dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
+        return dashboard["Measurement"]["Status"]
+
+
     def acq_alive(self):
         return self.__thread.is_alive()
 
@@ -107,7 +122,7 @@ class TimePix3():
             dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
             #logging.info(dashboard)
             time.sleep(0.01)
-            if dashboard["Measurement"]["Status"] == "DA_IDLE":
+            if self.detector_status() == "DA_IDLE":
                 taking_data = False
                 resp = requests.get(url=self.__serverURL + '/measurement/stop')
                 data = resp.text
