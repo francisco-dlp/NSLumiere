@@ -60,7 +60,7 @@ class TimePix3():
 
     def acq_init(self, detector_config, ntrig=1, shutter_open_ms=490, shutter_closed_ms=10):
         detector_config["nTriggers"] = ntrig
-        detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
+        detector_config["TriggerMode"] = "CONTINUOUS"
         detector_config["TriggerPeriod"] = (shutter_open_ms + shutter_closed_ms) / 1000
         detector_config["ExposureTime"] = shutter_open_ms / 1000
 
@@ -71,13 +71,13 @@ class TimePix3():
 
     def set_destination(self):
         destination = {
-            # "Raw": [{
-            #    # URI to a folder where to place the raw files.
-            #    # "Base": pathlib.Path(os.path.join(os.getcwd(), 'data')).as_uri(),
-            #    "Base": 'file:///home/asi/load_files/data',
-            #    # How to name the files for the various frames.
-            #    "FilePattern": "raw%Hms_",
-            # }],
+             "Raw": [{
+                # URI to a folder where to place the raw files.
+                # "Base": pathlib.Path(os.path.join(os.getcwd(), 'data')).as_uri(),
+                "Base": 'tcp://localhost:8089',
+                # How to name the files for the various frames.
+                #"FilePattern": "raw%Hms_",
+             }],
             "Image": [{
                 "Base": "tcp://localhost:8088",
                 "Format": "jsonimage",
@@ -140,9 +140,15 @@ class TimePix3():
             resp = requests.get(url=self.__serverURL + '/measurement/start')
             data = resp.text
             #logging.info('Response of acquisition start: ' + data)
-            taking_data = True
             while True:
                 dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
                 #logging.info(dashboard)
                 time.sleep(0.005)
                 if self.detector_status() == "DA_STOPPING": break
+
+    def finish_acq_simple(self):
+        status = self.detector_status()
+        if status == "DA_IDLE":
+            resp = requests.get(url=self.__serverURL + '/measurement/stop')
+            data = resp.text
+            # logging.info('Acquisition was stopped with response: ' + data)

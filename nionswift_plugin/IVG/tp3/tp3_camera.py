@@ -103,6 +103,7 @@ class Camera(camera_base.CameraDevice):
         """Stop live acquisition."""
         self.__is_playing = False
         logging.info('***TP3***: Stopping acquisition...')
+        self.__tp3.finish_acq_simple()
 
 
     def acquire_image(self):
@@ -119,6 +120,7 @@ class Camera(camera_base.CameraDevice):
 
         if data[0]:
             image_data=data[1]
+            self.__tp3.finish_acq_simple()
         else:
             #image_data=self.__lastImage
             image_data = numpy.random.randn(256, 1024)
@@ -171,8 +173,8 @@ class Camera(camera_base.CameraDevice):
             else:
                 try:
                     frame_data += data
-                except: #Sometimes there is this obscure error in numpy.core. I dont know much where this comes from. Rare bug
-                    pass
+                except Exception as e:
+                    logging.info(f'Exception is {e}')
                 if len(frame_data) > cam_properties['dataSize']:
                     print(len(frame_data))
                     frame_data = numpy.array(frame_data[:-1])
@@ -181,8 +183,6 @@ class Camera(camera_base.CameraDevice):
                     self.__lastImage = frame_int
 
         return (success, self.__lastImage)
-
-
 
 
 class CameraFrameParameters(dict):
@@ -351,6 +351,7 @@ class CameraModule:
         self.camera_device = camera_device
         self.camera_settings = camera_settings
         self.priority = 20
+        #self.camera_panel_type = "tp3_camera_panel"
 
 
 def run(instrument: ivg_inst.ivgInstrument):
