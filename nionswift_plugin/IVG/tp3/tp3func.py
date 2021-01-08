@@ -134,3 +134,15 @@ class TimePix3():
                     resp = requests.get(url=self.__serverURL + '/measurement/stop')
                     data = resp.text
                     #logging.info('Acquisition was stopped with response: ' + data)
+
+    def start_acq_simple(self):
+        if self.detector_status() == "DA_IDLE":
+            resp = requests.get(url=self.__serverURL + '/measurement/start')
+            data = resp.text
+            #logging.info('Response of acquisition start: ' + data)
+            taking_data = True
+            while True:
+                dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
+                #logging.info(dashboard)
+                time.sleep(0.005)
+                if self.detector_status() == "DA_STOPPING": break

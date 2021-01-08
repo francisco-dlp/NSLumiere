@@ -74,7 +74,7 @@ class Camera(camera_base.CameraDevice):
 
     def set_frame_parameters(self, frame_parameters) -> None:
         det_config = self.__tp3.get_config()
-        self.__tp3.acq_init(det_config, 1, frame_parameters['exposure_ms'], 10)
+        self.__tp3.acq_init(det_config, 1, frame_parameters['exposure_ms'], 1)
         self.__tp3.set_destination()
 
     @property
@@ -107,11 +107,15 @@ class Camera(camera_base.CameraDevice):
 
     def acquire_image(self):
         """Acquire the most recent data."""
+        start = time.time()
         self.__frame_number += 1
 
-        self.__tp3.acq_single()
+        self.__tp3.start_acq_simple()
+        acq_time = time.time()
+        logging.info(f'Acq is over. Total time is {acq_time - start}.')
         data = self.acquire_single_frame(port = 8088)
-        self.__tp3.acq_wait()
+        client_time = time.time()
+        logging.info(f'Client got it. Total time is {client_time - acq_time}.')
 
         if data[0]:
             image_data=data[1]
@@ -133,13 +137,11 @@ class Camera(camera_base.CameraDevice):
     def acquire_single_frame(self, port=8088):
 
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.settimeout(2.0)
+        client.settimeout(0.1)
         ip = socket.gethostbyname('129.175.108.52')
         adress = (ip, port)
         try:
-            start = time.time()
             client.connect(adress)
-            logging.info('Client Connected')
         except ConnectionRefusedError:
             return (False, None)
 
@@ -155,7 +157,7 @@ class Camera(camera_base.CameraDevice):
             return float(header[begin_value:end_value])
 
         while True:
-            data = client.recv(2048)
+            data = client.recv(8192)
             if len(data) <= 0:
                 client.close()
                 success = True
@@ -169,21 +171,17 @@ class Camera(camera_base.CameraDevice):
             else:
                 try:
                     frame_data += data
-                except:
+                except: #Sometimes there is this obscure error in numpy.core. I dont know much where this comes from. Rare bug
                     pass
                 if len(frame_data) > cam_properties['dataSize']:
-                    finish = time.time()
                     print(len(frame_data))
                     frame_data = numpy.array(frame_data[:-1])
                     frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
                     frame_int = numpy.reshape(frame_int, (256, 1024))
                     self.__lastImage = frame_int
 
-        if success:
-            logging.info(f'Acquisition is {success}. Total time is {finish-start}.')
-            return (True, self.__lastImage)
-        else:
-            return (False, None)
+        return (success, self.__lastImage)
+
 
 
 
