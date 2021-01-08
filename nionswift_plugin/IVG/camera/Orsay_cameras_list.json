@@ -32,7 +32,7 @@
         "type": "eels",
         "id": "orsay_camera_timepix3",
         "name": "EELS",
-        "simulation": false
+        "simulation": true
     }
 
 ]

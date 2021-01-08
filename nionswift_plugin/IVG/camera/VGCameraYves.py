@@ -52,7 +52,11 @@ class CameraDevice(camera_base.CameraDevice):
             self.instrument = Registry.get_component('stem_controller')
         if not self.instrument:
             HardwareSource.HardwareSourceManager().get_instrument_by_id('VG_Lum_controller')
-        self.camera = orsaycamera.orsayCamera(manufacturer, model, sn, simul)
+        if manufacturer == "AmsterdamScientificInstruments":
+            # instantiate timepix3 class.
+            pass
+        else:
+            self.camera = orsaycamera.orsayCamera(manufacturer, model, sn, simul)
         self.__config_dialog_handler = None
         self.__sensor_dimensions = self.camera.getCCDSize()
         self.__readout_area = 0, 0, *self.__sensor_dimensions
@@ -863,11 +867,17 @@ def periodic_logger():
 def run():
     cameras = list()
     try:
-        #config_file = os.environ['ALLUSERSPROFILE'] + "\\Nion\\Nion Swift\\Orsay_cameras_list.json"
-        panel_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(panel_dir, 'Orsay_cameras_list.json')
-        with open(abs_path) as f:
-            cameras = json.load(f)
+        # look for standard config file first.
+        config_file = os.environ['ALLUSERSPROFILE'] + "\\Nion\\Nion Swift\\Orsay_cameras_list.json"
+        try:
+            with open(config_file) as f:
+                cameras = json.load(f)
+        except Exception as e:
+            # if not, try project file
+            panel_dir = os.path.dirname(__file__)
+            abs_path = os.path.join(panel_dir, 'Orsay_cameras_list.json')
+            with open(abs_path) as f:
+                cameras = json.load(f)
     except Exception as e:
         cameras.append({"manufacturer": 1, "model": "KURO: 2048B", "type": "eels", "id": "orsay_camera_kuro", "name": "EELS", "simulation": True})
         cameras.append({"manufacturer": 1, "model": "ProEM+: 1600xx(2)B eXcelon", "type":"eire", "id":"orsay_camera_eire", "name": "EIRE", "simulation":True})
@@ -881,15 +891,19 @@ def run():
     model = ""
     for camera in cameras:
         try:
+            sn = ""
             if camera["manufacturer"] == 1:
                 manufacturer = "Roperscientific"
             elif camera["manufacturer"] == 2:
                 manufacturer = "Andor"
             elif camera["manufacturer"] == 3:
                 manufacturer = "QuantumDetectors"
+                sn = camera["ip_address"]
+            elif camera["manufacturer"] == 4:
+                manufacturer = "AmsterdamScientificInstruments"
+                sn = camera["ip_address"]
             model = camera["model"]
-            sn=""
-            if (camera["manufacturer"] == 2) and camera["simulation"]:
+            if (camera["manufacturer"] > 1) and camera["simulation"]:
                 print(f"No simulation for {manufacturer} cameras")
             else:
                 camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"], camera["id"], camera["name"], camera["type"])
