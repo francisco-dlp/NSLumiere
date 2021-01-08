@@ -131,16 +131,21 @@ class Camera(camera_base.CameraDevice):
                 "properties": properties}
 
     def acquire_single_frame(self, port=8088):
-        start = time.time()
+
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.settimeout(2.0)
         ip = socket.gethostbyname('129.175.108.52')
         adress = (ip, port)
-        client.connect(adress)
+        try:
+            start = time.time()
+            client.connect(adress)
+            logging.info('Client Connected')
+        except ConnectionRefusedError:
+            return (False, None)
 
         cam_properties = dict()
         frame_data = b''
-
-        print('Client Connected')
+        success = False
 
         def check_string_value(header, prop):
             start_index = header.index(prop)
@@ -150,9 +155,10 @@ class Camera(camera_base.CameraDevice):
             return float(header[begin_value:end_value])
 
         while True:
-            data = client.recv(512)
+            data = client.recv(2048)
             if len(data) <= 0:
-                #client.close()
+                client.close()
+                success = True
                 break
             elif b'timeAtFrame' in data:
                 header = data[:-1].decode()
@@ -161,20 +167,23 @@ class Camera(camera_base.CameraDevice):
                 end_header = header.index('}')
                 frame_data = data[end_header+2:]
             else:
-                frame_data += data
-                #try bigger than instead of both
-                if len(frame_data) >= cam_properties['dataSize']:
+                try:
+                    frame_data += data
+                except:
+                    pass
+                if len(frame_data) > cam_properties['dataSize']:
                     finish = time.time()
                     print(len(frame_data))
-                    frame_data = numpy.array(frame_data[:]) if len(frame_data) == cam_properties['dataSize'] else numpy.array(frame_data[:-1])
+                    frame_data = numpy.array(frame_data[:-1])
                     frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
                     frame_int = numpy.reshape(frame_int, (256, 1024))
                     self.__lastImage = frame_int
-                    #client.close()
-                    break
 
-        print(finish-start)
-        return (True, self.__lastImage)
+        if success:
+            logging.info(f'Acquisition is {success}. Total time is {finish-start}.')
+            return (True, self.__lastImage)
+        else:
+            return (False, None)
 
 
 

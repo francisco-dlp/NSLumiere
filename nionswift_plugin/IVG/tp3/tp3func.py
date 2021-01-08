@@ -9,6 +9,7 @@ class TimePix3():
 
         self.__serverURL = url
         self.__thread = None
+        self.__dataEvent = threading.Event()
 
         try:
             initial_status_code = self.status_code()
@@ -114,17 +115,22 @@ class TimePix3():
         return self.__thread.is_alive()
 
     def _acq_simple(self):
-        logging.info(self.detector_status())
-        resp = requests.get(url=self.__serverURL + '/measurement/start')
-        data = resp.text
-        logging.info('Response of acquisition start: ' + data + self.detector_status())
-        taking_data = True
-        while taking_data:
-            dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
-            #logging.info(dashboard)
-            time.sleep(0.01)
-            if self.detector_status() == "DA_IDLE":
-                taking_data = False
-                resp = requests.get(url=self.__serverURL + '/measurement/stop')
-                data = resp.text
-                logging.info('Acquisition was stopped with response: ' + data + self.detector_status())
+        start=time.time()
+        if self.detector_status() == "DA_IDLE":
+            resp = requests.get(url=self.__serverURL + '/measurement/start')
+            data = resp.text
+            #logging.info('Response of acquisition start: ' + data)
+            taking_data = True
+            while taking_data:
+                dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
+                #logging.info(dashboard)
+                time.sleep(0.01)
+                status = self.detector_status()
+                if status == "DA_STOPPING":
+                    print('data dispo')
+                    print(time.time() - start)
+                if status == "DA_IDLE":
+                    taking_data = False
+                    resp = requests.get(url=self.__serverURL + '/measurement/stop')
+                    data = resp.text
+                    #logging.info('Acquisition was stopped with response: ' + data)
