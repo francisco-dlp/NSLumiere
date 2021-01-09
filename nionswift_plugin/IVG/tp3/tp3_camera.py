@@ -189,8 +189,9 @@ class Camera(camera_base.CameraDevice):
                     client.close()
                     success = True
                     break
-                elif b'timeAtFrame' in data:
+                elif b'{' in data:
                     print(data)
+                    data+=client.recv(512)
                     begin_header = data.index(b'{')
                     end_header = data.index(b'}')
                     header = data[begin_header:end_header+1].decode()
