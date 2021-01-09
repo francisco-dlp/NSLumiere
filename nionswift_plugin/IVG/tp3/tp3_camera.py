@@ -118,8 +118,8 @@ class Camera(camera_base.CameraDevice):
         """Acquire the most recent data."""
         self.__hasData.wait(10)
 
-        #image_data = numpy.random.randn(256, 1024)
-        image_data = self.__lastImage
+        image_data = numpy.random.randn(256, 1024)
+        #image_data = self.__lastImage
         self.__hasData.clear()
 
         collection_dimensions = 0
@@ -142,11 +142,11 @@ class Camera(camera_base.CameraDevice):
             client.connect(adress)
             logging.info(f'***TP3***: Client connected.')
         except ConnectionRefusedError:
-            return (False, None)
+            return False
 
         cam_properties = dict()
         frame_data = b''
-        success = False
+        buffer_size = 1024
 
         def check_string_value(header, prop):
             start_index = header.index(prop)
@@ -155,11 +155,11 @@ class Camera(camera_base.CameraDevice):
             end_value = header.index(',', end_index, len(header))
             return float(header[begin_value:end_value])
 
-        def create_last_image(frame_data):
-            frame_data = numpy.array(frame_data[:-1])
-            frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
-            frame_int = numpy.reshape(frame_int, (256, 1024))
-            self.__lastImage = frame_int
+        def create_image(frame_data):
+            #frame_data = numpy.array(frame_data[:-1])
+            #frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
+            #frame_int = numpy.reshape(frame_int, (256, 1024))
+            #self.__lastImage = frame_int
             self.__hasData.set()
 
         while self.__is_playing:
@@ -184,14 +184,12 @@ class Camera(camera_base.CameraDevice):
             event thread to True so image can advance.
             '''
             try:
-                data = client.recv(512)
+                data = client.recv(buffer_size)
                 if len(data) <= 0:
-                    client.close()
                     success = True
-                    break
+                    print('received null')
                 elif b'{' in data:
-                    print(data)
-                    data+=client.recv(512)
+                    data+=client.recv(1024)
                     begin_header = data.index(b'{')
                     end_header = data.index(b'}')
                     header = data[begin_header:end_header+1].decode()
@@ -199,27 +197,26 @@ class Camera(camera_base.CameraDevice):
                     for properties in ['timeAtFrame', 'frameNumber', 'dataSize', 'width']:
                         cam_properties[properties] = (check_string_value(header, properties))
                     self.__frame_number = int(cam_properties['frameNumber'])
+                    self.__frame_time = cam_properties['timeAtFrame']
+                    buffer_size = int(cam_properties['dataSize']/8.)
 
                     if begin_header!=0:
                         frame_data += data[:begin_header]
-                        if len(frame_data) > cam_properties['dataSize']: create_last_image(frame_data)
-
+                        if len(frame_data) > cam_properties['dataSize']: create_image(frame_data)
                     frame_data = data[end_header+2:]
                 else:
                     try:
                         frame_data += data
                     except Exception as e:
                         logging.info(f'Exception is {e}')
-                    if len(frame_data) > cam_properties['dataSize']: create_last_image(frame_data)
-
+                    if len(frame_data) > cam_properties['dataSize']: create_image(frame_data)
 
             except socket.timeout:
                 logging.info('***TP3***: Socket timeout.')
-            #except ValueError:
-            #    print(data)
-            #    logging.info('***TP3***: Header did not arrived as supossed.')
 
-        return (success, self.__lastImage)
+        logging.info(f'Frame {self.__frame_number} at time {self.__frame_time}')
+
+        return True
 
 
 class CameraFrameParameters(dict):
