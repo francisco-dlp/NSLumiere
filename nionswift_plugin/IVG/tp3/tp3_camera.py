@@ -7,6 +7,7 @@ import typing
 import logging
 import time
 import threading
+import queue
 
 # local libraries
 from nion.utils import Event
@@ -34,6 +35,9 @@ class Camera(camera_base.CameraDevice):
         self.__readout_area = (0, 0, 256, 1024)
         self.__lastImage = None
         self.__clientThread = None
+
+        self.__clock = None
+        self.__dataQueue = queue.LifoQueue()
         self.__hasData = threading.Event()
 
         self.__tp3 = tp3func.TimePix3('http://129.175.108.52:8080')
@@ -112,18 +116,23 @@ class Camera(camera_base.CameraDevice):
         logging.info('***TP3***: Stopping acquisition...')
         self.__tp3.finish_acq_simple()
         self.__clientThread.join()
+        print(self.__dataQueue.empty())
+        print(self.__dataQueue.qsize())
 
 
     def acquire_image(self):
         """Acquire the most recent data."""
-        self.__hasData.wait(10)
+        self.__hasData.wait()
+        #time.sleep(0.05)
+        #image_data = numpy.random.randn(256, 1024)
 
-        image_data = numpy.random.randn(256, 1024)
-        #image_data = self.__lastImage
+        prop, bin_data = self.__dataQueue.get()
+        image_data = self.create_image_from_bytes(bin_data)
+
         self.__hasData.clear()
 
-        collection_dimensions = 0
-        datum_dimensions = 2
+        collection_dimensions = 2
+        datum_dimensions = 0
 
         properties = dict()
         properties["frame_number"] = self.__frame_number
@@ -131,6 +140,14 @@ class Camera(camera_base.CameraDevice):
         return {"data": image_data, "collection_dimension_count": collection_dimensions,
                 "datum_dimension_count": datum_dimensions,
                 "properties": properties}
+
+
+    def create_image_from_bytes(self, frame_data):
+        frame_data = numpy.array(frame_data[:-1])
+        frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
+        frame_int = numpy.reshape(frame_int, (256, 1024))
+        #frame_int = numpy.sum(frame_int, axis=0)
+        return frame_int
 
     def acquire_single_frame(self, port=8088):
 
@@ -155,11 +172,10 @@ class Camera(camera_base.CameraDevice):
             end_value = header.index(',', end_index, len(header))
             return float(header[begin_value:end_value])
 
-        def create_image(frame_data):
-            #frame_data = numpy.array(frame_data[:-1])
-            #frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
-            #frame_int = numpy.reshape(frame_int, (256, 1024))
-            #self.__lastImage = frame_int
+        def put_queue(cam_prop, frame):
+            self.__dataQueue.put((cam_prop, frame))
+            #interval = (time.perf_counter() - self.__clock) - cam_prop['timeAtFrame']
+            #if abs(interval)<2.0:
             self.__hasData.set()
 
         while self.__is_playing:
@@ -198,23 +214,24 @@ class Camera(camera_base.CameraDevice):
                         cam_properties[properties] = (check_string_value(header, properties))
                     self.__frame_number = int(cam_properties['frameNumber'])
                     self.__frame_time = cam_properties['timeAtFrame']
-                    buffer_size = int(cam_properties['dataSize']/8.)
+                    if self.__frame_time==0: self.__clock = time.perf_counter()
+                    buffer_size = int(cam_properties['dataSize']/2.)
 
                     if begin_header!=0:
                         frame_data += data[:begin_header]
-                        if len(frame_data) > cam_properties['dataSize']: create_image(frame_data)
+                        if len(frame_data) > cam_properties['dataSize']: put_queue(cam_properties, frame_data)
                     frame_data = data[end_header+2:]
                 else:
                     try:
                         frame_data += data
                     except Exception as e:
                         logging.info(f'Exception is {e}')
-                    if len(frame_data) > cam_properties['dataSize']: create_image(frame_data)
+                    if len(frame_data) > cam_properties['dataSize']: put_queue(cam_properties, frame_data)
 
             except socket.timeout:
                 logging.info('***TP3***: Socket timeout.')
 
-        logging.info(f'Frame {self.__frame_number} at time {self.__frame_time}')
+        logging.info(f'Frame {self.__frame_number} at time {self.__frame_time}.')
 
         return True
 
