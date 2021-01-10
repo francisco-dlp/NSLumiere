@@ -81,7 +81,7 @@ class Camera(camera_base.CameraDevice):
 
     def set_frame_parameters(self, frame_parameters) -> None:
         det_config = self.__tp3.get_config()
-        self.__tp3.acq_init(det_config, 9999, frame_parameters['exposure_ms'])
+        self.__tp3.acq_init(det_config, 99999, frame_parameters['exposure_ms'])
         self.__tp3.set_destination()
 
     @property
@@ -152,12 +152,13 @@ class Camera(camera_base.CameraDevice):
     def acquire_single_frame(self, port=8088):
 
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.settimeout(2.5)
+
         ip = socket.gethostbyname('129.175.108.52')
         adress = (ip, port)
         try:
             client.connect(adress)
             logging.info(f'***TP3***: Client connected.')
+            client.settimeout(0.005)
         except ConnectionRefusedError:
             return False
 
@@ -176,7 +177,7 @@ class Camera(camera_base.CameraDevice):
             self.__dataQueue.put((cam_prop, frame))
             #interval = (time.perf_counter() - self.__clock) - cam_prop['timeAtFrame']
             #if abs(interval)<2.0:
-            self.__hasData.set()
+            #self.__hasData.set()
 
         while self.__is_playing:
             '''
@@ -202,7 +203,6 @@ class Camera(camera_base.CameraDevice):
             try:
                 data = client.recv(buffer_size)
                 if len(data) <= 0:
-                    success = True
                     print('received null')
                 elif b'{' in data:
                     data+=client.recv(1024)
@@ -229,7 +229,8 @@ class Camera(camera_base.CameraDevice):
                     if len(frame_data) > cam_properties['dataSize']: put_queue(cam_properties, frame_data)
 
             except socket.timeout:
-                logging.info('***TP3***: Socket timeout.')
+                self.__hasData.set()
+                #logging.info('***TP3***: Socket timeout.')
 
         logging.info(f'Frame {self.__frame_number} at time {self.__frame_time}.')
 
