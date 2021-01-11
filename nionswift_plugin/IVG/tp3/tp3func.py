@@ -15,6 +15,7 @@ class TimePix3():
         self.__serverURL = url
         self.__dataQueue = queue.LifoQueue()
         self.__isPlaying = False
+        self.__softBinning = False
         self.sendmessage = message
 
         try:
@@ -28,7 +29,6 @@ class TimePix3():
             bpcFile = '/home/asi/load_files/tpx3-demo.bpc'
             dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
             self.cam_init(bpcFile, dacsFile)
-            self.set_destination(port = 0)
         except:
             logging.info('***TP3***: Problem initializing Timepix')
 
@@ -91,7 +91,8 @@ class TimePix3():
         }
         resp = requests.put(url=self.__serverURL + '/server/destination', data=json.dumps(destination))
         data = resp.text
-        logging.info('Response of uploading the Destination Configuration to SERVAL : ' + data)
+        logging.info('***TP3***: Response of uploading the Destination Configuration to SERVAL : ' + data)
+        logging.info(f'***TP3***: Selected port is {port} and corresponds to: ' + options[port])
 
     def getPortNames(self):
         return ['Counts', 'Time over Threshold (ToT)', 'Time of Arrival (ToA)', 'Time of Flight (ToF)']
@@ -185,6 +186,7 @@ class TimePix3():
         pass
 
     def startFocus(self, exposure, displaymode, accumulate):
+        self.__softBinning = True if displaymode=='1d' else False
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE":
@@ -420,4 +422,7 @@ class TimePix3():
         frame_data = numpy.array(frame_data[:-1])
         frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
         frame_int = numpy.reshape(frame_int, (256, 1024))
+        if self.__softBinning:
+            frame_int = numpy.sum(frame_int, axis=0)
+            frame_int = numpy.reshape(frame_int, (1, 1024))
         return frame_int
