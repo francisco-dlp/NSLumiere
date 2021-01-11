@@ -80,6 +80,7 @@ class Camera(camera_base.CameraDevice):
         return (readout_area[2] - readout_area[0]) // binning, (readout_area[3] - readout_area[1]) // binning
 
     def set_frame_parameters(self, frame_parameters) -> None:
+        print(frame_parameters)
         det_config = self.__tp3.get_config()
         self.__tp3.acq_init(det_config, 99999, frame_parameters['exposure_ms'])
         self.__tp3.set_destination()
@@ -113,26 +114,24 @@ class Camera(camera_base.CameraDevice):
     def stop_live(self) -> None:
         """Stop live acquisition."""
         self.__is_playing = False
-        logging.info('***TP3***: Stopping acquisition...')
+        logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
         self.__tp3.finish_acq_simple()
         self.__clientThread.join()
-        print(self.__dataQueue.empty())
-        print(self.__dataQueue.qsize())
+        self.__dataQueue = queue.LifoQueue()
 
 
     def acquire_image(self):
         """Acquire the most recent data."""
-        self.__hasData.wait()
-        #time.sleep(0.05)
+        self.__hasData.wait(10)
         #image_data = numpy.random.randn(256, 1024)
-
         prop, bin_data = self.__dataQueue.get()
+        self.__frame_number = int(prop['frameNumber'])
         image_data = self.create_image_from_bytes(bin_data)
 
         self.__hasData.clear()
 
-        collection_dimensions = 2
-        datum_dimensions = 0
+        datum_dimensions = 2
+        collection_dimensions = 0
 
         properties = dict()
         properties["frame_number"] = self.__frame_number
@@ -146,7 +145,6 @@ class Camera(camera_base.CameraDevice):
         frame_data = numpy.array(frame_data[:-1])
         frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
         frame_int = numpy.reshape(frame_int, (256, 1024))
-        #frame_int = numpy.sum(frame_int, axis=0)
         return frame_int
 
     def acquire_single_frame(self, port=8088):
@@ -170,14 +168,18 @@ class Camera(camera_base.CameraDevice):
             start_index = header.index(prop)
             end_index = start_index + len(prop)
             begin_value = header.index(':', end_index, len(header)) + 1
-            end_value = header.index(',', end_index, len(header))
-            return float(header[begin_value:end_value])
+            if prop=='height':
+                end_value = header.index('}', end_index, len(header))
+            else:
+                end_value = header.index(',', end_index, len(header))
+            try:
+                value = float(header[begin_value:end_value])
+            except ValueError:
+                value = str(header[begin_value:end_value])
+            return value
 
         def put_queue(cam_prop, frame):
             self.__dataQueue.put((cam_prop, frame))
-            #interval = (time.perf_counter() - self.__clock) - cam_prop['timeAtFrame']
-            #if abs(interval)<2.0:
-            #self.__hasData.set()
 
         while self.__is_playing:
             '''
@@ -209,31 +211,23 @@ class Camera(camera_base.CameraDevice):
                     begin_header = data.index(b'{')
                     end_header = data.index(b'}')
                     header = data[begin_header:end_header+1].decode()
-
-                    for properties in ['timeAtFrame', 'frameNumber', 'dataSize', 'width']:
+                    for properties in ['timeAtFrame', 'frameNumber', 'measurementID', 'dataSize', 'bitDepth', 'width', 'height']:
                         cam_properties[properties] = (check_string_value(header, properties))
-                    self.__frame_number = int(cam_properties['frameNumber'])
-                    self.__frame_time = cam_properties['timeAtFrame']
-                    if self.__frame_time==0: self.__clock = time.perf_counter()
-                    buffer_size = int(cam_properties['dataSize']/2.)
-
+                    buffer_size = int(cam_properties['dataSize']/4.)
                     if begin_header!=0:
                         frame_data += data[:begin_header]
-                        if len(frame_data) > cam_properties['dataSize']: put_queue(cam_properties, frame_data)
+                        if len(frame_data) == cam_properties['dataSize']+1: put_queue(cam_properties, frame_data)
                     frame_data = data[end_header+2:]
                 else:
                     try:
                         frame_data += data
                     except Exception as e:
                         logging.info(f'Exception is {e}')
-                    if len(frame_data) > cam_properties['dataSize']: put_queue(cam_properties, frame_data)
-
+                    if len(frame_data) == cam_properties['dataSize']+1: put_queue(cam_properties, frame_data)
             except socket.timeout:
-                self.__hasData.set()
-                #logging.info('***TP3***: Socket timeout.')
+                if not self.__dataQueue.empty(): self.__hasData.set()
 
-        logging.info(f'Frame {self.__frame_number} at time {self.__frame_time}.')
-
+        logging.info(f'Frame {self.__frame_number} at time ' + str(cam_properties['timeAtFrame']))
         return True
 
 
