@@ -1,20 +1,11 @@
 [
     {
-        "manufacturer": 1,
-        "model": "ProEM+: 1600xx(2)B eXcelon",
+        "manufacturer": 4,
+        "model": "CheeTah",
+            "ip_address": "http://129.175.108.52:8080",
         "type": "eels",
-        "id": "orsay_camera_eireB",
-        "name": "EIREB",
-        "simulation": false
-    },
-
-    {
-        "manufacturer": 2,
-        "model": "Newton",
-        "type": "eels",
-        "id": "orsay_camera_eels",
+        "id": "orsay_camera_timepix3",
         "name": "EELS",
         "simulation": false
     }
-
 ]

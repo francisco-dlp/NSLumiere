@@ -31,11 +31,10 @@ class Camera(camera_base.CameraDevice):
 
         self.__hasData = threading.Event()
 
-        assert manufacturer=="4" #This tp3_camera is a demo for TimePix3. Manufacturer must be 4
-        if manufacturer=='4':
+        assert manufacturer==4 #This tp3_camera is a demo for TimePix3. Manufacturer must be 4
+        if manufacturer==4:
             self.camera_callback = tp3func.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-            self.camera = tp3func.TimePix3(sn)
-            self.tp3Listener = tp3func.ListenerTimePix3(self.camera_callback)
+            self.camera = tp3func.TimePix3(sn, self.camera_callback)
 
         self.frame_parameter_changed_event = Event.Event()
         self.stop_acquitisition_event = Event.Event()
@@ -139,21 +138,12 @@ class Camera(camera_base.CameraDevice):
         if not self.__is_playing:
             self.__is_playing = True
             logging.info('***TP3***: Starting acquisition...')
-            self.camera.finish_acq_simple()
-            self.camera.start_acq_simple()
-            self.tp3Listener.start_listening()
-            #self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(8088,))
-            #self.__clientThread.start()
-
+            self.camera.startFocus(None, None, None)
 
     def stop_live(self) -> None:
         """Stop live acquisition."""
         self.__is_playing = False
-        self.camera.finish_acq_simple()
-        self.tp3Listener.finish_listening()
-        #self.__clientThread.join()
-        #self.__dataQueue = queue.LifoQueue()
-
+        self.camera.stopFocus()
 
     def acquire_image(self):
         """Acquire the most recent data."""
@@ -177,9 +167,9 @@ class Camera(camera_base.CameraDevice):
     def sendMessageFactory(self):
         def sendMessage(message):
             if message:
-                prop, last_bytes_data = self.tp3Listener.get_last_data()
+                prop, last_bytes_data = self.camera.get_last_data()
                 self.__frame_number = int(prop['frameNumber'])
-                self.imagedata = self.tp3Listener.create_image_from_bytes(last_bytes_data)
+                self.imagedata = self.camera.create_image_from_bytes(last_bytes_data)
                 self.__hasData.set()
         return sendMessage
 
@@ -385,7 +375,7 @@ class CameraModule:
 
 def run(instrument: ivg_inst.ivgInstrument):
 
-    camera_device = Camera("4", "CheeTah", 'http://129.175.108.52:8080', False, instrument, "TimePix3", _("TimePix3"), "eels")
+    camera_device = Camera(4, "CheeTah", 'http://129.175.108.52:8080', False, instrument, "TimePix3", _("TimePix3"), "eels")
     #camera_device.camera_panel_type = "eels"
     camera_settings = CameraSettings("TimePix3")
 

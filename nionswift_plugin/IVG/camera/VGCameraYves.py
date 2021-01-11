@@ -20,6 +20,7 @@ from nion.utils import Registry
 from nion.instrumentation import camera_base
 
 from nionswift_plugin.IVG.camera import orsaycamera
+from nionswift_plugin.IVG.tp3 import tp3func
 
 from nionswift_plugin.IVG import ivg_inst
 
@@ -42,10 +43,14 @@ class CameraDevice(camera_base.CameraDevice):
         self.camera_name=name
         self.camera_model = model
         self.instrument=instrument
-        self.camera = orsaycamera.orsayCamera(manufacturer, model, sn, simul)
+        if manufacturer==4:
+            self.camera_callback = tp3func.SENDMYMESSAGEFUNC(self.sendMessageFactory())
+            self.camera = tp3func.TimePix3(sn, self.sendMessageFactory())
+        else:
+            self.camera = orsaycamera.orsayCamera(manufacturer, model, sn, simul)
         self.__config_dialog_handler = None
         self.__sensor_dimensions = self.camera.getCCDSize()
-        self.__readout_area = 0, 0, *self.__sensor_dimensions
+        self.__readout_area = 0, 0, * self.__sensor_dimensions
         self.__orsay_binning = self.camera.getBinning()
         self.__exposure_time = 0
         self.__is_vg = True
@@ -78,12 +83,11 @@ class CameraDevice(camera_base.CameraDevice):
         self.spimimagedata_ptr = None
         self.has_spim_data_event = threading.Event()
 
-
         bx, by = self.camera.getBinning()
         port = self.camera.getCurrentPort()
 
         d = {
-            "exposure_ms": 10,
+            "exposure_ms": 15,
             "h_binning": bx,
             "v_binning": by,
             "soft_binning": False,
@@ -452,13 +456,22 @@ class CameraDevice(camera_base.CameraDevice):
             storage_memory = self.camera.getImageSize()[0] * self.camera.getImageSize()[1] * 4 * storage_frame_count
         return { "acquisition_time": acquisition_time, "acquisition_memory": acquisition_memory, "storage_memory": storage_memory }
 
+    def sendMessageFactory(self):
+        def sendMessage(message):
+            if message:
+                prop, last_bytes_data = self.camera.get_last_data()
+                self.frame_number = int(prop['frameNumber'])
+                self.imagedata = self.camera.create_image_from_bytes(last_bytes_data)
+                self.has_data_event.set()
+        return sendMessage
+
 
 class CameraFrameParameters(dict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__dict__ = self
-        self.exposure_ms = self.get("exposure_ms", 125)  # milliseconds
+        self.exposure_ms = self.get("exposure_ms", 15)  # milliseconds
         self.h_binning = self.get("h_binning", 1)
         self.v_binning = self.get("v_binning", 1)
         self.soft_binning = self.get("soft_binning", True)  # 1d, 2d
@@ -617,10 +630,36 @@ def run(instrument: ivg_inst.ivgInstrument):
         cameras.append({"manufacturer": 1, "model": "ProEM+: 1600xx(2)B eXcelon", "type":"eire", "id":"orsay_camera_eire", "name": "EIRE", "simulation":True})
 
     for camera in cameras:
-        sn=""
-        camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"], instrument, camera["id"], camera["name"], camera["type"])
+        try:
+            sn=""
+            if camera["manufacturer"] == 1:
+                manufacturer = "Roperscientific"
+            elif camera["manufacturer"] == 2:
+                manufacturer = "Andor"
+            elif camera["manufacturer"] == 3:
+                manufacturer = "QuantumDetectors"
+                sn = camera["ip_address"]
+            elif camera["manufacturer"] == 4:
+                manufacturer = "AmsterdamScientificInstruments"
+                sn = camera["ip_address"]
+            model = camera["model"]
+            if (camera["manufacturer"] > 1) and camera["simulation"]:
+                logging.info(f"No simulation for {manufacturer} cameras")
+            else:
+                camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"], instrument,
+                                             camera["id"], camera["name"], camera["type"])
 
-        camera_settings = CameraSettings(camera_device)
+                camera_settings = CameraSettings(camera_device)
 
-        Registry.register_component(CameraModule("VG_Lum_controller", camera_device, camera_settings),
-                                        {"camera_module"})
+                Registry.register_component(CameraModule("VG_Lum_controller", camera_device, camera_settings),
+                                            {"camera_module"})
+                    #frame_parameters = camera_settings.get_current_frame_parameters()
+                    #frame_parameters["simulated"] = camera["simulation"]
+                    #camera_settings.set_current_frame_parameters(frame_parameters)
+        except:
+            logging.info(f"Failed to start camera: {manufacturer}  model: {model}")
+        #finally:
+        #    pass
+            #camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"], instrument, camera["id"], camera["name"], camera["type"])
+            #camera_settings = CameraSettings(camera_device)
+            #Registry.register_component(CameraModule("VG_Lum_controller", camera_device, camera_settings), {"camera_module"})

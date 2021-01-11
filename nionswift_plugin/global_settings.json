@@ -4,7 +4,7 @@
     },
     "IVG": {
         "CAMERA": {
-            "DEBUG": 1,
+            "DEBUG": 0,
             "PIXELS": 1600,
             "SIZE": 25.6
         },

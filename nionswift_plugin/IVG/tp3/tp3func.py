@@ -2,7 +2,6 @@ import json
 import requests
 import threading
 import logging
-import time
 import queue
 import socket
 import numpy
@@ -11,9 +10,12 @@ def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
 class TimePix3():
-    def __init__(self, url):
+    def __init__(self, url, message):
 
         self.__serverURL = url
+        self.__dataQueue = queue.LifoQueue()
+        self.__isPlaying = False
+        self.sendmessage = message
 
         try:
             initial_status_code = self.status_code()
@@ -91,17 +93,6 @@ class TimePix3():
         data = resp.text
         logging.info('Response of uploading the Destination Configuration to SERVAL : ' + data)
 
-    def start_acq_simple(self):
-        if self.getCCDStatus() == "DA_IDLE":
-            resp = requests.get(url=self.__serverURL + '/measurement/start')
-            data = resp.text
-
-    def finish_acq_simple(self):
-        status = self.getCCDStatus()
-        resp = requests.get(url=self.__serverURL + '/measurement/stop')
-        data = resp.text
-        # logging.info('Acquisition was stopped with response: ' + data)
-
     def getPortNames(self):
         return ['Counts', 'Time over Threshold (ToT)', 'Time of Arrival (ToA)', 'Time of Flight (ToF)']
 
@@ -121,7 +112,7 @@ class TimePix3():
         pass
 
     def getImageSize(self):
-        return (256, 1024)
+        return (1024, 256)
 
     def registerLogger(self, fn):
         pass
@@ -131,7 +122,7 @@ class TimePix3():
 
     @property
     def simulation_mode(self) -> bool:
-        pass
+        False
 
     def registerDataLocker(self, fn):
         pass
@@ -194,10 +185,19 @@ class TimePix3():
         pass
 
     def startFocus(self, exposure, displaymode, accumulate):
-        pass
+        if self.getCCDStatus() == "DA_RECORDING":
+            self.stopFocus()
+        if self.getCCDStatus() == "DA_IDLE":
+            resp = requests.get(url=self.__serverURL + '/measurement/start')
+            data = resp.text
+            self.start_listening()
+            return True
 
     def stopFocus(self):
-        return True
+        status = self.getCCDStatus()
+        resp = requests.get(url=self.__serverURL + '/measurement/stop')
+        data = resp.text
+        self.finish_listening()
 
     def setExposureTime(self, exposure):
         detector_config = self.get_config()
@@ -220,7 +220,6 @@ class TimePix3():
     def getNumofGains(self, cameraport):
         pass
 
-
     def getGain(self, cameraport):
         pass
 
@@ -229,7 +228,6 @@ class TimePix3():
 
     def setGain(self, gain):
         pass
-        return res
 
     def getReadoutTime(self):
         pass
@@ -303,7 +301,7 @@ class TimePix3():
         pass
 
     def getArea(self):
-        pass
+        return (0, 0, 2048, 2048)
 
     def setVideoThreshold(self, threshold):
         pass
@@ -314,15 +312,11 @@ class TimePix3():
     def setCCDOverscan(self, sx, sy):
         pass
 
-class ListenerTimePix3():
-    def __init__(self, message):
-        self.__dataQueue = queue.LifoQueue()
-        self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(8088,))
-        self.__isPlaying = False
-        self.sendmessage = message
+    #Function of the client listener
 
     def start_listening(self):
         self.__isPlaying = True
+        self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(8088,))
         self.__clientThread.start()
 
     def finish_listening(self):
@@ -347,6 +341,8 @@ class ListenerTimePix3():
         cam_properties = dict()
         frame_data = b''
         buffer_size = 1024
+        frame_number = 0
+        frame_time = 0
 
         def check_string_value(header, prop):
             start_index = header.index(prop)
@@ -389,7 +385,7 @@ class ListenerTimePix3():
             try:
                 data = client.recv(buffer_size)
                 if len(data) <= 0:
-                    print('received null')
+                    logging.info('***TP3***: Received null bytes')
                 elif b'{' in data:
                     data += client.recv(1024)
                     begin_header = data.index(b'{')
@@ -399,6 +395,8 @@ class ListenerTimePix3():
                                        'height']:
                         cam_properties[properties] = (check_string_value(header, properties))
                     buffer_size = int(cam_properties['dataSize'] / 4.)
+                    frame_number = int(cam_properties['frameNumber'])
+                    frame_time = int(cam_properties['timeAtFrame'])
                     if begin_header != 0:
                         frame_data += data[:begin_header]
                         if len(frame_data) == cam_properties['dataSize'] + 1: put_queue(cam_properties, frame_data)
@@ -412,7 +410,7 @@ class ListenerTimePix3():
             except socket.timeout:
                 pass
                 if not self.__dataQueue.empty(): self.sendmessage(1)
-
+        logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
         return True
 
     def get_last_data(self):
