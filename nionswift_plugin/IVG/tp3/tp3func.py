@@ -3,13 +3,17 @@ import requests
 import threading
 import logging
 import time
+import queue
+import socket
+import numpy
+
+def SENDMYMESSAGEFUNC(sendmessagefunc):
+    return sendmessagefunc
 
 class TimePix3():
     def __init__(self, url):
 
         self.__serverURL = url
-        self.__thread = None
-        self.__dataEvent = threading.Event()
 
         try:
             initial_status_code = self.status_code()
@@ -22,8 +26,10 @@ class TimePix3():
             bpcFile = '/home/asi/load_files/tpx3-demo.bpc'
             dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
             self.cam_init(bpcFile, dacsFile)
+            self.set_destination(port = 0)
         except:
             logging.info('***TP3***: Problem initializing Timepix')
+
 
     def status_code(self):
         try:
@@ -33,13 +39,11 @@ class TimePix3():
         status_code = resp.status_code
         return status_code
 
-
     def dashboard(self):
         resp = requests.get(url=self.__serverURL + '/dashboard')
         data = resp.text
         dashboard = json.loads(data)
         return dashboard
-
 
     def cam_init(self, bpc_file, dacs_file):
         resp = requests.get(url=self.__serverURL + '/config/load?format=pixelconfig&file=' + bpc_file)
@@ -57,7 +61,6 @@ class TimePix3():
         detectorConfig = json.loads(data)
         return detectorConfig
 
-
     def acq_init(self, detector_config, ntrig=99, shutter_open_ms=50):
         detector_config["nTriggers"] = ntrig
         detector_config["TriggerMode"] = "CONTINUOUS"
@@ -68,7 +71,8 @@ class TimePix3():
         # logging.info('Response of updating Detector Configuration: ' + data)
 
 
-    def set_destination(self):
+    def set_destination(self, port=0):
+        options = ['count', 'tot', 'toa', 'tof']
         destination = {
              #"Raw": [{
                 # URI to a folder where to place the raw files.
@@ -80,73 +84,20 @@ class TimePix3():
             "Image": [{
                 "Base": "tcp://localhost:8088",
                 "Format": "jsonimage",
-                "Mode": "count"
+                "Mode": options[port]
             }]
         }
         resp = requests.put(url=self.__serverURL + '/server/destination', data=json.dumps(destination))
         data = resp.text
-        # logging.info('Response of uploading the Destination Configuration to SERVAL : ' + data)
-
-
-    def acq_single(self):
-        self.__thread = threading.Thread(target=self._acq_simple, args=(),)
-        self.__thread.start()
-
-    def acq_wait(self):
-        self.__thread.join()
-
-    def detector_status(self):
-        '''
-        Returns
-        -------
-        str
-
-        Notes
-        -----
-        DA_IDLE is idle. DA_PREPARING is busy to setup recording. DA_RECORDING is busy recording
-        and output data to destinations. DA_STOPPING is busy to stop the recording process
-        '''
-        dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
-        return dashboard["Measurement"]["Status"]
-
-
-    def acq_alive(self):
-        return self.__thread.is_alive()
-
-    def _acq_simple(self):
-        start=time.time()
-        if self.detector_status() == "DA_IDLE":
-            resp = requests.get(url=self.__serverURL + '/measurement/start')
-            data = resp.text
-            #logging.info('Response of acquisition start: ' + data)
-            taking_data = True
-            while taking_data:
-                dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
-                #logging.info(dashboard)
-                time.sleep(0.01)
-                status = self.detector_status()
-                if status == "DA_STOPPING":
-                    print('data dispo')
-                    print(time.time() - start)
-                if status == "DA_IDLE":
-                    taking_data = False
-                    resp = requests.get(url=self.__serverURL + '/measurement/stop')
-                    data = resp.text
-                    #logging.info('Acquisition was stopped with response: ' + data)
+        logging.info('Response of uploading the Destination Configuration to SERVAL : ' + data)
 
     def start_acq_simple(self):
-        if self.detector_status() == "DA_IDLE":
+        if self.getCCDStatus() == "DA_IDLE":
             resp = requests.get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            #logging.info('Response of acquisition start: ' + data)
-            #while True:
-            #    dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
-            #    #logging.info(dashboard)
-            #    time.sleep(0.005)
-            #    if self.detector_status() == "DA_STOPPING": break
 
     def finish_acq_simple(self):
-        status = self.detector_status()
+        status = self.getCCDStatus()
         resp = requests.get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
         # logging.info('Acquisition was stopped with response: ' + data)
@@ -249,7 +200,10 @@ class TimePix3():
         return True
 
     def setExposureTime(self, exposure):
-        pass
+        detector_config = self.get_config()
+        detector_config["ExposureTime"] = exposure
+        resp = requests.put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
+        data = resp.text
 
     def getNumofSpeeds(self, cameraport):
         pass
@@ -290,16 +244,27 @@ class TimePix3():
         pass
 
     def setCurrentPort(self, cameraport):
-        pass
+        self.set_destination(cameraport)
 
     def getMultiplication(self):
-        pass
+        return [1]
 
     def setMultiplication(self, multiplication):
         pass
 
     def getCCDStatus(self) -> dict():
-        pass
+        '''
+        Returns
+        -------
+        str
+
+        Notes
+        -----
+        DA_IDLE is idle. DA_PREPARING is busy to setup recording. DA_RECORDING is busy recording
+        and output data to destinations. DA_STOPPING is busy to stop the recording process
+        '''
+        dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
+        return dashboard["Measurement"]["Status"]
 
     def getReadoutSpeed(self):
         pass
@@ -314,7 +279,7 @@ class TimePix3():
         pass
 
     def getTurboMode(self):
-        pass
+        return [0]
 
     def setExposureMode(self, mode, edge):
         pass
@@ -348,3 +313,113 @@ class TimePix3():
 
     def setCCDOverscan(self, sx, sy):
         pass
+
+class ListenerTimePix3():
+    def __init__(self, message):
+        self.__dataQueue = queue.LifoQueue()
+        self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(8088,))
+        self.__isPlaying = False
+        self.sendmessage = message
+
+    def start_listening(self):
+        self.__isPlaying = True
+        self.__clientThread.start()
+
+    def finish_listening(self):
+        if self.__isPlaying:
+            self.__isPlaying = False
+            self.__clientThread.join()
+            logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
+            self.__dataQueue = queue.LifoQueue()
+
+    def acquire_single_frame(self, port=8088):
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        ip = socket.gethostbyname('129.175.108.52')
+        address = (ip, port)
+        try:
+            client.connect(address)
+            logging.info(f'***TP3***: Client connected.')
+            client.settimeout(0.005)
+        except ConnectionRefusedError:
+            return False
+
+        cam_properties = dict()
+        frame_data = b''
+        buffer_size = 1024
+
+        def check_string_value(header, prop):
+            start_index = header.index(prop)
+            end_index = start_index + len(prop)
+            begin_value = header.index(':', end_index, len(header)) + 1
+            if prop == 'height':
+                end_value = header.index('}', end_index, len(header))
+            else:
+                end_value = header.index(',', end_index, len(header))
+            try:
+                value = float(header[begin_value:end_value])
+            except ValueError:
+                value = str(header[begin_value:end_value])
+            return value
+
+        def put_queue(cam_prop, frame):
+            self.__dataQueue.put((cam_prop, frame))
+
+        while self.__isPlaying:
+            '''
+            Notes
+            -----
+            Loop based on self.__is_playing. 
+            if b'timeAtFrame' is in data, header is there. A few unlikely issues will kill a tiny percentage of
+            frames. They are basically headers chopped with a part in one chunk data (4096 bytes) to other chunk
+            data. 
+    
+            I get both the beginning and the end of header. Most of data are:
+                b'{HEADER}\n\x00\x00... ...\x00\n'
+            This means initial frame_data is everything after header. So the beginning of a frame_data is simply
+            data[end_header+2:].
+    
+            In some cases, however, you have a data like this:
+                b'\x00\x00\x00{HEADER}\n\x00\x00... ...\x00\n'
+            This means everything before HEADER actually is part of an previous imcomplete frame. This is handled
+            in begin_header!=0. In this case, your new frame will always be data[end_header+2:]. I handle good frames
+            using create_last_image, which creates this shared memory variable self.__lastImage and also sets the
+            event thread to True so image can advance.
+            '''
+            try:
+                data = client.recv(buffer_size)
+                if len(data) <= 0:
+                    print('received null')
+                elif b'{' in data:
+                    data += client.recv(1024)
+                    begin_header = data.index(b'{')
+                    end_header = data.index(b'}')
+                    header = data[begin_header:end_header + 1].decode()
+                    for properties in ['timeAtFrame', 'frameNumber', 'measurementID', 'dataSize', 'bitDepth', 'width',
+                                       'height']:
+                        cam_properties[properties] = (check_string_value(header, properties))
+                    buffer_size = int(cam_properties['dataSize'] / 4.)
+                    if begin_header != 0:
+                        frame_data += data[:begin_header]
+                        if len(frame_data) == cam_properties['dataSize'] + 1: put_queue(cam_properties, frame_data)
+                    frame_data = data[end_header + 2:]
+                else:
+                    try:
+                        frame_data += data
+                    except Exception as e:
+                        logging.info(f'Exception is {e}')
+                    if len(frame_data) == cam_properties['dataSize'] + 1: put_queue(cam_properties, frame_data)
+            except socket.timeout:
+                pass
+                if not self.__dataQueue.empty(): self.sendmessage(1)
+
+        return True
+
+    def get_last_data(self):
+        return self.__dataQueue.get()
+
+    def create_image_from_bytes(self, frame_data):
+        frame_data = numpy.array(frame_data[:-1])
+        frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
+        frame_int = numpy.reshape(frame_int, (256, 1024))
+        return frame_int

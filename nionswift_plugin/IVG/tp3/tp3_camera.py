@@ -1,13 +1,9 @@
 # standard libraries
 import copy
-import socket
 import gettext
-import numpy
 import typing
 import logging
-import time
 import threading
-import queue
 
 # local libraries
 from nion.utils import Event
@@ -21,29 +17,52 @@ from nion.instrumentation import camera_base
 
 _ = gettext.gettext
 
-
 class Camera(camera_base.CameraDevice):
     """Implement a camera device."""
 
-    def __init__(self, camera_id: str, camera_type: str, camera_name: str, instrument: ivg_inst.ivgInstrument):
-        self.camera_id = camera_id
-        self.camera_type = camera_type
-        self.camera_name = camera_name
+    def __init__(self, manufacturer, model, sn, simul, instrument: ivg_inst.ivgInstrument, id, name, type):
+        self.camera_id = id
+        self.camera_type = type
+        self.camera_name = name
 
         self.__frame_number = 0
         self.__is_playing = False
         self.__readout_area = (0, 0, 256, 1024)
-        self.__lastImage = None
-        self.__clientThread = None
 
-        self.__clock = None
-        self.__dataQueue = queue.LifoQueue()
         self.__hasData = threading.Event()
 
-        self.camera = tp3func.TimePix3('http://129.175.108.52:8080')
+        assert manufacturer=="4" #This tp3_camera is a demo for TimePix3. Manufacturer must be 4
+        if manufacturer=='4':
+            self.camera_callback = tp3func.SENDMYMESSAGEFUNC(self.sendMessageFactory())
+            self.camera = tp3func.TimePix3(sn)
+            self.tp3Listener = tp3func.ListenerTimePix3(self.camera_callback)
 
         self.frame_parameter_changed_event = Event.Event()
         self.stop_acquitisition_event = Event.Event()
+
+        bx, by = self.camera.getBinning()
+        port = self.camera.getCurrentPort()
+        d = {
+            "exposure_ms": 10,
+            "h_binning": bx,
+            "v_binning": by,
+            "soft_binning": False,
+            "acquisition_mode": "Focus",
+            "spectra_count": 10,
+            "multiplication": self.camera.getMultiplication()[0],
+            "area": self.camera.getArea(),
+            "port": port,
+            "speed": self.camera.getCurrentSpeed(port),
+            "gain": self.camera.getGain(port),
+            "turbo_mode_enabled": self.camera.getTurboMode()[0],
+            "video_threshold": self.camera.getVideoThreshold(),
+            "fan_enabled": self.camera.getFan(),
+            "processing": None,
+            "flipped": False,
+        }
+
+        self.current_camera_settings = CameraFrameParameters(d)
+        self.__hardware_settings = self.current_camera_settings
 
     def close(self):
         self.__is_playing = False
@@ -83,10 +102,21 @@ class Camera(camera_base.CameraDevice):
         return (readout_area[2] - readout_area[0]) // binning, (readout_area[3] - readout_area[1]) // binning
 
     def set_frame_parameters(self, frame_parameters) -> None:
-        print(frame_parameters)
-        det_config = self.camera.get_config()
-        self.camera.acq_init(det_config, 99999, frame_parameters['exposure_ms'])
-        self.camera.set_destination()
+        if self.__hardware_settings.exposure_ms != frame_parameters.exposure_ms:
+            self.__hardware_settings.exposure_ms = frame_parameters.exposure_ms
+            self.camera.setExposureTime(frame_parameters.exposure_ms / 1000.)
+
+        if "soft_binning" in frame_parameters:
+            self.__hardware_settings.soft_binning = frame_parameters.soft_binning
+            if self.__hardware_settings.acquisition_mode != frame_parameters.acquisition_mode:
+                self.__hardware_settings.acquisition_mode = frame_parameters.acquisition_mode
+            print(f"***CAMERA***: acquisition mode[camera]: {self.__hardware_settings.acquisition_mode}")
+            self.__hardware_settings.spectra_count = frame_parameters.spectra_count
+
+        if "port" in frame_parameters:
+            if self.__hardware_settings.port != frame_parameters.port:
+                self.__hardware_settings.port = frame_parameters.port
+                self.camera.setCurrentPort(frame_parameters.port)
 
     @property
     def calibration_controls(self) -> dict:
@@ -109,29 +139,29 @@ class Camera(camera_base.CameraDevice):
         if not self.__is_playing:
             self.__is_playing = True
             logging.info('***TP3***: Starting acquisition...')
+            self.camera.finish_acq_simple()
             self.camera.start_acq_simple()
-            self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(8088,))
-            self.__clientThread.start()
+            self.tp3Listener.start_listening()
+            #self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(8088,))
+            #self.__clientThread.start()
 
 
     def stop_live(self) -> None:
         """Stop live acquisition."""
         self.__is_playing = False
-        logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
         self.camera.finish_acq_simple()
-        self.__clientThread.join()
-        self.__dataQueue = queue.LifoQueue()
+        self.tp3Listener.finish_listening()
+        #self.__clientThread.join()
+        #self.__dataQueue = queue.LifoQueue()
 
 
     def acquire_image(self):
         """Acquire the most recent data."""
-        self.__hasData.wait(10)
-        #image_data = numpy.random.randn(256, 1024)
-        prop, bin_data = self.__dataQueue.get()
-        self.__frame_number = int(prop['frameNumber'])
-        image_data = self.create_image_from_bytes(bin_data)
 
+        self.__hasData.wait(2)
         self.__hasData.clear()
+        #image_data = numpy.random.randn(256, 1024)
+        self.acquire_data = self.imagedata
 
         datum_dimensions = 2
         collection_dimensions = 0
@@ -139,100 +169,19 @@ class Camera(camera_base.CameraDevice):
         properties = dict()
         properties["frame_number"] = self.__frame_number
 
-        return {"data": image_data, "collection_dimension_count": collection_dimensions,
+        return {"data": self.acquire_data, "collection_dimension_count": collection_dimensions,
                 "datum_dimension_count": datum_dimensions,
                 "properties": properties}
 
 
-    def create_image_from_bytes(self, frame_data):
-        frame_data = numpy.array(frame_data[:-1])
-        frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
-        frame_int = numpy.reshape(frame_int, (256, 1024))
-        return frame_int
-
-    def acquire_single_frame(self, port=8088):
-
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-        ip = socket.gethostbyname('129.175.108.52')
-        adress = (ip, port)
-        try:
-            client.connect(adress)
-            logging.info(f'***TP3***: Client connected.')
-            client.settimeout(0.005)
-        except ConnectionRefusedError:
-            return False
-
-        cam_properties = dict()
-        frame_data = b''
-        buffer_size = 1024
-
-        def check_string_value(header, prop):
-            start_index = header.index(prop)
-            end_index = start_index + len(prop)
-            begin_value = header.index(':', end_index, len(header)) + 1
-            if prop=='height':
-                end_value = header.index('}', end_index, len(header))
-            else:
-                end_value = header.index(',', end_index, len(header))
-            try:
-                value = float(header[begin_value:end_value])
-            except ValueError:
-                value = str(header[begin_value:end_value])
-            return value
-
-        def put_queue(cam_prop, frame):
-            self.__dataQueue.put((cam_prop, frame))
-
-        while self.__is_playing:
-            '''
-            Notes
-            -----
-            Loop based on self.__is_playing. 
-            if b'timeAtFrame' is in data, header is there. A few unlikely issues will kill a tiny percentage of
-            frames. They are basically headers chopped with a part in one chunk data (4096 bytes) to other chunk
-            data. 
-            
-            I get both the beginning and the end of header. Most of data are:
-                b'{HEADER}\n\x00\x00... ...\x00\n'
-            This means initial frame_data is everything after header. So the beginning of a frame_data is simply
-            data[end_header+2:].
-            
-            In some cases, however, you have a data like this:
-                b'\x00\x00\x00{HEADER}\n\x00\x00... ...\x00\n'
-            This means everything before HEADER actually is part of an previous imcomplete frame. This is handled
-            in begin_header!=0. In this case, your new frame will always be data[end_header+2:]. I handle good frames
-            using create_last_image, which creates this shared memory variable self.__lastImage and also sets the
-            event thread to True so image can advance.
-            '''
-            try:
-                data = client.recv(buffer_size)
-                if len(data) <= 0:
-                    print('received null')
-                elif b'{' in data:
-                    data+=client.recv(1024)
-                    begin_header = data.index(b'{')
-                    end_header = data.index(b'}')
-                    header = data[begin_header:end_header+1].decode()
-                    for properties in ['timeAtFrame', 'frameNumber', 'measurementID', 'dataSize', 'bitDepth', 'width', 'height']:
-                        cam_properties[properties] = (check_string_value(header, properties))
-                    buffer_size = int(cam_properties['dataSize']/4.)
-                    if begin_header!=0:
-                        frame_data += data[:begin_header]
-                        if len(frame_data) == cam_properties['dataSize']+1: put_queue(cam_properties, frame_data)
-                    frame_data = data[end_header+2:]
-                else:
-                    try:
-                        frame_data += data
-                    except Exception as e:
-                        logging.info(f'Exception is {e}')
-                    if len(frame_data) == cam_properties['dataSize']+1: put_queue(cam_properties, frame_data)
-            except socket.timeout:
-                if not self.__dataQueue.empty(): self.__hasData.set()
-
-        #logging.info(f'Frame {self.__frame_number} at time ' + str(cam_properties['timeAtFrame']))
-        return True
-
+    def sendMessageFactory(self):
+        def sendMessage(message):
+            if message:
+                prop, last_bytes_data = self.tp3Listener.get_last_data()
+                self.__frame_number = int(prop['frameNumber'])
+                self.imagedata = self.tp3Listener.create_image_from_bytes(last_bytes_data)
+                self.__hasData.set()
+        return sendMessage
 
 class CameraFrameParameters(dict):
 
@@ -436,7 +385,7 @@ class CameraModule:
 
 def run(instrument: ivg_inst.ivgInstrument):
 
-    camera_device = Camera("TimePix3", "eels", _("TimePix3"), instrument)
+    camera_device = Camera("4", "CheeTah", 'http://129.175.108.52:8080', False, instrument, "TimePix3", _("TimePix3"), "eels")
     #camera_device.camera_panel_type = "eels"
     camera_settings = CameraSettings("TimePix3")
 
