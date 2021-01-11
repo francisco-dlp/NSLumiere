@@ -40,7 +40,10 @@ class Camera(camera_base.CameraDevice):
         self.__dataQueue = queue.LifoQueue()
         self.__hasData = threading.Event()
 
-        self.__tp3 = tp3func.TimePix3('http://129.175.108.52:8080')
+        self.camera = tp3func.TimePix3('http://129.175.108.52:8080')
+
+        self.frame_parameter_changed_event = Event.Event()
+        self.stop_acquitisition_event = Event.Event()
 
     def close(self):
         self.__is_playing = False
@@ -81,9 +84,9 @@ class Camera(camera_base.CameraDevice):
 
     def set_frame_parameters(self, frame_parameters) -> None:
         print(frame_parameters)
-        det_config = self.__tp3.get_config()
-        self.__tp3.acq_init(det_config, 99999, frame_parameters['exposure_ms'])
-        self.__tp3.set_destination()
+        det_config = self.camera.get_config()
+        self.camera.acq_init(det_config, 99999, frame_parameters['exposure_ms'])
+        self.camera.set_destination()
 
     @property
     def calibration_controls(self) -> dict:
@@ -106,7 +109,7 @@ class Camera(camera_base.CameraDevice):
         if not self.__is_playing:
             self.__is_playing = True
             logging.info('***TP3***: Starting acquisition...')
-            self.__tp3.start_acq_simple()
+            self.camera.start_acq_simple()
             self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(8088,))
             self.__clientThread.start()
 
@@ -115,7 +118,7 @@ class Camera(camera_base.CameraDevice):
         """Stop live acquisition."""
         self.__is_playing = False
         logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
-        self.__tp3.finish_acq_simple()
+        self.camera.finish_acq_simple()
         self.__clientThread.join()
         self.__dataQueue = queue.LifoQueue()
 
@@ -227,7 +230,7 @@ class Camera(camera_base.CameraDevice):
             except socket.timeout:
                 if not self.__dataQueue.empty(): self.__hasData.set()
 
-        logging.info(f'Frame {self.__frame_number} at time ' + str(cam_properties['timeAtFrame']))
+        #logging.info(f'Frame {self.__frame_number} at time ' + str(cam_properties['timeAtFrame']))
         return True
 
 
@@ -236,10 +239,22 @@ class CameraFrameParameters(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__dict__ = self
-        self.exposure_ms = self.get("exposure_ms", 125)
-        self.binning = self.get("binning", 1)
-        self.processing = self.get("processing")
-        self.integration_count = self.get("integration_count")
+        self.exposure_ms = self.get("exposure_ms", 125)  # milliseconds
+        self.h_binning = self.get("h_binning", 1)
+        self.v_binning = self.get("v_binning", 1)
+        self.soft_binning = self.get("soft_binning", True)  # 1d, 2d
+        self.acquisition_mode = self.get("acquisition_mode", "Focus")  # Focus, Cumul, 1D-Chrono, 1D-Chrono-Live, 2D-Chrono
+        self.spectra_count = self.get("spectra_count", 1)
+        self.speed = self.get("speed", 1)
+        self.gain = self.get("gain", 0)
+        self.multiplication = self.get("multiplication", 1)
+        self.port = self.get("port", 0)
+        self.area = self.get("area", (0, 0, 2048, 2048))  # a tuple: top, left, bottom, right
+        self.turbo_mode_enabled = self.get("turbo_mode_enabled", False)
+        self.video_threshold = self.get("video_threshold", 0)
+        self.fan_enabled = self.get("fan_enabled", False)
+        self.flipped = self.get("flipped", False)
+        self.integration_count = 1  # required
 
     def __copy__(self):
         return self.__class__(copy.copy(dict(self)))
@@ -249,12 +264,31 @@ class CameraFrameParameters(dict):
         memo[id(self)] = deepcopy
         return deepcopy
 
+    @property
+    def binning(self):
+        return self.h_binning
+
+    @binning.setter
+    def binning(self, value):
+        self.h_binning = value
+
     def as_dict(self):
         return {
             "exposure_ms": self.exposure_ms,
-            "binning": self.binning,
-            "processing": self.processing,
-            "integration_count": self.integration_count,
+            "h_binning": self.h_binning,
+            "v_binning": self.v_binning,
+            "soft_binning": self.soft_binning,
+            "acquisition_mode": self.acquisition_mode,
+            "spectra_count": self.spectra_count,
+            "speed": self.speed,
+            "gain": self.gain,
+            "multiplication": self.multiplication,
+            "port": self.port,
+            "area": self.area,
+            "turbo_mode_enabled": self.turbo_mode_enabled,
+            "video_threshold": self.video_threshold,
+            "fan_enabled": self.fan_enabled,
+            "flipped": self.flipped
         }
 
 
@@ -279,7 +313,7 @@ class CameraSettings:
         self.__camera_id = camera_id
 
         # the list of possible modes should be defined here
-        self.modes = ["Run", "Tune", "Snap"]
+        self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live"]
 
         # configure profiles
         self.__settings = [
@@ -397,13 +431,13 @@ class CameraModule:
         self.camera_device = camera_device
         self.camera_settings = camera_settings
         self.priority = 20
-        #self.camera_panel_type = "tp3_camera_panel"
+        self.camera_panel_type = "orsay_camera_panel"
 
 
 def run(instrument: ivg_inst.ivgInstrument):
 
     camera_device = Camera("TimePix3", "eels", _("TimePix3"), instrument)
-    camera_device.camera_panel_type = "eels"
+    #camera_device.camera_panel_type = "eels"
     camera_settings = CameraSettings("TimePix3")
 
     Registry.register_component(CameraModule("VG_Lum_controller", camera_device, camera_settings), {"camera_module"})

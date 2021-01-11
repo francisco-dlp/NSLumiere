@@ -100,6 +100,7 @@ class CameraHandler:
 
         self.mode_items = Model.PropertyModel([])
         self.mode_items.value = self.camera_settings.modes
+        print(self.mode_items.value)
         val = self.camera_settings.modes.index(frame_parameters["acquisition_mode"])
         self.mode_item = Model.PropertyModel(self.camera_settings.modes.index(frame_parameters["acquisition_mode"]))
         self.mode_item_text = Model.PropertyModel("???g")

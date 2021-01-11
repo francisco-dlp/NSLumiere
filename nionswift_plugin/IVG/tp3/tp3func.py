@@ -150,3 +150,15 @@ class TimePix3():
         resp = requests.get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
         # logging.info('Acquisition was stopped with response: ' + data)
+
+    def getPortNames(self):
+        return ['Counts', 'Time over Threshold (ToT)', 'Time of Arrival (ToA)', 'Time of Flight (ToF)']
+
+    def getCCDSize(self):
+        return (256, 1024)
+
+    def getSpeeds(self, port):
+        return list(['Unique'])
+
+    def getGains(self, port):
+        return list(['Unique'])
