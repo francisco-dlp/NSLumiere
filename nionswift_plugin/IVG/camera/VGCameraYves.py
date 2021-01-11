@@ -131,7 +131,6 @@ class CameraDevice(camera_base.CameraDevice):
         return self.current_camera_settings
 
     def set_frame_parameters(self, frame_parameters : dict) -> None:
-            
         if self.__hardware_settings.exposure_ms != frame_parameters.exposure_ms:
             self.__hardware_settings.exposure_ms = frame_parameters.exposure_ms
             self.camera.setExposureTime(frame_parameters.exposure_ms/1000.)

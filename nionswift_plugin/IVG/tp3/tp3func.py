@@ -162,3 +162,189 @@ class TimePix3():
 
     def getGains(self, port):
         return list(['Unique'])
+
+    def getBinning(self):
+        return (1, 1)
+
+    def setBinning(self, bx, by):
+        pass
+
+    def getImageSize(self):
+        return (256, 1024)
+
+    def registerLogger(self, fn):
+        pass
+
+    def addConnectionListener(self, fn):
+        pass
+
+    @property
+    def simulation_mode(self) -> bool:
+        pass
+
+    def registerDataLocker(self, fn):
+        pass
+
+    def registerDataUnlocker(self, fn):
+        pass
+
+    def registerSpimDataLocker(self, fn):
+        pass
+
+    def registerSpimDataUnlocker(self, fn):
+        pass
+
+    def registerSpectrumDataLocker(self, fn):
+        pass
+
+    def registerSpectrumDataUnlocker(self, fn):
+        pass
+
+    def setCCDOverscan(self, sx, sy):
+        pass
+
+    def displayOverscan(self, displayed):
+        pass
+
+    def setMirror(self, mirror):
+        pass
+
+    def setAccumulationNumber(self, count):
+        pass
+
+    def getAccumulateNumber(self):
+        pass
+
+    def setSpimMode(self, mode):
+        pass
+
+    def startSpim(self, nbspectra, nbspectraperpixel, dwelltime, is2D):
+        pass
+
+    def pauseSpim(self):
+        pass
+
+    def resumeSpim(self, mode):
+        pass
+
+    def stopSpim(self, immediate):
+        return True
+
+    def isCameraThere(self):
+        return True
+
+    def getTemperature(self):
+        pass
+
+    def setTemperature(self, temperature):
+        pass
+
+    def setupBinning(self):
+        pass
+
+    def startFocus(self, exposure, displaymode, accumulate):
+        pass
+
+    def stopFocus(self):
+        return True
+
+    def setExposureTime(self, exposure):
+        pass
+
+    def getNumofSpeeds(self, cameraport):
+        pass
+
+    def getCurrentSpeed(self, cameraport):
+        return 0
+
+    def getAllPortsParams(self):
+        return None
+
+    def setSpeed(self, cameraport, speed):
+        pass
+
+    def getNumofGains(self, cameraport):
+        pass
+
+
+    def getGain(self, cameraport):
+        pass
+
+    def getGainName(self, cameraport, gain):
+        pass
+
+    def setGain(self, gain):
+        pass
+        return res
+
+    def getReadoutTime(self):
+        pass
+
+    def getNumofPorts(self):
+        pass
+
+    def getPortName(self, portnb):
+        pass
+
+    def getCurrentPort(self):
+        pass
+
+    def setCurrentPort(self, cameraport):
+        pass
+
+    def getMultiplication(self):
+        pass
+
+    def setMultiplication(self, multiplication):
+        pass
+
+    def getCCDStatus(self) -> dict():
+        pass
+
+    def getReadoutSpeed(self):
+        pass
+
+    def getPixelTime(self, cameraport, speed):
+        pass
+
+    def adjustOverscan(self, sizex, sizey):
+        pass
+
+    def setTurboMode(self, active, sizex, sizey):
+        pass
+
+    def getTurboMode(self):
+        pass
+
+    def setExposureMode(self, mode, edge):
+        pass
+
+    def getExposureMode(self):
+        pass
+
+    def setPulseMode(self, mode):
+        pass
+
+    def setVerticalShift(self, shift, clear):
+        pass
+
+    def setFan(self, On_Off: bool):
+        pass
+
+    def getFan(self):
+        pass
+
+    def setArea(self, area: tuple):
+        pass
+
+    def getArea(self):
+        pass
+
+    def setVideoThreshold(self, threshold):
+        pass
+
+    def getVideoThreshold(self):
+        pass
+
+    def setCCDOverscan(self, sx, sy):
+        pass
