@@ -387,7 +387,7 @@ class CameraDevice(camera_base.CameraDevice):
         properties["acquisition_mode"] = acquisition_mode
         calibration_controls = copy.deepcopy(self.calibration_controls)
 
-        if self.frame_number==self.current_camera_settings.spectra_count and acquisition_mode=='Cumul':
+        if self.frame_number>=self.current_camera_settings.spectra_count and acquisition_mode=='Cumul':
             self.stop_acquitisition_event.fire("")
 
         return {"data": self.acquire_data, "collection_dimension_count": collection_dimensions,

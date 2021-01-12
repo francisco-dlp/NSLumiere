@@ -77,18 +77,23 @@ class TimePix3():
         options = ['count', 'tot', 'toa', 'tof']
         destination = {
              #"Raw": [{
-                # URI to a folder where to place the raw files.
-                # "Base": pathlib.Path(os.path.join(os.getcwd(), 'data')).as_uri(),
-             #   "Base": 'tcp://localhost:8089',
-                # How to name the files for the various frames.
-                #"FilePattern": "raw%Hms_",
+             #   "Base": 'tcp://localhost:8090',
              #}],
             "Image": [{
                 "Base": "tcp://localhost:8088",
                 "Format": "jsonimage",
                 "Mode": options[port]
-            }]
+            },
+            {
+                "Base": "tcp://localhost:8089",
+                "Format": "jsonimage",
+                "Mode": options[port],
+                "IntegrationSize": -1,
+                "IntegrationMode": "Sum"
+            }
+        ]
         }
+
         resp = requests.put(url=self.__serverURL + '/server/destination', data=json.dumps(destination))
         data = resp.text
         logging.info('***TP3***: Response of uploading the Destination Configuration to SERVAL : ' + data)
@@ -187,12 +192,13 @@ class TimePix3():
 
     def startFocus(self, exposure, displaymode, accumulate):
         self.__softBinning = True if displaymode=='1d' else False
+        port=8089 if accumulate else 8088
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE":
             resp = requests.get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_listening()
+            self.start_listening(port)
             return True
 
     def stopFocus(self):
@@ -316,9 +322,9 @@ class TimePix3():
 
     #Function of the client listener
 
-    def start_listening(self):
+    def start_listening(self, port=8088):
         self.__isPlaying = True
-        self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(8088,))
+        self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(port,))
         self.__clientThread.start()
 
     def finish_listening(self):
@@ -328,7 +334,7 @@ class TimePix3():
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
             self.__dataQueue = queue.LifoQueue()
 
-    def acquire_single_frame(self, port=8088):
+    def acquire_single_frame(self, port):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         ip = socket.gethostbyname('129.175.108.52')
