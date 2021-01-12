@@ -246,6 +246,7 @@ class CameraDevice(camera_base.CameraDevice):
         if new_data:
             self.has_spim_data_event.set()
         if not running:
+            self.has_spim_data_event.set()
             hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 self.camera_id)
             hardware_source.stop_playing()
@@ -291,7 +292,7 @@ class CameraDevice(camera_base.CameraDevice):
         self.sizex, self.sizey = self.camera.getImageSize()
         if self.current_camera_settings.soft_binning:
             self.sizey = 1
-        print(f"***CAMERA***: Start live, Image size: {self.sizex} x {self.sizey}"
+        logging.info(f"***CAMERA***: Start live, Image size: {self.sizex} x {self.sizey}"
               f"  soft_binning: {self.current_camera_settings.soft_binning}"
               f"    mode: {self.current_camera_settings.acquisition_mode}"
               f"    nb spectra {self.current_camera_settings.spectra_count}")
@@ -343,14 +344,10 @@ class CameraDevice(camera_base.CameraDevice):
             self.__acqon = False
         if "Chrono" in self.current_camera_settings.acquisition_mode or ("Focus" in self.current_camera_settings.acquisition_mode and self.__acqspimon):
             self.camera.stopSpim(True)
-            self.has_data_event.set()
             self.__acqon = False
             self.__acqspimon = False
             logging.info('***CAMERA***: Spim stopped. Handling...')
             if not "Chrono" in self.current_camera_settings.acquisition_mode: self.instrument.warn_Scan_instrument_spim(False)
-        else:
-            if self.__acqspimon:
-                self.has_spim_data_event.set()
 
     def acquire_image(self) -> dict:
         acquisition_mode = self.current_camera_settings.acquisition_mode
