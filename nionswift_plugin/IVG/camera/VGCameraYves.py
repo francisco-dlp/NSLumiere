@@ -306,7 +306,7 @@ class CameraDevice(camera_base.CameraDevice):
             else:
                 self.sizey = self.current_camera_settings.spectra_count
                 self.sizez = 1
-                self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype = numpy.float32)
+                self.spimimagedata = numpy.zeros((self.sizey, self.sizex), dtype = numpy.float32)
             self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
             self.camera.stopFocus()
             self.camera.startSpim(self.current_camera_settings.spectra_count, 1, self.current_camera_settings.exposure_ms / 1000., self.current_camera_settings.acquisition_mode == "2D-Chrono")
@@ -500,7 +500,7 @@ class CameraDevice(camera_base.CameraDevice):
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.frame_number = int(prop['frameNumber'])
                 try:
-                    self.spimimagedata[0, self.frame_number] = self.camera.create_spimimage_from_bytes(last_bytes_data)
+                    self.spimimagedata[self.frame_number] = self.camera.create_spimimage_from_bytes(last_bytes_data)
                 except IndexError:
                     self.spimimagedata = numpy.append(self.spimimagedata, numpy.zeros(self.spimimagedata.shape), axis=1)
                 self.has_spim_data_event.set()
