@@ -16,6 +16,8 @@ class TimePix3():
         self.__dataQueue = queue.LifoQueue()
         self.__isPlaying = False
         self.__softBinning = False
+        self.__isCumul = False
+        self.__expTime = None
         self.sendmessage = message
 
         try:
@@ -29,6 +31,8 @@ class TimePix3():
             bpcFile = '/home/asi/load_files/tpx3-demo.bpc'
             dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
             self.cam_init(bpcFile, dacsFile)
+            self.acq_init(99999)
+            logging.info(f'***TP3***: Current detector configuration is {self.get_config()}.')
         except:
             logging.info('***TP3***: Problem initializing Timepix')
 
@@ -65,7 +69,6 @@ class TimePix3():
         data = resp.text
         logging.info(f'***TP3***: Response of loading dacs file: ' + data)
 
-
     def get_config(self):
         """
         Gets the entire detector configuration. Check serval manual to a full description.
@@ -75,10 +78,11 @@ class TimePix3():
         detectorConfig = json.loads(data)
         return detectorConfig
 
-    def acq_init(self, detector_config, ntrig=99, shutter_open_ms=50):
+    def acq_init(self, ntrig=99):
         """
         Initialization of detector. Standard value is 99999 triggers in continuous mode (a single trigger).
         """
+        detector_config = self.get_config()
         detector_config["nTriggers"] = ntrig
         detector_config["TriggerMode"] = "CONTINUOUS"
 
@@ -231,6 +235,7 @@ class TimePix3():
         """
         self.__softBinning = True if displaymode=='1d' else False
         port=8089 if accumulate else 8088
+        self.__isCumul=bool(accumulate)
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE":
@@ -255,6 +260,8 @@ class TimePix3():
         """
         detector_config = self.get_config()
         detector_config["ExposureTime"] = exposure
+        detector_config["TriggerPeriod"] = exposure
+        self.__expTime = exposure
         resp = requests.put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
 
@@ -471,6 +478,7 @@ class TimePix3():
             try:
                 data = client.recv(buffer_size)
                 if len(data) <= 0:
+                    self.__isPlaying = False
                     logging.info('***TP3***: Received null bytes')
                 elif b'{' in data:
                     data += client.recv(1024)
@@ -495,13 +503,28 @@ class TimePix3():
                     if len(frame_data) == cam_properties['dataSize'] + 1: put_queue(cam_properties, frame_data)
             except socket.timeout:
                 if not self.__dataQueue.empty(): self.sendmessage(message)
+
         logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
         return True
 
     def get_last_data(self):
         return self.__dataQueue.get()
 
+    def get_total_counts_from_data(self, frame_int):
+        return numpy.sum(frame_int)
+
+    def get_current(self, frame_int, frame_number):
+        if self.__isCumul and frame_number:
+            eps = (numpy.sum(frame_int) / self.__expTime) / frame_number
+        else:
+            eps = numpy.sum(frame_int) / self.__expTime
+        cur_pa = eps / (6.242 * 1e18) * 1e12
+        return cur_pa
+
     def create_image_from_bytes(self, frame_data):
+        """
+        Creates an image int8 (1 byte) from byte frame_data. If softBinning is True, we sum in Y axis.
+        """
         frame_data = numpy.array(frame_data[:-1])
         frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
         frame_int = numpy.reshape(frame_int, (256, 1024))
@@ -511,6 +534,9 @@ class TimePix3():
         return frame_int
 
     def create_spimimage_from_bytes(self, frame_data):
+        """
+        Creates an image int8 (1 byte) from byte frame_data. No softBinning for now.
+        """
         frame_data = numpy.array(frame_data[:-1])
         frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
         frame_int = numpy.reshape(frame_int, (256, 1024))

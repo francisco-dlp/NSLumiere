@@ -59,6 +59,7 @@ class CameraDevice(camera_base.CameraDevice):
         self._last_time = time.time()
         self.frame_parameter_changed_event = Event.Event()
         self.stop_acquitisition_event = Event.Event()
+        self.current_event = Event.Event()
 
         # register data locker for focus acquisition
         self.fnlock = orsaycamera.DATALOCKFUNC(self.__data_locker)
@@ -488,6 +489,9 @@ class CameraDevice(camera_base.CameraDevice):
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.frame_number = int(prop['frameNumber'])
                 self.imagedata = self.camera.create_image_from_bytes(last_bytes_data)
+                self.current_event.fire(
+                    format(self.camera.get_current(self.imagedata, self.frame_number), ".7f")
+                )
                 self.has_data_event.set()
             if message==2:
                 prop, last_bytes_data = self.camera.get_last_data()

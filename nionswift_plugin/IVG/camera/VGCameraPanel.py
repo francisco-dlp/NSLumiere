@@ -41,10 +41,9 @@ class CameraHandler:
 
 
 
-        self.__frame_parameter_changed_event_listener = camera_device.frame_parameter_changed_event.listen(
-            frame_parameter_changed)
-
+        self.__frame_parameter_changed_event_listener = camera_device.frame_parameter_changed_event.listen(frame_parameter_changed)
         self.__stop_acquisition_event_listener = camera_device.stop_acquitisition_event.listen(self.stop_clicked)
+        self.__current_event_listener = camera_device.current_event.listen(self.update_current)
 
         sx, sy = camera_device.camera.getCCDSize()
 
@@ -76,6 +75,7 @@ class CameraHandler:
         self.speed_item = Model.PropertyModel(-1)
         self.speed_item_text = Model.PropertyModel("???s")
         self.flip_model = Model.PropertyModel(frame_parameters["flipped"])
+        self.current_value = Model.PropertyModel("0")
         self.gain_items = Model.PropertyModel([])
         self.gain_items.value = list(self.camera_device.camera.getGains(frame_parameters["port"]))
         self.gain_item = Model.PropertyModel(frame_parameters["gain"])
@@ -299,6 +299,9 @@ class CameraHandler:
 
         self.event_loop.create_task(self.update_buttons())
 
+    def update_current(self, value):
+        self.current_value.value = value
+
     def cancel_clicked(self, widget):
         """Handle cancel button click.
 
@@ -390,8 +393,14 @@ class CameraPanelFactory:
         start_button = ui.create_push_button(name="start_button", text=_("Start"), on_clicked="start_clicked")
 
         buttons = ui.create_row(ui.create_stretch(), cancel_button, stop_button, start_button, spacing=8)
-
         progress_row = ui.create_progress_bar()
+        current_label = ui.create_label(text='Current (pA): ')
+        current_val = ui.create_label(text="@binding(current_value.value)")
+        current_column = ui.create_row(progress_row, current_label, current_val, ui.create_stretch(), spacing=5)
+
+        control_column = ui.create_column(binning_group, experiment_group, mode_row, buttons, current_column,
+                                          ui.create_stretch(), spacing=8, margin=4)
+
 
         ports = camera_device.camera.getPortNames()
 
@@ -406,9 +415,6 @@ class CameraPanelFactory:
                                        ui.create_label(text="@binding(status_text.value)"), spacing=8)
 
         status_bar = ui.create_group(status_row)
-
-        control_column = ui.create_column(binning_group, experiment_group, mode_row, buttons, progress_row,
-                                          ui.create_stretch(), spacing=8, margin=4)
 
         roi_combo_box = ui.create_combo_box(items_ref="roi_items", current_index="@binding(roi_item.value)")
 
