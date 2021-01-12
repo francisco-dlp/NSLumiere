@@ -502,7 +502,7 @@ class CameraDevice(camera_base.CameraDevice):
                 try:
                     self.spimimagedata[self.frame_number] = self.camera.create_spimimage_from_bytes(last_bytes_data)
                 except IndexError:
-                    self.spimimagedata = numpy.append(self.spimimagedata, numpy.zeros(self.spimimagedata.shape), axis=1)
+                    self.spimimagedata = numpy.append(self.spimimagedata, numpy.zeros(self.spimimagedata.shape), axis=0)
                 self.has_spim_data_event.set()
         return sendMessage
 

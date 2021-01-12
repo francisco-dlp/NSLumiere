@@ -412,7 +412,7 @@ class TimePix3():
         address = (ip, port)
         try:
             client.connect(address)
-            logging.info(f'***TP3***: Client connected.')
+            logging.info(f'***TP3***: Client connected over 129.175.108.52:{port}.')
             client.settimeout(0.005)
         except ConnectionRefusedError:
             return False
@@ -480,7 +480,6 @@ class TimePix3():
             try:
                 data = client.recv(buffer_size)
                 if len(data) <= 0:
-                    self.__isPlaying = False
                     logging.info('***TP3***: Received null bytes')
                 elif b'{' in data:
                     data += client.recv(1024)
