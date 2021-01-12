@@ -34,6 +34,9 @@ class TimePix3():
 
 
     def status_code(self):
+        """
+        Status code 200 is good. Other status code meaning can be seen in serval manual.
+        """
         try:
             resp = requests.get(url=self.__serverURL)
         except requests.exceptions.RequestException as e:  # Exceptions handling example
@@ -42,12 +45,18 @@ class TimePix3():
         return status_code
 
     def dashboard(self):
+        """
+        Dashboard description can be seen in manual
+        """
         resp = requests.get(url=self.__serverURL + '/dashboard')
         data = resp.text
         dashboard = json.loads(data)
         return dashboard
 
     def cam_init(self, bpc_file, dacs_file):
+        """
+        This load both binary pixel config file and dacs.
+        """
         resp = requests.get(url=self.__serverURL + '/config/load?format=pixelconfig&file=' + bpc_file)
         data = resp.text
         logging.info(f'***TP3***: Response of loading binary pixel configuration file: ' + data)
@@ -58,15 +67,20 @@ class TimePix3():
 
 
     def get_config(self):
+        """
+        Gets the entire detector configuration. Check serval manual to a full description.
+        """
         resp = requests.get(url=self.__serverURL + '/detector/config')
         data = resp.text
         detectorConfig = json.loads(data)
         return detectorConfig
 
     def acq_init(self, detector_config, ntrig=99, shutter_open_ms=50):
+        """
+        Initialization of detector. Standard value is 99999 triggers in continuous mode (a single trigger).
+        """
         detector_config["nTriggers"] = ntrig
         detector_config["TriggerMode"] = "CONTINUOUS"
-        detector_config["ExposureTime"] = shutter_open_ms / 1000
 
         resp = requests.put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
@@ -74,6 +88,10 @@ class TimePix3():
 
 
     def set_destination(self, port=0):
+        """
+        Sets the destination of the data. Data modes in ports are also defined here. Note that you always have
+        data flown in port 8088 and 8089 but only one client at a time.
+        """
         options = ['count', 'tot', 'toa', 'tof']
         destination = {
              #"Raw": [{
@@ -167,6 +185,9 @@ class TimePix3():
         pass
 
     def startSpim(self, nbspectra, nbspectraperpixel, dwelltime, is2D):
+        """
+        Similar to startFocus. Just to be consistent with VGCameraYves. Message=02 because of spim.
+        """
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopSpim()
         if self.getCCDStatus() == "DA_IDLE":
@@ -182,6 +203,9 @@ class TimePix3():
         pass
 
     def stopSpim(self, immediate):
+        """
+        Identical to stopFocus. Just to be consistent with VGCameraYves.
+        """
         status = self.getCCDStatus()
         resp = requests.get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
@@ -200,6 +224,11 @@ class TimePix3():
         pass
 
     def startFocus(self, exposure, displaymode, accumulate):
+        """
+        Start acquisition. Displaymode can be '1d' or '2d' and regulates the global attribute self.__softBinning.
+        accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
+        Message=1 because it is the normal data_locker.
+        """
         self.__softBinning = True if displaymode=='1d' else False
         port=8089 if accumulate else 8088
         if self.getCCDStatus() == "DA_RECORDING":
@@ -211,12 +240,19 @@ class TimePix3():
             return True
 
     def stopFocus(self):
+        """
+        Stop acquisition. Finish listening put global isPlaying to False and wait client thread to finish properly using
+        .join() method. Also replaces the old Queue with a new one with no itens on it (so next one won't use old data).
+        """
         status = self.getCCDStatus()
         resp = requests.get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
         self.finish_listening()
 
     def setExposureTime(self, exposure):
+        """
+        Set camera exposure time.
+        """
         detector_config = self.get_config()
         detector_config["ExposureTime"] = exposure
         resp = requests.put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
@@ -318,7 +354,7 @@ class TimePix3():
         pass
 
     def getArea(self):
-        return (0, 0, 2048, 2048)
+        return (0, 0, 256, 1024)
 
     def setVideoThreshold(self, threshold):
         pass
@@ -332,11 +368,17 @@ class TimePix3():
     #Function of the client listener
 
     def start_listening(self, port=8088, message=1):
+        """
+        Starts the client Thread and sets isPlaying to True.
+        """
         self.__isPlaying = True
         self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(port, message,))
         self.__clientThread.start()
 
     def finish_listening(self):
+        """
+        .join() the client Thread, puts isPlaying to false and replaces old queue to a new one with no itens on it.
+        """
         if self.__isPlaying:
             self.__isPlaying = False
             self.__clientThread.join()
@@ -344,6 +386,17 @@ class TimePix3():
             self.__dataQueue = queue.LifoQueue()
 
     def acquire_single_frame(self, port, message):
+        """
+        Main client function. Main loop is explained below.
+
+        Client is a socket connected to camera in host computer 129.175.108.52. Port depends on which kind of data you
+        are listening on. After connection, timeout is set to 5 ms, which is camera current dead time. cam_properties
+        is a dict containing all info camera sends through tcp (the header); frame_data is the frame; buffer_size is how
+        many bytes we collect within each loop interaction; frame_number is the frame counter and frame_time is when the
+        whole frame began.
+
+        check string value is a convenient function to detect the values using the header standard format for jsonimage.
+        """
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         ip = socket.gethostbyname('129.175.108.52')
@@ -382,10 +435,10 @@ class TimePix3():
             '''
             Notes
             -----
-            Loop based on self.__is_playing. 
-            if b'timeAtFrame' is in data, header is there. A few unlikely issues will kill a tiny percentage of
-            frames. They are basically headers chopped with a part in one chunk data (4096 bytes) to other chunk
-            data. 
+            Loop based on self.__isPlaying. 
+            if b'{' is in data, header is there. A few unlikely issues could kill a percentage of
+            frames. They are basically headers chopped in two different packets. To remove this, we always
+            ask a new chunk of data with 1024 bytes size.
     
             I get both the beginning and the end of header. Most of data are:
                 b'{HEADER}\n\x00\x00... ...\x00\n'
@@ -394,10 +447,26 @@ class TimePix3():
     
             In some cases, however, you have a data like this:
                 b'\x00\x00\x00{HEADER}\n\x00\x00... ...\x00\n'
-            This means everything before HEADER actually is part of an previous imcomplete frame. This is handled
+            This means everything before HEADER actually is part of an previous incomplete frame. This is handled
             in begin_header!=0. In this case, your new frame will always be data[end_header+2:]. I handle good frames
             using create_last_image, which creates this shared memory variable self.__lastImage and also sets the
             event thread to True so image can advance.
+            
+            buffer size is dynamically set depending on the number of data received per frame. Packets / 2.0 is
+            the fastest, but a few mistakes can arrive during lecture. dataSize/4. was choosen and no problem arrived
+            so far.
+            
+            When data is equal to dataSize+1 (because of the last line jump \n), raw frame data is put in an LIFOQueue
+            using put_queue. This can happen in two situations. When the received header is not in 0 (means data from
+            previous incomplete frame arrived) or when data finished smoothly.
+             
+            When tcp port has no data to transfer, we will have a connection timeout. This is used to know all data
+            has been transmitted from the buffer. This, together with a non-empty Queue, sends a callback message to
+            main file saying that camera can grab an element from our LIFOQueue. This is done by means of get_last_data.
+            
+            Note that if dwell time is slow enough, data will be received in a very controlled and predictable way, most
+            of the time with a new jsonimage initiating with the {HEADER}. If you go fast in dwell time, most of your
+            packets will have the len of dataSize/4, meaning there is always an momentary traffic jam of bytes.
             '''
             try:
                 data = client.recv(buffer_size)

@@ -459,6 +459,30 @@ class CameraDevice(camera_base.CameraDevice):
         return { "acquisition_time": acquisition_time, "acquisition_memory": acquisition_memory, "storage_memory": storage_memory }
 
     def sendMessageFactory(self):
+        """
+        Notes
+        -----
+
+        SendMessageFactory is a standard callback function encountered in several other instruments. It allows main file
+        to receive replies from the instrument (or device class). These callbacks are normally done by the standard
+        unlock function. They set events that tell acquisition thread new data is available.
+
+        As TimePix3 instantiation is done in python, those callback functions are explicitely defined
+        here. This means that sendMessageFactory are only supossed to be used by TimePix3 by now. If other cameras
+        are instantiated in python in the future, they could use exactly same scheme. Note that all Marcel
+        implementations, like stopFocus, startSpim, etc, are defined in tp3func.
+
+        The callback are basically events that tell acquire_image that a new data is available for displaying. In my case,
+        message equals to 01 is equivalent to Marcel's data locker, while message equals to 02 is equivalent to spim data
+        locker. Data locker (message==1) gets data from a LIFOQueue, which is a tuple in which first element is the frame
+        properties and second is the data (in bytes). You can see what is available in dict 'prop' checking either
+        serval manual or tp3func. create_image_from_bytes simply convert my bytes to a int8 array. A soft binning attribute
+        is defined in tp3 so the idea is that image always come in the right way.
+
+        For message==2, it is exactly the same. Difference is simply dimensionality (datum and collection dimensions) and,
+        if array is complete, i double the size in order to always show more data. A personal choice to never limit data
+        arrival.
+        """
         def sendMessage(message):
             if message==1:
                 prop, last_bytes_data = self.camera.get_last_data()
