@@ -18,6 +18,7 @@ class TimePix3():
         self.__softBinning = False
         self.__isCumul = False
         self.__expTime = None
+        self.__port = None
         self.sendmessage = message
 
         try:
@@ -281,7 +282,7 @@ class TimePix3():
         pass
 
     def getGain(self, cameraport):
-        pass
+        return 0
 
     def getGainName(self, cameraport, gain):
         pass
@@ -290,7 +291,7 @@ class TimePix3():
         pass
 
     def getReadoutTime(self):
-        pass
+        return 0
 
     def getNumofPorts(self):
         pass
@@ -299,9 +300,10 @@ class TimePix3():
         pass
 
     def getCurrentPort(self):
-        pass
+        return self.__port
 
     def setCurrentPort(self, cameraport):
+        self.__port = cameraport
         self.set_destination(cameraport)
 
     def getMultiplication(self):
@@ -355,7 +357,7 @@ class TimePix3():
         pass
 
     def getFan(self):
-        pass
+        return False
 
     def setArea(self, area: tuple):
         pass

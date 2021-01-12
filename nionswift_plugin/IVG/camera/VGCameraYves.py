@@ -243,8 +243,9 @@ class CameraDevice(camera_base.CameraDevice):
 
     def __spim_data_unlocker(self, gene :int, new_data : bool, running : bool):
         status = self.camera.getCCDStatus()
-        if not running:
+        if new_data:
             self.has_spim_data_event.set()
+        if not running:
             hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 self.camera_id)
             hardware_source.stop_playing()
@@ -354,7 +355,7 @@ class CameraDevice(camera_base.CameraDevice):
     def acquire_image(self) -> dict:
         acquisition_mode = self.current_camera_settings.acquisition_mode
         if "Chrono" in acquisition_mode:
-            self.has_spim_data_event.wait(1.0)
+            self.has_spim_data_event.wait(10.0)
             self.has_spim_data_event.clear()
             self.acquire_data = self.spimimagedata
             if "2D" in acquisition_mode:
@@ -365,6 +366,8 @@ class CameraDevice(camera_base.CameraDevice):
                 datum_dimensions = 2
 
         elif "Focus" in acquisition_mode and self.__acqspimon:
+            self.has_spim_data_event.wait(10.0)
+            self.has_spim_data_event.clear()
             spnb = self.frame_number
             y0 = int(spnb / 10)
             x0 = int(spnb - y0 * 10)
