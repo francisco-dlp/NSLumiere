@@ -353,6 +353,8 @@ class CameraDevice(camera_base.CameraDevice):
     def acquire_image(self) -> dict:
         acquisition_mode = self.current_camera_settings.acquisition_mode
         if "Chrono" in acquisition_mode:
+            self.has_spim_data_event.wait(1.0)
+            self.has_spim_data_event.clear()
             self.acquire_data = self.spimimagedata
             if "2D" in acquisition_mode:
                 collection_dimensions = 1
@@ -458,11 +460,19 @@ class CameraDevice(camera_base.CameraDevice):
 
     def sendMessageFactory(self):
         def sendMessage(message):
-            if message:
+            if message==1:
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.frame_number = int(prop['frameNumber'])
                 self.imagedata = self.camera.create_image_from_bytes(last_bytes_data)
                 self.has_data_event.set()
+            if message==2:
+                prop, last_bytes_data = self.camera.get_last_data()
+                self.frame_number = int(prop['frameNumber'])
+                try:
+                    self.spimimagedata[0, self.frame_number] = self.camera.create_spimimage_from_bytes(last_bytes_data)
+                except IndexError:
+                    self.spimimagedata = numpy.append(self.spimimagedata, numpy.zeros(self.spimimagedata.shape), axis=1)
+                self.has_spim_data_event.set()
         return sendMessage
 
 

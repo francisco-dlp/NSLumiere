@@ -167,7 +167,13 @@ class TimePix3():
         pass
 
     def startSpim(self, nbspectra, nbspectraperpixel, dwelltime, is2D):
-        pass
+        if self.getCCDStatus() == "DA_RECORDING":
+            self.stopSpim()
+        if self.getCCDStatus() == "DA_IDLE":
+            resp = requests.get(url=self.__serverURL + '/measurement/start')
+            data = resp.text
+            self.start_listening(port=8088, message=2)
+            return True
 
     def pauseSpim(self):
         pass
@@ -176,7 +182,10 @@ class TimePix3():
         pass
 
     def stopSpim(self, immediate):
-        return True
+        status = self.getCCDStatus()
+        resp = requests.get(url=self.__serverURL + '/measurement/stop')
+        data = resp.text
+        self.finish_listening()
 
     def isCameraThere(self):
         return True
@@ -198,7 +207,7 @@ class TimePix3():
         if self.getCCDStatus() == "DA_IDLE":
             resp = requests.get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_listening(port)
+            self.start_listening(port, message=1)
             return True
 
     def stopFocus(self):
@@ -322,9 +331,9 @@ class TimePix3():
 
     #Function of the client listener
 
-    def start_listening(self, port=8088):
+    def start_listening(self, port=8088, message=1):
         self.__isPlaying = True
-        self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(port,))
+        self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(port, message,))
         self.__clientThread.start()
 
     def finish_listening(self):
@@ -334,7 +343,7 @@ class TimePix3():
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
             self.__dataQueue = queue.LifoQueue()
 
-    def acquire_single_frame(self, port):
+    def acquire_single_frame(self, port, message):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         ip = socket.gethostbyname('129.175.108.52')
@@ -416,8 +425,7 @@ class TimePix3():
                         logging.info(f'Exception is {e}')
                     if len(frame_data) == cam_properties['dataSize'] + 1: put_queue(cam_properties, frame_data)
             except socket.timeout:
-                pass
-                if not self.__dataQueue.empty(): self.sendmessage(1)
+                if not self.__dataQueue.empty(): self.sendmessage(message)
         logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
         return True
 
@@ -431,4 +439,12 @@ class TimePix3():
         if self.__softBinning:
             frame_int = numpy.sum(frame_int, axis=0)
             frame_int = numpy.reshape(frame_int, (1, 1024))
+        return frame_int
+
+    def create_spimimage_from_bytes(self, frame_data):
+        frame_data = numpy.array(frame_data[:-1])
+        frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
+        frame_int = numpy.reshape(frame_int, (256, 1024))
+        frame_int = numpy.sum(frame_int, axis=0)
+        frame_int = numpy.reshape(frame_int, (1, 1024))
         return frame_int
