@@ -325,7 +325,10 @@ class TimePix3():
         and output data to destinations. DA_STOPPING is busy to stop the recording process
         '''
         dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
-        return dashboard["Measurement"]["Status"]
+        if dashboard["Measurement"] is None:
+            return "DA_IDLE"
+        else:
+            return dashboard["Measurement"]["Status"]
 
     def getReadoutSpeed(self):
         pass
@@ -489,7 +492,7 @@ class TimePix3():
                 if len(data) <= 0:
                     logging.info('***TP3***: Received null bytes')
                 elif b'{' in data:
-                    data += client.recv(1024)
+                    data += client.recv(256)
                     begin_header = data.index(b'{')
                     end_header = data.index(b'}')
                     header = data[begin_header:end_header + 1].decode()
