@@ -45,7 +45,7 @@ class CameraDevice(camera_base.CameraDevice):
         self.instrument=instrument
         if manufacturer==4:
             self.camera_callback = tp3func.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-            self.camera = tp3func.TimePix3(sn, self.sendMessageFactory())
+            self.camera = tp3func.TimePix3(sn, simul, self.sendMessageFactory())
         else:
             self.camera = orsaycamera.orsayCamera(manufacturer, model, sn, simul)
         self.__config_dialog_handler = None

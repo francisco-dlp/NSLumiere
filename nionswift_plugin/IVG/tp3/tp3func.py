@@ -10,7 +10,7 @@ def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
 class TimePix3():
-    def __init__(self, url, message):
+    def __init__(self, url, simul, message):
 
         self.__serverURL = url
         self.__dataQueue = queue.LifoQueue()
@@ -19,6 +19,7 @@ class TimePix3():
         self.__isCumul = False
         self.__expTime = None
         self.__port = None
+        self.__simul = simul
         self.sendmessage = message
 
         try:
@@ -151,7 +152,7 @@ class TimePix3():
 
     @property
     def simulation_mode(self) -> bool:
-        False
+        return self.__simul
 
     def registerDataLocker(self, fn):
         pass
@@ -374,7 +375,9 @@ class TimePix3():
     def setCCDOverscan(self, sx, sy):
         pass
 
-    #Function of the client listener
+    """
+    --->Functions of the client listener<---
+    """
 
     def start_listening(self, port=8088, message=1):
         """
@@ -424,6 +427,10 @@ class TimePix3():
         frame_time = 0
 
         def check_string_value(header, prop):
+            """
+            Check the value in the header dictionary. Some values are not number so a valueError
+            exception handles this.
+            """
             start_index = header.index(prop)
             end_index = start_index + len(prop)
             begin_value = header.index(':', end_index, len(header)) + 1
@@ -544,3 +551,12 @@ class TimePix3():
         frame_int = numpy.sum(frame_int, axis=0)
         frame_int = numpy.reshape(frame_int, (1, 1024))
         return frame_int
+
+    """
+    --->Functions of the server simulator<---
+    """
+
+    def create_server_simul(self):
+        serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        serv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        serv.bind((SERVER_HOST, SERVER_PORT))
