@@ -86,11 +86,12 @@ class TimePix3():
         """
         detector_config = self.get_config()
         detector_config["nTriggers"] = ntrig
-        detector_config["TriggerMode"] = "CONTINUOUS"
+        #detector_config["TriggerMode"] = "CONTINUOUS"
+        detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
 
         resp = requests.put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
-        # logging.info('Response of updating Detector Configuration: ' + data)
+        logging.info('Response of updating Detector Configuration: ' + data)
 
 
     def set_destination(self, port=0):
@@ -532,12 +533,15 @@ class TimePix3():
         cur_pa = eps / (6.242 * 1e18) * 1e12
         return cur_pa
 
-    def create_image_from_bytes(self, frame_data):
+    def create_image_from_bytes(self, frame_data, bitDepth):
         """
         Creates an image int8 (1 byte) from byte frame_data. If softBinning is True, we sum in Y axis.
         """
         frame_data = numpy.array(frame_data[:-1])
-        frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
+        if bitDepth==8:
+            frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
+        elif bitDepth==16:
+            frame_int = numpy.frombuffer(frame_data, dtype=numpy.int16)
         frame_int = numpy.reshape(frame_int, (256, 1024))
         if self.__softBinning:
             frame_int = numpy.sum(frame_int, axis=0)

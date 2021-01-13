@@ -488,7 +488,7 @@ class CameraDevice(camera_base.CameraDevice):
             if message==1:
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.frame_number = int(prop['frameNumber'])
-                self.imagedata = self.camera.create_image_from_bytes(last_bytes_data)
+                self.imagedata = self.camera.create_image_from_bytes(last_bytes_data, prop['bitDepth'])
                 self.current_event.fire(
                     format(self.camera.get_current(self.imagedata, self.frame_number), ".7f")
                 )
