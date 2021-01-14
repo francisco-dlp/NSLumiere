@@ -88,6 +88,7 @@ class TimePix3():
         detector_config["nTriggers"] = ntrig
         #detector_config["TriggerMode"] = "CONTINUOUS"
         detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
+        detector_config["BiasEnabled"] = True
 
         resp = requests.put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
@@ -451,7 +452,7 @@ class TimePix3():
         def put_queue(cam_prop, frame):
             self.__dataQueue.put((cam_prop, frame))
 
-        while self.__isPlaying:
+        while True:
             '''
             Notes
             -----
@@ -492,21 +493,25 @@ class TimePix3():
                 data = client.recv(buffer_size)
                 if len(data) <= 0:
                     logging.info('***TP3***: Received null bytes')
+                    break
                 elif b'{' in data:
                     data += client.recv(256)
                     begin_header = data.index(b'{')
-                    end_header = data.index(b'}')
-                    header = data[begin_header:end_header + 1].decode()
-                    for properties in ['timeAtFrame', 'frameNumber', 'measurementID', 'dataSize', 'bitDepth', 'width',
+                    try:
+                        end_header = data.index(b'}')
+                        header = data[begin_header:end_header + 1].decode()
+                        for properties in ['timeAtFrame', 'frameNumber', 'measurementID', 'dataSize', 'bitDepth', 'width',
                                        'height']:
-                        cam_properties[properties] = (check_string_value(header, properties))
-                    buffer_size = int(cam_properties['dataSize'] / 4.)
-                    frame_number = int(cam_properties['frameNumber'])
-                    frame_time = int(cam_properties['timeAtFrame'])
-                    if begin_header != 0:
-                        frame_data += data[:begin_header]
-                        if len(frame_data) == cam_properties['dataSize'] + 1: put_queue(cam_properties, frame_data)
-                    frame_data = data[end_header + 2:]
+                            cam_properties[properties] = (check_string_value(header, properties))
+                        buffer_size = int(cam_properties['dataSize'] / 4.)
+                        frame_number = int(cam_properties['frameNumber'])
+                        frame_time = int(cam_properties['timeAtFrame'])
+                        if begin_header != 0:
+                            frame_data += data[:begin_header]
+                            if len(frame_data) == cam_properties['dataSize'] + 1: put_queue(cam_properties, frame_data)
+                        frame_data = data[end_header + 2:]
+                    except ValueError:
+                        logging.info(f'ValueError trying to find header close. Data is {data} and its length is {len(data)}.')
                 else:
                     try:
                         frame_data += data
@@ -515,6 +520,7 @@ class TimePix3():
                     if len(frame_data) == cam_properties['dataSize'] + 1: put_queue(cam_properties, frame_data)
             except socket.timeout:
                 if not self.__dataQueue.empty(): self.sendmessage(message)
+                if not self.__isPlaying: break
 
         logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
         return True
