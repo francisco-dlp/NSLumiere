@@ -539,9 +539,11 @@ class TimePix3():
         """
         frame_data = numpy.array(frame_data[:-1])
         if bitDepth==8:
-            frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
+            frame_int = numpy.frombuffer(frame_data, dtype=numpy.uint8)
+            frame_int = frame_int.astype(numpy.float32)
         elif bitDepth==16:
-            frame_int = numpy.frombuffer(frame_data, dtype=numpy.int16)
+            frame_int = numpy.frombuffer(frame_data, dtype=numpy.uint16)
+            frame_int = frame_int.astype(numpy.float32)
         frame_int = numpy.reshape(frame_int, (256, 1024))
         if self.__softBinning:
             frame_int = numpy.sum(frame_int, axis=0)
