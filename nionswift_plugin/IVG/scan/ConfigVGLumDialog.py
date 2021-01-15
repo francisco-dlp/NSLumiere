@@ -40,7 +40,8 @@ class Handler:
     def bottom_blanker(self, value):
         self.__bot_blanker = value
         if self.__bot_blanker:
-            self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 2)
+            a = self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 6)
+            print(a)
         else:
             self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(0, 0)
 
