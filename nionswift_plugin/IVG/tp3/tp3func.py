@@ -22,29 +22,45 @@ class TimePix3():
         self.__simul = simul
         self.sendmessage = message
 
-        try:
-            initial_status_code = self.status_code()
-            if initial_status_code == 200:
-                logging.info('***TP3***: Timepix has initialized correctly.')
-            else:
-                logging.info('***TP3***: Problem initializing Timepix')
+        if not simul:
+            try:
+                initial_status_code = self.status_code()
+                if initial_status_code == 200:
+                    logging.info('***TP3***: Timepix has initialized correctly.')
+                else:
+                    logging.info('***TP3***: Problem initializing Timepix')
 
-        # Loading bpc and dacs
-            bpcFile = '/home/asi/load_files/tpx3-demo.bpc'
-            dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
-            self.cam_init(bpcFile, dacsFile)
-            self.acq_init(99999)
-            logging.info(f'***TP3***: Current detector configuration is {self.get_config()}.')
-        except:
-            logging.info('***TP3***: Problem initializing Timepix')
+            # Loading bpc and dacs
+                bpcFile = '/home/asi/load_files/tpx3-demo.bpc'
+                dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
+                self.cam_init(bpcFile, dacsFile)
+                self.acq_init(99999)
+                logging.info(f'***TP3***: Current detector configuration is {self.get_config()}.')
+            except:
+                logging.info('***TP3***: Problem initializing Timepix3.')
+        else:
+            logging.info('***TP3***: Timepix3 in simulation mode.')
 
+    def request_get(self, url):
+        if not self.__simul:
+            resp = requests.get(url=url)
+            return resp
+        else:
+            return 0
+
+    def request_put(self, url, data):
+        if not self.__simul:
+            resp = requests.put(url=url, data=data)
+            return resp
+        else:
+            return 0
 
     def status_code(self):
         """
         Status code 200 is good. Other status code meaning can be seen in serval manual.
         """
         try:
-            resp = requests.get(url=self.__serverURL)
+            resp = self.request_get(url = self.__serverURL)
         except requests.exceptions.RequestException as e:  # Exceptions handling example
             return -1
         status_code = resp.status_code
@@ -54,7 +70,7 @@ class TimePix3():
         """
         Dashboard description can be seen in manual
         """
-        resp = requests.get(url=self.__serverURL + '/dashboard')
+        resp = self.request_get(url=self.__serverURL + '/dashboard')
         data = resp.text
         dashboard = json.loads(data)
         return dashboard
@@ -63,11 +79,11 @@ class TimePix3():
         """
         This load both binary pixel config file and dacs.
         """
-        resp = requests.get(url=self.__serverURL + '/config/load?format=pixelconfig&file=' + bpc_file)
+        resp = self.requests_get(url=self.__serverURL + '/config/load?format=pixelconfig&file=' + bpc_file)
         data = resp.text
         logging.info(f'***TP3***: Response of loading binary pixel configuration file: ' + data)
 
-        resp = requests.get(url=self.__serverURL + '/config/load?format=dacs&file=' + dacs_file)
+        resp = self.request_get(url=self.__serverURL + '/config/load?format=dacs&file=' + dacs_file)
         data = resp.text
         logging.info(f'***TP3***: Response of loading dacs file: ' + data)
 
@@ -75,7 +91,7 @@ class TimePix3():
         """
         Gets the entire detector configuration. Check serval manual to a full description.
         """
-        resp = requests.get(url=self.__serverURL + '/detector/config')
+        resp = self.request_get(url=self.__serverURL + '/detector/config')
         data = resp.text
         detectorConfig = json.loads(data)
         return detectorConfig

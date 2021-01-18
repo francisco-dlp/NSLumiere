@@ -681,7 +681,7 @@ def run(instrument: ivg_inst.ivgInstrument):
                 manufacturer = "AmsterdamScientificInstruments"
                 sn = camera["ip_address"]
             model = camera["model"]
-            if (camera["manufacturer"] > 1) and camera["simulation"]:
+            if (camera["manufacturer"] > 1 and camera["manufacturer"]!=4) and camera["simulation"]:
                 logging.info(f"No simulation for {manufacturer} cameras")
             else:
                 camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"], instrument,
