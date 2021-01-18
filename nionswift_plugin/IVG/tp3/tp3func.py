@@ -79,7 +79,7 @@ class TimePix3():
         """
         This load both binary pixel config file and dacs.
         """
-        resp = self.requests_get(url=self.__serverURL + '/config/load?format=pixelconfig&file=' + bpc_file)
+        resp = self.request_get(url=self.__serverURL + '/config/load?format=pixelconfig&file=' + bpc_file)
         data = resp.text
         logging.info(f'***TP3***: Response of loading binary pixel configuration file: ' + data)
 
@@ -94,6 +94,10 @@ class TimePix3():
         resp = self.request_get(url=self.__serverURL + '/detector/config')
         data = resp.text
         detectorConfig = json.loads(data)
+        det = {'Fan1PWM': 100, 'Fan2PWM': 100, 'BiasVoltage': 100, 'BiasEnabled': True, 'TriggerIn': 2, 'TriggerOut': 0,
+               'Polarity': 'Positive', 'TriggerMode': 'AUTOTRIGSTART_TIMERSTOP', 'ExposureTime': 0.05,
+               'TriggerPeriod': 0.05, 'nTriggers': 99999, 'PeriphClk80': False, 'TriggerDelay': 0.0,
+               'Tdc': ['P0', 'P0'], 'LogLevel': 1}
         return detectorConfig
 
     def acq_init(self, ntrig=99):
@@ -106,7 +110,7 @@ class TimePix3():
         detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
         detector_config["BiasEnabled"] = True
 
-        resp = requests.put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
+        resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
         logging.info('Response of updating Detector Configuration: ' + data)
 
@@ -136,7 +140,7 @@ class TimePix3():
         ]
         }
 
-        resp = requests.put(url=self.__serverURL + '/server/destination', data=json.dumps(destination))
+        resp = self.request_put(url=self.__serverURL + '/server/destination', data=json.dumps(destination))
         data = resp.text
         logging.info('***TP3***: Response of uploading the Destination Configuration to SERVAL : ' + data)
         logging.info(f'***TP3***: Selected port is {port} and corresponds to: ' + options[port])
@@ -215,7 +219,7 @@ class TimePix3():
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopSpim()
         if self.getCCDStatus() == "DA_IDLE":
-            resp = requests.get(url=self.__serverURL + '/measurement/start')
+            resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
             self.start_listening(port=8088, message=2)
             return True
@@ -231,7 +235,7 @@ class TimePix3():
         Identical to stopFocus. Just to be consistent with VGCameraYves.
         """
         status = self.getCCDStatus()
-        resp = requests.get(url=self.__serverURL + '/measurement/stop')
+        resp = self.request_get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
         self.finish_listening()
 
@@ -259,7 +263,7 @@ class TimePix3():
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE":
-            resp = requests.get(url=self.__serverURL + '/measurement/start')
+            resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
             self.start_listening(port, message=1)
             return True
@@ -270,7 +274,7 @@ class TimePix3():
         .join() method. Also replaces the old Queue with a new one with no itens on it (so next one won't use old data).
         """
         status = self.getCCDStatus()
-        resp = requests.get(url=self.__serverURL + '/measurement/stop')
+        resp = self.request_get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
         self.finish_listening()
 
@@ -282,7 +286,7 @@ class TimePix3():
         detector_config["ExposureTime"] = exposure
         detector_config["TriggerPeriod"] = exposure
         self.__expTime = exposure
-        resp = requests.put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
+        resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
 
     def getNumofSpeeds(self, cameraport):
@@ -342,7 +346,7 @@ class TimePix3():
         DA_IDLE is idle. DA_PREPARING is busy to setup recording. DA_RECORDING is busy recording
         and output data to destinations. DA_STOPPING is busy to stop the recording process
         '''
-        dashboard = json.loads(requests.get(url=self.__serverURL + '/dashboard').text)
+        dashboard = json.loads(self.request_get(url=self.__serverURL + '/dashboard').text)
         if dashboard["Measurement"] is None:
             return "DA_IDLE"
         else:
