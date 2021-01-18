@@ -590,10 +590,10 @@ class TimePix3():
             return False
 
         buffer_size = 8
-        dT = 0
+        frame_number = 0
 
-        def put_event_queue(time, x, y):
-            self.__eventQueue.put((time, x, y))
+        def put_event_queue(time, frame, x, y):
+            self.__eventQueue.put((time, frame, x, y))
 
         while True:
             '''
@@ -663,26 +663,19 @@ class TimePix3():
                         spidr = val & '0x000000000000ffff'
                         ctoa = toa << 4 | ~ftoa & ('0x000000000000000f')
 
-                        #try:
-                        #    dT = dT + spidr.uint * 25.0 * 16384.0 - spidrT
-                        #except UnboundLocalError:
-                        #    dT = 0.
-
                         spidrT = spidr.uint * 25.0 * 16384.0
                         toa_ns = toa.uint * 25.0
                         tot_ns = tot.uint * 25.0
                         global_time = spidrT + ctoa.uint * 25.0 / 16.0
-                        put_event_queue(global_time, x, y)
+                        put_event_queue(global_time, int(spidrT/(1e9*self.__expTime)), x, y)
 
-                        #if dT/1e9>self.__expTime:
-                        #    dT = 0
-                self.sendmessage(message)
+                        if int(spidrT/(1e9*self.__expTime))>frame_number:
+                            frame_number = int(spidrT/(1e9*self.__expTime))
+                            print(global_time/1e9)
+                            self.sendmessage(message)
                 if not self.__isPlaying: break
             except socket.timeout:
-                print('Socket Timeout')
-                #if not self.__eventQueue.empty(): self.sendmessage(message)
-                if not self.__isPlaying: break
-
+                pass
         return True
 
     def get_last_data(self):
@@ -690,6 +683,14 @@ class TimePix3():
 
     def get_last_event(self):
         return self.__eventQueue.get()
+
+    def create_image_from_events(self, imagedata):
+        imagedata = numpy.zeros(imagedata.shape)
+        while not self.__eventQueue.empty():
+            time, frame_number, x, y = self.__eventQueue.get()
+            imagedata[x, y]+=1
+        return imagedata
+
 
     def get_total_counts_from_data(self, frame_int):
         return numpy.sum(frame_int)

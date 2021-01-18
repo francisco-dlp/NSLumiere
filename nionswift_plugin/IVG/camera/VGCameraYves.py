@@ -502,8 +502,8 @@ class CameraDevice(camera_base.CameraDevice):
                     self.spimimagedata = numpy.append(self.spimimagedata, numpy.zeros(self.spimimagedata.shape), axis=0)
                 self.has_spim_data_event.set()
             if message==3:
-                time, x, y = self.camera.get_last_event()
-                self.imagedata[x, y]+=1
+                self.imagedata = self.camera.create_image_from_events(self.imagedata)
+                self.has_data_event.set()
         return sendMessage
 
 
