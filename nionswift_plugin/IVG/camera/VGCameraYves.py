@@ -501,6 +501,9 @@ class CameraDevice(camera_base.CameraDevice):
                 except IndexError:
                     self.spimimagedata = numpy.append(self.spimimagedata, numpy.zeros(self.spimimagedata.shape), axis=0)
                 self.has_spim_data_event.set()
+            if message==3:
+                time, x, y = self.camera.get_last_event()
+                self.imagedata[x, y]+=1
         return sendMessage
 
 

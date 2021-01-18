@@ -5,6 +5,8 @@ import logging
 import queue
 import socket
 import numpy
+from bitstring import BitArray
+import time
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
@@ -18,6 +20,7 @@ class TimePix3():
 
         self.__serverURL = url
         self.__dataQueue = queue.LifoQueue()
+        self.__eventQueue = queue.LifoQueue()
         self.__isPlaying = False
         self.__softBinning = False
         self.__isCumul = False
@@ -422,7 +425,10 @@ class TimePix3():
         Starts the client Thread and sets isPlaying to True.
         """
         self.__isPlaying = True
-        self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(port, message,))
+        if not self.__simul:
+            self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(port, message,))
+        else:
+            self.__clientThread = threading.Thread(target=self.acquire_event, args=(65431, 3,))
         self.__clientThread.start()
 
     def finish_listening(self):
@@ -433,7 +439,9 @@ class TimePix3():
             self.__isPlaying = False
             self.__clientThread.join()
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
+            logging.info(f'***TP3***: Stopping acquisition. There was {self.__eventQueue.qsize()} events in the Queue.')
             self.__dataQueue = queue.LifoQueue()
+            self.__eventQueue = queue.LifoQueue()
 
     def acquire_single_frame(self, port, message):
         """
@@ -558,8 +566,130 @@ class TimePix3():
         logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
         return True
 
+    def acquire_event(self, port, message):
+        """
+        Main client function. Main loop is explained below.
+
+        Client is a socket connected to camera in host computer 129.175.108.52. Port depends on which kind of data you
+        are listening on. After connection, timeout is set to 5 ms, which is camera current dead time. cam_properties
+        is a dict containing all info camera sends through tcp (the header); frame_data is the frame; buffer_size is how
+        many bytes we collect within each loop interaction; frame_number is the frame counter and frame_time is when the
+        whole frame began.
+
+        check string value is a convenient function to detect the values using the header standard format for jsonimage.
+        """
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        ip = socket.gethostbyname('127.0.0.1')
+        address = (ip, port)
+        try:
+            client.connect(address)
+            logging.info(f'***TP3***: Client connected over 129.175.108.52:{port}.')
+            client.settimeout(0.001)
+        except ConnectionRefusedError:
+            return False
+
+        buffer_size = 8
+        dT = 0
+
+        def put_event_queue(time, x, y):
+            self.__eventQueue.put((time, x, y))
+
+        while True:
+            '''
+            Notes
+            -----
+            Loop based on self.__isPlaying. 
+            if b'{' is in data, header is there. A few unlikely issues could kill a percentage of
+            frames. They are basically headers chopped in two different packets. To remove this, we always
+            ask a new chunk of data with 1024 bytes size.
+
+            I get both the beginning and the end of header. Most of data are:
+                b'{HEADER}\n\x00\x00... ...\x00\n'
+            This means initial frame_data is everything after header. So the beginning of a frame_data is simply
+            data[end_header+2:].
+
+            In some cases, however, you have a data like this:
+                b'\x00\x00\x00{HEADER}\n\x00\x00... ...\x00\n'
+            This means everything before HEADER actually is part of an previous incomplete frame. This is handled
+            in begin_header!=0. In this case, your new frame will always be data[end_header+2:]. I handle good frames
+            using create_last_image, which creates this shared memory variable self.__lastImage and also sets the
+            event thread to True so image can advance.
+
+            buffer size is dynamically set depending on the number of data received per frame. Packets / 2.0 is
+            the fastest, but a few mistakes can arrive during lecture. dataSize/4. was choosen and no problem arrived
+            so far.
+
+            When data is equal to dataSize+1 (because of the last line jump \n), raw frame data is put in an LIFOQueue
+            using put_queue. This can happen in two situations. When the received header is not in 0 (means data from
+            previous incomplete frame arrived) or when data finished smoothly.
+
+            When tcp port has no data to transfer, we will have a connection timeout. This is used to know all data
+            has been transmitted from the buffer. This, together with a non-empty Queue, sends a callback message to
+            main file saying that camera can grab an element from our LIFOQueue. This is done by means of get_last_data.
+
+            Note that if dwell time is slow enough, data will be received in a very controlled and predictable way, most
+            of the time with a new jsonimage initiating with the {HEADER}. If you go fast in dwell time, most of your
+            packets will have the len of dataSize/4, meaning there is always an momentary traffic jam of bytes.
+            '''
+            try:
+                data = client.recv(buffer_size)
+                data = data[::-1]
+                if len(data) <= 0:
+                    logging.info('***TP3***: Received null bytes')
+                    break
+                val = BitArray(hex=data.hex())
+                tpx3_header = val[32:64]  # 4 bytes=32 bits
+                chip_index = val[24:32]  # 1 byte
+                first_reserved = val[16:24]  # 1 byte
+                size_chunk1 = val[8:16]  # 1 byte
+                size_chunk2 = val[0:8]  # 1 byte
+                total_size = size_chunk1.uint + size_chunk2.uint * 256
+                for j in range(int(total_size / 8)):
+                    data = client.recv(buffer_size)
+                    data = data[::-1]
+                    val = BitArray(hex=data.hex())
+                    id = val >> 60
+                    if id[-4:] == '0xb':
+                        dcol = (val & '0x0fe0000000000000') >> 52
+                        spix = (val & '0x001F800000000000') >> 45
+                        pix = (val & '0x0000700000000000') >> 44
+                        x = int(dcol.uint + pix.uint / 4)
+                        y = int(spix.uint + (pix & '0x0000000000000003').uint)
+
+                        toa = ((val >> (16 + 14)) & '0x0000000000003fff')
+                        tot = ((val >> (16 + 4)) & '0x00000000000003ff')
+                        ftoa = ((val >> (16)) & '0x000000000000000f')
+                        spidr = val & '0x000000000000ffff'
+                        ctoa = toa << 4 | ~ftoa & ('0x000000000000000f')
+
+                        #try:
+                        #    dT = dT + spidr.uint * 25.0 * 16384.0 - spidrT
+                        #except UnboundLocalError:
+                        #    dT = 0.
+
+                        spidrT = spidr.uint * 25.0 * 16384.0
+                        toa_ns = toa.uint * 25.0
+                        tot_ns = tot.uint * 25.0
+                        global_time = spidrT + ctoa.uint * 25.0 / 16.0
+                        put_event_queue(global_time, x, y)
+
+                        #if dT/1e9>self.__expTime:
+                        #    dT = 0
+                self.sendmessage(message)
+                if not self.__isPlaying: break
+            except socket.timeout:
+                print('Socket Timeout')
+                #if not self.__eventQueue.empty(): self.sendmessage(message)
+                if not self.__isPlaying: break
+
+        return True
+
     def get_last_data(self):
         return self.__dataQueue.get()
+
+    def get_last_event(self):
+        return self.__eventQueue.get()
 
     def get_total_counts_from_data(self, frame_int):
         return numpy.sum(frame_int)
