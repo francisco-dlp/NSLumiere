@@ -9,6 +9,10 @@ import numpy
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
+class Response():
+    def __init__(self):
+        self.text = '***TP3***: This is simul mode.'
+
 class TimePix3():
     def __init__(self, url, simul, message):
 
@@ -46,14 +50,16 @@ class TimePix3():
             resp = requests.get(url=url)
             return resp
         else:
-            return 0
+            resp = Response()
+            return resp
 
     def request_put(self, url, data):
         if not self.__simul:
             resp = requests.put(url=url, data=data)
             return resp
         else:
-            return 0
+            resp = Response()
+            return resp
 
     def status_code(self):
         """
@@ -91,13 +97,16 @@ class TimePix3():
         """
         Gets the entire detector configuration. Check serval manual to a full description.
         """
-        resp = self.request_get(url=self.__serverURL + '/detector/config')
-        data = resp.text
-        detectorConfig = json.loads(data)
-        det = {'Fan1PWM': 100, 'Fan2PWM': 100, 'BiasVoltage': 100, 'BiasEnabled': True, 'TriggerIn': 2, 'TriggerOut': 0,
-               'Polarity': 'Positive', 'TriggerMode': 'AUTOTRIGSTART_TIMERSTOP', 'ExposureTime': 0.05,
-               'TriggerPeriod': 0.05, 'nTriggers': 99999, 'PeriphClk80': False, 'TriggerDelay': 0.0,
-               'Tdc': ['P0', 'P0'], 'LogLevel': 1}
+        if not self.__simul:
+            resp = self.request_get(url=self.__serverURL + '/detector/config')
+            data = resp.text
+            detectorConfig = json.loads(data)
+        else:
+            detectorConfig = \
+                {'Fan1PWM': 100, 'Fan2PWM': 100, 'BiasVoltage': 100, 'BiasEnabled': True, 'TriggerIn': 2, 'TriggerOut': 0,
+                 'Polarity': 'Positive', 'TriggerMode': 'AUTOTRIGSTART_TIMERSTOP', 'ExposureTime': 0.05,
+                 'TriggerPeriod': 0.05, 'nTriggers': 99999, 'PeriphClk80': False, 'TriggerDelay': 0.0,
+                 'Tdc': ['P0', 'P0'], 'LogLevel': 1}
         return detectorConfig
 
     def acq_init(self, ntrig=99):
@@ -346,11 +355,15 @@ class TimePix3():
         DA_IDLE is idle. DA_PREPARING is busy to setup recording. DA_RECORDING is busy recording
         and output data to destinations. DA_STOPPING is busy to stop the recording process
         '''
-        dashboard = json.loads(self.request_get(url=self.__serverURL + '/dashboard').text)
-        if dashboard["Measurement"] is None:
-            return "DA_IDLE"
+        if not self.__simul:
+            dashboard = json.loads(self.request_get(url=self.__serverURL + '/dashboard').text)
+            if dashboard["Measurement"] is None:
+                return "DA_IDLE"
+            else:
+                return dashboard["Measurement"]["Status"]
         else:
-            return dashboard["Measurement"]["Status"]
+            value = "DA_RECORDING" if self.__isPlaying else "DA_IDLE"
+            return value
 
     def getReadoutSpeed(self):
         pass
