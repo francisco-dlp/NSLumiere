@@ -5,8 +5,6 @@ import logging
 import queue
 import socket
 import numpy
-from bitstring import BitArray
-import time
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
@@ -638,40 +636,38 @@ class TimePix3():
                 if len(data) <= 0:
                     logging.info('***TP3***: Received null bytes')
                     break
-                val = BitArray(hex=data.hex())
-                tpx3_header = val[32:64]  # 4 bytes=32 bits
-                chip_index = val[24:32]  # 1 byte
-                first_reserved = val[16:24]  # 1 byte
-                size_chunk1 = val[8:16]  # 1 byte
-                size_chunk2 = val[0:8]  # 1 byte
-                total_size = size_chunk1.uint + size_chunk2.uint * 256
+                tpx3_header = data[4:8]  # 4 bytes=32 bits
+                chip_index = data[3]  # 1 byte
+                first_reserved = data[2]  # 1 byte
+                size_chunk1 = data[1]  # 1 byte
+                size_chunk2 = data[0]  # 1 byte
+                total_size = size_chunk1 + size_chunk2 * 256
                 for j in range(int(total_size / 8)):
                     data = client.recv(buffer_size)
                     data = data[::-1]
-                    val = BitArray(hex=data.hex())
-                    id = val >> 60
-                    if id[-4:] == '0xb':
-                        dcol = (val & '0x0fe0000000000000') >> 52
-                        spix = (val & '0x001F800000000000') >> 45
-                        pix = (val & '0x0000700000000000') >> 44
-                        x = int(dcol.uint + pix.uint / 4)
-                        y = int(spix.uint + (pix & '0x0000000000000003').uint)
+                    id = (data[0] & 240)>>4
+                    if id==11:
+                        dcol = ((data[0] & 15) << 4) + ((data[1] & 224) >> 4)
+                        spix = ((data[1] & 31) << 3) + ((data[2] & 128) >> 5)
+                        pix = (data[2] & 112) >> 4
 
-                        toa = ((val >> (16 + 14)) & '0x0000000000003fff')
-                        tot = ((val >> (16 + 4)) & '0x00000000000003ff')
-                        ftoa = ((val >> (16)) & '0x000000000000000f')
-                        spidr = val & '0x000000000000ffff'
-                        ctoa = toa << 4 | ~ftoa & ('0x000000000000000f')
+                        x = int(dcol + pix / 4)
+                        y = int(spix + (pix & 3))
 
-                        spidrT = spidr.uint * 25.0 * 16384.0
-                        toa_ns = toa.uint * 25.0
-                        tot_ns = tot.uint * 25.0
-                        global_time = spidrT + ctoa.uint * 25.0 / 16.0
+                        toa = ((data[2] & 15) << 10) + ((data[3] & 255) << 2) + ((data[4] & 192) >> 6)
+                        tot = ((data[4] & 63) << 4) + ((data[5] & 240) >> 4)
+                        ftoa = (data[5] & 15)
+                        spidr = ((data[6] & 255) << 8) + ((data[7] & 255))
+                        ctoa = toa << 4 | ~ftoa & 15
+
+                        spidrT = spidr * 25.0 * 16384.0
+                        toa_ns = toa * 25.0
+                        tot_ns = tot * 25.0
+                        global_time = spidrT + ctoa * 25.0 / 16.0
                         put_event_queue(global_time, int(spidrT/(1e9*self.__expTime)), x, y)
 
                         if int(spidrT/(1e9*self.__expTime))>frame_number:
                             frame_number = int(spidrT/(1e9*self.__expTime))
-                            print(global_time/1e9)
                             self.sendmessage(message)
                 if not self.__isPlaying: break
             except socket.timeout:
@@ -689,7 +685,7 @@ class TimePix3():
         while not self.__eventQueue.empty():
             time, frame_number, x, y = self.__eventQueue.get()
             imagedata[x, y]+=1
-        return imagedata
+        return frame_number, imagedata
 
 
     def get_total_counts_from_data(self, frame_int):
