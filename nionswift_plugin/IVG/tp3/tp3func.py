@@ -5,6 +5,7 @@ import logging
 import queue
 import socket
 import numpy
+import time
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
@@ -579,96 +580,77 @@ class TimePix3():
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         ip = socket.gethostbyname('127.0.0.1')
+        #ip = socket.gethostbyname('129.175.108.58')
         address = (ip, port)
         try:
             client.connect(address)
             logging.info(f'***TP3***: Client connected over 129.175.108.52:{port}.')
-            client.settimeout(0.001)
+            client.settimeout(0.005)
         except ConnectionRefusedError:
             return False
 
-        buffer_size = 8
+        buffer_size = 4096*8*8
         frame_number = 0
+        start_time = time.time()
 
-        def put_event_queue(time, frame, x, y):
-            self.__eventQueue.put((time, frame, x, y))
+        def put_event_queue(x, y):
+            self.__eventQueue.put((x, y))
 
         while True:
-            '''
-            Notes
-            -----
-            Loop based on self.__isPlaying. 
-            if b'{' is in data, header is there. A few unlikely issues could kill a percentage of
-            frames. They are basically headers chopped in two different packets. To remove this, we always
-            ask a new chunk of data with 1024 bytes size.
-
-            I get both the beginning and the end of header. Most of data are:
-                b'{HEADER}\n\x00\x00... ...\x00\n'
-            This means initial frame_data is everything after header. So the beginning of a frame_data is simply
-            data[end_header+2:].
-
-            In some cases, however, you have a data like this:
-                b'\x00\x00\x00{HEADER}\n\x00\x00... ...\x00\n'
-            This means everything before HEADER actually is part of an previous incomplete frame. This is handled
-            in begin_header!=0. In this case, your new frame will always be data[end_header+2:]. I handle good frames
-            using create_last_image, which creates this shared memory variable self.__lastImage and also sets the
-            event thread to True so image can advance.
-
-            buffer size is dynamically set depending on the number of data received per frame. Packets / 2.0 is
-            the fastest, but a few mistakes can arrive during lecture. dataSize/4. was choosen and no problem arrived
-            so far.
-
-            When data is equal to dataSize+1 (because of the last line jump \n), raw frame data is put in an LIFOQueue
-            using put_queue. This can happen in two situations. When the received header is not in 0 (means data from
-            previous incomplete frame arrived) or when data finished smoothly.
-
-            When tcp port has no data to transfer, we will have a connection timeout. This is used to know all data
-            has been transmitted from the buffer. This, together with a non-empty Queue, sends a callback message to
-            main file saying that camera can grab an element from our LIFOQueue. This is done by means of get_last_data.
-
-            Note that if dwell time is slow enough, data will be received in a very controlled and predictable way, most
-            of the time with a new jsonimage initiating with the {HEADER}. If you go fast in dwell time, most of your
-            packets will have the len of dataSize/4, meaning there is always an momentary traffic jam of bytes.
-            '''
             try:
-                data = client.recv(buffer_size)
-                data = data[::-1]
-                if len(data) <= 0:
-                    logging.info('***TP3***: Received null bytes')
-                    break
-                tpx3_header = data[4:8]  # 4 bytes=32 bits
-                chip_index = data[3]  # 1 byte
-                first_reserved = data[2]  # 1 byte
-                size_chunk1 = data[1]  # 1 byte
-                size_chunk2 = data[0]  # 1 byte
-                total_size = size_chunk1 + size_chunk2 * 256
-                for j in range(int(total_size / 8)):
-                    data = client.recv(buffer_size)
+                packet_data = client.recv(buffer_size)
+                index = packet_data.index(b'TPX3')
+                while index<len(packet_data):
+                    data = packet_data[index:index+8]
                     data = data[::-1]
-                    id = (data[0] & 240)>>4
-                    if id==11:
-                        dcol = ((data[0] & 15) << 4) + ((data[1] & 224) >> 4)
-                        spix = ((data[1] & 31) << 3) + ((data[2] & 128) >> 5)
-                        pix = (data[2] & 112) >> 4
+                    if len(data) <= 0:
+                        logging.info('***TP3***: Received null bytes')
+                        break
+                    tpx3_header = data[4:8]  # 4 bytes=32 bits
+                    assert tpx3_header==b'3XPT'
+                    #chip_index = data[3]  # 1 byte
+                    #first_reserved = data[2]  # 1 byte
+                    size_chunk1 = data[1]  # 1 byte
+                    size_chunk2 = data[0]  # 1 byte
+                    total_size = size_chunk1 + size_chunk2 * 256
+                    for j in range(int(total_size / 8)):
+                        index+=8
+                        if index==len(packet_data):
+                            packet_data += client.recv(8)
+                        data = packet_data[index:index+8]
+                        data = data[::-1]
+                        id = (data[0] & 240)>>4
+                        if id==11:
+                            dcol = ((data[0] & 15) << 4) + ((data[1] & 224) >> 4)
+                            spix = ((data[1] & 31) << 3) + ((data[2] & 128) >> 5)
+                            pix = (data[2] & 112) >> 4
 
-                        x = int(dcol + pix / 4)
-                        y = int(spix + (pix & 3))
+                            x = int(dcol + pix / 4)
+                            y = int(spix + (pix & 3))
 
-                        toa = ((data[2] & 15) << 10) + ((data[3] & 255) << 2) + ((data[4] & 192) >> 6)
-                        tot = ((data[4] & 63) << 4) + ((data[5] & 240) >> 4)
-                        ftoa = (data[5] & 15)
-                        spidr = ((data[6] & 255) << 8) + ((data[7] & 255))
-                        ctoa = toa << 4 | ~ftoa & 15
+                            #toa = ((data[2] & 15) << 10) + ((data[3] & 255) << 2) + ((data[4] & 192) >> 6)
+                            #tot = ((data[4] & 63) << 4) + ((data[5] & 240) >> 4)
+                            #ftoa = (data[5] & 15)
+                            #spidr = ((data[6] & 255) << 8) + (data[7] & 255)
+                            #ctoa = toa << 4 | ~ftoa & 15
 
-                        spidrT = spidr * 25.0 * 16384.0
-                        toa_ns = toa * 25.0
-                        tot_ns = tot * 25.0
-                        global_time = spidrT + ctoa * 25.0 / 16.0
-                        put_event_queue(global_time, int(spidrT/(1e9*self.__expTime)), x, y)
+                            #spidrT = spidr * 25.0 * 16384.0
+                            #toa_ns = toa * 25.0
+                            #tot_ns = tot * 25.0
+                            #global_time = spidrT + ctoa * 25.0 / 16.0
+                            #put_event_queue(global_time, int((time.perf_counter_ns()-start_time)/(1e9*self.__expTime)), x, y)
 
-                        if int(spidrT/(1e9*self.__expTime))>frame_number:
-                            frame_number = int(spidrT/(1e9*self.__expTime))
-                            self.sendmessage(message)
+                            #put_event_queue(int((time.time() - start_time) / self.__expTime), x, y)
+                            put_event_queue(x, y)
+
+                            if int((time.time()-start_time)/self.__expTime)>frame_number:
+                                frame_number = int((time.time()-start_time)/self.__expTime)
+                                self.sendmessage(message)
+                                while True:
+                                    new_data = client.recv(buffer_size)
+                                    if len(new_data)<buffer_size:
+                                        break
+                    index+=8
                 if not self.__isPlaying: break
             except socket.timeout:
                 pass
@@ -683,10 +665,9 @@ class TimePix3():
     def create_image_from_events(self, imagedata):
         imagedata = numpy.zeros(imagedata.shape)
         while not self.__eventQueue.empty():
-            time, frame_number, x, y = self.__eventQueue.get()
+            x, y = self.__eventQueue.get()
             imagedata[x, y]+=1
-        return frame_number, imagedata
-
+        return imagedata
 
     def get_total_counts_from_data(self, frame_int):
         return numpy.sum(frame_int)
