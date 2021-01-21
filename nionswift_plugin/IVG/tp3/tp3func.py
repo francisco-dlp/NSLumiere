@@ -20,6 +20,7 @@ class TimePix3():
         self.__serverURL = url
         self.__dataQueue = queue.LifoQueue()
         self.__eventQueue = queue.LifoQueue()
+        self.__tdcQueue = queue.LifoQueue()
         self.__isPlaying = False
         self.__softBinning = False
         self.__isCumul = False
@@ -438,9 +439,12 @@ class TimePix3():
             self.__isPlaying = False
             self.__clientThread.join()
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
-            logging.info(f'***TP3***: Stopping acquisition. There was {self.__eventQueue.qsize()} events in the Queue.')
+            logging.info(f'***TP3***: Stopping acquisition. There was {self.__eventQueue.qsize()} electron events in the Queue.')
+            logging.info(f'***TP3***: Stopping acquisition. There was {self.__tdcQueue.qsize()} tdc in the Queue.')
+            print(self.data_from_raw_tdc(self.__tdcQueue.get()))
             self.__dataQueue = queue.LifoQueue()
             self.__eventQueue = queue.LifoQueue()
+            self.__tdcQueue = queue.LifoQueue()
 
     def acquire_single_frame(self, port, message):
         """
@@ -589,16 +593,18 @@ class TimePix3():
         except ConnectionRefusedError:
             return False
 
-        buffer_size = 4096*8*8
-        frame_number = 0
-        start_time = time.time()
+        buffer_size = 4096*8*8*8
 
-        def put_event_queue(x, y):
-            self.__eventQueue.put((x, y))
+        def put_queue(data, type):
+            if type=='electron':
+                self.__eventQueue.put(data)
+            elif type=='tdc':
+                self.__tdcQueue.put(data)
 
         while True:
             try:
                 packet_data = client.recv(buffer_size)
+                print(len(packet_data))
                 index = packet_data.index(b'TPX3')
                 while index<len(packet_data):
                     data = packet_data[index:index+8]
@@ -619,37 +625,16 @@ class TimePix3():
                             packet_data += client.recv(8)
                         data = packet_data[index:index+8]
                         data = data[::-1]
-                        id = (data[0] & 240)>>4
                         if id==11:
-                            dcol = ((data[0] & 15) << 4) + ((data[1] & 224) >> 4)
-                            spix = ((data[1] & 31) << 3) + ((data[2] & 128) >> 5)
-                            pix = (data[2] & 112) >> 4
+                            put_queue(data, 'electron')
+                        elif id==6:
+                            put_queue(data, 'tdc')
+                            self.sendmessage(message)
+                            while True:
+                                trash_data = client.recv(buffer_size)
+                                if len(trash_data)<buffer_size:
+                                    break
 
-                            x = int(dcol + pix / 4)
-                            y = int(spix + (pix & 3))
-
-                            #toa = ((data[2] & 15) << 10) + ((data[3] & 255) << 2) + ((data[4] & 192) >> 6)
-                            #tot = ((data[4] & 63) << 4) + ((data[5] & 240) >> 4)
-                            #ftoa = (data[5] & 15)
-                            #spidr = ((data[6] & 255) << 8) + (data[7] & 255)
-                            #ctoa = toa << 4 | ~ftoa & 15
-
-                            #spidrT = spidr * 25.0 * 16384.0
-                            #toa_ns = toa * 25.0
-                            #tot_ns = tot * 25.0
-                            #global_time = spidrT + ctoa * 25.0 / 16.0
-                            #put_event_queue(global_time, int((time.perf_counter_ns()-start_time)/(1e9*self.__expTime)), x, y)
-
-                            #put_event_queue(int((time.time() - start_time) / self.__expTime), x, y)
-                            put_event_queue(x, y)
-
-                            if int((time.time()-start_time)/self.__expTime)>frame_number:
-                                frame_number = int((time.time()-start_time)/self.__expTime)
-                                self.sendmessage(message)
-                                while True:
-                                    new_data = client.recv(buffer_size)
-                                    if len(new_data)<buffer_size:
-                                        break
                     index+=8
                 if not self.__isPlaying: break
             except socket.timeout:
@@ -662,10 +647,43 @@ class TimePix3():
     def get_last_event(self):
         return self.__eventQueue.get()
 
-    def create_image_from_events(self, imagedata):
-        imagedata = numpy.zeros(imagedata.shape)
+    def data_from_raw_electron(self, data):
+        dcol = ((data[0] & 15) << 4) + ((data[1] & 224) >> 4)
+        spix = ((data[1] & 31) << 3) + ((data[2] & 128) >> 5)
+        pix = (data[2] & 112) >> 4
+
+        x = int(dcol + pix / 4)
+        y = int(spix + (pix & 3))
+
+        #toa = ((data[2] & 15) << 10) + ((data[3] & 255) << 2) + ((data[4] & 192) >> 6)
+        #tot = ((data[4] & 63) << 4) + ((data[5] & 240) >> 4)
+        #ftoa = (data[5] & 15)
+        #spidr = ((data[6] & 255) << 8) + (data[7] & 255)
+        #ctoa = toa << 4 | ~ftoa & 15
+
+        #spidrT = spidr * 25.0 * 16384.0
+        #toa_ns = toa * 25.0
+        #tot_ns = tot * 25.0
+        #global_time = spidrT + ctoa * 25.0 / 16.0
+        return (x, y)
+
+    def data_from_raw_tdc(self, data):
+        coarseT = ((data[2] & 15) << 31) + ((data[3] & 255) << 23) + ((data[4] & 255) << 15) + (
+                    (data[5] & 255) << 7) + ((data[6] & 254) >> 1)
+        fineT = ((data[6] & 1) << 3) + ((data[7] & 224) >> 5)
+        tdcT = coarseT * (1 / 320e6) + fineT * 260e-12
+
+        triggerType = data[0] & 15
+        #if triggerType == 15: print('tdc1Ris')
+        #elif triggerType == 10: print('tdc1Fal')
+        #elif triggerType == 14: print('tdc2Ris')
+        #elif triggerType == 11: print('tdc2Fal')
+        return (tdcT, triggerType)
+
+    def create_image_from_events(self):
+        imagedata = numpy.zeros((256, 1024))
         while not self.__eventQueue.empty():
-            x, y = self.__eventQueue.get()
+            x, y = self.data_from_raw_electron(self.__eventQueue.get())
             imagedata[x, y]+=1
         return imagedata
 
