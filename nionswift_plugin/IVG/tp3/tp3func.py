@@ -618,6 +618,9 @@ class TimePix3():
             try:
                 packet_data = client.recv(buffer_size)
                 #print(f'got {len(packet_data)}')
+                if len(packet_data) <= 0:
+                    logging.info('***TP3***: Received null bytes')
+                    break
                 index = packet_data.index(b'TPX3')
                 while index<len(packet_data):
                     data = packet_data[index:index+8]
@@ -631,7 +634,8 @@ class TimePix3():
                     total_size = size_chunk1 + size_chunk2 * 256
                     for j in range(int(total_size / 8)):
                         index+=8
-                        if index==len(packet_data):
+                        if index>=len(packet_data):
+                            print(data, index, len(packet_data))
                             packet_data += client.recv(8)
                         data = packet_data[index:index+8]
                         data = data[::-1]
