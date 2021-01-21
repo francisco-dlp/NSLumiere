@@ -326,6 +326,17 @@ class CameraDevice(camera_base.CameraDevice):
             self.instrument.warn_Scan_instrument_spim(True, self.__x_pix_spim, self.__y_pix_spim) #This must finish before calling the rest
             self.camera.resumeSpim(4)
 
+        elif "SpimTP" in self.current_camera_settings.acquisition_mode:
+            self.sizey = 32
+            self.sizez = 32
+            self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype=numpy.float32)
+            self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
+            self.camera.stopFocus()
+            self.camera.startSpim(32 * 32, 1,
+                                  self.current_camera_settings.exposure_ms / 1000.,
+                                  self.current_camera_settings.acquisition_mode == "2D-Chrono")
+            self.camera.resumeSpim(4)
+
         else:
             self.sizez = 1
             acqmode = 0
@@ -342,12 +353,16 @@ class CameraDevice(camera_base.CameraDevice):
         if self.__acqon:
             self.camera.stopFocus()
             self.__acqon = False
-        if "Chrono" in self.current_camera_settings.acquisition_mode or ("Focus" in self.current_camera_settings.acquisition_mode and self.__acqspimon):
+        if "Chrono" in self.current_camera_settings.acquisition_mode\
+                or ("Focus" in self.current_camera_settings.acquisition_mode and self.__acqspimon)\
+                or "SpimTP" in self.current_camera_settings.acquisition_mode:
             self.camera.stopSpim(True)
             self.__acqon = False
             self.__acqspimon = False
             logging.info('***CAMERA***: Spim stopped. Handling...')
-            if not "Chrono" in self.current_camera_settings.acquisition_mode: self.instrument.warn_Scan_instrument_spim(False)
+            if not "Chrono" in self.current_camera_settings.acquisition_mode\
+                    and not "SpimTP" in self.current_camera_settings.acquisition_mode:
+                self.instrument.warn_Scan_instrument_spim(False)
 
     def acquire_image(self) -> dict:
         acquisition_mode = self.current_camera_settings.acquisition_mode
@@ -371,6 +386,13 @@ class CameraDevice(camera_base.CameraDevice):
             self.acquire_data = self.spimimagedata
             collection_dimensions = 2
             datum_dimensions = 1
+
+        elif "SpimTP" in acquisition_mode:
+            self.has_spim_data_event.wait(2.0)
+            self.has_spim_data_event.clear()
+            self.acquire_data = self.spimimagedata
+            collection_dimensions = 2
+            datum_dimensions = 2
 
         else: #Cumul and Focus
             self.has_data_event.wait(2.0) #wait until True
@@ -493,7 +515,7 @@ class CameraDevice(camera_base.CameraDevice):
                     format(self.camera.get_current(self.imagedata, self.frame_number), ".7f")
                 )
                 self.has_data_event.set()
-            if message==2:
+            elif message==2:
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.frame_number = int(prop['frameNumber'])
                 try:
@@ -501,10 +523,17 @@ class CameraDevice(camera_base.CameraDevice):
                 except IndexError:
                     self.spimimagedata = numpy.append(self.spimimagedata, numpy.zeros(self.spimimagedata.shape), axis=0)
                 self.has_spim_data_event.set()
-            if message==3:
-                self.imagedata = self.camera.create_image_from_events()
+            elif message==3: #Focus mode event based
+                self.imagedata = self.camera.create_image_from_events(self.imagedata.shape)
                 self.frame_number+=1
                 self.has_data_event.set()
+            elif message==4: #Cumul mode event based
+                self.imagedata += self.camera.create_image_from_events(self.imagedata.shape)
+                self.frame_number+=1
+                self.has_data_event.set()
+            elif message==5: #Chrono mode event based
+                self.frame_number+=1
+                self.has_spim_data_event.set()
         return sendMessage
 
 
@@ -578,7 +607,7 @@ class CameraSettings:
         self.frame_parameters_changed_event = Event.Event()
         self.settings_changed_event = Event.Event()
         # the list of possible modes should be defined here
-        self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live"]
+        self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "SpimTP"]
 
         self.__camera_device = camera_device
         self.settings_id = camera_device.camera_id

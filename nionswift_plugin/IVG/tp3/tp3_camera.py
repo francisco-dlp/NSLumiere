@@ -29,12 +29,12 @@ class Camera(camera_base.CameraDevice):
         self.__is_playing = False
         self.__readout_area = (0, 0, 256, 1024)
 
-        self.__hasData = threading.Event()
+        self.has_data_event = threading.Event()
 
         assert manufacturer==4 #This tp3_camera is a demo for TimePix3. Manufacturer must be 4
         if manufacturer==4:
             self.camera_callback = tp3func.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-            self.camera = tp3func.TimePix3(sn, self.camera_callback)
+            self.camera = tp3func.TimePix3(sn, simul, self.camera_callback)
 
         self.frame_parameter_changed_event = Event.Event()
         self.stop_acquitisition_event = Event.Event()
@@ -136,6 +136,7 @@ class Camera(camera_base.CameraDevice):
     def start_live(self) -> None:
         """Start live acquisition. Required before using acquire_image."""
         if not self.__is_playing:
+            self.__frame_number = 0
             self.__is_playing = True
             logging.info('***TP3***: Starting acquisition...')
             self.camera.startFocus(None, None, None)
@@ -148,8 +149,8 @@ class Camera(camera_base.CameraDevice):
     def acquire_image(self):
         """Acquire the most recent data."""
 
-        self.__hasData.wait(2)
-        self.__hasData.clear()
+        self.has_data_event.wait(2)
+        self.has_data_event.clear()
         #image_data = numpy.random.randn(256, 1024)
         self.acquire_data = self.imagedata
 
@@ -163,14 +164,53 @@ class Camera(camera_base.CameraDevice):
                 "datum_dimension_count": datum_dimensions,
                 "properties": properties}
 
-
     def sendMessageFactory(self):
+        """
+        Notes
+        -----
+
+        SendMessageFactory is a standard callback function encountered in several other instruments. It allows main file
+        to receive replies from the instrument (or device class). These callbacks are normally done by the standard
+        unlock function. They set events that tell acquisition thread new data is available.
+
+        As TimePix3 instantiation is done in python, those callback functions are explicitely defined
+        here. This means that sendMessageFactory are only supossed to be used by TimePix3 by now. If other cameras
+        are instantiated in python in the future, they could use exactly same scheme. Note that all Marcel
+        implementations, like stopFocus, startSpim, etc, are defined in tp3func.
+
+        The callback are basically events that tell acquire_image that a new data is available for displaying. In my case,
+        message equals to 01 is equivalent to Marcel's data locker, while message equals to 02 is equivalent to spim data
+        locker. Data locker (message==1) gets data from a LIFOQueue, which is a tuple in which first element is the frame
+        properties and second is the data (in bytes). You can see what is available in dict 'prop' checking either
+        serval manual or tp3func. create_image_from_bytes simply convert my bytes to a int8 array. A soft binning attribute
+        is defined in tp3 so the idea is that image always come in the right way.
+
+        For message==2, it is exactly the same. Difference is simply dimensionality (datum and collection dimensions) and,
+        if array is complete, i double the size in order to always show more data. A personal choice to never limit data
+        arrival.
+        """
+
         def sendMessage(message):
-            if message:
+            if message == 1:
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.__frame_number = int(prop['frameNumber'])
-                self.imagedata = self.camera.create_image_from_bytes(last_bytes_data)
-                self.__hasData.set()
+                self.imagedata = self.camera.create_image_from_bytes(last_bytes_data, prop['bitDepth'])
+                self.current_event.fire(
+                    format(self.camera.get_current(self.imagedata, self.__frame_number), ".7f")
+                )
+                self.has_data_event.set()
+            if message == 2:
+                prop, last_bytes_data = self.camera.get_last_data()
+                self.__frame_number = int(prop['frameNumber'])
+                try:
+                    self.spimimagedata[self.__frame_number] = self.camera.create_spimimage_from_bytes(last_bytes_data)
+                except IndexError:
+                    self.spimimagedata = numpy.append(self.spimimagedata, numpy.zeros(self.spimimagedata.shape), axis=0)
+                self.has_spim_data_event.set()
+            if message == 3:
+                self.imagedata = self.camera.create_image_from_events()
+                self.__frame_number+=1
+                self.has_data_event.set()
         return sendMessage
 
 class CameraFrameParameters(dict):
@@ -370,13 +410,13 @@ class CameraModule:
         self.camera_device = camera_device
         self.camera_settings = camera_settings
         self.priority = 20
-        self.camera_panel_type = "orsay_camera_panel"
+        #self.camera_panel_type = "eels"
 
 
 def run(instrument: ivg_inst.ivgInstrument):
 
-    camera_device = Camera(4, "CheeTah", 'http://129.175.108.52:8080', False, instrument, "TimePix3", _("TimePix3"), "eels")
-    #camera_device.camera_panel_type = "eels"
+    camera_device = Camera(4, "CheeTah", 'http://129.175.108.52:8080', True, instrument, "TimePix3", _("TimePix3"), "eels")
+    camera_device.camera_panel_type = "eels"
     camera_settings = CameraSettings("TimePix3")
 
     Registry.register_component(CameraModule("VG_Lum_controller", camera_device, camera_settings), {"camera_module"})

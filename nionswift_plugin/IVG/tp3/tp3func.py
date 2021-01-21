@@ -277,7 +277,7 @@ class TimePix3():
         if self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_listening(port, message=1)
+            self.start_listening(port, message=1, cumul=accumulate)
             return True
 
     def stopFocus(self):
@@ -420,7 +420,7 @@ class TimePix3():
     --->Functions of the client listener<---
     """
 
-    def start_listening(self, port=8088, message=1):
+    def start_listening(self, port=8088, message=1, cumul = False):
         """
         Starts the client Thread and sets isPlaying to True.
         """
@@ -428,7 +428,12 @@ class TimePix3():
         if not self.__simul:
             self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(port, message,))
         else:
-            self.__clientThread = threading.Thread(target=self.acquire_event, args=(65431, 3,))
+            port = 65431
+            if message==1: #Data message
+                message = 4 if cumul else 3
+            elif message==2: #Spim message
+                message=5
+            self.__clientThread = threading.Thread(target=self.acquire_event, args=(port, message,))
         self.__clientThread.start()
 
     def finish_listening(self):
@@ -441,7 +446,6 @@ class TimePix3():
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__eventQueue.qsize()} electron events in the Queue.')
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__tdcQueue.qsize()} tdc in the Queue.')
-            print(self.data_from_raw_tdc(self.__tdcQueue.get()))
             self.__dataQueue = queue.LifoQueue()
             self.__eventQueue = queue.LifoQueue()
             self.__tdcQueue = queue.LifoQueue()
@@ -586,35 +590,41 @@ class TimePix3():
         ip = socket.gethostbyname('127.0.0.1')
         #ip = socket.gethostbyname('129.175.108.58')
         address = (ip, port)
+        client.settimeout(1)
         try:
             client.connect(address)
-            logging.info(f'***TP3***: Client connected over 129.175.108.52:{port}.')
+            logging.info(f'***TP3***: Client connected over {ip}:{port}.')
             client.settimeout(0.005)
         except ConnectionRefusedError:
+            return False
+        except socket.timeout:
             return False
 
         buffer_size = 4096*8*8*8
 
-        def put_queue(data, type):
+        def put_queue(chip_index, data, type):
             if type=='electron':
-                self.__eventQueue.put(data)
+                self.__eventQueue.put((chip_index, data))
             elif type=='tdc':
-                self.__tdcQueue.put(data)
+                self.__tdcQueue.put((chip_index, data))
+
+        def check_packet(packet_data):
+            if len(packet_data)<buffer_size:
+                return True
+            else:
+                return False
 
         while True:
             try:
                 packet_data = client.recv(buffer_size)
-                print(len(packet_data))
+                #print(f'got {len(packet_data)}')
                 index = packet_data.index(b'TPX3')
                 while index<len(packet_data):
                     data = packet_data[index:index+8]
                     data = data[::-1]
-                    if len(data) <= 0:
-                        logging.info('***TP3***: Received null bytes')
-                        break
                     tpx3_header = data[4:8]  # 4 bytes=32 bits
                     assert tpx3_header==b'3XPT'
-                    #chip_index = data[3]  # 1 byte
+                    chip_index = data[3]  # 1 byte
                     #first_reserved = data[2]  # 1 byte
                     size_chunk1 = data[1]  # 1 byte
                     size_chunk2 = data[0]  # 1 byte
@@ -625,16 +635,22 @@ class TimePix3():
                             packet_data += client.recv(8)
                         data = packet_data[index:index+8]
                         data = data[::-1]
+                        try:
+                            id = (data[0] & 240) >> 4
+                        except:
+                            print(data, index, len(packet_data))
                         if id==11:
-                            put_queue(data, 'electron')
+                            put_queue(chip_index, data, 'electron')
                         elif id==6:
-                            put_queue(data, 'tdc')
-                            self.sendmessage(message)
-                            while True:
+                            put_queue(chip_index, data, 'tdc')
+                            if message==3 or message==4:
+                                self.sendmessage(message)
                                 trash_data = client.recv(buffer_size)
-                                if len(trash_data)<buffer_size:
-                                    break
-
+                                while not check_packet(trash_data):
+                                    trash_data = client.recv(buffer_size)
+                            if message==5:
+                                pass
+                                #print(self.__tdcQueue.qsize())
                     index+=8
                 if not self.__isPlaying: break
             except socket.timeout:
@@ -647,13 +663,22 @@ class TimePix3():
     def get_last_event(self):
         return self.__eventQueue.get()
 
-    def data_from_raw_electron(self, data):
+    def data_from_raw_electron(self, data, softBinning = False, toa=False):
         dcol = ((data[0] & 15) << 4) + ((data[1] & 224) >> 4)
-        spix = ((data[1] & 31) << 3) + ((data[2] & 128) >> 5)
         pix = (data[2] & 112) >> 4
-
         x = int(dcol + pix / 4)
-        y = int(spix + (pix & 3))
+        toa_ns = None
+        if toa:
+            toa = ((data[2] & 15) << 10) + ((data[3] & 255) << 2) + ((data[4] & 192) >> 6)
+            ftoa = (data[5] & 15)
+            ctoa = toa << 4 | ~ftoa & 15
+            toa_ns = toa * 25.0
+        if softBinning:
+            return (x, 0, toa_ns)
+        else:
+            spix = ((data[1] & 31) << 3) + ((data[2] & 128) >> 5)
+            y = int(spix + (pix & 3))
+            return (x, y, toa_ns)
 
         #toa = ((data[2] & 15) << 10) + ((data[3] & 255) << 2) + ((data[4] & 192) >> 6)
         #tot = ((data[4] & 63) << 4) + ((data[5] & 240) >> 4)
@@ -665,26 +690,29 @@ class TimePix3():
         #toa_ns = toa * 25.0
         #tot_ns = tot * 25.0
         #global_time = spidrT + ctoa * 25.0 / 16.0
-        return (x, y)
 
     def data_from_raw_tdc(self, data):
+        """
+        Notes
+        -----
+        Trigger type can return 15 if tdc1 Rising edge; 10 if tdc1 Falling Edge; 14 if tdc2 Rising Edge;
+        11 if tdc2 Falling edge. tdcT returns time in seconds up to ~107s
+        """
         coarseT = ((data[2] & 15) << 31) + ((data[3] & 255) << 23) + ((data[4] & 255) << 15) + (
                     (data[5] & 255) << 7) + ((data[6] & 254) >> 1)
         fineT = ((data[6] & 1) << 3) + ((data[7] & 224) >> 5)
         tdcT = coarseT * (1 / 320e6) + fineT * 260e-12
 
         triggerType = data[0] & 15
-        #if triggerType == 15: print('tdc1Ris')
-        #elif triggerType == 10: print('tdc1Fal')
-        #elif triggerType == 14: print('tdc2Ris')
-        #elif triggerType == 11: print('tdc2Fal')
         return (tdcT, triggerType)
 
-    def create_image_from_events(self):
-        imagedata = numpy.zeros((256, 1024))
-        while not self.__eventQueue.empty():
-            x, y = self.data_from_raw_electron(self.__eventQueue.get())
-            imagedata[x, y]+=1
+    def create_image_from_events(self, shape):
+        imagedata = numpy.zeros(shape)
+        for i in range(self.__eventQueue.qsize()):
+            chip, data = self.__eventQueue.get()
+            x, y, _ = self.data_from_raw_electron(data, self.__softBinning)
+            imagedata[y, x]+=1
+        finish = time.perf_counter_ns()
         return imagedata
 
     def get_total_counts_from_data(self, frame_int):
