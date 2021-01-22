@@ -617,7 +617,7 @@ class TimePix3():
         while True:
             try:
                 packet_data = client.recv(buffer_size)
-                print(f'got {len(packet_data)}')
+                #print(f'got {len(packet_data)}')
                 if len(packet_data) <= 0:
                     logging.info('***TP3***: Received null bytes')
                     break
@@ -649,9 +649,9 @@ class TimePix3():
                         put_queue(chip_index, data, 'tdc')
                         if message==3 or message==4:
                             self.sendmessage(message)
-                            #trash_data = client.recv(buffer_size)
-                            #while not check_packet(trash_data):
-                            #    trash_data = client.recv(buffer_size)
+                            trash_data = client.recv(buffer_size)
+                            while not check_packet(trash_data):
+                                trash_data = client.recv(buffer_size)
                         if message==5:
                             pass
                             #print(self.__tdcQueue.qsize())
@@ -668,17 +668,49 @@ class TimePix3():
         return self.__eventQueue.get()
 
     def data_from_raw_electron(self, data, softBinning = False, toa=False):
-        #dcol = ((data[0] & 15) << 4) + ((data[1] & 224) >> 4)
-        #pix = data[2] & 112) >> 4
-        #x = int(dcol + pix / 4)
-        #x = list()
-        #for i in numpy.arange(0, len(data), 8):
-            #x.append(int(
-            #        (((data[0+i] & 15) << 4) + ((data[1+i] & 224) >> 4))
-            #             + (((data[2+i] & 112) >> 4) / 4)))
-        x = [int(
-            (((data[0+i] & 15) << 4) + ((data[1+i] & 224) >> 4))
-                 + (((data[2+i] & 112) >> 4) / 4)) for i in numpy.arange(0, len(data), 8)]
+        pos = list()
+        toa = list()
+        if not softBinning:
+            if toa:
+                for i in numpy.arange(0, len(data), 8):
+                    dcol = ((data[0+i] & 15) << 4) + ((data[1+i] & 224) >> 4)
+                    pix = (data[2+i] & 112) >> 4
+                    spix = ((data[1+i] & 31) << 3) + ((data[2+i] & 128) >> 5)
+                    toa = ((data[2+i] & 15) << 10) + ((data[3+i] & 255) << 2) + ((data[4+i] & 192) >> 6)
+                    ftoa = (data[5+i] & 15)
+                    ctoa = toa << 4 | ~ftoa & 15
+                    toa_ns = toa * 25.0
+                    pos.append([int(dcol + pix / 4), int(spix + (pix & 3))])
+                    toa.append(toa_ns)
+            else:
+                for i in numpy.arange(0, len(data), 8):
+                    dcol = ((data[0+i] & 15) << 4) + ((data[1+i] & 224) >> 4)
+                    pix = (data[2+i] & 112) >> 4
+                    spix = ((data[1+i] & 31) << 3) + ((data[2+i] & 128) >> 5)
+                    pos.append([int(dcol + pix / 4), int(spix + (pix & 3))])
+        else: #SoftBinning
+            if toa:
+                for i in numpy.arange(0, len(data), 8):
+                    dcol = ((data[0 + i] & 15) << 4) + ((data[1 + i] & 224) >> 4)
+                    pix = (data[2 + i] & 112) >> 4
+                    toa = ((data[2 + i] & 15) << 10) + ((data[3 + i] & 255) << 2) + ((data[4 + i] & 192) >> 6)
+                    ftoa = (data[5 + i] & 15)
+                    ctoa = toa << 4 | ~ftoa & 15
+                    toa_ns = toa * 25.0
+                    pos.append([int(dcol + pix / 4), 0])
+                    toa.append(toa_ns)
+            else:
+                for i in numpy.arange(0, len(data), 8):
+                    dcol = ((data[0 + i] & 15) << 4) + ((data[1 + i] & 224) >> 4)
+                    pix = (data[2 + i] & 112) >> 4
+                    pos.append([int(dcol + pix / 4), 0])
+        return (pos, toa)
+
+        """
+        #x = [int(
+        #    (((data[0+i] & 15) << 4) + ((data[1+i] & 224) >> 4))
+        #         + (((data[2+i] & 112) >> 4) / 4)) for i in numpy.arange(0, len(data), 8)]
+        
         toa_ns = None
         if toa:
             toa = ((data[2] & 15) << 10) + ((data[3] & 255) << 2) + ((data[4] & 192) >> 6)
@@ -704,6 +736,7 @@ class TimePix3():
         #toa_ns = toa * 25.0
         #tot_ns = tot * 25.0
         #global_time = spidrT + ctoa * 25.0 / 16.0
+        """
 
     def data_from_raw_tdc(self, data):
         """
@@ -721,18 +754,15 @@ class TimePix3():
         return (tdcT, triggerType)
 
     def create_image_from_events(self, shape):
-        start = time.perf_counter_ns()
+        #start = time.perf_counter_ns()
         imagedata = numpy.zeros(shape)
         for i in range(self.__eventQueue.qsize()):
             chip, data = self.__eventQueue.get()
-            x, y, _ = self.data_from_raw_electron(data, self.__softBinning)
-            zipped = zip(y, x)
-            myList = list(zipped)
-            unique, frequency = numpy.unique(myList, return_counts=True, axis=0)
+            xy, _ = self.data_from_raw_electron(data, self.__softBinning)
+            unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
             for index, val in enumerate(unique):
-                imagedata[val[0]][val[1]] += frequency[index]
-            #imagedata[unique] += frequency
-        finish = time.perf_counter_ns()
+                imagedata[val[1]][val[0]] += frequency[index]
+        #finish = time.perf_counter_ns()
         #print((finish - start)/1e9)
         return imagedata
 
