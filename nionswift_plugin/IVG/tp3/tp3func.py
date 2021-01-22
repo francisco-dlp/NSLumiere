@@ -678,7 +678,7 @@ class TimePix3():
                     logging.info('***TP3***: Received null bytes')
                     break
                 index = packet_data.index(b'TPX3')
-                while index<len(packet_data):
+                while index+8<len(packet_data):
                     data = packet_data[index:index+8]
                     data = data[::-1]
                     tpx3_header = data[4:8]  # 4 bytes=32 bits
@@ -690,6 +690,8 @@ class TimePix3():
                     total_size = size_chunk1 + size_chunk2 * 256
                     for j in range(int(total_size/8)):
                         index+=8
+                        if index>=len(packet_data):
+                            packet_data+=client.recv(8)
                         data = packet_data[index:index+8]
                         data = data[::-1]
                         id = (data[0] & 240) >> 4
