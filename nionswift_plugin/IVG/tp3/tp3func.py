@@ -578,12 +578,14 @@ class TimePix3():
 
         #datas = [r"C:\Users\AUAD\Desktop\TimePix3\Yves_raw\19-01-2021\tdc_check___47\raw\tdc_check_0000"+format(i, '.0f').zfill(2)+".tpx3" for i in range(i)]
 
-        def put_queue(chip_index, data, type):
+        def put_queue(data, type):
             if type=='electron':
-                self.__eventQueue.put((chip_index, data))
+                self.__eventQueue.put(data)
             elif type=='tdc':
-                self.__tdcQueue.put((chip_index, data))
+                self.__tdcQueue.put(data)
+            return b''
 
+        electron_data = b''
 
         while True:
             filenumber = int(numpy.random.rand()*99)
@@ -593,6 +595,7 @@ class TimePix3():
                 #index = 0
                 index = all_data.index(b'TPX3')
                 while True:
+                    assert electron_data
                     data = all_data[index: index+8]
                     data=data[::-1]
                     if data==b'': break
@@ -609,15 +612,15 @@ class TimePix3():
                         data = data[::-1]
                         id = (data[0] & 240) >> 4
                         if id==11:
-                            put_queue(chip_index, data, 'electron')
+                            electron_data+=data+bytes([chip_index])
                         elif id==6:
-                            put_queue(chip_index, data, 'tdc')
+                            electron_data = put_queue(electron_data, 'electron')
+                            put_queue(data+bytes([chip_index]), 'tdc')
                     index+=8
-                if not self.__isPlaying:
-                    break
+                if not self.__isPlaying: break
+                electron_data = put_queue(electron_data, 'electron')
             self.sendmessage(message)
         return True
-
 
     def acquire_event(self, port, message):
         """
@@ -647,12 +650,14 @@ class TimePix3():
             return False
 
         buffer_size = 4096*8*8*8
+        electron_data = b''
 
         def put_queue(data, type):
             if type=='electron':
                 self.__eventQueue.put(data)
             elif type=='tdc':
                 self.__tdcQueue.put(data)
+            return b''
 
         def check_packet(packet_data):
             if len(packet_data)<buffer_size:
@@ -662,8 +667,7 @@ class TimePix3():
 
         while True:
             try:
-                electron_data = b''
-                tdc_data = b''
+                assert not electron_data
                 packet_data = client.recv(buffer_size)
                 #print(f'got {len(packet_data)}')
                 if len(packet_data) <= 0:
@@ -686,14 +690,11 @@ class TimePix3():
                         data = data[::-1]
                         id = (data[0] & 240) >> 4
                         if id==11:
-                            electron_data+=data
-                            electron_data+=bytes([chip_index])
+                            electron_data+=data+bytes([chip_index])
                         elif id==6:
-                            tdc_data+=data
-                            tdc_data+=bytes([chip_index])
+                            electron_data = put_queue(electron_data, 'electron')
+                            put_queue(data+bytes([chip_index]), 'tdc')
                             if message==3 or message==4:
-                                put_queue(electron_data, 'electron')
-                                put_queue(tdc_data, 'tdc')
                                 self.sendmessage(message)
                                 trash_data = client.recv(buffer_size)
                                 while not check_packet(trash_data):
@@ -702,6 +703,7 @@ class TimePix3():
                                 pass
                     index+=8
                 if not self.__isPlaying: break
+                electron_data = put_queue(electron_data, 'electron')
             except socket.timeout:
                 pass
         return True
@@ -787,7 +789,7 @@ class TimePix3():
             for index, val in enumerate(unique):
                 imagedata[val[1]][val[0]] += frequency[index]
         finish = time.perf_counter_ns()
-        print((finish - start) / 1e9)
+        #print((finish - start) / 1e9)
         return imagedata
 
     def get_total_counts_from_data(self, frame_int):
