@@ -335,7 +335,10 @@ class TimePix3():
         pass
 
     def getCurrentPort(self):
-        return self.__port
+        if self.__port is not None:
+            return self.__port
+        else:
+            return 0
 
     def setCurrentPort(self, cameraport):
         self.__port = cameraport
@@ -580,9 +583,9 @@ class TimePix3():
 
         def put_queue(data, type):
             if type=='electron':
-                self.__eventQueue.put(data)
+                if data: self.__eventQueue.put(data)
             elif type=='tdc':
-                self.__tdcQueue.put(data)
+                if data: self.__tdcQueue.put(data)
             return b''
 
         electron_data = b''
@@ -654,9 +657,9 @@ class TimePix3():
 
         def put_queue(data, type):
             if type=='electron':
-                self.__eventQueue.put(data)
+                if data: self.__eventQueue.put(data)
             elif type=='tdc':
-                self.__tdcQueue.put(data)
+                if data: self.__tdcQueue.put(data)
             return b''
 
         def check_packet(packet_data):
