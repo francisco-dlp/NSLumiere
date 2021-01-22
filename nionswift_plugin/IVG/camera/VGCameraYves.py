@@ -531,6 +531,7 @@ class CameraDevice(camera_base.CameraDevice):
                 self.frame_number+=1
                 self.has_data_event.set()
             elif message==5: #Chrono mode event based
+                self.spimimagedata += self.camera.create_spim_from_events(self.spimimagedata.shape, lineTime = 0.1, lineNumber = self.frame_number)
                 self.frame_number+=1
                 self.has_spim_data_event.set()
         return sendMessage

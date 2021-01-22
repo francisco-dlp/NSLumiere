@@ -18,9 +18,9 @@ class TimePix3():
     def __init__(self, url, simul, message):
 
         self.__serverURL = url
-        self.__dataQueue = queue.LifoQueue()
-        self.__eventQueue = queue.LifoQueue()
-        self.__tdcQueue = queue.LifoQueue()
+        self.__dataQueue = queue.Queue()
+        self.__eventQueue = queue.Queue()
+        self.__tdcQueue = queue.Queue()
         self.__isPlaying = False
         self.__softBinning = False
         self.__isCumul = False
@@ -598,7 +598,7 @@ class TimePix3():
                 #index = 0
                 index = all_data.index(b'TPX3')
                 while True:
-                    assert electron_data
+                    assert not electron_data
                     data = all_data[index: index+8]
                     data=data[::-1]
                     if data==b'': break
@@ -696,7 +696,7 @@ class TimePix3():
                         data = data[::-1]
                         id = (data[0] & 240) >> 4
                         if id==11:
-                            electron_data+=data+bytes([chip_index])
+                            electron_data += data + bytes([chip_index])
                         elif id==6:
                             electron_data = put_queue(electron_data, 'electron')
                             put_queue(data+bytes([chip_index]), 'tdc')
@@ -706,7 +706,7 @@ class TimePix3():
                                 while not check_packet(trash_data):
                                     trash_data = client.recv(buffer_size)
                             if message==5:
-                                pass
+                                self.sendmessage(5)
                     index+=8
                 if not self.__isPlaying: break
                 electron_data = put_queue(electron_data, 'electron')
@@ -720,27 +720,31 @@ class TimePix3():
     def get_last_event(self):
         return self.__eventQueue.get()
 
-    def data_from_raw_electron(self, data, softBinning = False, toa=False):
+    def data_from_raw_electron(self, data, softBinning, toa):
         pos = list()
-        toa = list()
+        gt = list()
         if not softBinning:
             if toa:
                 for i in numpy.arange(0, len(data), 9):
                     dcol = ((data[0+i] & 15) << 4) + ((data[1+i] & 224) >> 4)
                     pix = (data[2+i] & 112) >> 4
                     spix = ((data[1+i] & 31) << 3) + ((data[2+i] & 128) >> 5)
-                    toa = ((data[2+i] & 15) << 10) + ((data[3+i] & 255) << 2) + ((data[4+i] & 192) >> 6)
-                    ftoa = (data[5+i] & 15)
+                    toa = ((data[2 + i] & 15) << 10) + ((data[3 + i] & 255) << 2) + ((data[4 + i] & 192) >> 6)
+                    ftoa = (data[5 + i] & 15)
+                    spidr = ((data[6 + i] & 255) << 8) + (data[7 + i] & 255)
                     ctoa = toa << 4 | ~ftoa & 15
+                    spidrT = spidr * 25.0 * 16384.0
                     toa_ns = toa * 25.0
+                    global_time = spidrT + ctoa * 25.0 / 16.0
                     pos.append([int(dcol + pix / 4), int(spix + (pix & 3))])
-                    toa.append(toa_ns)
+                    gt.append(global_time/1e9)
             else:
                 for i in numpy.arange(0, len(data), 9):
                     dcol = ((data[0+i] & 15) << 4) + ((data[1+i] & 224) >> 4)
                     pix = (data[2+i] & 112) >> 4
                     spix = ((data[1+i] & 31) << 3) + ((data[2+i] & 128) >> 5)
                     pos.append([int(dcol + pix / 4), int(spix + (pix & 3))])
+                    gt.append(0)
         else: #SoftBinning
             if toa:
                 for i in numpy.arange(0, len(data), 9):
@@ -748,16 +752,20 @@ class TimePix3():
                     pix = (data[2 + i] & 112) >> 4
                     toa = ((data[2 + i] & 15) << 10) + ((data[3 + i] & 255) << 2) + ((data[4 + i] & 192) >> 6)
                     ftoa = (data[5 + i] & 15)
+                    spidr = ((data[6 + i] & 255) << 8) + (data[7 + i] & 255)
                     ctoa = toa << 4 | ~ftoa & 15
+                    spidrT = spidr * 25.0 * 16384.0
                     toa_ns = toa * 25.0
+                    global_time = spidrT + ctoa * 25.0 / 16.0
                     pos.append([int(dcol + pix / 4), 0])
-                    toa.append(toa_ns)
+                    gt.append(global_time/1e9)
             else:
                 for i in numpy.arange(0, len(data), 9):
                     dcol = ((data[0 + i] & 15) << 4) + ((data[1 + i] & 224) >> 4)
                     pix = (data[2 + i] & 112) >> 4
                     pos.append([int(dcol + pix / 4), 0])
-        return (pos, toa)
+                    gt.append(0)
+        return (pos, gt)
 
         #toa = ((data[2] & 15) << 10) + ((data[3] & 255) << 2) + ((data[4] & 192) >> 6)
         #tot = ((data[4] & 63) << 4) + ((data[5] & 240) >> 4)
@@ -790,13 +798,32 @@ class TimePix3():
         imagedata = numpy.zeros(shape)
         for i in range(self.__eventQueue.qsize()):
             data = self.__eventQueue.get()
-            xy, _ = self.data_from_raw_electron(data, self.__softBinning)
+            xy, _ = self.data_from_raw_electron(data, self.__softBinning, toa=False)
             unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
             for index, val in enumerate(unique):
                 imagedata[val[1]][val[0]] += frequency[index]
         finish = time.perf_counter_ns()
-        print((finish - start) / 1e9)
+        #print((finish - start) / 1e9)
         return imagedata
+
+    def create_spim_from_events(self, shape, lineTime, lineNumber):
+        start = time.perf_counter_ns()
+        spimimagedata = numpy.zeros(shape)
+        columns = shape[1]
+        lineNumber = lineNumber%columns
+        ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[0]
+        #print(ref_time)
+        for i in range(self.__eventQueue.qsize()):
+            data = self.__eventQueue.get()
+            xy, gt = self.data_from_raw_electron(data, softBinning = True, toa = True)
+            pixelsLine = numpy.add(numpy.divide(numpy.subtract(gt, ref_time), lineTime/columns), columns)
+            pixelsLine = pixelsLine.astype(int)
+            assert max(pixelsLine)<columns
+            for index, val in enumerate(pixelsLine):
+                spimimagedata[lineNumber, val, xy[index][0]]+=1
+        finish = time.perf_counter_ns()
+        #print((finish - start) / 1e9)
+        return spimimagedata
 
     def get_total_counts_from_data(self, frame_int):
         return numpy.sum(frame_int)
