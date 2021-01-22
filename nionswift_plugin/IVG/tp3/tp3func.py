@@ -639,8 +639,9 @@ class TimePix3():
         """
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        ip = socket.gethostbyname('127.0.0.1')
+        #ip = socket.gethostbyname('127.0.0.1')
         #ip = socket.gethostbyname('129.175.108.58')
+        ip = socket.gethostbyname('129.175.81.162')
         address = (ip, port)
         client.settimeout(1)
         try:
@@ -792,7 +793,7 @@ class TimePix3():
             for index, val in enumerate(unique):
                 imagedata[val[1]][val[0]] += frequency[index]
         finish = time.perf_counter_ns()
-        #print((finish - start) / 1e9)
+        print((finish - start) / 1e9)
         return imagedata
 
     def get_total_counts_from_data(self, frame_int):
