@@ -433,7 +433,8 @@ class TimePix3():
                 message = 4 if cumul else 3
             elif message==2: #Spim message
                 message=5
-            self.__clientThread = threading.Thread(target=self.acquire_event, args=(port, message,))
+            #self.__clientThread = threading.Thread(target=self.acquire_event, args=(port, message,))
+            self.__clientThread = threading.Thread(target=self.acquire_event_from_data, args=(message,))
         self.__clientThread.start()
 
     def finish_listening(self):
@@ -573,6 +574,50 @@ class TimePix3():
         logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
         return True
 
+    def acquire_event_from_data(self, message):
+
+        #datas = [r"C:\Users\AUAD\Desktop\TimePix3\Yves_raw\19-01-2021\tdc_check___47\raw\tdc_check_0000"+format(i, '.0f').zfill(2)+".tpx3" for i in range(i)]
+
+        def put_queue(chip_index, data, type):
+            if type=='electron':
+                self.__eventQueue.put((chip_index, data))
+            elif type=='tdc':
+                self.__tdcQueue.put((chip_index, data))
+
+
+        while True:
+            filenumber = int(numpy.random.rand()*99)
+            data = r"C:\Users\AUAD\Desktop\TimePix3\Yves_raw\19-01-2021\tdc_check___47\raw\tdc_check_0000"+format(filenumber, '.0f').zfill(2)+".tpx3"
+            with open(data, "rb") as f:
+                all_data = f.read()
+                #index = 0
+                index = all_data.index(b'TPX3')
+                while True:
+                    data = all_data[index: index+8]
+                    data=data[::-1]
+                    if data==b'': break
+                    tpx3_header = data[4:8]  # 4 bytes=32 bits
+                    assert tpx3_header==b'3XPT'
+                    chip_index = data[3]  # 1 byte
+                    #mode = data[2]  # 1 byte
+                    size_chunk1 = data[1]  # 1 byte
+                    size_chunk2 = data[0]  # 1 byte
+                    total_size = size_chunk1 + size_chunk2 * 256
+                    index+=8
+                    data = all_data[index:index+total_size]
+                    data = data[::-1]
+                    id = (data[0] & 240) >> 4
+                    if id==11:
+                        put_queue(chip_index, data, 'electron')
+                    elif id==6:
+                        put_queue(chip_index, data, 'tdc')
+                    index+=total_size
+                if not self.__isPlaying:
+                    break
+            self.sendmessage(message)
+        return True
+
+
     def acquire_event(self, port, message):
         """
         Main client function. Main loop is explained below.
@@ -632,7 +677,6 @@ class TimePix3():
                     size_chunk1 = data[1]  # 1 byte
                     size_chunk2 = data[0]  # 1 byte
                     total_size = size_chunk1 + size_chunk2 * 256
-                    #for j in range(int(total_size / 8)):
                     index+=8
                     if index>=len(packet_data):
                         print(data, index, len(packet_data))
@@ -654,7 +698,6 @@ class TimePix3():
                                 trash_data = client.recv(buffer_size)
                         if message==5:
                             pass
-                            #print(self.__tdcQueue.qsize())
                     index+=total_size
                 if not self.__isPlaying: break
             except socket.timeout:
@@ -706,26 +749,6 @@ class TimePix3():
                     pos.append([int(dcol + pix / 4), 0])
         return (pos, toa)
 
-        """
-        #x = [int(
-        #    (((data[0+i] & 15) << 4) + ((data[1+i] & 224) >> 4))
-        #         + (((data[2+i] & 112) >> 4) / 4)) for i in numpy.arange(0, len(data), 8)]
-        
-        toa_ns = None
-        if toa:
-            toa = ((data[2] & 15) << 10) + ((data[3] & 255) << 2) + ((data[4] & 192) >> 6)
-            ftoa = (data[5] & 15)
-            ctoa = toa << 4 | ~ftoa & 15
-            toa_ns = toa * 25.0
-        if softBinning:
-            return (x, [0]*len(x), toa_ns)
-        else:
-            #spix = ((data[1] & 31) << 3) + ((data[2] & 128) >> 5)
-            #y = int(spix + (pix & 3))
-            y = [int((((data[1] & 31) << 3) + ((data[2] & 128) >> 5))
-                    + (((data[2] & 112) >> 4) & 3)) for i in numpy.arange(0, len(data), 8)]
-            return (x, y, toa_ns)
-
         #toa = ((data[2] & 15) << 10) + ((data[3] & 255) << 2) + ((data[4] & 192) >> 6)
         #tot = ((data[4] & 63) << 4) + ((data[5] & 240) >> 4)
         #ftoa = (data[5] & 15)
@@ -736,7 +759,6 @@ class TimePix3():
         #toa_ns = toa * 25.0
         #tot_ns = tot * 25.0
         #global_time = spidrT + ctoa * 25.0 / 16.0
-        """
 
     def data_from_raw_tdc(self, data):
         """
@@ -754,7 +776,7 @@ class TimePix3():
         return (tdcT, triggerType)
 
     def create_image_from_events(self, shape):
-        #start = time.perf_counter_ns()
+        start = time.perf_counter_ns()
         imagedata = numpy.zeros(shape)
         for i in range(self.__eventQueue.qsize()):
             chip, data = self.__eventQueue.get()
@@ -762,8 +784,8 @@ class TimePix3():
             unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
             for index, val in enumerate(unique):
                 imagedata[val[1]][val[0]] += frequency[index]
-        #finish = time.perf_counter_ns()
-        #print((finish - start)/1e9)
+        finish = time.perf_counter_ns()
+        #print((finish - start) / 1e9)
         return imagedata
 
     def get_total_counts_from_data(self, frame_int):
