@@ -639,9 +639,9 @@ class TimePix3():
         """
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        #ip = socket.gethostbyname('127.0.0.1')
+        ip = socket.gethostbyname('127.0.0.1')
         #ip = socket.gethostbyname('129.175.108.58')
-        ip = socket.gethostbyname('129.175.81.162')
+        #ip = socket.gethostbyname('129.175.81.162')
         address = (ip, port)
         client.settimeout(1)
         try:
@@ -671,7 +671,6 @@ class TimePix3():
 
         while True:
             try:
-                assert not electron_data
                 packet_data = client.recv(buffer_size)
                 #print(f'got {len(packet_data)}')
                 if len(packet_data) <= 0:
@@ -700,16 +699,16 @@ class TimePix3():
                         elif id==6:
                             electron_data = put_queue(electron_data, 'electron')
                             put_queue(data+bytes([chip_index]), 'tdc')
+                            self.sendmessage(message)
                             if message==3 or message==4:
-                                self.sendmessage(message)
                                 trash_data = client.recv(buffer_size)
                                 while not check_packet(trash_data):
                                     trash_data = client.recv(buffer_size)
                             if message==5:
-                                self.sendmessage(5)
+                                pass
                     index+=8
                 if not self.__isPlaying: break
-                electron_data = put_queue(electron_data, 'electron')
+                #electron_data = put_queue(electron_data, 'electron')
             except socket.timeout:
                 pass
         return True
@@ -807,20 +806,27 @@ class TimePix3():
         return imagedata
 
     def create_spim_from_events(self, shape, lineTime, lineNumber):
+        if lineNumber==0:
+            self.__eventQueue = queue.Queue()
+
         start = time.perf_counter_ns()
         spimimagedata = numpy.zeros(shape)
+        lines = shape[0]
         columns = shape[1]
         lineNumber = lineNumber%columns
-        ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[0]
-        #print(ref_time)
-        for i in range(self.__eventQueue.qsize()):
+
+        if not self.__eventQueue.empty():
             data = self.__eventQueue.get()
             xy, gt = self.data_from_raw_electron(data, softBinning = True, toa = True)
-            pixelsLine = numpy.add(numpy.divide(numpy.subtract(gt, ref_time), lineTime/columns), columns)
-            pixelsLine = pixelsLine.astype(int)
-            assert max(pixelsLine)<columns
-            for index, val in enumerate(pixelsLine):
-                spimimagedata[lineNumber, val, xy[index][0]]+=1
+            ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[0]
+            print(f'{ref_time} and {gt[0]}')
+            #assert ref_time<gt[0]
+            pixelsLine = numpy.divide(numpy.subtract(gt, ref_time), lineTime/columns)
+            #print(pixelsLine)
+            #pixelsLine = pixelsLine.astype(int)
+            #assert max(pixelsLine)<columns
+            #for index, val in enumerate(pixelsLine):
+            #    spimimagedata[lineNumber, val, xy[index][0]]+=1
         finish = time.perf_counter_ns()
         #print((finish - start) / 1e9)
         return spimimagedata

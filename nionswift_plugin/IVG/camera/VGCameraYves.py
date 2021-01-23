@@ -327,7 +327,7 @@ class CameraDevice(camera_base.CameraDevice):
             self.camera.resumeSpim(4)
 
         elif "SpimTP" in self.current_camera_settings.acquisition_mode:
-            self.sizey = self.sizez = 8
+            self.sizey = self.sizez = self.sizey = self.current_camera_settings.spectra_count
             self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype=numpy.float32)
             self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
             self.camera.stopFocus()
@@ -391,7 +391,7 @@ class CameraDevice(camera_base.CameraDevice):
             self.has_spim_data_event.clear()
             self.acquire_data = self.spimimagedata
             collection_dimensions = 2
-            datum_dimensions = 2
+            datum_dimensions = 1
 
         else: #Cumul and Focus
             self.has_data_event.wait(2.0) #wait until True
