@@ -815,18 +815,21 @@ class TimePix3():
         columns = shape[1]
         lineNumber = lineNumber%columns
 
-        if not self.__eventQueue.empty():
-            data = self.__eventQueue.get()
-            xy, gt = self.data_from_raw_electron(data, softBinning = True, toa = True)
-            ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[0]
-            print(f'{ref_time} and {gt[0]}')
-            #assert ref_time<gt[0]
-            pixelsLine = numpy.divide(numpy.subtract(gt, ref_time), lineTime/columns)
-            #print(pixelsLine)
-            #pixelsLine = pixelsLine.astype(int)
-            #assert max(pixelsLine)<columns
-            #for index, val in enumerate(pixelsLine):
-            #    spimimagedata[lineNumber, val, xy[index][0]]+=1
+        for line in range(lines):
+        #for line in range(1): #if showing each line
+            if not self.__eventQueue.empty():
+                data = self.__eventQueue.get()
+                xy, gt = self.data_from_raw_electron(data, softBinning = True, toa = True)
+                ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[0]
+                pixelsLine = numpy.subtract(gt, ref_time)
+                pixelsLine = numpy.interp(pixelsLine, (pixelsLine[0], pixelsLine[-1]), (0, columns)).astype(int)
+                for index, val in enumerate(pixelsLine):
+                    try:
+                        spimimagedata[line, val, xy[index][0]] += 1
+                        #spimimagedata[lineNumber, val, xy[index][0]] += 1 #if showing each line
+                    except IndexError:
+                        spimimagedata[line, val-1, xy[index][0]] += 1
+                        #spimimagedata[lineNumber, val - 1, xy[index][0]] += 1 #if showing each line
         finish = time.perf_counter_ns()
         #print((finish - start) / 1e9)
         return spimimagedata
