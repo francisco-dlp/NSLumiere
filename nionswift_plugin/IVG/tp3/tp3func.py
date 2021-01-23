@@ -822,6 +822,10 @@ class TimePix3():
                 xy, gt = self.data_from_raw_electron(data, softBinning = True, toa = True)
                 ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[0]
                 pixelsLine = numpy.subtract(gt, ref_time)
+                if pixelsLine[-1]<pixelsLine[0]:
+                    maxTime = 26.8435456
+                    pixelsLine = [(val if index <= numpy.where(pixelsLine==numpy.max(pixelsLine))[0][0] else val + maxTime) for index, val in enumerate(pixelsLine)]
+                assert pixelsLine[-1] > pixelsLine[0] #time must be a crescent
                 pixelsLine = numpy.interp(pixelsLine, (pixelsLine[0], pixelsLine[-1]), (0, columns)).astype(int)
                 for index, val in enumerate(pixelsLine):
                     try:
