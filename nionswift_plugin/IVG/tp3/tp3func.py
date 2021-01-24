@@ -16,6 +16,8 @@ class Response():
     def __init__(self):
         self.text = '***TP3***: This is simul mode.'
 
+SAVE_FILE = False
+
 class TimePix3():
     def __init__(self, url, simul, message):
 
@@ -825,8 +827,8 @@ class TimePix3():
                 data = self.__eventQueue.get()
                 xy, gt = self.data_from_raw_electron(data, softBinning = True, toa = True)
                 ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[0]
-                #pixelsLine = numpy.subtract(gt, ref_time)
-                pixelsLine = numpy.array(gt)
+                pixelsLine = numpy.subtract(gt, ref_time)
+                #pixelsLine = numpy.array(gt)
                 if pixelsLine[-1]<pixelsLine[0]:
                     maxTime = 26.8435456
                     pixelsLine = numpy.array([(val if index <= numpy.where(pixelsLine==numpy.max(pixelsLine))[0][0] else val + maxTime) for index, val in enumerate(pixelsLine)])
@@ -839,7 +841,7 @@ class TimePix3():
                     except IndexError:
                         spimimagedata[line, val-1, xy[index][0]] += 1
                         #spimimagedata[lineNumber, val - 1, xy[index][0]] += 1 #if showing each line
-        numpy.savez_compressed(file, spimimagedata)
+        if SAVE_FILE: numpy.savez_compressed(file, spimimagedata)
         finish = time.perf_counter_ns()
         #print((finish - start) / 1e9)
         return spimimagedata
