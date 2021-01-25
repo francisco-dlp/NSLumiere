@@ -506,6 +506,7 @@ class CameraDevice(camera_base.CameraDevice):
         arrival.
         """
         def sendMessage(message):
+            message, bufferFull = message
             if message==1:
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.frame_number = int(prop['frameNumber'])
@@ -523,16 +524,16 @@ class CameraDevice(camera_base.CameraDevice):
                     self.spimimagedata = numpy.append(self.spimimagedata, numpy.zeros(self.spimimagedata.shape), axis=0)
                 self.has_spim_data_event.set()
             elif message==3: #Focus mode event based
-                self.imagedata = self.camera.create_image_from_events(self.imagedata.shape)
+                self.imagedata = self.camera.create_image_from_events(self.imagedata.shape, doit = not bufferFull)
                 self.frame_number+=1
-                self.has_data_event.set()
+                if not bufferFull: self.has_data_event.set()
             elif message==4: #Cumul mode event based
-                self.imagedata += self.camera.create_image_from_events(self.imagedata.shape)
+                self.imagedata += self.camera.create_image_from_events(self.imagedata.shape, doit = True)
                 self.frame_number+=1
                 self.has_data_event.set()
             elif message==5: #Chrono mode event based
-                #self.spimimagedata += self.camera.create_spim_from_events(self.spimimagedata.shape, lineTime=None,
-                #                                                          lineNumber=self.frame_number) #if showing each line
+                # self.spimimagedata += self.camera.create_spim_from_events(self.spimimagedata.shape, lineTime=None,
+                # lineNumber=self.frame_number) #if showing each line
                 if self.frame_number % (self.sizey)==0:
                     self.spimimagedata += self.camera.create_spim_from_events(self.spimimagedata.shape, lineTime = None, lineNumber = self.frame_number)
                 self.frame_number+=1

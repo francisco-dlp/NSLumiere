@@ -8,6 +8,7 @@ import numpy
 import time
 import pathlib
 import os
+import timeit
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
@@ -644,21 +645,20 @@ class TimePix3():
         """
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        ip = socket.gethostbyname('127.0.0.1')
-        #ip = socket.gethostbyname('129.175.108.58')
+        #ip = socket.gethostbyname('127.0.0.1')
+        ip = socket.gethostbyname('129.175.108.58')
         #ip = socket.gethostbyname('129.175.81.162')
         address = (ip, port)
-        client.settimeout(1)
+        #client.settimeout(1)
         try:
             client.connect(address)
             logging.info(f'***TP3***: Client connected over {ip}:{port}.')
-            client.settimeout(0.005)
         except ConnectionRefusedError:
             return False
         except socket.timeout:
             return False
 
-        buffer_size = 4096*8*8*8
+        buffer_size = 262144*2
         electron_data = b''
 
         def put_queue(data, type):
@@ -668,54 +668,38 @@ class TimePix3():
                 if data: self.__tdcQueue.put(data)
             return b''
 
-        def check_packet(packet_data):
-            if len(packet_data)<buffer_size:
-                return True
-            else:
-                return False
-
         while True:
-            try:
-                packet_data = client.recv(buffer_size)
-                #print(f'got {len(packet_data)}')
-                if len(packet_data) <= 0:
-                    logging.info('***TP3***: Received null bytes')
-                    break
-                index = packet_data.index(b'TPX3')
-                while index+8<len(packet_data):
+            packet_data = client.recv(buffer_size)
+            #print(f'got {len(packet_data)}')
+            if len(packet_data) <= 0:
+                logging.info('***TP3***: Received null bytes')
+                break
+            index = packet_data.index(b'TPX3')
+            while index+8<len(packet_data):
+                data = packet_data[index:index+8]
+                data = data[::-1]
+                tpx3_header = data[4:8]  # 4 bytes=32 bits
+                assert tpx3_header==b'3XPT'
+                chip_index = data[3]  # 1 byte
+                #mode = data[2]  # 1 byte
+                size_chunk1 = data[1]  # 1 byte
+                size_chunk2 = data[0]  # 1 byte
+                total_size = size_chunk1 + size_chunk2 * 256
+                for j in range(int(total_size/8)):
+                    index+=8
+                    if index>=len(packet_data):
+                        packet_data+=client.recv(8)
                     data = packet_data[index:index+8]
                     data = data[::-1]
-                    tpx3_header = data[4:8]  # 4 bytes=32 bits
-                    assert tpx3_header==b'3XPT'
-                    chip_index = data[3]  # 1 byte
-                    #mode = data[2]  # 1 byte
-                    size_chunk1 = data[1]  # 1 byte
-                    size_chunk2 = data[0]  # 1 byte
-                    total_size = size_chunk1 + size_chunk2 * 256
-                    for j in range(int(total_size/8)):
-                        index+=8
-                        if index>=len(packet_data):
-                            packet_data+=client.recv(8)
-                        data = packet_data[index:index+8]
-                        data = data[::-1]
-                        id = (data[0] & 240) >> 4
-                        if id==11:
-                            electron_data += data + bytes([chip_index])
-                        elif id==6:
-                            electron_data = put_queue(electron_data, 'electron')
-                            put_queue(data+bytes([chip_index]), 'tdc')
-                            self.sendmessage(message)
-                            if message==3 or message==4:
-                                trash_data = client.recv(buffer_size)
-                                while not check_packet(trash_data):
-                                    trash_data = client.recv(buffer_size)
-                            if message==5:
-                                pass
-                    index+=8
-                if not self.__isPlaying: break
-                #electron_data = put_queue(electron_data, 'electron')
-            except socket.timeout:
-                pass
+                    id = (data[0] & 240) >> 4
+                    if id==11:
+                        electron_data += data + bytes([chip_index])
+                    elif id==6:
+                        electron_data = put_queue(electron_data, 'electron')
+                        put_queue(data+bytes([chip_index]), 'tdc')
+                        self.sendmessage((message, len(packet_data)==buffer_size))
+                index+=8
+            if not self.__isPlaying: break
         return True
 
     def get_last_data(self):
@@ -725,13 +709,22 @@ class TimePix3():
         return self.__eventQueue.get()
 
     def data_from_raw_electron(self, data, softBinning, toa):
+        total_size = len(data)
+        try:
+            assert not total_size%9
+        except:
+            pass
         pos = list()
         gt = list()
         if not softBinning:
             if toa:
-                for i in numpy.arange(0, len(data), 9):
+                for i in numpy.arange(0, total_size, 9):
+                    ci = data[8 + i]  # Chip Index
                     dcol = ((data[0+i] & 15) << 4) + ((data[1+i] & 224) >> 4)
                     pix = (data[2+i] & 112) >> 4
+                    x = int(dcol + pix / 4)
+                    y = int(spix + (pix & 3))
+
                     spix = ((data[1+i] & 31) << 3) + ((data[2+i] & 128) >> 5)
                     toa = ((data[2 + i] & 15) << 10) + ((data[3 + i] & 255) << 2) + ((data[4 + i] & 192) >> 6)
                     ftoa = (data[5 + i] & 15)
@@ -740,20 +733,55 @@ class TimePix3():
                     spidrT = spidr * 25.0 * 16384.0
                     toa_ns = toa * 25.0
                     global_time = spidrT + ctoa * 25.0 / 16.0
-                    pos.append([int(dcol + pix / 4), int(spix + (pix & 3))])
+
+                    if ci==0:
+                        x = 255 - x
+                        y = y
+                    elif ci==1:
+                        x = 255*4 - x
+                        y = y
+                    elif ci==2:
+                        x = 255*3 - x
+                        y = y
+                    elif ci==3:
+                        x = 255*2 - x
+                        y = y
+
+                    pos.append([x, y])
                     gt.append(global_time/1e9)
             else:
-                for i in numpy.arange(0, len(data), 9):
+                for i in numpy.arange(0, total_size, 9):
+                    ci = data[8 + i]  # Chip Index
                     dcol = ((data[0+i] & 15) << 4) + ((data[1+i] & 224) >> 4)
                     pix = (data[2+i] & 112) >> 4
                     spix = ((data[1+i] & 31) << 3) + ((data[2+i] & 128) >> 5)
-                    pos.append([int(dcol + pix / 4), int(spix + (pix & 3))])
+                    x = int(dcol + pix / 4)
+                    y = int(spix + (pix & 3))
+
+                    if ci==0:
+                        x = 255 - x
+                        y = y
+                    elif ci==1:
+                        x = 255*4 - x
+                        y = y
+                    elif ci==2:
+                        x = 255*3 - x
+                        y = y
+                    elif ci==3:
+                        x = 255*2 - x
+                        y = y
+
+
+                    pos.append([x, y])
                     gt.append(0)
         else: #SoftBinning
             if toa:
-                for i in numpy.arange(0, len(data), 9):
+                for i in numpy.arange(0, total_size, 9):
+                    ci = data[8 + i]  # Chip Index
                     dcol = ((data[0 + i] & 15) << 4) + ((data[1 + i] & 224) >> 4)
                     pix = (data[2 + i] & 112) >> 4
+                    x = int(dcol + pix / 4)
+
                     toa = ((data[2 + i] & 15) << 10) + ((data[3 + i] & 255) << 2) + ((data[4 + i] & 192) >> 6)
                     ftoa = (data[5 + i] & 15)
                     spidr = ((data[6 + i] & 255) << 8) + (data[7 + i] & 255)
@@ -761,13 +789,35 @@ class TimePix3():
                     spidrT = spidr * 25.0 * 16384.0
                     toa_ns = toa * 25.0
                     global_time = spidrT + ctoa * 25.0 / 16.0
-                    pos.append([int(dcol + pix / 4), 0])
+
+                    if ci==0:
+                        x = 255 - x
+                    elif ci==1:
+                        x = 255*4 - x
+                    elif ci==2:
+                        x = 255*3 - x
+                    elif ci==3:
+                        x = 255*2 - x
+
+                    pos.append([x, 0])
                     gt.append(global_time/1e9)
             else:
-                for i in numpy.arange(0, len(data), 9):
+                for i in numpy.arange(0, total_size, 9):
+                    ci = data[8 + i] #Chip Index
                     dcol = ((data[0 + i] & 15) << 4) + ((data[1 + i] & 224) >> 4)
                     pix = (data[2 + i] & 112) >> 4
-                    pos.append([int(dcol + pix / 4), 0])
+                    x = int(dcol + pix / 4)
+
+                    if ci==0:
+                        x = 255 - x
+                    elif ci==1:
+                        x = 255*4 - x
+                    elif ci==2:
+                        x = 255*3 - x
+                    elif ci==3:
+                        x = 255*2 - x
+
+                    pos.append([x, 0])
                     gt.append(0)
         return (pos, gt)
 
@@ -797,17 +847,17 @@ class TimePix3():
         triggerType = data[0] & 15
         return (tdcT, triggerType)
 
-    def create_image_from_events(self, shape):
+    def create_image_from_events(self, shape, doit):
         start = time.perf_counter_ns()
         imagedata = numpy.zeros(shape)
-        for i in range(self.__eventQueue.qsize()):
-            data = self.__eventQueue.get()
+        data = self.__eventQueue.get()
+        if doit:
             xy, _ = self.data_from_raw_electron(data, self.__softBinning, toa=False)
             unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
-            for index, val in enumerate(unique):
-                imagedata[val[1]][val[0]] += frequency[index]
+            rows, cols = zip(*unique)
+            imagedata[cols, rows] = frequency
         finish = time.perf_counter_ns()
-        #print((finish - start) / 1e9)
+        #print((finish-start)/1e9)
         return imagedata
 
     def create_spim_from_events(self, shape, lineTime, lineNumber):
