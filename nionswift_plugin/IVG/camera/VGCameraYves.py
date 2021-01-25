@@ -524,7 +524,7 @@ class CameraDevice(camera_base.CameraDevice):
                     self.spimimagedata = numpy.append(self.spimimagedata, numpy.zeros(self.spimimagedata.shape), axis=0)
                 self.has_spim_data_event.set()
             elif message==3: #Focus mode event based
-                self.imagedata = self.camera.create_time_image_from_events(self.imagedata.shape, doit = not bufferFull)
+                self.imagedata = self.camera.create_image_from_events(self.imagedata.shape, doit = not bufferFull)
                 self.frame_number+=1
                 if not bufferFull:
                     self.has_data_event.set()

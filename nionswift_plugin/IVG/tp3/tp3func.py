@@ -713,121 +713,55 @@ class TimePix3():
         assert not total_size%9
         pos = list()
         gt = list()
-        if not softBinning:
-            if toa:
-                for i in numpy.arange(0, total_size, 9):
-                    ci = data[8 + i]  # Chip Index
-                    dcol = ((data[0+i] & 15) << 4) + ((data[1+i] & 224) >> 4)
-                    pix = (data[2+i] & 112) >> 4
-                    spix = ((data[1 + i] & 31) << 3) + ((data[2 + i] & 128) >> 5)
-                    x = int(dcol + pix / 4)
-                    y = int(spix + (pix & 3))
 
-                    toa = ((data[2 + i] & 15) << 10) + ((data[3 + i] & 255) << 2) + ((data[4 + i] & 192) >> 6)
-                    ftoa = (data[5 + i] & 15)
-                    spidr = ((data[6 + i] & 255) << 8) + (data[7 + i] & 255)
-                    ctoa = toa << 4 | ~ftoa & 15
-                    spidrT = spidr * 25.0 * 16384.0
-                    toa_ns = toa * 25.0
-                    global_time = spidrT + ctoa * 25.0 / 16.0
+        def append_position(chip_index, data, softBinning):
+            y = 0
+            dcol = ((data[0] & 15) << 4) + ((data[1] & 224) >> 4)
+            pix = (data[2] & 112) >> 4
+            x = int(dcol + pix / 4)
+            if not softBinning:
+                spix = ((data[1] & 31) << 3) + ((data[2] & 128) >> 5)
+                y = int(spix + (pix & 3))
 
-                    if ci==0:
-                        x = 255 - x
-                        y = y
-                    elif ci==1:
-                        x = 255*4 - x
-                        y = y
-                    elif ci==2:
-                        x = 255*3 - x
-                        y = y
-                    elif ci==3:
-                        x = 255*2 - x
-                        y = y
+            if ci == 0:
+                x = 255 - x
+                y = y
+            elif ci == 1:
+                x = 255 * 4 - x
+                y = y
+            elif ci == 2:
+                x = 255 * 3 - x
+                y = y
+            elif ci == 3:
+                x = 255 * 2 - x
+                y = y
 
-                    pos.append([x, y])
-                    gt.append(global_time/1e9)
-            else:
-                for i in numpy.arange(0, total_size, 9):
-                    ci = data[8 + i]  # Chip Index
-                    dcol = ((data[0+i] & 15) << 4) + ((data[1+i] & 224) >> 4)
-                    pix = (data[2+i] & 112) >> 4
-                    spix = ((data[1+i] & 31) << 3) + ((data[2+i] & 128) >> 5)
-                    x = int(dcol + pix / 4)
-                    y = int(spix + (pix & 3))
+            pos.append([x, y])
 
-                    if ci==0:
-                        x = 255 - x
-                        y = y
-                    elif ci==1:
-                        x = 255*4 - x
-                        y = y
-                    elif ci==2:
-                        x = 255*3 - x
-                        y = y
-                    elif ci==3:
-                        x = 255*2 - x
-                        y = y
+        def get_time(data):
+            toa = ((data[2] & 15) << 10) + ((data[3] & 255) << 2) + ((data[4] & 192) >> 6)
+            ftoa = (data[5] & 15)
+            spidr = ((data[6] & 255) << 8) + (data[7] & 255)
+            ctoa = toa << 4 | ~ftoa & 15
+            spidrT = spidr * 25.0 * 16384.0
+            toa_ns = toa * 25.0
+            return spidrT + ctoa * 25.0 / 16.0
 
+        if toa:
+            t0 = get_time(data[0:8])
+            for i in numpy.arange(0, total_size, 9):
+                ci = data[8 + i]  # Chip Index
+                time = get_time(data[i:8+i])
+                if TimeDelay <= (time - t0) <= TimeDelay + TimeWidth:
+                    append_position(ci, data[i:8+i], softBinning=softBinning)
+                    gt.append(time/1e9)
+        else:
+            for i in numpy.arange(0, total_size, 9):
+                ci = data[8 + i] #Chip Index
+                append_position(ci, data[i:8+i], softBinning=softBinning)
+                gt.append(0)
 
-                    pos.append([x, y])
-                    gt.append(0)
-        else: #SoftBinning
-            if toa:
-                for i in numpy.arange(0, total_size, 9):
-                    ci = data[8 + i]  # Chip Index
-                    dcol = ((data[0 + i] & 15) << 4) + ((data[1 + i] & 224) >> 4)
-                    pix = (data[2 + i] & 112) >> 4
-                    x = int(dcol + pix / 4)
-
-                    toa = ((data[2 + i] & 15) << 10) + ((data[3 + i] & 255) << 2) + ((data[4 + i] & 192) >> 6)
-                    ftoa = (data[5 + i] & 15)
-                    spidr = ((data[6 + i] & 255) << 8) + (data[7 + i] & 255)
-                    ctoa = toa << 4 | ~ftoa & 15
-                    spidrT = spidr * 25.0 * 16384.0
-                    toa_ns = toa * 25.0
-                    global_time = spidrT + ctoa * 25.0 / 16.0
-
-                    if ci==0:
-                        x = 255 - x
-                    elif ci==1:
-                        x = 255*4 - x
-                    elif ci==2:
-                        x = 255*3 - x
-                    elif ci==3:
-                        x = 255*2 - x
-
-                    pos.append([x, 0])
-                    gt.append(global_time/1e9)
-            else:
-                for i in numpy.arange(0, total_size, 9):
-                    ci = data[8 + i] #Chip Index
-                    dcol = ((data[0 + i] & 15) << 4) + ((data[1 + i] & 224) >> 4)
-                    pix = (data[2 + i] & 112) >> 4
-                    x = int(dcol + pix / 4)
-
-                    if ci==0:
-                        x = 255 - x
-                    elif ci==1:
-                        x = 255*4 - x
-                    elif ci==2:
-                        x = 255*3 - x
-                    elif ci==3:
-                        x = 255*2 - x
-
-                    pos.append([x, 0])
-                    gt.append(0)
         return (pos, gt)
-
-        #toa = ((data[2] & 15) << 10) + ((data[3] & 255) << 2) + ((data[4] & 192) >> 6)
-        #tot = ((data[4] & 63) << 4) + ((data[5] & 240) >> 4)
-        #ftoa = (data[5] & 15)
-        #spidr = ((data[6] & 255) << 8) + (data[7] & 255)
-        #ctoa = toa << 4 | ~ftoa & 15
-
-        #spidrT = spidr * 25.0 * 16384.0
-        #toa_ns = toa * 25.0
-        #tot_ns = tot * 25.0
-        #global_time = spidrT + ctoa * 25.0 / 16.0
 
     def data_from_raw_tdc(self, data):
         """
@@ -850,26 +784,16 @@ class TimePix3():
         imagedata = numpy.zeros(shape)
         data = self.__eventQueue.get()
         if doit:
-            xy, _ = self.data_from_raw_electron(data, self.__softBinning, toa=False, TimeDelay = 0, TimeWidth = 0)
+            xy, gt = self.data_from_raw_electron(data, self.__softBinning, toa=False,
+                                                TimeDelay = 2e6, TimeWidth = 1e10)
             unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
-            rows, cols = zip(*unique)
-            imagedata[cols, rows] = frequency
+            try:
+                rows, cols = zip(*unique)
+                imagedata[cols, rows] = frequency
+            except:
+                pass
         finish = time.perf_counter_ns()
-        #print((finish-start)/1e9)
-        return imagedata
-
-    def create_time_image_from_events(self, shape, doit):
-        start = time.perf_counter_ns()
-        imagedata = numpy.zeros(shape)
-        data = self.__eventQueue.get()
-        ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[0]
-        if doit:
-            xy, gt = self.data_from_raw_electron(data, self.__softBinning, toa=True, TimeDelay = 0, TimeWidth = 100)
-            unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
-            rows, cols = zip(*unique)
-            imagedata[cols, rows] = frequency
-        finish = time.perf_counter_ns()
-        #print((finish-start)/1e9)
+        print((finish-start)/1e9)
         return imagedata
 
     def create_spim_from_events(self, shape, lineTime, lineNumber):
@@ -888,7 +812,8 @@ class TimePix3():
             if not self.__eventQueue.empty():
                 data = self.__eventQueue.get()
                 ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[0]
-                xy, gt = self.data_from_raw_electron(data, softBinning = True, toa = True, TimeDelay = 0, TimeWidth = 0)
+                xy, gt = self.data_from_raw_electron(data, softBinning = True, toa = True,
+                                                     TimeDelay = 0, TimeWidth = 1e10)
                 pixelsLine = numpy.subtract(gt, ref_time)
                 if pixelsLine[-1]<pixelsLine[0]:
                     maxTime = 26.8435456
