@@ -645,8 +645,8 @@ class TimePix3():
         """
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        #ip = socket.gethostbyname('127.0.0.1')
-        ip = socket.gethostbyname('129.175.108.58')
+        ip = socket.gethostbyname('127.0.0.1')
+        #ip = socket.gethostbyname('129.175.108.58')
         #ip = socket.gethostbyname('129.175.81.162')
         address = (ip, port)
         #client.settimeout(1)
@@ -708,12 +708,9 @@ class TimePix3():
     def get_last_event(self):
         return self.__eventQueue.get()
 
-    def data_from_raw_electron(self, data, softBinning, toa):
+    def data_from_raw_electron(self, data, softBinning, toa, TimeDelay, TimeWidth):
         total_size = len(data)
-        try:
-            assert not total_size%9
-        except:
-            pass
+        assert not total_size%9
         pos = list()
         gt = list()
         if not softBinning:
@@ -722,10 +719,10 @@ class TimePix3():
                     ci = data[8 + i]  # Chip Index
                     dcol = ((data[0+i] & 15) << 4) + ((data[1+i] & 224) >> 4)
                     pix = (data[2+i] & 112) >> 4
+                    spix = ((data[1 + i] & 31) << 3) + ((data[2 + i] & 128) >> 5)
                     x = int(dcol + pix / 4)
                     y = int(spix + (pix & 3))
 
-                    spix = ((data[1+i] & 31) << 3) + ((data[2+i] & 128) >> 5)
                     toa = ((data[2 + i] & 15) << 10) + ((data[3 + i] & 255) << 2) + ((data[4 + i] & 192) >> 6)
                     ftoa = (data[5 + i] & 15)
                     spidr = ((data[6 + i] & 255) << 8) + (data[7 + i] & 255)
@@ -839,6 +836,7 @@ class TimePix3():
         Trigger type can return 15 if tdc1 Rising edge; 10 if tdc1 Falling Edge; 14 if tdc2 Rising Edge;
         11 if tdc2 Falling edge. tdcT returns time in seconds up to ~107s
         """
+        assert not len(data)%9
         coarseT = ((data[2] & 15) << 31) + ((data[3] & 255) << 23) + ((data[4] & 255) << 15) + (
                     (data[5] & 255) << 7) + ((data[6] & 254) >> 1)
         fineT = ((data[6] & 1) << 3) + ((data[7] & 224) >> 5)
@@ -852,7 +850,21 @@ class TimePix3():
         imagedata = numpy.zeros(shape)
         data = self.__eventQueue.get()
         if doit:
-            xy, _ = self.data_from_raw_electron(data, self.__softBinning, toa=False)
+            xy, _ = self.data_from_raw_electron(data, self.__softBinning, toa=False, TimeDelay = 0, TimeWidth = 0)
+            unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
+            rows, cols = zip(*unique)
+            imagedata[cols, rows] = frequency
+        finish = time.perf_counter_ns()
+        #print((finish-start)/1e9)
+        return imagedata
+
+    def create_time_image_from_events(self, shape, doit):
+        start = time.perf_counter_ns()
+        imagedata = numpy.zeros(shape)
+        data = self.__eventQueue.get()
+        ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[0]
+        if doit:
+            xy, gt = self.data_from_raw_electron(data, self.__softBinning, toa=True, TimeDelay = 0, TimeWidth = 100)
             unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
             rows, cols = zip(*unique)
             imagedata[cols, rows] = frequency
@@ -875,10 +887,9 @@ class TimePix3():
         #for line in range(1): #if showing each line
             if not self.__eventQueue.empty():
                 data = self.__eventQueue.get()
-                xy, gt = self.data_from_raw_electron(data, softBinning = True, toa = True)
                 ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[0]
+                xy, gt = self.data_from_raw_electron(data, softBinning = True, toa = True, TimeDelay = 0, TimeWidth = 0)
                 pixelsLine = numpy.subtract(gt, ref_time)
-                #pixelsLine = numpy.array(gt)
                 if pixelsLine[-1]<pixelsLine[0]:
                     maxTime = 26.8435456
                     pixelsLine = numpy.array([(val if index <= numpy.where(pixelsLine==numpy.max(pixelsLine))[0][0] else val + maxTime) for index, val in enumerate(pixelsLine)])
@@ -893,7 +904,7 @@ class TimePix3():
                         #spimimagedata[lineNumber, val - 1, xy[index][0]] += 1 #if showing each line
         if SAVE_FILE: numpy.savez_compressed(file, spimimagedata)
         finish = time.perf_counter_ns()
-        #print((finish - start) / 1e9)
+        print((finish - start) / 1e9)
         return spimimagedata
 
     def get_total_counts_from_data(self, frame_int):
