@@ -730,16 +730,16 @@ class TimePix3():
                 spix = ((data[1] & 31) << 3) + ((data[2] & 128) >> 5)
                 y = int(spix + (pix & 3))
 
-            if ci == 0:
+            if chip_index == 0:
                 x = 255 - x
                 y = y
-            elif ci == 1:
+            elif chip_index == 1:
                 x = 255 * 4 - x
                 y = y
-            elif ci == 2:
+            elif chip_index == 2:
                 x = 255 * 3 - x
                 y = y
-            elif ci == 3:
+            elif chip_index == 3:
                 x = 255 * 2 - x
                 y = y
 
@@ -756,16 +756,17 @@ class TimePix3():
 
         if toa:
             t0 = get_time(data[0:8])
-            for i in numpy.arange(0, total_size, 9):
-                ci = data[8 + i]  # Chip Index
-                time = get_time(data[i:8+i])
+            for i in range(int(total_size / 9)):
+                ci = data[8 + i*9]  # Chip Index
+                time = get_time(data[i*9:8+i*9])
                 if TimeDelay <= (time - t0) <= TimeDelay + TimeWidth:
-                    append_position(ci, data[i:8+i], softBinning=softBinning)
+                    append_position(ci, data[i*9:8+i*9], softBinning=softBinning)
                     gt.append(time/1e9)
         else:
-            for i in numpy.arange(0, total_size, 9):
-                ci = data[8 + i] #Chip Index
-                append_position(ci, data[i:8+i], softBinning=softBinning)
+            #for i in numpy.arange(0, total_size, 9):
+            for i in range(int(total_size / 9)):
+                ci = data[8 + i*9] #Chip Index
+                append_position(ci, data[i*9:8+i*9], softBinning=softBinning)
                 gt.append(0)
 
         #print(f'{t0/1e9} and {gt[0]} and {gt[-1]}')
@@ -792,6 +793,9 @@ class TimePix3():
         imagedata = numpy.zeros(shape)
         data = self.__eventQueue.get(block=False, timeout=1)
         if doit:
+            #t = timeit.Timer(lambda : self.data_from_raw_electron(data, self.__softBinning, toa=False,
+            #                                     TimeDelay = 0, TimeWidth = 1e9))
+            #print(t.timeit(number=100))
             xy, gt = self.data_from_raw_electron(data, self.__softBinning, toa=False,
                                                 TimeDelay = 0, TimeWidth = 1e9)
             unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
@@ -823,7 +827,7 @@ class TimePix3():
                 xy, gt = self.data_from_raw_electron(data, softBinning = True, toa = True,
                                                      TimeDelay = 0, TimeWidth = 1e10)
                 pixelsLine = numpy.subtract(gt, ref_time)
-                if pixelsLine[-1]<pixelsLine[0]:
+                if pixelsLine[-1] < pixelsLine[0]:
                     maxTime = 26.8435456
                     pixelsLine = numpy.array([(val if index <= numpy.where(pixelsLine==numpy.max(pixelsLine))[0][0] else val + maxTime) for index, val in enumerate(pixelsLine)])
                 assert pixelsLine[-1] > pixelsLine[0] #time must be a crescent
@@ -837,7 +841,7 @@ class TimePix3():
                         #spimimagedata[lineNumber, val - 1, xy[index][0]] += 1 #if showing each line
         if SAVE_FILE: numpy.savez_compressed(file, spimimagedata)
         finish = time.perf_counter_ns()
-        print((finish - start) / 1e9)
+        #print((finish - start) / 1e9)
         return spimimagedata
 
     def get_total_counts_from_data(self, frame_int):
