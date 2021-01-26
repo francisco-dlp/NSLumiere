@@ -76,6 +76,9 @@ class CameraHandler:
         self.speed_item_text = Model.PropertyModel("???s")
         self.flip_model = Model.PropertyModel(frame_parameters["flipped"])
         self.current_value = Model.PropertyModel("0")
+        self.delay_value = Model.PropertyModel(0)
+        self.width_value = Model.PropertyModel(int(frame_parameters["exposure_ms"]*1e6))
+        self.time_converter = Converter.PhysicalValueToStringConverter("ms", 1e-6)
         self.gain_items = Model.PropertyModel([])
         self.gain_items.value = list(self.camera_device.camera.getGains(frame_parameters["port"]))
         self.gain_item = Model.PropertyModel(frame_parameters["gain"])
@@ -181,11 +184,6 @@ class CameraHandler:
             frame_parameters = self.camera_settings.get_current_frame_parameters()
             frame_parameters["port"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
-            #if self.camera_device.camera_model=='Newton':
-            #    if frame_parameters["port"] == 0:
-            #        set_flip(False)
-            #    if frame_parameters["port"] == 1:
-            #        set_flip(True)
             update_flip()
             update_speeds()
             update_gains()
@@ -272,6 +270,7 @@ class CameraHandler:
             frame_parameters["video_threshold"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
 
+
         self.roi_item.on_value_changed = set_roi
         self.port_item.on_value_changed = set_port
         self.speed_item.on_value_changed = set_speed
@@ -324,6 +323,11 @@ class CameraHandler:
         # print(f"At start exposure = {self.exposure_model.value}")
         self.hardware_source.start_playing()
 
+    def slider_release(self, widget):
+        if widget == self.delay_slider:
+            widget.maximum = int(self.exposure_model.value*1e6)
+        elif widget == self.width_slider:
+            widget.maximum = int(self.exposure_model.value*1e6)
 
     def measure_clicked(selfself, widget):
         pass
@@ -393,12 +397,28 @@ class CameraPanelFactory:
         start_button = ui.create_push_button(name="start_button", text=_("Start"), on_clicked="start_clicked")
 
         buttons = ui.create_row(ui.create_stretch(), cancel_button, stop_button, start_button, spacing=8)
-        progress_row = ui.create_progress_bar()
+
+
         current_label = ui.create_label(text='Current (pA): ')
         current_val = ui.create_label(text="@binding(current_value.value)")
-        current_column = ui.create_row(progress_row, current_label, current_val, ui.create_stretch(), spacing=5)
+        current_column = ui.create_row(current_label, current_val, ui.create_stretch())
 
-        control_column = ui.create_column(binning_group, experiment_group, mode_row, buttons, current_column,
+        delay_label = ui.create_label(text='Time Delay: ')
+        delay_label_value = ui.create_label(name='delay_label_value', text="@binding(delay_value.value, converter=time_converter)")
+        delay_row = ui.create_row(delay_label, delay_label_value, ui.create_stretch())
+        delay_slider = ui.create_slider(name='delay_slider', value = "@binding(delay_value.value)",
+                                        on_slider_released="slider_release")
+
+        width_label = ui.create_label(text='Time width: ')
+        width_label_value = ui.create_label(name='width_label_value', text="@binding(width_value.value, converter=time_converter)")
+        width_row = ui.create_row(width_label, width_label_value, ui.create_stretch())
+        width_slider = ui.create_slider(name='width_slider', value="@binding(width_value.value)",
+                                        on_slider_released="slider_release", maximum=1000000000)
+
+        tp3_column = ui.create_column(current_column, delay_row, delay_slider, width_row, width_slider, spacing=2)
+        tp3_group = ui.create_group(tp3_column, title=_("TimePix3"))
+
+        control_column = ui.create_column(binning_group, experiment_group, mode_row, buttons, tp3_group,
                                           ui.create_stretch(), spacing=8, margin=4)
 
 

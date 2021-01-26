@@ -671,7 +671,7 @@ class TimePix3():
 
         while True:
             packet_data = client.recv(buffer_size)
-            print(f'got {len(packet_data)}')
+            #print(f'got {len(packet_data)}')
             if len(packet_data) <= 0:
                 logging.info('***TP3***: Received null bytes')
                 break
