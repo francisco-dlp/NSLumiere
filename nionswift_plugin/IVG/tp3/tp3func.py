@@ -645,8 +645,8 @@ class TimePix3():
         """
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        ip = socket.gethostbyname('127.0.0.1')
-        #ip = socket.gethostbyname('129.175.108.58')
+        #ip = socket.gethostbyname('127.0.0.1')
+        ip = socket.gethostbyname('129.175.108.58')
         #ip = socket.gethostbyname('129.175.81.162')
         address = (ip, port)
         #client.settimeout(1)
@@ -663,9 +663,9 @@ class TimePix3():
 
         def put_queue(data, type):
             if type=='electron':
-                if data: self.__eventQueue.put(data)
+                self.__eventQueue.put(data)
             elif type=='tdc':
-                if data: self.__tdcQueue.put(data)
+                self.__tdcQueue.put(data)
             return b''
 
         while True:
@@ -674,7 +674,12 @@ class TimePix3():
             if len(packet_data) <= 0:
                 logging.info('***TP3***: Received null bytes')
                 break
+
+            while len(packet_data) <= 1024:
+                packet_data = client.recv(buffer_size)
+
             index = packet_data.index(b'TPX3')
+
             while index+8<len(packet_data):
                 data = packet_data[index:index+8]
                 data = data[::-1]
@@ -687,7 +692,7 @@ class TimePix3():
                 total_size = size_chunk1 + size_chunk2 * 256
                 for j in range(int(total_size/8)):
                     index+=8
-                    if index>=len(packet_data):
+                    while index+8>=len(packet_data):
                         packet_data+=client.recv(8)
                     data = packet_data[index:index+8]
                     data = data[::-1]
@@ -711,6 +716,7 @@ class TimePix3():
     def data_from_raw_electron(self, data, softBinning, toa, TimeDelay, TimeWidth):
         total_size = len(data)
         assert not total_size%9
+
         pos = list()
         gt = list()
 
@@ -761,6 +767,7 @@ class TimePix3():
                 append_position(ci, data[i:8+i], softBinning=softBinning)
                 gt.append(0)
 
+        print(f'{t0/1e9} and {gt[0]} and {gt[-1]}')
         return (pos, gt)
 
     def data_from_raw_tdc(self, data):
@@ -782,10 +789,10 @@ class TimePix3():
     def create_image_from_events(self, shape, doit):
         start = time.perf_counter_ns()
         imagedata = numpy.zeros(shape)
-        data = self.__eventQueue.get()
+        data = self.__eventQueue.get(block=False, timeout=1)
         if doit:
-            xy, gt = self.data_from_raw_electron(data, self.__softBinning, toa=False,
-                                                TimeDelay = 2e6, TimeWidth = 1e10)
+            xy, gt = self.data_from_raw_electron(data, self.__softBinning, toa=True,
+                                                TimeDelay = 1e7, TimeWidth = 1e7)
             unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
             try:
                 rows, cols = zip(*unique)
