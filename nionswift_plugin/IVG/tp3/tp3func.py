@@ -652,6 +652,7 @@ class TimePix3():
         #client.settimeout(1)
         try:
             client.connect(address)
+            client.send(str(self.__expTime).encode())
             logging.info(f'***TP3***: Client connected over {ip}:{port}.')
         except ConnectionRefusedError:
             return False
@@ -670,7 +671,7 @@ class TimePix3():
 
         while True:
             packet_data = client.recv(buffer_size)
-            #print(f'got {len(packet_data)}')
+            print(f'got {len(packet_data)}')
             if len(packet_data) <= 0:
                 logging.info('***TP3***: Received null bytes')
                 break
@@ -767,7 +768,7 @@ class TimePix3():
                 append_position(ci, data[i:8+i], softBinning=softBinning)
                 gt.append(0)
 
-        print(f'{t0/1e9} and {gt[0]} and {gt[-1]}')
+        #print(f'{t0/1e9} and {gt[0]} and {gt[-1]}')
         return (pos, gt)
 
     def data_from_raw_tdc(self, data):
@@ -791,8 +792,8 @@ class TimePix3():
         imagedata = numpy.zeros(shape)
         data = self.__eventQueue.get(block=False, timeout=1)
         if doit:
-            xy, gt = self.data_from_raw_electron(data, self.__softBinning, toa=True,
-                                                TimeDelay = 1e7, TimeWidth = 1e7)
+            xy, gt = self.data_from_raw_electron(data, self.__softBinning, toa=False,
+                                                TimeDelay = 0, TimeWidth = 1e9)
             unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
             try:
                 rows, cols = zip(*unique)
@@ -800,7 +801,7 @@ class TimePix3():
             except:
                 pass
         finish = time.perf_counter_ns()
-        print((finish-start)/1e9)
+        #print((finish-start)/1e9)
         return imagedata
 
     def create_spim_from_events(self, shape, lineTime, lineNumber):
