@@ -9,6 +9,10 @@ import time
 import pathlib
 import os
 import timeit
+import multiprocessing
+
+from nion.utils import Event
+from nion.utils import Observable
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
@@ -19,7 +23,8 @@ class Response():
 
 SAVE_FILE = False
 
-class TimePix3():
+class TimePix3(Observable.Observable):
+
     def __init__(self, url, simul, message):
 
         self.__serverURL = url
@@ -31,6 +36,8 @@ class TimePix3():
         self.__isCumul = False
         self.__expTime = None
         self.__port = None
+        self.__delay = None
+        self.__width = None
         self.__filepath = os.path.join(pathlib.Path(__file__).parent.absolute(), "data")
         self.__simul = simul
         self.sendmessage = message
@@ -671,7 +678,7 @@ class TimePix3():
 
         while True:
             packet_data = client.recv(buffer_size)
-            print(f'got {len(packet_data)}')
+            #print(f'got {len(packet_data)}')
             if len(packet_data) <= 0:
                 logging.info('***TP3***: Received null bytes')
                 break
@@ -788,22 +795,33 @@ class TimePix3():
         triggerType = data[0] & 15
         return (tdcT, triggerType)
 
+
+
     def create_image_from_events(self, shape, doit):
-        start = time.perf_counter_ns()
-        imagedata = numpy.zeros(shape)
-        data = self.__eventQueue.get(block=False, timeout=1)
-        if doit:
-            #t = timeit.Timer(lambda : self.data_from_raw_electron(data, self.__softBinning, toa=False,
-            #                                     TimeDelay = 0, TimeWidth = 1e9))
-            #print(t.timeit(number=100))
+
+        def append_array(imagedata, data):
             xy, gt = self.data_from_raw_electron(data, self.__softBinning, toa=False,
-                                                TimeDelay = 0, TimeWidth = 1e9)
+                                                 TimeDelay=0, TimeWidth=1e9)
             unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
             try:
                 rows, cols = zip(*unique)
                 imagedata[cols, rows] = frequency
-            except:
+            except ValueError:
                 pass
+
+        start = time.perf_counter_ns()
+        imagedata = numpy.zeros(shape)
+        imagedata2 = 0
+        data = self.__eventQueue.get(block=False, timeout=1)
+        if doit:
+
+            #t = timeit.Timer(lambda : self.data_from_raw_electron(data, self.__softBinning, toa=False,
+            #                                     TimeDelay = 0, TimeWidth = 1e9))
+            #print(t.timeit(number=100))
+
+            append_array(imagedata, data)
+
+
         finish = time.perf_counter_ns()
         #print((finish-start)/1e9)
         return (imagedata, doit)
@@ -891,3 +909,4 @@ class TimePix3():
         serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         serv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         serv.bind((SERVER_HOST, SERVER_PORT))
+
