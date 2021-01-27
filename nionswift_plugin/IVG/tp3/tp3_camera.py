@@ -270,7 +270,6 @@ class CameraFrameParameters(dict):
             "flipped": self.flipped
         }
 
-
 class CameraSettings:
 
     def __init__(self, camera_id: str):

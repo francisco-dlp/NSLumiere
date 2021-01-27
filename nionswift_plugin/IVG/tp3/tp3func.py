@@ -34,6 +34,7 @@ class TimePix3():
         self.__port = None
         self.__delay = None
         self.__width = None
+        self.__tdc = 0 #Beginning of line n and beginning of line n+1
         self.__filepath = os.path.join(pathlib.Path(__file__).parent.absolute(), "data")
         self.__simul = simul
         self.sendmessage = message
@@ -680,7 +681,7 @@ class TimePix3():
 
         while True:
             packet_data = client.recv(buffer_size)
-            print(f'got {len(packet_data)}')
+            #print(f'got {len(packet_data)}')
             if len(packet_data) <= 0:
                 logging.info('***TP3***: Received null bytes')
                 break
@@ -703,7 +704,7 @@ class TimePix3():
                 for j in range(int(total_size/8)):
                     index+=8
                     while index+8>=len(packet_data):
-                        packet_data+=client.recv(8)
+                        packet_data+=client.recv(1)
                     data = packet_data[index:index+8]
                     data = data[::-1]
                     id = (data[0] & 240) >> 4
@@ -793,24 +794,20 @@ class TimePix3():
         11 if tdc2 Falling edge. tdcT returns time in seconds up to ~107s
         """
         assert not len(data)%9
+
         coarseT = ((data[2] & 15) << 31) + ((data[3] & 255) << 23) + ((data[4] & 255) << 15) + (
                     (data[5] & 255) << 7) + ((data[6] & 254) >> 1)
         fineT = ((data[6] & 1) << 3) + ((data[7] & 224) >> 5)
         tdcT = coarseT * (1 / 320e6) + fineT * 260e-12
 
         triggerType = data[0] & 15
-        return (tdcT, triggerType)
+        return (tdcT, triggerType, tdcT - int(tdcT / 26.8435456) * 26.8435456)
 
     def create_image_from_events(self, shape, doit):
         start = time.perf_counter_ns()
         imagedata = numpy.zeros(shape)
         data = self.__eventQueue.get(block=False, timeout=1)
         if doit:
-
-            #t = timeit.Timer(lambda : self.data_from_raw_electron(data, self.__softBinning, toa=False,
-            #                                     TimeDelay = 0, TimeWidth = 1e9))
-            #print(t.timeit(number=100))
-
             xy, gt = self.data_from_raw_electron(data, self.__softBinning, toa=bool(self.__port),
                                                  TimeDelay=self.__delay, TimeWidth=self.__width)
             unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
@@ -826,6 +823,7 @@ class TimePix3():
 
     def create_spim_from_events(self, shape, lineTime, lineNumber):
         if lineNumber==0:
+            self.__tdc = self.data_from_raw_tdc(self.__tdcQueue.get())[2]
             self.__eventQueue = queue.Queue()
 
         file = os.path.join(self.__filepath, "frame_"+str(lineNumber))
@@ -839,22 +837,33 @@ class TimePix3():
         #for line in range(1): #if showing each line
             if not self.__eventQueue.empty():
                 data = self.__eventQueue.get()
-                ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[0]
+                ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[2]
+
+                if ref_time<self.__tdc:
+                    ref_time+=26.8435456
+
                 xy, gt = self.data_from_raw_electron(data, softBinning = True, toa = True,
                                                      TimeDelay = 0, TimeWidth = 1e10)
                 pixelsLine = numpy.subtract(gt, ref_time)
-                if pixelsLine[-1] < pixelsLine[0]:
+                #print(f'{gt} and {self.__tdc} and {ref_time}')
+
+                if pixelsLine[-1] <= pixelsLine[0]:
                     maxTime = 26.8435456
                     pixelsLine = numpy.array([(val if index <= numpy.where(pixelsLine==numpy.max(pixelsLine))[0][0] else val + maxTime) for index, val in enumerate(pixelsLine)])
                 assert pixelsLine[-1] > pixelsLine[0] #time must be a crescent
-                pixelsLine = numpy.interp(pixelsLine, (pixelsLine[0], pixelsLine[-1]), (0, columns)).astype(int)
-                for index, val in enumerate(pixelsLine):
-                    try:
-                        spimimagedata[line, val, xy[index][0]] += 1
-                        #spimimagedata[lineNumber, val, xy[index][0]] += 1 #if showing each line
-                    except IndexError:
-                        spimimagedata[line, val-1, xy[index][0]] += 1
-                        #spimimagedata[lineNumber, val - 1, xy[index][0]] += 1 #if showing each line
+
+
+
+                #pixelsLine = [val for val in pixelsLine]
+                #pixelsLine = numpy.interp(pixelsLine, (pixelsLine[0], pixelsLine[-1]), (0, columns)).astype(int)
+                self.__tdc = ref_time
+                #for index, val in enumerate(pixelsLine):
+                #    try:
+                #        spimimagedata[line, val, xy[index][0]] += 1
+                #        #spimimagedata[lineNumber, val, xy[index][0]] += 1 #if showing each line
+                #    except IndexError:
+                #        spimimagedata[line, val-1, xy[index][0]] += 1
+                #        #spimimagedata[lineNumber, val - 1, xy[index][0]] += 1 #if showing each line
         if SAVE_FILE: numpy.savez_compressed(file, spimimagedata)
         finish = time.perf_counter_ns()
         #print((finish - start) / 1e9)
