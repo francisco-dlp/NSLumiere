@@ -550,7 +550,7 @@ class TimePix3():
             try:
                 data = client.recv(buffer_size)
                 if len(data) <= 0:
-                    logging.info('***TP3***: Received null bytes')
+                    #logging.info('***TP3***: Received null bytes')
                     break
                 elif b'{' in data:
                     data += client.recv(256)
@@ -589,22 +589,22 @@ class TimePix3():
 
         def put_queue(data, type):
             if type=='electron':
-                if data: self.__eventQueue.put(data)
+                self.__eventQueue.put(data)
             elif type=='tdc':
-                if data: self.__tdcQueue.put(data)
+                self.__tdcQueue.put(data)
             return b''
 
         electron_data = b''
 
         while True:
-            filenumber = int(numpy.random.rand()*99)
+            filenumber = int(numpy.random.rand()*5)
             data = r"C:\Users\AUAD\Desktop\TimePix3\Yves_raw\19-01-2021\tdc_check___47\raw\tdc_check_0000"+format(filenumber, '.0f').zfill(2)+".tpx3"
+            #data = r"C:\Users\AUAD\Desktop\TimePix3\Yves_raw\withZLP\tdc_check___35_noTDC\raw\tdc_check_0000"+format(filenumber, '.0f').zfill(2)+".tpx3"
             with open(data, "rb") as f:
                 all_data = f.read()
                 #index = 0
                 index = all_data.index(b'TPX3')
                 while True:
-                    assert not electron_data
                     data = all_data[index: index+8]
                     data=data[::-1]
                     if data==b'': break
@@ -622,13 +622,13 @@ class TimePix3():
                         id = (data[0] & 240) >> 4
                         if id==11:
                             electron_data+=data+bytes([chip_index])
+
                         elif id==6:
-                            electron_data = put_queue(electron_data, 'electron')
                             put_queue(data+bytes([chip_index]), 'tdc')
                     index+=8
                 if not self.__isPlaying: break
                 electron_data = put_queue(electron_data, 'electron')
-            self.sendmessage(message)
+            self.sendmessage((message, False))
         return True
 
     def acquire_event(self, port, message):
@@ -645,8 +645,8 @@ class TimePix3():
         """
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        #ip = socket.gethostbyname('127.0.0.1')
-        ip = socket.gethostbyname('129.175.108.58')
+        ip = socket.gethostbyname('127.0.0.1')
+        #ip = socket.gethostbyname('129.175.108.58')
         #ip = socket.gethostbyname('129.175.81.162')
         address = (ip, port)
         #client.settimeout(1)
@@ -671,7 +671,7 @@ class TimePix3():
 
         while True:
             packet_data = client.recv(buffer_size)
-            #print(f'got {len(packet_data)}')
+            print(f'got {len(packet_data)}')
             if len(packet_data) <= 0:
                 logging.info('***TP3***: Received null bytes')
                 break
@@ -806,7 +806,7 @@ class TimePix3():
                 pass
         finish = time.perf_counter_ns()
         #print((finish-start)/1e9)
-        return imagedata
+        return (imagedata, doit)
 
     def create_spim_from_events(self, shape, lineTime, lineNumber):
         if lineNumber==0:
