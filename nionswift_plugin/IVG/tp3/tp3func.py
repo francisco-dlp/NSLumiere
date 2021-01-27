@@ -8,11 +8,7 @@ import numpy
 import time
 import pathlib
 import os
-import timeit
-import multiprocessing
 
-from nion.utils import Event
-from nion.utils import Observable
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
@@ -23,7 +19,7 @@ class Response():
 
 SAVE_FILE = False
 
-class TimePix3(Observable.Observable):
+class TimePix3():
 
     def __init__(self, url, simul, message):
 
@@ -313,6 +309,12 @@ class TimePix3(Observable.Observable):
         self.__expTime = exposure
         resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
+
+    def setDelayTime(self, delay):
+        self.__delay = delay
+
+    def setWidthTime(self, width):
+        self.__width = width
 
     def getNumofSpeeds(self, cameraport):
         pass
@@ -678,7 +680,7 @@ class TimePix3(Observable.Observable):
 
         while True:
             packet_data = client.recv(buffer_size)
-            #print(f'got {len(packet_data)}')
+            print(f'got {len(packet_data)}')
             if len(packet_data) <= 0:
                 logging.info('***TP3***: Received null bytes')
                 break
@@ -723,10 +725,14 @@ class TimePix3(Observable.Observable):
 
     def data_from_raw_electron(self, data, softBinning, toa, TimeDelay, TimeWidth):
         total_size = len(data)
-        assert not total_size%9
 
         pos = list()
         gt = list()
+
+        try:
+            assert not total_size % 9 and bool(total_size)
+        except AssertionError:
+            return (pos, gt)
 
         def append_position(chip_index, data, softBinning):
             y = 0
@@ -776,7 +782,7 @@ class TimePix3(Observable.Observable):
                 append_position(ci, data[i*9:8+i*9], softBinning=softBinning)
                 gt.append(0)
 
-        #print(f'{t0/1e9} and {gt[0]} and {gt[-1]}')
+        #print(f'{gt[0]} and {gt[-1]} and {TimeWidth}')
         return (pos, gt)
 
     def data_from_raw_tdc(self, data):
@@ -795,23 +801,9 @@ class TimePix3(Observable.Observable):
         triggerType = data[0] & 15
         return (tdcT, triggerType)
 
-
-
     def create_image_from_events(self, shape, doit):
-
-        def append_array(imagedata, data):
-            xy, gt = self.data_from_raw_electron(data, self.__softBinning, toa=False,
-                                                 TimeDelay=0, TimeWidth=1e9)
-            unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
-            try:
-                rows, cols = zip(*unique)
-                imagedata[cols, rows] = frequency
-            except ValueError:
-                pass
-
         start = time.perf_counter_ns()
         imagedata = numpy.zeros(shape)
-        imagedata2 = 0
         data = self.__eventQueue.get(block=False, timeout=1)
         if doit:
 
@@ -819,8 +811,14 @@ class TimePix3(Observable.Observable):
             #                                     TimeDelay = 0, TimeWidth = 1e9))
             #print(t.timeit(number=100))
 
-            append_array(imagedata, data)
-
+            xy, gt = self.data_from_raw_electron(data, self.__softBinning, toa=bool(self.__port),
+                                                 TimeDelay=self.__delay, TimeWidth=self.__width)
+            unique, frequency = numpy.unique(xy, return_counts=True, axis=0)
+            try:
+                rows, cols = zip(*unique)
+                imagedata[cols, rows] = frequency
+            except ValueError:
+                doit = False
 
         finish = time.perf_counter_ns()
         #print((finish-start)/1e9)

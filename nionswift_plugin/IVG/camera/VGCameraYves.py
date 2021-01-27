@@ -104,6 +104,8 @@ class CameraDevice(camera_base.CameraDevice):
             "fan_enabled": self.camera.getFan(),
             "processing": None,
             "flipped": False,
+            "timeDelay": 0,
+            "timeWidth": 0
         }
 
         self.current_camera_settings = CameraFrameParameters(d)
@@ -194,6 +196,14 @@ class CameraDevice(camera_base.CameraDevice):
 
         if "processing" in frame_parameters:
             self.__hardware_settings.processing = frame_parameters.processing
+
+        if "timeDelay" in frame_parameters:
+            self.__hardware_settings.timeDelay = frame_parameters.timeDelay
+            self.camera.setDelayTime(frame_parameters.timeDelay)
+
+        if "timeWidth" in frame_parameters:
+            self.__hardware_settings.timeWidth = frame_parameters.timeWidth
+            self.camera.setWidthTime(frame_parameters.timeWidth)
 
     def __numpy_to_orsay_type(self, array: numpy.array):
         orsay_type = Orsay_Data.float
@@ -562,6 +572,8 @@ class CameraFrameParameters(dict):
         self.video_threshold = self.get("video_threshold", 0)
         self.fan_enabled = self.get("fan_enabled", False)
         self.flipped = self.get("flipped", False)
+        self.timeDelay = self.get("timeDelay", 0)
+        self.timeWidth = self.get("timeWidth", 0)
         self.integration_count = 1  # required
 
     def __copy__(self):
@@ -596,7 +608,9 @@ class CameraFrameParameters(dict):
             "turbo_mode_enabled": self.turbo_mode_enabled,
             "video_threshold": self.video_threshold,
             "fan_enabled": self.fan_enabled,
-            "flipped": self.flipped
+            "flipped": self.flipped,
+            "timeDelay": self.timeDelay,
+            "timeWidth": self.timeWidth
         }
 
 

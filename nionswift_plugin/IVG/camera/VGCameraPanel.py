@@ -76,9 +76,9 @@ class CameraHandler:
         self.speed_item_text = Model.PropertyModel("???s")
         self.flip_model = Model.PropertyModel(frame_parameters["flipped"])
         self.current_value = Model.PropertyModel("0")
-        self.delay_value = Model.PropertyModel(0)
-        self.width_value = Model.PropertyModel(int(frame_parameters["exposure_ms"]*1e6))
-        self.time_converter = Converter.PhysicalValueToStringConverter("ms", 1e-6)
+        self.delay_value = Model.PropertyModel(frame_parameters["timeDelay"])
+        self.width_value = Model.PropertyModel(frame_parameters["timeWidth"])
+        self.time_converter = Converter.PhysicalValueToStringConverter("ns", 1)
         self.gain_items = Model.PropertyModel([])
         self.gain_items.value = list(self.camera_device.camera.getGains(frame_parameters["port"]))
         self.gain_item = Model.PropertyModel(frame_parameters["gain"])
@@ -270,6 +270,15 @@ class CameraHandler:
             frame_parameters["video_threshold"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
 
+        def set_tp3_delay(value):
+            frame_parameters = self.camera_settings.get_current_frame_parameters()
+            frame_parameters["timeDelay"] = value
+            self.camera_settings.set_current_frame_parameters(frame_parameters)
+
+        def set_tp3_width(value):
+            frame_parameters = self.camera_settings.get_current_frame_parameters()
+            frame_parameters["timeWidth"] = value
+            self.camera_settings.set_current_frame_parameters(frame_parameters)
 
         self.roi_item.on_value_changed = set_roi
         self.port_item.on_value_changed = set_port
@@ -287,6 +296,8 @@ class CameraHandler:
         self.nbspectra_model.on_value_changed = set_nbspectra
         self.soft_binning_model.on_value_changed = set_soft_binning
         self.flip_model.on_value_changed=set_flip
+        self.delay_value.on_value_changed=set_tp3_delay
+        self.width_value.on_value_changed=set_tp3_width
 
         self.mode_item.on_value_changed = set_mode
 
@@ -322,12 +333,6 @@ class CameraHandler:
         `on_clicked` property of the push button."""
         # print(f"At start exposure = {self.exposure_model.value}")
         self.hardware_source.start_playing()
-
-    def slider_release(self, widget):
-        if widget == self.delay_slider:
-            widget.maximum = int(self.exposure_model.value*1e6)
-        elif widget == self.width_slider:
-            widget.maximum = int(self.exposure_model.value*1e6)
 
     def measure_clicked(selfself, widget):
         pass
@@ -404,18 +409,14 @@ class CameraPanelFactory:
         current_column = ui.create_row(current_label, current_val, ui.create_stretch())
 
         delay_label = ui.create_label(text='Time Delay: ')
-        delay_label_value = ui.create_label(name='delay_label_value', text="@binding(delay_value.value, converter=time_converter)")
-        delay_row = ui.create_row(delay_label, delay_label_value, ui.create_stretch())
-        delay_slider = ui.create_slider(name='delay_slider', value = "@binding(delay_value.value)",
-                                        on_slider_released="slider_release")
+        delay_value = ui.create_line_edit(name='delay_label_value', text="@binding(delay_value.value, converter=time_converter)")
+        delay_row = ui.create_row(delay_label, delay_value, ui.create_stretch())
 
-        width_label = ui.create_label(text='Time width: ')
-        width_label_value = ui.create_label(name='width_label_value', text="@binding(width_value.value, converter=time_converter)")
-        width_row = ui.create_row(width_label, width_label_value, ui.create_stretch())
-        width_slider = ui.create_slider(name='width_slider', value="@binding(width_value.value)",
-                                        on_slider_released="slider_release", maximum=1000000000)
+        width_label = ui.create_label(text='Time Width: ')
+        width_value = ui.create_line_edit(name='width_label_value', text="@binding(width_value.value, converter=time_converter)")
+        width_row = ui.create_row(width_label, width_value, ui.create_stretch())
 
-        tp3_column = ui.create_column(current_column, delay_row, delay_slider, width_row, width_slider, spacing=2)
+        tp3_column = ui.create_column(current_column, delay_row, width_row, spacing=2)
         tp3_group = ui.create_group(tp3_column, title=_("TimePix3"))
 
         control_column = ui.create_column(binning_group, experiment_group, mode_row, buttons, tp3_group,
