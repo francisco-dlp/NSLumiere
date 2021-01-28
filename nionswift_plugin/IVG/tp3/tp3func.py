@@ -655,11 +655,11 @@ class TimePix3():
         """
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        #ip = socket.gethostbyname('127.0.0.1')
-        ip = socket.gethostbyname('129.175.108.58')
+        ip = socket.gethostbyname('127.0.0.1')
+        #ip = socket.gethostbyname('129.175.108.58')
         #ip = socket.gethostbyname('129.175.81.162')
         address = (ip, port)
-        #client.settimeout(1)
+        client.settimeout(1)
         try:
             client.connect(address)
             client.send(str(self.__expTime).encode())
@@ -680,42 +680,44 @@ class TimePix3():
             return b''
 
         while True:
-            packet_data = client.recv(buffer_size)
-            #print(f'got {len(packet_data)}')
-            if len(packet_data) <= 0:
-                logging.info('***TP3***: Received null bytes')
-                break
-
-            while len(packet_data) <= 1024:
+            try:
                 packet_data = client.recv(buffer_size)
+                #print(f'got {len(packet_data)}')
+                if len(packet_data) <= 0:
+                    logging.info('***TP3***: Received null bytes')
+                    break
 
-            index = packet_data.index(b'TPX3')
+                while len(packet_data) <= 1024:
+                    packet_data = client.recv(buffer_size)
 
-            while index+8<len(packet_data):
-                data = packet_data[index:index+8]
-                data = data[::-1]
-                tpx3_header = data[4:8]  # 4 bytes=32 bits
-                assert tpx3_header==b'3XPT'
-                chip_index = data[3]  # 1 byte
-                #mode = data[2]  # 1 byte
-                size_chunk1 = data[1]  # 1 byte
-                size_chunk2 = data[0]  # 1 byte
-                total_size = size_chunk1 + size_chunk2 * 256
-                for j in range(int(total_size/8)):
-                    index+=8
-                    while index+8>=len(packet_data):
-                        packet_data+=client.recv(1)
+                index = packet_data.index(b'TPX3')
+
+                while index+8<len(packet_data):
                     data = packet_data[index:index+8]
                     data = data[::-1]
-                    id = (data[0] & 240) >> 4
-                    if id==11:
-                        electron_data += data + bytes([chip_index])
-                    elif id==6:
-                        electron_data = put_queue(electron_data, 'electron')
-                        put_queue(data+bytes([chip_index]), 'tdc')
-                        self.sendmessage((message, len(packet_data)==buffer_size))
-                index+=8
-            if not self.__isPlaying: break
+                    tpx3_header = data[4:8]  # 4 bytes=32 bits
+                    assert tpx3_header==b'3XPT'
+                    chip_index = data[3]  # 1 byte
+                    mode = data[2]  # 1 byte
+                    size_chunk1 = data[1]  # 1 byte
+                    size_chunk2 = data[0]  # 1 byte
+                    total_size = size_chunk1 + size_chunk2 * 256
+                    for j in range(int(total_size/8)):
+                        index+=8
+                        while index+8>=len(packet_data):
+                            packet_data+=client.recv(1)
+                        data = packet_data[index:index+8]
+                        data = data[::-1]
+                        id = (data[0] & 240) >> 4
+                        if id==11:
+                            electron_data += data + bytes([chip_index])
+                        elif id==6:
+                            electron_data = put_queue(electron_data, 'electron')
+                            put_queue(data+bytes([chip_index]), 'tdc')
+                            self.sendmessage((message, len(packet_data)==buffer_size))
+                    index+=8
+            except socket.timeout:
+                if not self.__isPlaying: break
         return True
 
     def get_last_data(self):
@@ -777,7 +779,6 @@ class TimePix3():
                     append_position(ci, data[i*9:8+i*9], softBinning=softBinning)
                     gt.append(time/1e9)
         else:
-            #for i in numpy.arange(0, total_size, 9):
             for i in range(int(total_size / 9)):
                 ci = data[8 + i*9] #Chip Index
                 append_position(ci, data[i*9:8+i*9], softBinning=softBinning)
@@ -822,7 +823,7 @@ class TimePix3():
         #print((finish-start)/1e9)
         return (imagedata, doit)
 
-    def create_spim_from_events(self, shape, lineTime, lineNumber):
+    def create_spim_from_events(self, shape, lineNumber):
         if lineNumber==0:
             _, _, self.__tdc = self.data_from_raw_tdc(self.__tdcQueue.get())
             self.__eventQueue = queue.Queue()
@@ -830,9 +831,7 @@ class TimePix3():
         file = os.path.join(self.__filepath, "frame_"+str(lineNumber))
         start = time.perf_counter_ns()
         spimimagedata = numpy.zeros(shape)
-        lines = shape[0]
-        columns = shape[1]
-        lineNumber = lineNumber%columns
+        lines, columns = shape
 
         for line in range(lines):
             if not self.__eventQueue.empty():
@@ -854,7 +853,7 @@ class TimePix3():
 
         if SAVE_FILE: numpy.savez_compressed(file, spimimagedata)
         finish = time.perf_counter_ns()
-        print((finish - start) / 1e9)
+        #print((finish - start) / 1e9)
         return spimimagedata
 
     def get_total_counts_from_data(self, frame_int):

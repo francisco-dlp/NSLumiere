@@ -376,7 +376,7 @@ class CameraDevice(camera_base.CameraDevice):
     def acquire_image(self) -> dict:
         acquisition_mode = self.current_camera_settings.acquisition_mode
         if "Chrono" in acquisition_mode:
-            self.has_spim_data_event.wait(2.0)
+            self.has_spim_data_event.wait(1.0)
             self.has_spim_data_event.clear()
             self.acquire_data = self.spimimagedata
             if "2D" in acquisition_mode:
@@ -387,7 +387,7 @@ class CameraDevice(camera_base.CameraDevice):
                 datum_dimensions = 2
 
         elif "Focus" in acquisition_mode and self.__acqspimon:
-            self.has_spim_data_event.wait(2.0)
+            self.has_spim_data_event.wait(1.0)
             self.has_spim_data_event.clear()
             spnb = self.frame_number
             y0 = int(spnb / 10)
@@ -397,14 +397,14 @@ class CameraDevice(camera_base.CameraDevice):
             datum_dimensions = 1
 
         elif "SpimTP" in acquisition_mode:
-            self.has_spim_data_event.wait(2.0)
+            self.has_spim_data_event.wait(1.0)
             self.has_spim_data_event.clear()
             self.acquire_data = self.spimimagedata
             collection_dimensions = 2
             datum_dimensions = 1
 
         else: #Cumul and Focus
-            self.has_data_event.wait(2.0) #wait until True
+            self.has_data_event.wait(1.0) #wait until True
             self.has_data_event.clear() #Puts back false
             self.acquire_data = self.imagedata
             if self.acquire_data.shape[0] == 1: #fully binned
@@ -545,7 +545,7 @@ class CameraDevice(camera_base.CameraDevice):
                 self.has_data_event.set()
             elif message==5: #Chrono mode event based
                 if self.frame_number % (self.sizey)==0:
-                    self.spimimagedata += self.camera.create_spim_from_events(self.spimimagedata.shape, lineTime = None, lineNumber = self.frame_number)[0]
+                    self.spimimagedata += self.camera.create_spim_from_events(self.spimimagedata.shape, lineNumber = self.frame_number)[0]
                 self.frame_number+=1
                 self.has_spim_data_event.set()
         return sendMessage
