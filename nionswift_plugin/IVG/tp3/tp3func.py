@@ -712,7 +712,6 @@ class TimePix3():
                         if id==11:
                             electron_data += data + bytes([chip_index])
                         elif id==6:
-                            #print(index, data)
                             electron_data = put_queue(electron_data, 'electron')
                             put_queue(data+bytes([chip_index]), 'tdc')
                             self.sendmessage((message, len(packet_data)==buffer_size))

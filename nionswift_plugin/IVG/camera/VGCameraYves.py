@@ -121,10 +121,17 @@ class CameraDevice(camera_base.CameraDevice):
         self.__x_pix_spim = 30
         self.__y_pix_spim = 30
 
+        self.isKURO = model.find("KURO") >= 0
+        self.isProEM = model.find("ProEM") >= 0
+        self.isMedipix = model.find("Merlin") >= 0
+        self.isTimepix = model.find("CheeTah")>=0
+
         self.__calibration_controls = {}
 
         if manufacturer == 2:
             self.camera.setCCDOverscan(128,0)
+
+
 
     @property
     def binning_values(self) -> typing.List[int]:

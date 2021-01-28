@@ -39,8 +39,6 @@ class CameraHandler:
             #self.event_loop.create_task(self.update_buttons())
             #self.stop_clicked()
 
-
-
         self.__frame_parameter_changed_event_listener = camera_device.frame_parameter_changed_event.listen(frame_parameter_changed)
         self.__stop_acquisition_event_listener = camera_device.stop_acquitisition_event.listen(self.stop_clicked)
         self.__current_event_listener = camera_device.current_event.listen(self.update_current)
@@ -50,6 +48,7 @@ class CameraHandler:
         self.__areas = [(0, 0, sy, sx), (sy / 4, 0, 3 * sy / 4, sx), (3 * sy / 8, 0, 5 * sy / 8, sx),(sy / 2 - 5, 0, sy / 2 + 5, sx)]
         self.__areas_names = [_("Full"), _("Half"), _("Quater"), _("Skinny")]
         self.h_binning_values = [1, 2, 4, 8, 16]
+
         if sy == 200:
             self.v_binning_values = [1, 2, 5, 10, 20, 50, 100, 200]
         elif sy == 100:
@@ -403,7 +402,6 @@ class CameraPanelFactory:
 
         buttons = ui.create_row(ui.create_stretch(), cancel_button, stop_button, start_button, spacing=8)
 
-
         current_label = ui.create_label(text='Current (pA): ')
         current_val = ui.create_label(text="@binding(current_value.value)")
         current_column = ui.create_row(current_label, current_val, ui.create_stretch())
@@ -419,8 +417,15 @@ class CameraPanelFactory:
         tp3_column = ui.create_column(current_column, delay_row, width_row, spacing=2)
         tp3_group = ui.create_group(tp3_column, title=_("TimePix3"))
 
-        control_column = ui.create_column(binning_group, experiment_group, mode_row, buttons, tp3_group,
-                                          ui.create_stretch(), spacing=8, margin=4)
+        """
+        If Timepix, i've added a small supplementary setting
+        """
+        if camera_device.isTimepix:
+            control_column = ui.create_column(binning_group, experiment_group, mode_row, buttons, tp3_group,
+                                              ui.create_stretch(), spacing=8, margin=4)
+        else:
+            control_column = ui.create_column(binning_group, experiment_group, mode_row, buttons,
+                                              ui.create_stretch(), spacing=8, margin=4)
 
 
         ports = camera_device.camera.getPortNames()
