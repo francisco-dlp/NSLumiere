@@ -688,7 +688,7 @@ class TimePix3():
                     break
 
                 while len(packet_data) <= 1024:
-                    packet_data = client.recv(buffer_size)
+                    packet_data += client.recv(buffer_size)
 
                 index = packet_data.index(b'TPX3')
 
@@ -704,7 +704,7 @@ class TimePix3():
                     total_size = size_chunk1 + size_chunk2 * 256
                     for j in range(int(total_size/8)):
                         index+=8
-                        while index+8>=len(packet_data):
+                        while index+8>len(packet_data):
                             packet_data+=client.recv(1)
                         data = packet_data[index:index+8]
                         data = data[::-1]
@@ -712,12 +712,15 @@ class TimePix3():
                         if id==11:
                             electron_data += data + bytes([chip_index])
                         elif id==6:
+                            #print(index, data)
                             electron_data = put_queue(electron_data, 'electron')
                             put_queue(data+bytes([chip_index]), 'tdc')
                             self.sendmessage((message, len(packet_data)==buffer_size))
                     index+=8
             except socket.timeout:
-                if not self.__isPlaying: break
+                if not self.__isPlaying:
+                    client.close()
+                    break
         return True
 
     def get_last_data(self):
