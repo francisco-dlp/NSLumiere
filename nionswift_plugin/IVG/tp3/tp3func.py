@@ -39,6 +39,11 @@ class TimePix3():
         self.__simul = simul
         self.sendmessage = message
 
+        try:
+            self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eels")
+        except:
+            pass
+
         if not simul:
             try:
                 initial_status_code = self.status_code()
