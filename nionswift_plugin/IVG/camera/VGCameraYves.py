@@ -544,8 +544,6 @@ class CameraDevice(camera_base.CameraDevice):
                 self.frame_number+=1
                 self.has_data_event.set()
             elif message==5: #Chrono mode event based
-                # self.spimimagedata += self.camera.create_spim_from_events(self.spimimagedata.shape, lineTime=None,
-                # lineNumber=self.frame_number) #if showing each line
                 if self.frame_number % (self.sizey)==0:
                     self.spimimagedata += self.camera.create_spim_from_events(self.spimimagedata.shape, lineTime = None, lineNumber = self.frame_number)[0]
                 self.frame_number+=1

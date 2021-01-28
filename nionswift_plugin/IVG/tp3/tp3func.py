@@ -466,9 +466,9 @@ class TimePix3():
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__eventQueue.qsize()} electron events in the Queue.')
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__tdcQueue.qsize()} tdc in the Queue.')
-            self.__dataQueue = queue.LifoQueue()
-            self.__eventQueue = queue.LifoQueue()
-            self.__tdcQueue = queue.LifoQueue()
+            self.__dataQueue = queue.Queue()
+            self.__eventQueue = queue.Queue()
+            self.__tdcQueue = queue.Queue()
 
     def acquire_single_frame(self, port, message):
         """
@@ -655,8 +655,8 @@ class TimePix3():
         """
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        ip = socket.gethostbyname('127.0.0.1')
-        #ip = socket.gethostbyname('129.175.108.58')
+        #ip = socket.gethostbyname('127.0.0.1')
+        ip = socket.gethostbyname('129.175.108.58')
         #ip = socket.gethostbyname('129.175.81.162')
         address = (ip, port)
         #client.settimeout(1)
@@ -801,7 +801,8 @@ class TimePix3():
         tdcT = coarseT * (1 / 320e6) + fineT * 260e-12
 
         triggerType = data[0] & 15
-        return (tdcT, triggerType, tdcT - int(tdcT / 26.8435456) * 26.8435456)
+        a = tdcT - int(tdcT / 26.8435456) * 26.8435456
+        return (tdcT, triggerType, a)
 
     def create_image_from_events(self, shape, doit):
         start = time.perf_counter_ns()
@@ -823,7 +824,7 @@ class TimePix3():
 
     def create_spim_from_events(self, shape, lineTime, lineNumber):
         if lineNumber==0:
-            self.__tdc = self.data_from_raw_tdc(self.__tdcQueue.get())[2]
+            _, _, self.__tdc = self.data_from_raw_tdc(self.__tdcQueue.get())
             self.__eventQueue = queue.Queue()
 
         file = os.path.join(self.__filepath, "frame_"+str(lineNumber))
@@ -834,39 +835,26 @@ class TimePix3():
         lineNumber = lineNumber%columns
 
         for line in range(lines):
-        #for line in range(1): #if showing each line
             if not self.__eventQueue.empty():
                 data = self.__eventQueue.get()
-                ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())[2]
+                _, _, ref_time = self.data_from_raw_tdc(self.__tdcQueue.get())
 
-                if ref_time<self.__tdc:
-                    ref_time+=26.8435456
-
+                interval = ref_time - self.__tdc
                 xy, gt = self.data_from_raw_electron(data, softBinning = True, toa = True,
                                                      TimeDelay = 0, TimeWidth = 1e10)
-                pixelsLine = numpy.subtract(gt, ref_time)
-                #print(f'{gt} and {self.__tdc} and {ref_time}')
+                if interval<0:
+                    interval = interval + 26.8435456
+                    if self.__tdc > gt[0]:
+                        gt = numpy.add(gt, 26.8435456)
 
-                if pixelsLine[-1] <= pixelsLine[0]:
-                    maxTime = 26.8435456
-                    pixelsLine = numpy.array([(val if index <= numpy.where(pixelsLine==numpy.max(pixelsLine))[0][0] else val + maxTime) for index, val in enumerate(pixelsLine)])
-                assert pixelsLine[-1] > pixelsLine[0] #time must be a crescent
-
-
-
-                #pixelsLine = [val for val in pixelsLine]
-                #pixelsLine = numpy.interp(pixelsLine, (pixelsLine[0], pixelsLine[-1]), (0, columns)).astype(int)
+                place_array = [int((val-self.__tdc)/(interval/columns)) for val in gt]
+                for index, val in enumerate(place_array):
+                    spimimagedata[line, val, xy[index][0]]+=1
                 self.__tdc = ref_time
-                #for index, val in enumerate(pixelsLine):
-                #    try:
-                #        spimimagedata[line, val, xy[index][0]] += 1
-                #        #spimimagedata[lineNumber, val, xy[index][0]] += 1 #if showing each line
-                #    except IndexError:
-                #        spimimagedata[line, val-1, xy[index][0]] += 1
-                #        #spimimagedata[lineNumber, val - 1, xy[index][0]] += 1 #if showing each line
+
         if SAVE_FILE: numpy.savez_compressed(file, spimimagedata)
         finish = time.perf_counter_ns()
-        #print((finish - start) / 1e9)
+        print((finish - start) / 1e9)
         return spimimagedata
 
     def get_total_counts_from_data(self, frame_int):
