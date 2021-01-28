@@ -717,6 +717,7 @@ class TimePix3():
                             put_queue(data+bytes([chip_index]), 'tdc')
                             self.sendmessage((message, len(packet_data)==buffer_size))
                     index+=8
+                if not self.__isPlaying: break
             except socket.timeout:
                 if not self.__isPlaying:
                     client.close()
@@ -834,7 +835,7 @@ class TimePix3():
         file = os.path.join(self.__filepath, "frame_"+str(lineNumber))
         start = time.perf_counter_ns()
         spimimagedata = numpy.zeros(shape)
-        lines, columns = shape
+        lines, columns, pixels = shape
 
         for line in range(lines):
             if not self.__eventQueue.empty():
