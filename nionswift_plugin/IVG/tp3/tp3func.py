@@ -9,6 +9,8 @@ import time
 import pathlib
 import os
 
+from nion.swift.model import HardwareSource
+
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
@@ -39,10 +41,6 @@ class TimePix3():
         self.__simul = simul
         self.sendmessage = message
 
-        try:
-            self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eels")
-        except:
-            pass
 
         if not simul:
             try:
@@ -333,6 +331,15 @@ class TimePix3():
 
     def setSpeed(self, cameraport, speed):
         pass
+
+    def setTdc1(self, time, width):
+        frequency = int(1/time)
+
+        scanHardware = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "orsay_scan_device")
+
+        scanHardware.scan_device.orsayscan.SetLaser(frequency, 5000000, False, -1)
+
 
     def getNumofGains(self, cameraport):
         pass
