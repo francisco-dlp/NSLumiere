@@ -58,7 +58,6 @@ class probeDevice(Observable.Observable):
         self.wobbler_frequency_f = 2
         self.__wobbler_intensity = 0.02
 
-
     def init_handler(self):
         try:
             inst_dir = os.path.dirname(__file__)
@@ -68,10 +67,10 @@ class probeDevice(Observable.Observable):
             self.obj_edit_f = data["3"][self.__magLensNames[0]]
             self.c1_edit_f = data["3"][self.__magLensNames[1]]
             self.c2_edit_f = data["3"][self.__magLensNames[2]]
-            self.obj_stigmateur0_f=data["3"]["obj_stig_00"]
-            self.obj_stigmateur1_f=data["3"]["obj_stig_01"]
-            self.gun_stimateur0_f=data["3"]["gun_stig_02"]
-            self.gun_stigmateur1_f=data["3"]["gun_stig_03"]
+            self.obj_stigmateur0_f=data["3"][self.__StigNames[0]]
+            self.obj_stigmateur1_f=data["3"][self.__StigNames[1]]
+            self.gun_stimateur0_f=data["3"][self.__StigNames[2]]
+            self.gun_stigmateur1_f=data["3"][self.__StigNames[3]]
         except:
             logging.info('***LENSES***: No saved values.')
 
@@ -96,6 +95,7 @@ class probeDevice(Observable.Observable):
         self.obj_wobbler_f = False
         self.c1_wobbler_f = False
         self.c2_wobbler_f = False
+
 
     """
     WOBBLER GLOBAL SETTINGS
@@ -125,23 +125,7 @@ class probeDevice(Observable.Observable):
     OBJECTIVE LENS
     """
 
-    @property
-    def obj_stigmateur0_f(self):
-        return self.__lenses_ps.query_stig(0)
 
-    @obj_stigmateur0_f.setter
-    def obj_stigmateur0_f(self, value):
-        self.__lenses_ps.set_val_stig(0, value)
-        self.property_changed_event.fire('obj_stigmateur0_f')
-
-    @property
-    def obj_stigmateur1_f(self):
-        return self.__lenses_ps.query_stig(1)
-
-    @obj_stigmateur1_f.setter
-    def obj_stigmateur1_f(self, value):
-        self.__lenses_ps.set_val_stig(1, value)
-        self.property_changed_event.fire('obj_stigmateur1_f')
 
     @property
     def obj_global_f(self):
@@ -299,23 +283,43 @@ class probeDevice(Observable.Observable):
         self.property_changed_event.fire("c2_edit_f")
 
     """
-    COND STIGMATORS
+    STIGMATORS
     """
 
     @property
+    def obj_stigmateur0_f(self):
+        return self.__lenses_ps.query_stig(self.__StigNames[0])
+
+    @obj_stigmateur0_f.setter
+    def obj_stigmateur0_f(self, value):
+        self.__Stig[0] = value
+        self.__lenses_ps.set_val_stig(value, self.__StigNames[0])
+        self.property_changed_event.fire('obj_stigmateur0_f')
+
+    @property
+    def obj_stigmateur1_f(self):
+        return self.__lenses_ps.query_stig(self.__StigNames[1])
+
+    @obj_stigmateur1_f.setter
+    def obj_stigmateur1_f(self, value):
+        self.__Stig[0] = value
+        self.__lenses_ps.set_val_stig(value, self.__StigNames[1])
+        self.property_changed_event.fire('obj_stigmateur1_f')
+
+    @property
     def gun_stigmateur0_f(self):
-        return self.__lenses_ps.query_stig(2)
+        return self.__lenses_ps.query_stig(self.__StigNames[2])
 
     @gun_stigmateur0_f.setter
     def gun_stigmateur0_f(self, value):
-        self.__lenses_ps.set_val_stig(2, value)
+        self.__lenses_ps.set_val_stig(value, self.__StigNames[2])
         self.property_changed_event.fire('gun_stigmateur0_f')
 
     @property
     def gun_stigmateur1_f(self):
-        return self.__lenses_ps.query_stig(3)
+        return self.__lenses_ps.query_stig(self.__StigNames[3])
 
     @gun_stigmateur1_f.setter
     def gun_stigmateur1_f(self, value):
-        self.__lenses_ps.set_val_stig(3, value)
+        self.__lenses_ps.set_val_stig(value, self.__StigNames[3])
         self.property_changed_event.fire('gun_stigmateur1_f')

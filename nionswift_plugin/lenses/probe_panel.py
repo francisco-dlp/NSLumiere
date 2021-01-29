@@ -98,6 +98,7 @@ class gainView:
 
     def __init__(self, instrument: probe_inst.probeDevice):
         ui = Declarative.DeclarativeUI()
+        print(dir(instrument))
 
         # fine adjustment label #
         self.full_range_obj = ui.create_label(name='full_range_obj', text='(Coarse)')
@@ -146,6 +147,7 @@ class gainView:
         self.astig_column=ui.create_column(self.astig0_label, self.astig0_slider, self.astig1_label, self.astig1_slider)
 
         self.astig_group=ui.create_group(title='Objective Astigmators', content=self.astig_column)
+
 
 
         self.objective_tab = ui.create_tab(label='Objective',

@@ -23,17 +23,19 @@ class LensesController(abc.ABC):
         """
 
     @abc.abstractmethod
+    def query_stig(self, which):
+        """
+        Query Stigmator
+        """
+
+    @abc.abstractmethod
     def set_val_stig(self, val, which):
         """"
         Set Val Stigmator.
         The value must be between -1000 and +1000 in order to accord the slides.
         """
 
-    @abc.abstractmethod
-    def query_stig(self, which):
-        """
-        Query Stigmator
-        """
+
 
     def locked_query(self, which):
         with self.lock:

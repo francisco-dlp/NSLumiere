@@ -1,7 +1,4 @@
-import sys
 import logging
-import time
-import threading
 import numpy
 
 from . import lens_controller

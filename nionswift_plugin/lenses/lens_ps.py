@@ -75,13 +75,13 @@ class Lenses:
         3 -> Gun Stig 01
         """
         hardware = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
-        if which==0:
+        if which=='obj_stig_00':
             hardware.obj_stig00_f = val
-        elif which==1:
+        elif which=='obj_stig_01':
             hardware.obj_stig01_f = val
-        elif which==2:
+        elif which=='gun_stig_02':
             hardware.gun_stig00_f = val
-        elif which==3:
+        elif which=='gun_stig_03':
             hardware.gun_stig01_f = val
 
     def query_stig(self, which):
@@ -92,13 +92,13 @@ class Lenses:
         3 -> Gun Stig 01
         """
         hardware = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
-        if which == 0:
+        if which=='obj_stig_00':
             val = hardware.obj_stig00_f
-        elif which == 1:
+        elif which == 'obj_stig_01':
             val = hardware.obj_stig01_f
-        elif which == 2:
+        elif which == 'gun_stig_02':
             val = hardware.gun_stig00_f
-        elif which == 3:
+        elif which == 'gun_stig_03':
             val = hardware.gun_stig01_f
         return val
 

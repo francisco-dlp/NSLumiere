@@ -6,7 +6,7 @@ from . import probe_inst
 from . import probe_panel
 
 names = ['obj', 'c1', 'c2']
-stignames = ['obj0', 'obj1', 'gun0', 'gun1']
+stignames = ['obj_stig_00', 'obj_stig_01', 'gun_stig_02', 'gun_stig_03']
 
 def run():
 
