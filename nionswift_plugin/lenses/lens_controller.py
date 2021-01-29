@@ -43,7 +43,7 @@ class LensesController(abc.ABC):
 
     def locked_set_val(self, val, which):
         with self.lock:
-            return self.set_val(val, which)
+            self.set_val(val, which)
 
     def wobbler_loop(self, current, intensity, frequency, which):
         self.wobbler_thread = threading.currentThread()
@@ -51,9 +51,9 @@ class LensesController(abc.ABC):
         while getattr(self.wobbler_thread, "do_run", True):
             sens = sens * -1
             if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / frequency)
-            self.set_val(current + sens * intensity, which)
+            self.locked_set_val(current + sens * intensity, which)
             if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / frequency)
-            self.set_val(current, which)
+            self.locked_set_val(current, which)
 
     def wobbler_on(self, current, intensity, frequency, which):
         if self.wobbler_thread.is_alive():

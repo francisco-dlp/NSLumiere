@@ -67,23 +67,6 @@ class Lenses:
         self.ser.write(string.encode())
             return self.ser.readline()
 
-    def set_val_stig(self, val, which):
-        """
-        0 -> Objective Stig 00
-        1 -> Objective Stig 01
-        2 -> Gun Stig 00
-        3 -> Gun Stig 01
-        """
-        hardware = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
-        if which=='obj_stig_00':
-            hardware.obj_stig00_f = val
-        elif which=='obj_stig_01':
-            hardware.obj_stig01_f = val
-        elif which=='gun_stig_02':
-            hardware.gun_stig00_f = val
-        elif which=='gun_stig_03':
-            hardware.gun_stig01_f = val
-
     def query_stig(self, which):
         """
         0 -> Objective Stig 00
@@ -101,5 +84,24 @@ class Lenses:
         elif which == 'gun_stig_03':
             val = hardware.gun_stig01_f
         return val
+
+    ef set_val_stig(self, val, which):
+        """
+        0 -> Objective Stig 00
+        1 -> Objective Stig 01
+        2 -> Gun Stig 00
+        3 -> Gun Stig 01
+        """
+        hardware = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
+        if which=='obj_stig_00':
+            hardware.obj_stig00_f = val
+        elif which=='obj_stig_01':
+            hardware.obj_stig01_f = val
+        elif which=='gun_stig_02':
+            hardware.gun_stig00_f = val
+        elif which=='gun_stig_03':
+            hardware.gun_stig01_f = val
+
+
 
 
