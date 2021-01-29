@@ -2,12 +2,9 @@
 import json
 import os
 import logging
-import time
 
 from nion.utils import Event
 from nion.utils import Observable
-from nion.swift.model import HardwareSource
-from nion.utils import Registry
 
 abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
 with open(abs_path) as savfile:
@@ -21,10 +18,8 @@ else:
     from . import lens_ps as lens_ps
 
 class probeDevice(Observable.Observable):
-    def __init__(self, nLens, LensNames):
+    def __init__(self, nLens, LensNames, nStig, StigNames):
         self.property_changed_event = Event.Event()
-        self.property_changed_power_event = Event.Event()
-        self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
 
         self.__lenses_ps = lens_ps.Lenses()
@@ -41,6 +36,20 @@ class probeDevice(Observable.Observable):
         self.__magLensGlobal = [True] * nLens
         self.__magLensWobbler = [False] * nLens
         self.__magLensNames = LensNames
+        assert len(self.__magLensNames) == nLens
+
+        """
+        Stig:
+        0 -> Objective 0
+        1 -> Objective 1
+        2 -> Gun 0
+        3 - > Gun 1
+        """
+
+        self.__nStig = nStig
+        self.__Stig = [0] * nStig
+        self.__StigNames = StigNames
+        assert len(self.__StigNames) == nStig
 
 
         """
