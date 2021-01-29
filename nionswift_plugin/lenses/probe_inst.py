@@ -78,7 +78,7 @@ class probeDevice(Observable.Observable):
         self.c2_edit_f = data[str(value)]['c2']
 
     def get_values(self, which):
-        cur, vol = self.__lenses_ps.query(which)
+        cur, vol = self.__lenses_ps.locked_query(which)
         return cur, vol
 
     def get_orsay_scan_instrument(self):
@@ -156,9 +156,9 @@ class probeDevice(Observable.Observable):
     def obj_global_f(self, value):
         self.__obj_global = value
         if value:
-            self.__lenses_ps.set_val(self.__obj, 'OBJ')
+            self.__lenses_ps.locked_set_val(self.__obj, 'OBJ')
         else:
-            self.__lenses_ps.set_val(0.0, 'OBJ')
+            self.__lenses_ps.locked_set_val(0.0, 'OBJ')
         self.property_changed_event.fire('obj_global_f')
 
     @property
@@ -186,7 +186,7 @@ class probeDevice(Observable.Observable):
     def obj_slider_f(self, value):
         self.__obj = value / 1e6
         if self.__obj_wobbler: self.obj_wobbler_f = False
-        if self.__obj_global: self.__lenses_ps.set_val(self.__obj, 'OBJ')
+        if self.__obj_global: self.__lenses_ps.locked_set_val(self.__obj, 'OBJ')
         # if self.__obj_global: threading.Thread(target=self.__lenses_ps.set_val, args=(self.__obj, 'OBJ'),).start()
         self.property_changed_event.fire("obj_slider_f")
         self.property_changed_event.fire("obj_edit_f")
@@ -212,9 +212,9 @@ class probeDevice(Observable.Observable):
     def c1_global_f(self, value):
         self.__c1_global = value
         if value:
-            self.__lenses_ps.set_val(self.__c1, 'C1')
+            self.__lenses_ps.locked_set_val(self.__c1, 'C1')
         else:
-            self.__lenses_ps.set_val(0.01, 'C1')
+            self.__lenses_ps.locked_set_val(0.01, 'C1')
         self.property_changed_event.fire('c1_global_f')
 
     @property
@@ -241,7 +241,7 @@ class probeDevice(Observable.Observable):
     @c1_slider_f.setter
     def c1_slider_f(self, value):
         self.__c1 = value / 1e6
-        if self.__c1_global: self.__lenses_ps.set_val(self.__c1, 'C1')
+        if self.__c1_global: self.__lenses_ps.locked_set_val(self.__c1, 'C1')
         self.property_changed_event.fire("c1_slider_f")
         self.property_changed_event.fire("c1_edit_f")
 
@@ -252,7 +252,7 @@ class probeDevice(Observable.Observable):
     @c1_edit_f.setter
     def c1_edit_f(self, value):
         self.__c1 = float(value)
-        if self.__c1_global: self.__lenses_ps.set_val(self.__c1, 'C1')
+        if self.__c1_global: self.__lenses_ps.locked_set_val(self.__c1, 'C1')
         self.property_changed_event.fire("c1_slider_f")
         self.property_changed_event.fire("c1_edit_f")
 
@@ -266,9 +266,9 @@ class probeDevice(Observable.Observable):
     def c2_global_f(self, value):
         self.__c2_global = value
         if value:
-            self.__lenses_ps.set_val(self.__c2, 'C2')
+            self.__lenses_ps.locked_set_val(self.__c2, 'C2')
         else:
-            self.__lenses_ps.set_val(0.01, 'C2')
+            self.__lenses_ps.locked_set_val(0.01, 'C2')
         self.property_changed_event.fire('c2_global_f')
 
     @property
@@ -295,7 +295,7 @@ class probeDevice(Observable.Observable):
     @c2_slider_f.setter
     def c2_slider_f(self, value):
         self.__c2 = value / 1e6
-        if self.__c2_global: self.__lenses_ps.set_val(self.__c2, 'C2')
+        if self.__c2_global: self.__lenses_ps.locked_set_val(self.__c2, 'C2')
         self.property_changed_event.fire("c2_slider_f")
         self.property_changed_event.fire("c2_edit_f")
 
@@ -306,7 +306,7 @@ class probeDevice(Observable.Observable):
     @c2_edit_f.setter
     def c2_edit_f(self, value):
         self.__c2 = float(value)
-        self.__c2_global: self.__lenses_ps.set_val(self.__c2, 'C2')
+        self.__c2_global: self.__lenses_ps.locked_set_val(self.__c2, 'C2')
         self.property_changed_event.fire("c2_slider_f")
         self.property_changed_event.fire("c2_edit_f")
 
