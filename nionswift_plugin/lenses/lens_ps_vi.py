@@ -4,7 +4,7 @@ import time
 import threading
 import numpy
 
-#from . import lens_controller
+from . import lens_controller
 
 __author__ = "Yves Auad"
 
