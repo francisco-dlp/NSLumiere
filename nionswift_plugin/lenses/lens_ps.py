@@ -4,6 +4,7 @@ import time
 import threading
 import os
 import json
+import logging
 
 abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
 with open(abs_path) as savfile:
@@ -13,22 +14,11 @@ MAX_OBJ = settings["lenses"]["MAX_OBJ"]
 MAX_C1 = settings["lenses"]["MAX_C1"]
 MAX_C2 = settings["lenses"]["MAX_C2"]
 
-
 __author__ = "Yves Auad"
-
-
-def _isPython3():
-    return sys.version_info[0] >= 3
-
-
-def SENDMYMESSAGEFUNC(sendmessagefunc):
-    return sendmessagefunc
-
 
 class Lenses:
 
-    def __init__(self, sendmessage):
-        self.sendmessage = sendmessage
+    def __init__(self):
         self.ser = serial.Serial()
         self.ser.baudrate = 57600
         self.ser.port = 'COM13'
@@ -43,7 +33,7 @@ class Lenses:
             if not self.ser.is_open:
                 self.ser.open()
         except:
-            self.sendmessage(1)
+            logging.info("***LENSES***: Could not find Lenses PS")
 
         self.ser.readline()
 
@@ -62,7 +52,8 @@ class Lenses:
                 voltage = self.ser.read_until(expected=b','); voltage = voltage[:-1]
                 self.ser.readline()
             except:
-                self.sendmessage(4)
+                logging.info('***LENSES***: Communication Error over Serial Port. Easy check using Serial Port '
+                             'Monitor software.')
         return current, voltage
 
     def set_val(self, val, which):
@@ -73,7 +64,7 @@ class Lenses:
         elif which == 'C2' and val<=MAX_C2 and val>=0:
             string_init = '>1,1,3,'
         else:
-            self.sendmessage(2)
+            logging.info("***LENSES***: Attempt to set values out of range.")
             return None
 
         string = string_init + str(val) + ',0.5\r'

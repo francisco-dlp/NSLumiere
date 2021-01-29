@@ -31,8 +31,7 @@ class probeDevice(Observable.Observable):
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
 
-        self.__sendmessage = lens_ps.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        self.__lenses_ps = lens_ps.Lenses(self.__sendmessage)
+        self.__lenses_ps = lens_ps.Lenses()
 
         self.__obj = 0.
         self.__c1 = 0.
@@ -83,18 +82,6 @@ class probeDevice(Observable.Observable):
 
     def get_orsay_scan_instrument(self):
         self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-
-    def sendMessageFactory(self):
-        def sendMessage(message):
-            if message == 1:
-                logging.info("***LENSES***: Could not find Lenses PS")
-            if message == 2:
-                logging.info("***LENSES***: Attempt to set values out of range.")
-            if message == 4:
-                logging.info('***LENSES***: Communication Error over Serial Port. Easy check using Serial Port '
-                             'Monitor software.')
-
-        return sendMessage
 
     ### General ###
 
