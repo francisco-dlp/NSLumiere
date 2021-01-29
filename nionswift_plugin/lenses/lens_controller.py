@@ -1,8 +1,5 @@
-import sys
-import logging
 import time
 import threading
-import numpy
 import abc
 
 __author__ = "Yves Auad"
@@ -11,14 +8,32 @@ class LensesController(abc.ABC):
 
     def __init__(self):
         self.lock = threading.Lock()
+        self.wobbler_thread = threading.Thread()
 
     @abc.abstractmethod
     def query(self, which):
-        """Query Lens"""
+        """
+        Query Lens
+        """
 
     @abc.abstractmethod
     def set_val(self, val, which):
-        """Set Lens Value"""
+        """
+        Set Lens Value
+        """
+
+    @abc.abstractmethod
+    def set_val_stig(self, val, which):
+        """"
+        Set Val Stigmator.
+        The value must be between -1000 and +1000 in order to accord the slides.
+        """
+
+    @abc.abstractmethod
+    def query_stig(self, which):
+        """
+        Query Stigmator
+        """
 
     def locked_query(self, which):
         with self.lock:
@@ -39,8 +54,13 @@ class LensesController(abc.ABC):
             self.set_val(current, which)
 
     def wobbler_on(self, current, intensity, frequency, which):
-        self.wobbler_thread = threading.Thread(target=self.wobbler_loop, args=(current, intensity, frequency, which), )
-        self.wobbler_thread.start()
+        if self.wobbler_thread.is_alive():
+            self.wobbler_off()
+        if not self.wobbler_thread.is_alive():
+            self.wobbler_thread = threading.Thread(target=self.wobbler_loop, args=(current, intensity, frequency, which), )
+            self.wobbler_thread.start()
 
     def wobbler_off(self):
-        self.wobbler_thread.do_run = False
+        if self.wobbler_thread.is_alive():
+            self.wobbler_thread.do_run = False
+            self.wobbler_thread.join()

@@ -15,17 +15,13 @@ with open(abs_path) as savfile:
 
 DEBUG = settings["lenses"]["DEBUG"]
 
-
 if DEBUG:
     from . import lens_ps_vi as lens_ps
 else:
     from . import lens_ps as lens_ps
 
-
-
 class probeDevice(Observable.Observable):
-
-    def __init__(self):
+    def __init__(self, nLens, LensNames):
         self.property_changed_event = Event.Event()
         self.property_changed_power_event = Event.Event()
         self.communicating_event = Event.Event()
@@ -33,19 +29,26 @@ class probeDevice(Observable.Observable):
 
         self.__lenses_ps = lens_ps.Lenses()
 
-        self.__obj = 0.
-        self.__c1 = 0.
-        self.__c2 = 0.
-        self.__obj_global = True
-        self.__c1_global = True
-        self.__c2_global = True
-        self.__obj_wobbler = False
-        self.__c1_wobbler = False
-        self.__c2_wobbler = False
+        """
+        MagLens:
+        0 -> Objective Lens
+        1 -> Condenser Lens 01
+        2 -> Condenser Lens 02
+        """
+
+        self.__nLens = nLens
+        self.__magLens = [0] * nLens
+        self.__magLensGlobal = [True] * nLens
+        self.__magLensWobbler = [False] * nLens
+        self.__magLensNames = LensNames
+
+
+        """
+        Wobbler intensity and frequency
+        """
         self.wobbler_frequency_f = 2
         self.__wobbler_intensity = 0.02
 
-        self.__ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
 
     def init_handler(self):
         try:
@@ -53,9 +56,9 @@ class probeDevice(Observable.Observable):
             abs_path = os.path.join(inst_dir, 'lenses_settings.json')
             with open(abs_path) as savfile:
                 data = json.load(savfile)  # data is load json
-            self.obj_edit_f = data["3"]["obj"]
-            self.c1_edit_f = data["3"]["c1"]
-            self.c2_edit_f = data["3"]['c2']
+            self.obj_edit_f = data["3"][self.__magLensNames[0]]
+            self.c1_edit_f = data["3"][self.__magLensNames[1]]
+            self.c2_edit_f = data["3"][self.__magLensNames[2]]
             self.obj_stigmateur0_f=data["3"]["obj_stig_00"]
             self.obj_stigmateur1_f=data["3"]["obj_stig_01"]
             self.gun_stimateur0_f=data["3"]["gun_stig_02"]
@@ -72,18 +75,22 @@ class probeDevice(Observable.Observable):
         abs_path = os.path.join(inst_dir, 'lenses_settings.json')
         with open(abs_path) as savfile:
             data = json.load(savfile)  # data is load json
-        self.obj_edit_f = data[str(value)]['obj']
-        self.c1_edit_f = data[str(value)]['c1']
-        self.c2_edit_f = data[str(value)]['c2']
+        self.obj_edit_f = data[str(value)][self.__magLensNames[0]]
+        self.c1_edit_f = data[str(value)][self.__magLensNames[1]]
+        self.c2_edit_f = data[str(value)][self.__magLensNames[2]]
 
     def get_values(self, which):
         cur, vol = self.__lenses_ps.locked_query(which)
         return cur, vol
 
-    def get_orsay_scan_instrument(self):
-        self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+    def shutdown_wobbler(self):
+        self.obj_wobbler_f = False
+        self.c1_wobbler_f = False
+        self.c2_wobbler_f = False
 
-    ### General ###
+    """
+    WOBBLER GLOBAL SETTINGS
+    """
 
     @property
     def wobbler_frequency_f(self):
@@ -92,9 +99,7 @@ class probeDevice(Observable.Observable):
     @wobbler_frequency_f.setter
     def wobbler_frequency_f(self, value):
         self.__wobbler_frequency = value
-        if self.__obj_wobbler: self.obj_wobbler_f = False
-        if self.__c1_wobbler: self.c1_wobbler_f = False
-        if self.__c2_wobbler: self.c2_wobbler_f = False
+        self.shutdown_wobbler()
         self.property_changed_event.fire("wobbler_frequency_f")
 
     @property
@@ -104,214 +109,204 @@ class probeDevice(Observable.Observable):
     @wobbler_intensity_f.setter
     def wobbler_intensity_f(self, value):
         self.__wobbler_intensity = float(value)
-        if self.__obj_wobbler:
-            self.obj_wobbler_f = False
-            self.obj_wobbler_f = True
-        if self.__c1_wobbler:
-            self.c1_wobbler_f = False
-            self.c1_wobbler_f = True
-        if self.__c2_wobbler:
-            self.c2_wobbler_f = False
-            self.c2_wobbler_f = True
+        self.shutdown_wobbler()
         self.property_changed_event.fire("wobbler_intensity_f")
 
-    ### OBJ ###
+    """
+    OBJECTIVE LENS
+    """
 
     @property
     def obj_stigmateur0_f(self):
-        return self.__ivg.obj_stig00_f
+        return self.__lenses_ps.query_stig(0)
 
     @obj_stigmateur0_f.setter
     def obj_stigmateur0_f(self, value):
-        self.__ivg.obj_stig00_f=value
+        self.__lenses_ps.set_val_stig(0, value)
         self.property_changed_event.fire('obj_stigmateur0_f')
 
     @property
     def obj_stigmateur1_f(self):
-        return self.__ivg.obj_stig01_f
+        return self.__lenses_ps.query_stig(1)
 
     @obj_stigmateur1_f.setter
     def obj_stigmateur1_f(self, value):
-        self.__ivg.obj_stig01_f=value
+        self.__lenses_ps.set_val_stig(1, value)
         self.property_changed_event.fire('obj_stigmateur1_f')
 
     @property
     def obj_global_f(self):
-        return self.__obj_global
+        return self.__magLensGlobal[0]
 
     @obj_global_f.setter
     def obj_global_f(self, value):
-        self.__obj_global = value
+        self.__magLensGlobal[0] = value
         if value:
-            self.__lenses_ps.locked_set_val(self.__obj, 'OBJ')
+            self.__lenses_ps.locked_set_val(self.__magLens[0], self.__magLensNames[0])
         else:
-            self.__lenses_ps.locked_set_val(0.0, 'OBJ')
+            self.__lenses_ps.locked_set_val(0.0, self.__magLensNames[0])
         self.property_changed_event.fire('obj_global_f')
 
     @property
     def obj_wobbler_f(self):
-        return self.__obj_wobbler
+        return self.__magLensWobbler[0]
 
     @obj_wobbler_f.setter
     def obj_wobbler_f(self, value):
-        self.__obj_wobbler = value
+        self.__magLensWobbler[0] = value
         if value:
-            if self.__c1_wobbler: self.c1_wobbler_f = False
-            if self.__c2_wobbler: self.c2_wobbler_f = False
-            self.__lenses_ps.wobbler_on(self.__obj, self.__wobbler_intensity, self.__wobbler_frequency, 'OBJ')
+            self.__lenses_ps.wobbler_on(self.__magLens[0], self.__wobbler_intensity, self.__wobbler_frequency, self.__magLensNames[0])
         else:
             self.__lenses_ps.wobbler_off()
-            time.sleep(1.1 / self.__wobbler_frequency)
-            self.obj_slider_f = self.__obj * 1e6
+            self.obj_slider_f = self.__magLens[0] * 1e6
         self.property_changed_event.fire('obj_wobbler_f')
 
     @property
     def obj_slider_f(self):
-        return int(self.__obj * 1e6)
+        return int(self.__magLens[0] * 1e6)
 
     @obj_slider_f.setter
     def obj_slider_f(self, value):
-        self.__obj = value / 1e6
-        if self.__obj_wobbler: self.obj_wobbler_f = False
-        if self.__obj_global: self.__lenses_ps.locked_set_val(self.__obj, 'OBJ')
-        # if self.__obj_global: threading.Thread(target=self.__lenses_ps.set_val, args=(self.__obj, 'OBJ'),).start()
+        self.__magLens[0] = value / 1e6
+        self.__lenses_ps.locked_set_val(self.__magLens[0], self.__magLensNames[0])
         self.property_changed_event.fire("obj_slider_f")
         self.property_changed_event.fire("obj_edit_f")
 
     @property
     def obj_edit_f(self):
-        return format(self.__obj, '.6f')
+        return format(self.__magLens[0], '.6f')
 
     @obj_edit_f.setter
     def obj_edit_f(self, value):
-        self.__obj = float(value)
-        # if self.__obj_global: self.__lenses_ps.set_val(self.__obj, 'OBJ')
+        self.__magLens[0] = float(value)
+        self.__lenses_ps.set_val(self.__magLens[0], self.__magLensNames[0])
         self.property_changed_event.fire("obj_slider_f")
         self.property_changed_event.fire("obj_edit_f")
 
-    ### C1 ###
+    """
+    CONDENSER 01
+    """
 
     @property
     def c1_global_f(self):
-        return self.__c1_global
+        return self.__magLensGlobal[1]
 
     @c1_global_f.setter
     def c1_global_f(self, value):
-        self.__c1_global = value
+        self.__magLensGlobal[1] = value
         if value:
-            self.__lenses_ps.locked_set_val(self.__c1, 'C1')
+            self.__lenses_ps.locked_set_val(self.__magLens[1], self.__magLensNames[1])
         else:
-            self.__lenses_ps.locked_set_val(0.01, 'C1')
+            self.__lenses_ps.locked_set_val(0.01, self.__magLensNames[1])
         self.property_changed_event.fire('c1_global_f')
 
     @property
     def c1_wobbler_f(self):
-        return self.__c1_wobbler
+        return self.__magLensWobbler[1]
 
     @c1_wobbler_f.setter
     def c1_wobbler_f(self, value):
-        self.__c1_wobbler = value
+        self.__magLensWobbler[1] = value
         if value:
-            if self.__obj_wobbler: self.obj_wobbler_f = False
-            if self.__c2_wobbler: self.c2_wobbler_f = False
-            self.__lenses_ps.wobbler_on(self.__c1, self.__wobbler_intensity, self.__wobbler_frequency, 'C1')
+            self.__lenses_ps.wobbler_on(self.__magLens[1], self.__wobbler_intensity, self.__wobbler_frequency, self.__magLensNames[1])
         else:
             self.__lenses_ps.wobbler_off()
-            time.sleep(1.1 / self.__wobbler_frequency)
-            self.c1_slider_f = self.__c1 * 1e6
+            self.c1_slider_f = self.__magLens[1] * 1e6
         self.property_changed_event.fire('c1_wobbler_f')
 
     @property
     def c1_slider_f(self):
-        return int(self.__c1 * 1e6)
+        return int(self.__magLens[1] * 1e6)
 
     @c1_slider_f.setter
     def c1_slider_f(self, value):
-        self.__c1 = value / 1e6
-        if self.__c1_global: self.__lenses_ps.locked_set_val(self.__c1, 'C1')
+        self.__magLens[1] = value / 1e6
+        self.__lenses_ps.locked_set_val(self.__magLens[1], self.__magLensNames[1])
         self.property_changed_event.fire("c1_slider_f")
         self.property_changed_event.fire("c1_edit_f")
 
     @property
     def c1_edit_f(self):
-        return format(self.__c1, '.6f')
+        return format(self.__magLens[1], '.6f')
 
     @c1_edit_f.setter
     def c1_edit_f(self, value):
-        self.__c1 = float(value)
-        if self.__c1_global: self.__lenses_ps.locked_set_val(self.__c1, 'C1')
+        self.__magLens[1] = float(value)
+        self.__lenses_ps.locked_set_val(self.__magLens[1], self.__magLensNames[1])
         self.property_changed_event.fire("c1_slider_f")
         self.property_changed_event.fire("c1_edit_f")
 
-    ### C2 ###
+    """
+    CONDENSER 02
+    """
 
     @property
     def c2_global_f(self):
-        return self.__c2_global
+        return self.__magLensGlobal[2]
 
     @c2_global_f.setter
     def c2_global_f(self, value):
-        self.__c2_global = value
+        self.__magLensGlobal[2] = value
         if value:
-            self.__lenses_ps.locked_set_val(self.__c2, 'C2')
+            self.__lenses_ps.locked_set_val(self.__magLens[2], self.__magLensNames[2])
         else:
-            self.__lenses_ps.locked_set_val(0.01, 'C2')
+            self.__lenses_ps.locked_set_val(0.01, self.__magLensNames[2])
         self.property_changed_event.fire('c2_global_f')
 
     @property
     def c2_wobbler_f(self):
-        return self.__c2_wobbler
+        return self.__magLensWobbler[2]
 
     @c2_wobbler_f.setter
     def c2_wobbler_f(self, value):
-        self.__c2_wobbler = value
+        self.__magLensWobbler[2] = value
         if value:
-            if self.__obj_wobbler: self.obj_wobbler_f = False
-            if self.__c1_wobbler: self.c1_wobbler_f = False
-            self.__lenses_ps.wobbler_on(self.__c2, self.__wobbler_intensity, self.__wobbler_frequency, 'C2')
+            self.__lenses_ps.wobbler_on(self.__magLens[2], self.__wobbler_intensity, self.__wobbler_frequency, self.__magLensNames[2])
         else:
             self.__lenses_ps.wobbler_off()
-            time.sleep(1.1 / self.__wobbler_frequency)
-            self.c2_slider_f = self.__c2 * 1e6
+            self.c2_slider_f = self.__magLens[2] * 1e6
         self.property_changed_event.fire('c2_wobbler_f')
 
     @property
     def c2_slider_f(self):
-        return int(self.__c2 * 1e6)
+        return int(self.__magLens[2] * 1e6)
 
     @c2_slider_f.setter
     def c2_slider_f(self, value):
-        self.__c2 = value / 1e6
-        if self.__c2_global: self.__lenses_ps.locked_set_val(self.__c2, 'C2')
+        self.__magLens[2] = value / 1e6
+        self.__lenses_ps.locked_set_val(self.__magLens[2], self.__magLensNames[2])
         self.property_changed_event.fire("c2_slider_f")
         self.property_changed_event.fire("c2_edit_f")
 
     @property
     def c2_edit_f(self):
-        return format(self.__c2, '.6f')
+        return format(self.__magLens[2], '.6f')
 
     @c2_edit_f.setter
     def c2_edit_f(self, value):
-        self.__c2 = float(value)
-        self.__c2_global: self.__lenses_ps.locked_set_val(self.__c2, 'C2')
+        self.__magLens[2] = float(value)
+        self.__lenses_ps.locked_set_val(self.__magLens[2], self.__magLensNames[2])
         self.property_changed_event.fire("c2_slider_f")
         self.property_changed_event.fire("c2_edit_f")
 
-    ### COND ASTIGMATORS ###
+    """
+    COND STIGMATORS
+    """
+
     @property
     def gun_stigmateur0_f(self):
-        return self.__ivg.gun_stig00_f
+        return self.__lenses_ps.query_stig(2)
 
     @gun_stigmateur0_f.setter
     def gun_stigmateur0_f(self, value):
-        self.__ivg.gun_stig00_f = value
+        self.__lenses_ps.set_val_stig(2, value)
         self.property_changed_event.fire('gun_stigmateur0_f')
 
     @property
     def gun_stigmateur1_f(self):
-        return self.__ivg.gun_stig01_f
+        return self.__lenses_ps.query_stig(3)
 
     @gun_stigmateur1_f.setter
     def gun_stigmateur1_f(self, value):
-        self.__ivg.gun_stig01_f = value
+        self.__lenses_ps.set_val_stig(3, value)
         self.property_changed_event.fire('gun_stigmateur1_f')

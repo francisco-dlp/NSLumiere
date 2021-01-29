@@ -27,8 +27,6 @@ class Lenses:
         self.ser.bytesize = serial.EIGHTBITS
         self.ser.timeout = 0.2
 
-        self.lock = threading.Lock()
-
         try:
             if not self.ser.is_open:
                 self.ser.open()
@@ -44,16 +42,15 @@ class Lenses:
             string = '>1,2,2\r'
         if which == 'C2':
             string = '>1,2,3\r'
-        with self.lock:
-            try:
-                self.ser.write(string.encode())
-                self.ser.read(7)
-                current = self.ser.read_until(expected=b','); current = current[:-1]
-                voltage = self.ser.read_until(expected=b','); voltage = voltage[:-1]
-                self.ser.readline()
-            except:
-                logging.info('***LENSES***: Communication Error over Serial Port. Easy check using Serial Port '
-                             'Monitor software.')
+        try:
+            self.ser.write(string.encode())
+            self.ser.read(7)
+            current = self.ser.read_until(expected=b','); current = current[:-1]
+            voltage = self.ser.read_until(expected=b','); voltage = voltage[:-1]
+            self.ser.readline()
+        except:
+            logging.info('***LENSES***: Communication Error over Serial Port. Easy check using Serial Port '
+                         'Monitor software.')
         return current, voltage
 
     def set_val(self, val, which):
@@ -66,25 +63,43 @@ class Lenses:
         else:
             logging.info("***LENSES***: Attempt to set values out of range.")
             return None
-
         string = string_init + str(val) + ',0.5\r'
-        with self.lock:
-            self.ser.write(string.encode())
+        self.ser.write(string.encode())
             return self.ser.readline()
 
-    def wobbler_loop(self, current, intensity, frequency, which):
-        self.wobbler_thread = threading.currentThread()
-        sens = 1
-        while getattr(self.wobbler_thread, "do_run", True):
-            sens = sens * -1
-            if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / frequency)
-            self.set_val(current + sens * intensity, which)
-            if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / frequency)
-            self.set_val(current, which)
+    def set_val_stig(self, val, which):
+        """
+        0 -> Objective Stig 00
+        1 -> Objective Stig 01
+        2 -> Gun Stig 00
+        3 -> Gun Stig 01
+        """
+        hardware = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
+        if which==0:
+            hardware.obj_stig00_f = val
+        elif which==1:
+            hardware.obj_stig01_f = val
+        elif which==2:
+            hardware.gun_stig00_f = val
+        elif which==3:
+            hardware.gun_stig01_f = val
 
-    def wobbler_on(self, current, intensity, frequency, which):
-        self.wobbler_thread = threading.Thread(target=self.wobbler_loop, args=(current, intensity, frequency, which), )
-        self.wobbler_thread.start()
+    def query_stig(self, which):
+        """
+        0 -> Objective Stig 00
+        1 -> Objective Stig 01
+        2 -> Gun Stig 00
+        3 -> Gun Stig 01
+        """
+        hardware = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
+        if which == 0:
+            val = hardware.obj_stig00_f
+        elif which == 1:
+            val = hardware.obj_stig01_f
+        elif which == 2:
+            val = hardware.gun_stig00_f
+        elif which == 3:
+            val = hardware.gun_stig01_f
+        return val
 
-    def wobbler_off(self):
-        self.wobbler_thread.do_run = False
+
