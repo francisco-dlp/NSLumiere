@@ -1,12 +1,11 @@
 import serial
-import time
-import threading
 
 __author__ = "Yves Auad"
 
-class espec:
+class EELS_Spectrometer(EELS_controller.EELSController):
 
     def __init__(self):
+        super().__init__()
         self.ser = serial.Serial()
         self.ser.baudrate = 9600
         self.ser.port = 'COM4'
@@ -18,11 +17,12 @@ class espec:
         try:
             if not self.ser.is_open:
                 self.ser.open()
-                time.sleep(0.1)
         except:
             logging.info("***EELS SPECTROMETER***: Could not find EELS Spec. Check Hardware")
 
     def set_spec_val(self, val, which):
+        if which=='dmx':
+            which = 'al'
         if abs(val)<32767:
             try:
                 if val < 0:
@@ -37,22 +37,3 @@ class espec:
                     "***EELS SPECTROMETER***: Problem communicating over serial port. Easy check using Serial Port Monitor.")
         else:
             logging.info("***EELS SPECTROMETER***: Attempt to write a value out of range.")
-
-    def wobbler_loop(self, current, intensity, which):
-        self.wobbler_thread = threading.currentThread()
-        sens = 1
-        while getattr(self.wobbler_thread, "do_run", True):
-            sens = sens * -1
-            if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / 2.)
-            self.set_spec_val(current + sens * intensity, which)
-            if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / 2.)
-            self.set_spec_val(current, which)
-
-    def wobbler_on(self, current, intensity, which):
-        self.wobbler_thread = threading.Thread(target=self.wobbler_loop, args=(current, intensity, which), )
-        self.wobbler_thread.start()
-
-    def wobbler_off(self):
-        self.wobbler_thread.do_run = False
-
-
