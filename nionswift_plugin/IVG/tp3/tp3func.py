@@ -667,9 +667,18 @@ class TimePix3():
         """
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+        """
+        127.0.0.1 -> LocalHost;
+        129.175.108.58 -> Patrick;
+        129.175.81.162 -> My personal Dell PC;
+        192.0.0.11 -> My old personal (outside lps.intra);
+        192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
+        """
+
         ip = socket.gethostbyname('127.0.0.1')
         #ip = socket.gethostbyname('129.175.108.58')
         #ip = socket.gethostbyname('129.175.81.162')
+        #ip = socket.gethostbyname('192.0.0.11')
         address = (ip, port)
         client.settimeout(1)
         try:
@@ -681,7 +690,7 @@ class TimePix3():
         except socket.timeout:
             return False
 
-        buffer_size = 262144*2
+        buffer_size = 262144
         electron_data = b''
 
         def put_queue(data, type):
@@ -694,7 +703,7 @@ class TimePix3():
         while True:
             try:
                 packet_data = client.recv(buffer_size)
-                #print(f'got {len(packet_data)}')
+                print(f'got {len(packet_data)}')
                 if len(packet_data) <= 0:
                     logging.info('***TP3***: Received null bytes')
                     break
