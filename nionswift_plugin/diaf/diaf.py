@@ -1,22 +1,13 @@
 import serial
-import sys
 import numpy
+
+from . import Apertures_controller
 
 __author__ = "Yves Auad"
 
+class Diafs(Apertures_controller.Aperture_Controller):
 
-def _isPython3():
-    return sys.version_info[0] >= 3
-
-
-def SENDMYMESSAGEFUNC(sendmessagefunc):
-    return sendmessagefunc
-
-
-class Diafs:
-
-    def __init__(self, sendmessage):
-        self.sendmessage = sendmessage
+    def __init__(self):
         self.ser = serial.Serial()
         self.ser.baudrate = 9600
         self.ser.port = 'COM7'
@@ -29,7 +20,7 @@ class Diafs:
             if not self.ser.is_open:
                 self.ser.open()
         except:
-            self.sendmessage(1)
+            logging.info("***APERTURES***: Could not find Apertures Hardware")
 
         self.ser.readline()
 
@@ -50,4 +41,7 @@ class Diafs:
             self.ser.write(byt_array)
             self.ser.read(6)
         except:
-            self.sendmessage(2)
+            logging.info("***APERTURES***: Communication problem over serial port. Easy check using Serial Port Monitor.")
+
+    def get_val(self, which):
+        pass

@@ -98,7 +98,6 @@ class gainView:
 
     def __init__(self, instrument: probe_inst.probeDevice):
         ui = Declarative.DeclarativeUI()
-        print(dir(instrument))
 
         # fine adjustment label #
         self.full_range_obj = ui.create_label(name='full_range_obj', text='(Coarse)')
