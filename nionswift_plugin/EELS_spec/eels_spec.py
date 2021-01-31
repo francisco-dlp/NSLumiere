@@ -20,7 +20,7 @@ class EELS_Spectrometer(EELS_controller.EELSController):
         except:
             logging.info("***EELS SPECTROMETER***: Could not find EELS Spec. Check Hardware")
 
-    def set_spec_val(self, val, which):
+    def set_val(self, val, which):
         if which=='dmx':
             which = 'al'
         if abs(val)<32767:
