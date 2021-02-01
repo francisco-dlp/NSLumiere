@@ -670,8 +670,13 @@ class TimePix3():
                 assert int(cam_properties['width'])*int(cam_properties['height']) * int(cam_properties['bitDepth']/8) == int(cam_properties['dataSize'])
                 if cam_properties['dataSize'] + 1 == len(frame):
                     self.__dataQueue.put((cam_prop, frame))
+                    self.sendmessage((message, False))
+                    return True
+                else:
+                    return False
             except AssertionError:
                 logging.info(f'***TP3***: Problem in size assertion. Properties are {cam_properties} and data is {len(frame)}')
+                return False
 
         while True:
             '''
@@ -711,40 +716,27 @@ class TimePix3():
             packets will have the len of dataSize/4, meaning there is always an momentary traffic jam of bytes.
             '''
             try:
-                data = client.recv(buffer_size)
+                packet_data = client.recv(buffer_size)
                 if len(data) <= 0:
                     #logging.info('***TP3***: Received null bytes')
                     break
-                elif b'{' in data: ##Check Header Begin
-                    data += client.recv(256)
-                    if b'{"timeAtFrame' in data: ##Confirm Header Begin
-                        begin_header = data.index(b'{')
-                        end_header = data.index(b'}\n', begin_header)
-                        header = data[begin_header:end_header+1].decode('latin-1')
-                        for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
-                                           "height"]:
-                            cam_properties[properties] = (check_string_value(header, properties))
-                        buffer_size = int(cam_properties['dataSize'] / 4)
-                        frame_number = int(cam_properties['frameNumber'])
-                        frame_time = int(cam_properties['timeAtFrame'])
-                        if begin_header != 0:
-                            frame_data += data[:begin_header]
-                            put_queue(cam_properties, frame_data)
-                        frame_data = data[end_header + 2:]
-                    else: #If header was a false alarm
-                        frame_data+=data
-                        put_queue(cam_properties, frame_data)
-                else:
-                    frame_data += data
-                    print(len(frame_data))
-                    try:
-                        print('index is at')
-                        print(data.index(b'\n'))
-                    except:
-                        print('sub not found')
-                    put_queue(cam_properties, frame_data)
+                while len(packet_data) < 1024*256+256:
+                    packet_data+=client.recv(buffer_size)
+                begin_header = data.index(b'{')
+                end_header = data.index(b'}\n', begin_header)
+                header = data[begin_header:end_header + 1].decode('latin-1')
+                for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
+                                   "height"]:
+                    cam_properties[properties] = (check_string_value(header, properties))
+                buffer_size = int(cam_properties['dataSize'] / 4)
+                frame_number = int(cam_properties['frameNumber'])
+                frame_time = int(cam_properties['timeAtFrame'])
+                frame_data += data[:begin_header]
+                if put_queue(cam_properties, frame_data):
+                    frame_data = b''
+                if not frame_data:
+                    frame_data = data[end_header+2:]
             except socket.timeout:
-                if not self.__dataQueue.empty(): self.sendmessage((message, False))
                 if not self.__isPlaying: break
 
         logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
