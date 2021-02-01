@@ -510,8 +510,7 @@ class TimePix3():
 
         cam_properties = dict()
         frame_data = b''
-        data = b''
-        buffer_size = 4096
+        buffer_size = 1024
         frame_number = 0
         frame_time = 0
 
@@ -520,6 +519,7 @@ class TimePix3():
             Check the value in the header dictionary. Some values are not number so a valueError
             exception handles this.
             """
+
             start_index = header.index(prop)
             end_index = start_index + len(prop)
             begin_value = header.index(':', end_index, len(header)) + 1
@@ -534,7 +534,8 @@ class TimePix3():
             return value
 
         def put_queue(cam_prop, frame):
-            self.__dataQueue.put((cam_prop, frame))
+            if cam_properties['dataSize'] + 1 == len(frame):
+                self.__dataQueue.put((cam_prop, frame))
 
         while True:
             '''
@@ -578,35 +579,24 @@ class TimePix3():
                 if len(data) <= 0:
                     #logging.info('***TP3***: Received null bytes')
                     break
-                elif b'{' in data:
+                elif b'{"t' in data:
                     data += client.recv(256)
                     begin_header = data.index(b'{')
-                    if b'{"timeAtFrame":' in data:
-                        try:
-                            end_header = data.index(b'}')
-                            header = data[begin_header:end_header + 1].decode()
-                            for properties in ['timeAtFrame', 'frameNumber', 'measurementID', 'dataSize', 'bitDepth', 'width',
-                                           'height']:
-                                cam_properties[properties] = (check_string_value(header, properties))
-                            buffer_size = int(cam_properties['dataSize'] / 4.)
-                            frame_number = int(cam_properties['frameNumber'])
-                            frame_time = int(cam_properties['timeAtFrame'])
-                            #print(header, begin_header)
-                            if begin_header != 0:
-                                frame_data += data[:begin_header]
-                                if len(frame_data) == cam_properties['dataSize'] + 1: put_queue(cam_properties, frame_data)
-                            frame_data = data[end_header + 2:]
-                        except Exception as e:
-                            print(e)
-                            print(header)
-                            logging.info(f'ValueError trying to find header close. Data length is {len(data)}.')
-                    else:
-                        print('hi')
-                        frame_data+=data
-
+                    end_header = data.index(b'}\n', begin_header)
+                    header = data[begin_header:end_header+1].decode('latin-1')
+                    for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
+                                       "height"]:
+                        cam_properties[properties] = (check_string_value(header, properties))
+                    buffer_size = int(cam_properties['dataSize']*2)
+                    frame_number = int(cam_properties['frameNumber'])
+                    frame_time = int(cam_properties['timeAtFrame'])
+                    if begin_header != 0:
+                        frame_data += data[:begin_header]
+                        put_queue(cam_properties, frame_data)
+                    frame_data = data[end_header + 2:]
                 else:
                     frame_data += data
-                    if len(frame_data) == cam_properties['dataSize'] + 1: put_queue(cam_properties, frame_data)
+                    put_queue(cam_properties, frame_data)
             except socket.timeout:
                 if not self.__dataQueue.empty(): self.sendmessage((message, False))
                 if not self.__isPlaying: break
@@ -911,10 +901,10 @@ class TimePix3():
         """
         frame_data = numpy.array(frame_data[:-1])
         if bitDepth==8:
-            frame_int = numpy.frombuffer(frame_data, dtype=numpy.uint8)
+            frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
             frame_int = frame_int.astype(numpy.float32)
         elif bitDepth==16:
-            frame_int = numpy.frombuffer(frame_data, dtype=numpy.uint16)
+            frame_int = numpy.frombuffer(frame_data, dtype=numpy.int16)
             frame_int = frame_int.astype(numpy.float32)
         frame_int = numpy.reshape(frame_int, (256, 1024))
         if self.__softBinning:
