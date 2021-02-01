@@ -132,8 +132,8 @@ class TimePix3():
         """
         detector_config = self.get_config()
         detector_config["nTriggers"] = ntrig
-        detector_config["TriggerMode"] = "CONTINUOUS"
-        #detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
+        #detector_config["TriggerMode"] = "CONTINUOUS"
+        detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
         detector_config["BiasEnabled"] = True
 
         resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
@@ -311,7 +311,12 @@ class TimePix3():
         """
         detector_config = self.get_config()
         detector_config["ExposureTime"] = exposure
-        detector_config["TriggerPeriod"] = exposure
+        if exposure>0.05:
+            detector_config["TriggerPeriod"] = exposure
+        else:
+            detector_config["TriggerPeriod"] = 0.075
+
+
         self.__expTime = exposure
         resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
@@ -534,8 +539,12 @@ class TimePix3():
             return value
 
         def put_queue(cam_prop, frame):
-            if cam_properties['dataSize'] + 1 == len(frame):
-                self.__dataQueue.put((cam_prop, frame))
+            try:
+                assert int(cam_properties['width'])*int(cam_properties['height']) * int(cam_properties['bitDepth']/8) == int(cam_properties['dataSize'])
+                if cam_properties['dataSize'] + 1 == len(frame):
+                    self.__dataQueue.put((cam_prop, frame))
+            except AssertionError:
+                logging.info(f'***TP3***: Problem in size assertion. Properties are {cam_properties} and data is {len(frame)}')
 
         while True:
             '''
@@ -579,21 +588,25 @@ class TimePix3():
                 if len(data) <= 0:
                     #logging.info('***TP3***: Received null bytes')
                     break
-                elif b'{"t' in data:
+                elif b'{' in data: ##Check Header Begin
                     data += client.recv(256)
-                    begin_header = data.index(b'{')
-                    end_header = data.index(b'}\n', begin_header)
-                    header = data[begin_header:end_header+1].decode('latin-1')
-                    for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
-                                       "height"]:
-                        cam_properties[properties] = (check_string_value(header, properties))
-                    buffer_size = int(cam_properties['dataSize']*2)
-                    frame_number = int(cam_properties['frameNumber'])
-                    frame_time = int(cam_properties['timeAtFrame'])
-                    if begin_header != 0:
-                        frame_data += data[:begin_header]
+                    if b'{"timeAtFrame' in data: ##Confirm Header Begin
+                        begin_header = data.index(b'{')
+                        end_header = data.index(b'}\n', begin_header)
+                        header = data[begin_header:end_header+1].decode('latin-1')
+                        for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
+                                           "height"]:
+                            cam_properties[properties] = (check_string_value(header, properties))
+                        buffer_size = int(cam_properties['dataSize'] / 4)
+                        frame_number = int(cam_properties['frameNumber'])
+                        frame_time = int(cam_properties['timeAtFrame'])
+                        if begin_header != 0:
+                            frame_data += data[:begin_header]
+                            put_queue(cam_properties, frame_data)
+                        frame_data = data[end_header + 2:]
+                    else: #If header was a false alarm
+                        frame_data+=data
                         put_queue(cam_properties, frame_data)
-                    frame_data = data[end_header + 2:]
                 else:
                     frame_data += data
                     put_queue(cam_properties, frame_data)
@@ -901,10 +914,10 @@ class TimePix3():
         """
         frame_data = numpy.array(frame_data[:-1])
         if bitDepth==8:
-            frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
+            frame_int = numpy.frombuffer(frame_data, dtype=numpy.uint8)
             frame_int = frame_int.astype(numpy.float32)
         elif bitDepth==16:
-            frame_int = numpy.frombuffer(frame_data, dtype=numpy.int16)
+            frame_int = numpy.frombuffer(frame_data, dtype=numpy.uint16)
             frame_int = frame_int.astype(numpy.float32)
         frame_int = numpy.reshape(frame_int, (256, 1024))
         if self.__softBinning:
