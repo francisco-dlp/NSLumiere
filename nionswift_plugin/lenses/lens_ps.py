@@ -54,16 +54,19 @@ class Lenses:
             string = '>1,2,2\r'
         if which == 'C2':
             string = '>1,2,3\r'
-        with self.lock:
-            try:
-                self.ser.write(string.encode())
-                self.ser.read(7)
-                current = self.ser.read_until(expected=b','); current = current[:-1]
-                voltage = self.ser.read_until(expected=b','); voltage = voltage[:-1]
-                self.ser.readline()
-            except:
-                self.sendmessage(4)
+        try:
+            self.ser.write(string.encode())
+            self.ser.read(7)
+            current = self.ser.read_until(expected=b','); current = current[:-1]
+            voltage = self.ser.read_until(expected=b','); voltage = voltage[:-1]
+            self.ser.readline()
+        except:
+            self.sendmessage(4)
         return current, voltage
+
+    def locked_query(self, which):
+        with self.lock:
+            return self.query(which)
 
     def set_val(self, val, which):
         if which == 'OBJ' and val<=MAX_OBJ and val>=0:
@@ -77,9 +80,12 @@ class Lenses:
             return None
 
         string = string_init + str(val) + ',0.5\r'
+        self.ser.write(string.encode())
+        return self.ser.readline()
+
+    def locked_set_val(self, val, which):
         with self.lock:
-            self.ser.write(string.encode())
-            return self.ser.readline()
+            return self.set_val(val, which)
 
     def wobbler_loop(self, current, intensity, frequency, which):
         self.wobbler_thread = threading.currentThread()

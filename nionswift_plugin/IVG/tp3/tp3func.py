@@ -26,14 +26,14 @@ class TimePix3():
     def __init__(self, url, simul, message):
 
         self.__serverURL = url
-        self.__dataQueue = queue.Queue()
+        self.__dataQueue = queue.LifoQueue()
         self.__eventQueue = queue.Queue()
         self.__tdcQueue = queue.Queue()
         self.__isPlaying = False
         self.__softBinning = False
         self.__isCumul = False
         self.__expTime = None
-        self.__port = None
+        self.__port = 0
         self.__delay = None
         self.__width = None
         self.__tdc = 0 #Beginning of line n and beginning of line n+1
@@ -55,6 +55,7 @@ class TimePix3():
                 dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
                 self.cam_init(bpcFile, dacsFile)
                 self.acq_init(99999)
+                self.set_destination(self.__port)
                 logging.info(f'***TP3***: Current detector configuration is {self.get_config()}.')
             except:
                 logging.info('***TP3***: Problem initializing Timepix3.')
@@ -131,8 +132,8 @@ class TimePix3():
         """
         detector_config = self.get_config()
         detector_config["nTriggers"] = ntrig
-        #detector_config["TriggerMode"] = "CONTINUOUS"
-        detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
+        detector_config["TriggerMode"] = "CONTINUOUS"
+        #detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
         detector_config["BiasEnabled"] = True
 
         resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
@@ -148,7 +149,8 @@ class TimePix3():
         options = ['count', 'tot', 'toa', 'tof']
         destination = {
              #"Raw": [{
-             #   "Base": 'tcp://localhost:8090',
+             #    "Base": "file:/home/asi/load_files/data",
+             #    "FilePattern": "raw",
              #}],
             "Image": [{
                 "Base": "tcp://localhost:8088",
@@ -458,6 +460,7 @@ class TimePix3():
         self.__isPlaying = True
         if not self.__simul:
             self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(port, message,))
+            #self.__clientThread = threading.Thread(target=self.acquire_event, args=(65431, 3,))
         else:
             port = 65431
             if message==1: #Data message
@@ -478,7 +481,7 @@ class TimePix3():
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__eventQueue.qsize()} electron events in the Queue.')
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__tdcQueue.qsize()} tdc in the Queue.')
-            self.__dataQueue = queue.Queue()
+            self.__dataQueue = queue.LifoQueue()
             self.__eventQueue = queue.Queue()
             self.__tdcQueue = queue.Queue()
 
@@ -507,7 +510,8 @@ class TimePix3():
 
         cam_properties = dict()
         frame_data = b''
-        buffer_size = 1024
+        data = b''
+        buffer_size = 4096
         frame_number = 0
         frame_time = 0
 
@@ -577,29 +581,34 @@ class TimePix3():
                 elif b'{' in data:
                     data += client.recv(256)
                     begin_header = data.index(b'{')
-                    try:
-                        end_header = data.index(b'}')
-                        header = data[begin_header:end_header + 1].decode()
-                        for properties in ['timeAtFrame', 'frameNumber', 'measurementID', 'dataSize', 'bitDepth', 'width',
-                                       'height']:
-                            cam_properties[properties] = (check_string_value(header, properties))
-                        buffer_size = int(cam_properties['dataSize'] / 4.)
-                        frame_number = int(cam_properties['frameNumber'])
-                        frame_time = int(cam_properties['timeAtFrame'])
-                        if begin_header != 0:
-                            frame_data += data[:begin_header]
-                            if len(frame_data) == cam_properties['dataSize'] + 1: put_queue(cam_properties, frame_data)
-                        frame_data = data[end_header + 2:]
-                    except ValueError:
-                        logging.info(f'ValueError trying to find header close. Data is {data} and its length is {len(data)}.')
+                    if b'{"timeAtFrame":' in data:
+                        try:
+                            end_header = data.index(b'}')
+                            header = data[begin_header:end_header + 1].decode()
+                            for properties in ['timeAtFrame', 'frameNumber', 'measurementID', 'dataSize', 'bitDepth', 'width',
+                                           'height']:
+                                cam_properties[properties] = (check_string_value(header, properties))
+                            buffer_size = int(cam_properties['dataSize'] / 4.)
+                            frame_number = int(cam_properties['frameNumber'])
+                            frame_time = int(cam_properties['timeAtFrame'])
+                            #print(header, begin_header)
+                            if begin_header != 0:
+                                frame_data += data[:begin_header]
+                                if len(frame_data) == cam_properties['dataSize'] + 1: put_queue(cam_properties, frame_data)
+                            frame_data = data[end_header + 2:]
+                        except Exception as e:
+                            print(e)
+                            print(header)
+                            logging.info(f'ValueError trying to find header close. Data length is {len(data)}.')
+                    else:
+                        print('hi')
+                        frame_data+=data
+
                 else:
-                    try:
-                        frame_data += data
-                    except Exception as e:
-                        logging.info(f'Exception is {e}')
+                    frame_data += data
                     if len(frame_data) == cam_properties['dataSize'] + 1: put_queue(cam_properties, frame_data)
             except socket.timeout:
-                if not self.__dataQueue.empty(): self.sendmessage(message)
+                if not self.__dataQueue.empty(): self.sendmessage((message, False))
                 if not self.__isPlaying: break
 
         logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
@@ -675,10 +684,11 @@ class TimePix3():
         192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
         """
 
-        ip = socket.gethostbyname('127.0.0.1')
+        #ip = socket.gethostbyname('127.0.0.1')
         #ip = socket.gethostbyname('129.175.108.58')
         #ip = socket.gethostbyname('129.175.81.162')
         #ip = socket.gethostbyname('192.0.0.11')
+        ip = socket.gethostbyname('192.168.199.11')
         address = (ip, port)
         client.settimeout(1)
         try:
@@ -690,7 +700,7 @@ class TimePix3():
         except socket.timeout:
             return False
 
-        buffer_size = 262144
+        buffer_size = 262144*4
         electron_data = b''
 
         def put_queue(data, type):
@@ -717,12 +727,15 @@ class TimePix3():
                     data = packet_data[index:index+8]
                     data = data[::-1]
                     tpx3_header = data[4:8]  # 4 bytes=32 bits
-                    assert tpx3_header==b'3XPT'
                     chip_index = data[3]  # 1 byte
                     mode = data[2]  # 1 byte
                     size_chunk1 = data[1]  # 1 byte
                     size_chunk2 = data[0]  # 1 byte
                     total_size = size_chunk1 + size_chunk2 * 256
+                    try:
+                        assert tpx3_header==b'3XPT'
+                    except:
+                        print(data, index, len(packet_data), total_size)
                     for j in range(int(total_size/8)):
                         index+=8
                         while index+8>len(packet_data):
@@ -733,6 +746,7 @@ class TimePix3():
                         if id==11:
                             electron_data += data + bytes([chip_index])
                         elif id==6:
+                            print('tdc')
                             electron_data = put_queue(electron_data, 'electron')
                             put_queue(data+bytes([chip_index]), 'tdc')
                             self.sendmessage((message, len(packet_data)==buffer_size))
@@ -844,7 +858,7 @@ class TimePix3():
                 doit = False
 
         finish = time.perf_counter_ns()
-        #print((finish-start)/1e9)
+        print((finish-start)/1e9)
         return (imagedata, doit)
 
     def create_spim_from_events(self, shape, lineNumber):
@@ -877,7 +891,7 @@ class TimePix3():
 
         if SAVE_FILE: numpy.savez_compressed(file, spimimagedata)
         finish = time.perf_counter_ns()
-        #print((finish - start) / 1e9)
+        print((finish - start) / 1e9)
         return spimimagedata
 
     def get_total_counts_from_data(self, frame_int):
