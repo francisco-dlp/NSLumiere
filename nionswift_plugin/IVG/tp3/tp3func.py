@@ -8,6 +8,7 @@ import numpy
 import time
 import pathlib
 import os
+import pickle
 
 from nion.swift.model import HardwareSource
 
@@ -468,11 +469,12 @@ class TimePix3():
             #self.__clientThread = threading.Thread(target=self.acquire_event, args=(65431, 3,))
         else:
             port = 65431
-            if message==1: #Data message
-                message = 4 if cumul else 3
-            elif message==2: #Spim message
-                message=5
-            self.__clientThread = threading.Thread(target=self.acquire_event, args=(port, message,))
+            #if message==1: #Data message
+            #    message = 4 if cumul else 3
+            #elif message==2: #Spim message
+            #    message=5
+            self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(port, message,))
+            #self.__clientThread = threading.Thread(target=self.acquire_event, args=(port, message,))
             #self.__clientThread = threading.Thread(target=self.acquire_event_from_data, args=(message,))
         self.__clientThread.start()
 
@@ -746,6 +748,149 @@ class TimePix3():
 
         logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
         return True
+
+    def acquire_streamed_frame(self, port, message):
+        """
+        Main client function. Main loop is explained below.
+
+        Client is a socket connected to camera in host computer 129.175.108.52. Port depends on which kind of data you
+        are listening on. After connection, timeout is set to 5 ms, which is camera current dead time. cam_properties
+        is a dict containing all info camera sends through tcp (the header); frame_data is the frame; buffer_size is how
+        many bytes we collect within each loop interaction; frame_number is the frame counter and frame_time is when the
+        whole frame began.
+
+        check string value is a convenient function to detect the values using the header standard format for jsonimage.
+        """
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        """
+        127.0.0.1 -> LocalHost;
+        129.175.108.58 -> Patrick;
+        129.175.81.162 -> My personal Dell PC;
+        192.0.0.11 -> My old personal (outside lps.intra);
+        192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
+        129.175.108.52 -> CheeTah
+        """
+
+        ip = socket.gethostbyname('127.0.0.1')
+        address = (ip, port)
+        try:
+            client.connect(address)
+            logging.info(f'***TP3***: Client connected over 129.175.108.52:{port}.')
+            client.settimeout(0.005)
+        except ConnectionRefusedError:
+            return False
+
+        cam_properties = dict()
+        frame_data = b''
+        buffer_size = 1024
+        frame_number = 0
+        frame_time = 0
+
+        def check_string_value(header, prop):
+            """
+            Check the value in the header dictionary. Some values are not number so a valueError
+            exception handles this.
+            """
+
+            start_index = header.index(prop)
+            end_index = start_index + len(prop)
+            begin_value = header.index(':', end_index, len(header)) + 1
+            if prop == 'height':
+                end_value = header.index('}', end_index, len(header))
+            else:
+                end_value = header.index(',', end_index, len(header))
+            try:
+                value = int(header[begin_value:end_value])
+            except ValueError:
+                value = str(header[begin_value:end_value])
+            return value
+
+        def put_queue(cam_prop, frame):
+            try:
+                assert int(cam_properties['width']) * int(cam_properties['height']) * int(
+                    cam_properties['bitDepth'] / 8) == int(cam_properties['dataSize'])
+                if cam_properties['dataSize'] + 1 == len(frame):
+                    self.__dataQueue.put((cam_prop, frame))
+                    self.sendmessage((message, False))
+                    return True
+                else:
+                    return False
+            except AssertionError:
+                logging.info(
+                    f'***TP3***: Problem in size assertion. Properties are {cam_properties} and data is {len(frame)}')
+                return False
+
+        while True:
+            '''
+            Notes
+            -----
+            Loop based on self.__isPlaying. 
+            if b'{' is in data, header is there. A few unlikely issues could kill a percentage of
+            frames. They are basically headers chopped in two different packets. To remove this, we always
+            ask a new chunk of data with 1024 bytes size.
+
+            I get both the beginning and the end of header. Most of data are:
+                b'{HEADER}\n\x00\x00... ...\x00\n'
+            This means initial frame_data is everything after header. So the beginning of a frame_data is simply
+            data[end_header+2:].
+
+            In some cases, however, you have a data like this:
+                b'\x00\x00\x00{HEADER}\n\x00\x00... ...\x00\n'
+            This means everything before HEADER actually is part of an previous incomplete frame. This is handled
+            in begin_header!=0. In this case, your new frame will always be data[end_header+2:]. I handle good frames
+            using create_last_image, which creates this shared memory variable self.__lastImage and also sets the
+            event thread to True so image can advance.
+
+            buffer size is dynamically set depending on the number of data received per frame. Packets / 2.0 is
+            the fastest, but a few mistakes can arrive during lecture. dataSize/4. was choosen and no problem arrived
+            so far.
+
+            When data is equal to dataSize+1 (because of the last line jump \n), raw frame data is put in an LIFOQueue
+            using put_queue. This can happen in two situations. When the received header is not in 0 (means data from
+            previous incomplete frame arrived) or when data finished smoothly.
+
+            When tcp port has no data to transfer, we will have a connection timeout. This is used to know all data
+            has been transmitted from the buffer. This, together with a non-empty Queue, sends a callback message to
+            main file saying that camera can grab an element from our LIFOQueue. This is done by means of get_last_data.
+
+            Note that if dwell time is slow enough, data will be received in a very controlled and predictable way, most
+            of the time with a new jsonimage initiating with the {HEADER}. If you go fast in dwell time, most of your
+            packets will have the len of dataSize/4, meaning there is always an momentary traffic jam of bytes.
+            '''
+            try:
+                packet_data = client.recv(buffer_size)
+                while packet_data.find(b'{"time') == -1 or packet_data.find(b'}\n') == -1:
+                    packet_data += client.recv(buffer_size)
+                #print(packet_data)
+                begin_header = packet_data.index(b'{')
+                end_header = packet_data.index(b'}\n', begin_header)
+                header = packet_data[begin_header:end_header + 1].decode('latin-1')
+                for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
+                                   "height"]:
+                    cam_properties[properties] = (check_string_value(header, properties))
+                buffer_size = int(cam_properties['dataSize'] / 4)
+                data_size = int(cam_properties['dataSize'])
+                frame_number = int(cam_properties['frameNumber'])
+                frame_time = int(cam_properties['timeAtFrame'])
+
+                while len(packet_data) < data_size + len(header):
+                    packet_data += client.recv(buffer_size)
+
+                # frame_data += packet_data[:begin_header]
+                # if put_queue(cam_properties, frame_data):
+                #    frame_data = b''
+                # if not frame_data:
+                frame_data = packet_data[end_header + 2:end_header + 2 + data_size + 1]
+                if put_queue(cam_properties, frame_data):
+                    frame_data = b''
+            except socket.timeout:
+                # if not self.__dataQueue.empty(): self.sendmessage((message, False))
+                if not self.__isPlaying: break
+
+        logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
+        return True
+
 
     def acquire_event_from_data(self, message):
 
@@ -1038,7 +1183,7 @@ class TimePix3():
         cur_pa = eps / (6.242 * 1e18) * 1e12
         return cur_pa
 
-    def create_image_from_bytes(self, frame_data, bitDepth):
+    def create_image_from_bytes(self, frame_data, bitDepth, width, height):
         """
         Creates an image int8 (1 byte) from byte frame_data. If softBinning is True, we sum in Y axis.
         """
@@ -1049,7 +1194,7 @@ class TimePix3():
         elif bitDepth==16:
             frame_int = numpy.frombuffer(frame_data, dtype=numpy.uint16)
             frame_int = frame_int.astype(numpy.float32)
-        frame_int = numpy.reshape(frame_int, (256, 1024))
+        frame_int = numpy.reshape(frame_int, (height, width))
         if self.__softBinning:
             frame_int = numpy.sum(frame_int, axis=0)
             frame_int = numpy.reshape(frame_int, (1, 1024))
