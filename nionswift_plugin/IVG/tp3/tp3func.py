@@ -149,23 +149,23 @@ class TimePix3():
         """
         options = ['count', 'tot', 'toa', 'tof']
         destination = {
-             #"Raw": [{
-             #    "Base": "file:/home/asi/load_files/data",
-             #    "FilePattern": "raw",
-             #}],
+            #"Raw": [{
+            #    "Base": "file:/home/asi/load_files/data",
+            #    "FilePattern": "raw",
+            #}]
             "Image": [{
-                "Base": "tcp://localhost:8088",
-                "Format": "jsonimage",
-                "Mode": options[port]
-            },
-            {
                 "Base": "tcp://localhost:8089",
                 "Format": "jsonimage",
-                "Mode": options[port],
-                "IntegrationSize": -1,
-                "IntegrationMode": "Sum"
-            }
-        ]
+                "Mode": options[port]
+            }]
+            #{
+            #    "Base": "tcp://localhost:8089",
+            #    "Format": "jsonimage",
+            #    "Mode": options[port],
+            #    "IntegrationSize": -1,
+            #    "IntegrationMode": "Sum"
+            #}
+            #]
         }
 
         resp = self.request_put(url=self.__serverURL + '/server/destination', data=json.dumps(destination))
@@ -311,11 +311,12 @@ class TimePix3():
         Set camera exposure time.
         """
         detector_config = self.get_config()
+        detector_config["TriggerPeriod"] = 0.2
         detector_config["ExposureTime"] = exposure
-        if exposure>0.05:
-            detector_config["TriggerPeriod"] = exposure
-        else:
-            detector_config["TriggerPeriod"] = 0.075
+        #if exposure>0.05:
+        #    detector_config["TriggerPeriod"] = exposure
+        #else:
+        #    detector_config["TriggerPeriod"] = 0.075
 
 
         self.__expTime = exposure
@@ -465,7 +466,7 @@ class TimePix3():
         """
         self.__isPlaying = True
         if not self.__simul:
-            self.__clientThread = threading.Thread(target=self.acquire_single_frame, args=(port, message,))
+            self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(port, message,))
             #self.__clientThread = threading.Thread(target=self.acquire_event, args=(65431, 3,))
         else:
             port = 65431
@@ -772,11 +773,11 @@ class TimePix3():
         129.175.108.52 -> CheeTah
         """
 
-        ip = socket.gethostbyname('127.0.0.1')
+        ip = socket.gethostbyname('192.168.199.11')
         address = (ip, port)
         try:
             client.connect(address)
-            logging.info(f'***TP3***: Client connected over 129.175.108.52:{port}.')
+            logging.info(f'***TP3***: Client connected over {ip}:{port}.')
             client.settimeout(0.005)
         except ConnectionRefusedError:
             return False
@@ -801,7 +802,10 @@ class TimePix3():
             else:
                 end_value = header.index(',', end_index, len(header))
             try:
-                value = int(header[begin_value:end_value])
+                if prop=='timeAtFrame':
+                    value = float(header[begin_value:end_value])
+                else:
+                    value = int(header[begin_value:end_value])
             except ValueError:
                 value = str(header[begin_value:end_value])
             return value
@@ -887,6 +891,7 @@ class TimePix3():
             except socket.timeout:
                 # if not self.__dataQueue.empty(): self.sendmessage((message, False))
                 if not self.__isPlaying: break
+            if not self.__isPlaying: break
 
         logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
         return True
