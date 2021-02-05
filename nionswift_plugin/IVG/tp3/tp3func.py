@@ -469,7 +469,7 @@ class TimePix3():
             self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(port, message,))
             #self.__clientThread = threading.Thread(target=self.acquire_event, args=(65431, 3,))
         else:
-            port = 65431
+            port = 8088
             #if message==1: #Data message
             #    message = 4 if cumul else 3
             #elif message==2: #Spim message
@@ -773,7 +773,8 @@ class TimePix3():
         129.175.108.52 -> CheeTah
         """
 
-        ip = socket.gethostbyname('192.168.199.11')
+        #ip = socket.gethostbyname('192.168.199.11')
+        ip = socket.gethostbyname('127.0.0.1')
         address = (ip, port)
         try:
             client.connect(address)
@@ -866,7 +867,6 @@ class TimePix3():
                 packet_data = client.recv(buffer_size)
                 while packet_data.find(b'{"time') == -1 or packet_data.find(b'}\n') == -1:
                     packet_data += client.recv(buffer_size)
-                #print(packet_data)
                 begin_header = packet_data.index(b'{')
                 end_header = packet_data.index(b'}\n', begin_header)
                 header = packet_data[begin_header:end_header + 1].decode('latin-1')
