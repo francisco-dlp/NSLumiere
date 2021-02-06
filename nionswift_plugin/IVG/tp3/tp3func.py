@@ -788,6 +788,10 @@ class TimePix3():
         buffer_size = 1024
         frame_number = 0
         frame_time = 0
+        if self.__softBinning:
+            client.send(b'\x01')
+        else:
+            client.send(b'\x00')
 
         def check_string_value(header, prop):
             """
@@ -1194,10 +1198,12 @@ class TimePix3():
         """
         frame_data = numpy.array(frame_data[:-1])
         if bitDepth==8:
+            dt = numpy.dtype(numpy.uint8).newbyteorder('>')
             frame_int = numpy.frombuffer(frame_data, dtype=numpy.uint8)
             frame_int = frame_int.astype(numpy.float32)
         elif bitDepth==16:
-            frame_int = numpy.frombuffer(frame_data, dtype=numpy.uint16)
+            dt = numpy.dtype(numpy.uint16).newbyteorder('>')
+            frame_int = numpy.frombuffer(frame_data, dtype=dt)
             frame_int = frame_int.astype(numpy.float32)
         frame_int = numpy.reshape(frame_int, (height, width))
         if self.__softBinning:
