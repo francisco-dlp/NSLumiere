@@ -469,11 +469,12 @@ class TimePix3():
             self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(port, message,))
             #self.__clientThread = threading.Thread(target=self.acquire_event, args=(65431, 3,))
         else:
-            port = 8088
-            #if message==1: #Data message
-            #    message = 4 if cumul else 3
-            #elif message==2: #Spim message
-            #    message=5
+            """
+            if message==1: #Data message
+                message = 4 if cumul else 3
+            elif message==2: #Spim message
+                message=5
+            """
             self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(port, message,))
             #self.__clientThread = threading.Thread(target=self.acquire_event, args=(port, message,))
             #self.__clientThread = threading.Thread(target=self.acquire_event_from_data, args=(message,))
@@ -971,11 +972,11 @@ class TimePix3():
         192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
         """
 
-        #ip = socket.gethostbyname('127.0.0.1')
+        ip = socket.gethostbyname('127.0.0.1')
         #ip = socket.gethostbyname('129.175.108.58')
         #ip = socket.gethostbyname('129.175.81.162')
         #ip = socket.gethostbyname('192.0.0.11')
-        ip = socket.gethostbyname('192.168.199.11')
+        #ip = socket.gethostbyname('192.168.199.11')
         address = (ip, port)
         client.settimeout(1)
         try:

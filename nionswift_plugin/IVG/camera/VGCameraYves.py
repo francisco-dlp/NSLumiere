@@ -542,6 +542,7 @@ class CameraDevice(camera_base.CameraDevice):
                 except IndexError:
                     self.spimimagedata = numpy.append(self.spimimagedata, numpy.zeros(self.spimimagedata.shape), axis=0)
                 self.has_spim_data_event.set()
+            """
             elif message==3: #Focus mode event based
                 temp, done = self.camera.create_image_from_events(self.imagedata.shape, doit = not bufferFull and self.frame_number%2==0)
                 self.frame_number+=1
@@ -557,6 +558,7 @@ class CameraDevice(camera_base.CameraDevice):
                     self.spimimagedata += self.camera.create_spim_from_events(self.spimimagedata.shape, lineNumber = self.frame_number)[0]
                 self.frame_number+=1
                 self.has_spim_data_event.set()
+            """
         return sendMessage
 
 
