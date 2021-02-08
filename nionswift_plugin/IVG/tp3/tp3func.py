@@ -142,22 +142,22 @@ class TimePix3():
         logging.info('Response of updating Detector Configuration: ' + data)
 
 
-    def set_destination(self, port=0):
+    def set_destination(self, port=8088):
         """
         Sets the destination of the data. Data modes in ports are also defined here. Note that you always have
         data flown in port 8088 and 8089 but only one client at a time.
         """
         options = ['count', 'tot', 'toa', 'tof']
         destination = {
-            #"Raw": [{
-            #    "Base": "file:/home/asi/load_files/data",
-            #    "FilePattern": "raw",
-            #}]
-            "Image": [{
-                "Base": "tcp://localhost:8089",
-                "Format": "jsonimage",
-                "Mode": options[port]
+            "Raw": [{
+                "Base": "file:/home/asi/load_files/data",
+                "FilePattern": "raw",
             }]
+            #"Image": [{
+            #    "Base": "tcp://localhost:8088",
+            #    "Format": "jsonimage",
+            #    "Mode": options[port]
+            #}]
             #{
             #    "Base": "tcp://localhost:8089",
             #    "Format": "jsonimage",
@@ -311,7 +311,7 @@ class TimePix3():
         Set camera exposure time.
         """
         detector_config = self.get_config()
-        detector_config["TriggerPeriod"] = 0.2
+        detector_config["TriggerPeriod"] = exposure
         detector_config["ExposureTime"] = exposure
         #if exposure>0.05:
         #    detector_config["TriggerPeriod"] = exposure
@@ -505,7 +505,7 @@ class TimePix3():
         192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
         129.175.108.52 -> CheeTah
         """
-        ip = socket.gethostbyname('127.0.0.1')
+        ip = socket.gethostbyname('192.168.199.11')
         address = (ip, port)
         try:
             client.connect(address)
@@ -520,9 +520,9 @@ class TimePix3():
         frame_number = 0
         frame_time = 0
         if self.__softBinning:
-            client.send(b'\x01')
+            client.send(b'\x01\x00\x00\x00')
         else:
-            client.send(b'\x00')
+            client.send(b'\x00\x00\x00\x00')
 
         def check_string_value(header, prop):
             """
@@ -599,7 +599,9 @@ class TimePix3():
             packets will have the len of dataSize/4, meaning there is always an momentary traffic jam of bytes.
             '''
             try:
+                client.send(b'\xff\xff\xff\xff')
                 packet_data = client.recv(buffer_size)
+
                 while packet_data.find(b'{"time') == -1 or packet_data.find(b'}\n') == -1:
                     packet_data += client.recv(buffer_size)
                 begin_header = packet_data.index(b'{')
@@ -625,8 +627,12 @@ class TimePix3():
                     frame_data = b''
             except socket.timeout:
                 # if not self.__dataQueue.empty(): self.sendmessage((message, False))
-                if not self.__isPlaying: break
-            if not self.__isPlaying: break
+                if not self.__isPlaying:
+                    client.send(b'\x00\x00\x00\x0d')
+                    break
+            if not self.__isPlaying:
+                client.send(b'\x00\x00\x00\x0d')
+                break
 
         logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
         return True
