@@ -93,9 +93,9 @@ class Lenses:
         while getattr(self.wobbler_thread, "do_run", True):
             sens = sens * -1
             if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / frequency)
-            self.set_val(current + sens * intensity, which)
+            self.locked_set_val(current + sens * intensity, which)
             if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / frequency)
-            self.set_val(current, which)
+            self.locked_set_val(current, which)
 
     def wobbler_on(self, current, intensity, frequency, which):
         self.wobbler_thread = threading.Thread(target=self.wobbler_loop, args=(current, intensity, frequency, which), )

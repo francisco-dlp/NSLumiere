@@ -506,13 +506,13 @@ class TimePix3():
         192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
         129.175.108.52 -> CheeTah
         """
-        #ip = socket.gethostbyname('192.168.199.11')
-        ip = socket.gethostbyname('127.0.0.1')
+        ip = socket.gethostbyname('192.168.199.11')
+        #ip = socket.gethostbyname('127.0.0.1')
         address = (ip, port)
         try:
             client.connect(address)
             logging.info(f'***TP3***: Client connected over {ip}:{port}.')
-            client.settimeout(0.005)
+            client.settimeout(0.05)
         except ConnectionRefusedError:
             return False
 
@@ -601,10 +601,8 @@ class TimePix3():
             packets will have the len of dataSize/4, meaning there is always an momentary traffic jam of bytes.
             '''
             try:
-                #client.send(b'\xff\xff\xff\xff')
                 packet_data = client.recv(buffer_size)
-
-                while packet_data.find(b'{"time') == -1 or packet_data.find(b'}\n') == -1:
+                while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
                     packet_data += client.recv(buffer_size)
                 begin_header = packet_data.index(b'{')
                 end_header = packet_data.index(b'}\n', begin_header)
@@ -628,12 +626,9 @@ class TimePix3():
                 if put_queue(cam_properties, frame_data):
                     frame_data = b''
             except socket.timeout:
-                # if not self.__dataQueue.empty(): self.sendmessage((message, False))
                 if not self.__isPlaying:
-                    #client.send(b'\x00\x00\x00\x0d')
                     break
             if not self.__isPlaying:
-                #client.send(b'\x00\x00\x00\x0d')
                 break
 
         logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
