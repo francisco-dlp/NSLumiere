@@ -526,8 +526,7 @@ class CameraDevice(camera_base.CameraDevice):
             message, bufferFull = message
             if message==1:
                 prop, last_bytes_data = self.camera.get_last_data()
-                #self.frame_number = int(prop['frameNumber'])
-                self.frame_number+=1
+                self.frame_number = int(prop['frameNumber'])
                 self.imagedata = self.camera.create_image_from_bytes(last_bytes_data,
                                                                      prop['bitDepth'], prop['width'], prop['height'])
                 #self.current_event.fire(
@@ -535,6 +534,12 @@ class CameraDevice(camera_base.CameraDevice):
                 #)
                 self.has_data_event.set()
             elif message==2:
+                prop, last_bytes_data = self.camera.get_last_data()
+                self.frame_number = int(prop['frameNumber'])
+                self.imagedata += self.camera.create_image_from_bytes(last_bytes_data,
+                                                                     prop['bitDepth'], prop['width'], prop['height'])
+                self.has_data_event.set()
+            elif message==3:
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.frame_number = int(prop['frameNumber'])
                 try:

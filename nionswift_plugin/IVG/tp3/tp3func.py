@@ -285,15 +285,16 @@ class TimePix3():
         accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
         Message=1 because it is the normal data_locker.
         """
+        port = 8088
         self.__softBinning = True if displaymode=='1d' else False
-        port=8089 if accumulate else 8088
+        message = 2 if accumulate else 1
         self.__isCumul=bool(accumulate)
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_listening(port, message=1, cumul=accumulate)
+            self.start_listening(port, message=message, cumul=accumulate)
             return True
 
     def stopFocus(self):
@@ -505,7 +506,8 @@ class TimePix3():
         192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
         129.175.108.52 -> CheeTah
         """
-        ip = socket.gethostbyname('192.168.199.11')
+        #ip = socket.gethostbyname('192.168.199.11')
+        ip = socket.gethostbyname('127.0.0.1')
         address = (ip, port)
         try:
             client.connect(address)
@@ -599,7 +601,7 @@ class TimePix3():
             packets will have the len of dataSize/4, meaning there is always an momentary traffic jam of bytes.
             '''
             try:
-                client.send(b'\xff\xff\xff\xff')
+                #client.send(b'\xff\xff\xff\xff')
                 packet_data = client.recv(buffer_size)
 
                 while packet_data.find(b'{"time') == -1 or packet_data.find(b'}\n') == -1:
@@ -628,10 +630,10 @@ class TimePix3():
             except socket.timeout:
                 # if not self.__dataQueue.empty(): self.sendmessage((message, False))
                 if not self.__isPlaying:
-                    client.send(b'\x00\x00\x00\x0d')
+                    #client.send(b'\x00\x00\x00\x0d')
                     break
             if not self.__isPlaying:
-                client.send(b'\x00\x00\x00\x0d')
+                #client.send(b'\x00\x00\x00\x0d')
                 break
 
         logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
@@ -665,6 +667,10 @@ class TimePix3():
             frame_int = frame_int.astype(numpy.float32)
         elif bitDepth==16:
             dt = numpy.dtype(numpy.uint16).newbyteorder('>')
+            frame_int = numpy.frombuffer(frame_data, dtype=dt)
+            frame_int = frame_int.astype(numpy.float32)
+        elif bitDepth==32:
+            dt = numpy.dtype(numpy.uint32).newbyteorder('>')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
             frame_int = frame_int.astype(numpy.float32)
         frame_int = numpy.reshape(frame_int, (height, width))
