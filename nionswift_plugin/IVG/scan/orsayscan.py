@@ -245,13 +245,17 @@ class orsayScan(object):
 
         # bool SCAN_EXPORT OrsayScanSetBottomBlanking(self.orsayscan, short mode, short source, double beamontime, bool risingedge, unsigned int nbpulses, double delay);
         self.__OrsayScanSetBottomBlanking = _buildFunction(_library.OrsayScanSetBottomBlanking,
-                                                           [c_void_p, c_short, c_double, c_bool, c_uint, c_double],
+                                                           [c_void_p, c_short, c_short, c_double, c_bool, c_uint, c_double],
                                                            c_bool)
 
         # bool SCAN_EXPORT OrsayScanSetTopBlanking(self.orsayscan, short mode, short source, double beamontime, bool risingedge, unsigned int nbpulses, double delay);
         self.__OrsayScanSetTopBlanking = _buildFunction(_library.OrsayScanSetTopBlanking,
                                                         [c_void_p, c_short, c_short, c_double, c_bool, c_uint,
                                                          c_double], c_bool)
+
+        #	bool SCAN_EXPORT OrsayScanSetTdcLine(void *o, short index, short mode, short source, double period, double ontime, bool risingedge, unsigned int nbpulses, double delay);
+        self.__OrsayScanSetTdcLine = _buildFunction(_library.OrsayScanSetTdcLine,
+                                                    [c_void_p, c_short, c_short, c_short, c_double, c_double, c_bool, c_uint32, c_double], c_bool)
 
         # bool SCAN_EXPORT OrsayScanSetCameraSync(self.orsayscan, bool eels, int divider, double width, bool risingedge);
         self.__OrsayScanSetCameraSync = _buildFunction(_library.OrsayScanSetCameraSync,
@@ -657,6 +661,31 @@ class orsayScan(object):
             (very specific application not tested yet).
         """
         return self.__OrsayScanSetTopBlanking(self.orsayscan, mode, source, beamontime, risingedge, nbpulses, delay)
+
+    #	bool SCAN_EXPORT OrsayScanSetTdcLine(void *o, short index, short mode, short source, double period, double ontime, bool risingedge, unsigned int nbpulses, double delay);
+    def SetTdcLine(self, line, mode, source, period, on_time, rising_edge, nb_pulses, delay):
+        """ defines how "Tdc" (CheeTah) works. Output Tdc are defined in scan.xml. If not does nothing.
+            line : 0 ou 1
+            mode : 0 => 0
+                 : 1 => 1
+                 : 2 copy of source
+                 : 3 copy of source, fix output with (on_time, larger or smaller) if delay > 0 output is delayed
+                 : 4
+                 : 5
+                 : 6
+                 : 7 internal generator nbpulses = 0 continuous, nbpulses > 0 limited number of pulses
+            source : from 0 to 5 input IO of the box
+                   : 5 scan generator 1 pixel clock (imaging mode)
+                   : 6 scan generator 2 pixel clock (spectrum imaging mode)
+                   : 7 blanking, falling edge means start of the line
+                   : from 8 to 15 output line of the box. Should be different of Tdc Line of course, laser line is nice.
+            period : frequency of internal generator (20 ns step)
+            ontime : ontime (2.5 ns step)
+            risingedge : edge used for mode > 2
+            delay : when > 0 output is delayed
+
+        """
+        return self.__OrsayScanSetTdcLine(self.orsayscan, line, mode, source, period, on_time, rising_edge, nb_pulses, delay)
 
     # bool SCAN_EXPORT OrsayScanSetCameraSync(self.orsayscan, bool eels, int divider, double width, bool risingedge);
     def SetCameraSync(self, eels, divider, width, risingedge):

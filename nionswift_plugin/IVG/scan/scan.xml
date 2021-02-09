@@ -179,6 +179,23 @@
     <Delay>0.000000</Delay>
   </Laser>
 
+  <TDC_0>
+    <Name>TDC_0</Name>
+    <Line>7</Line>
+    <Polarity>1</Polarity>
+    <Delay>0</Delay>
+    <Width>0.000003</Width>
+  </TDC_0>
+
+  <TDC_1>
+    <Name>TDC_1</Name>
+    <Line>6</Line>
+    <Polarity>1</Polarity>
+    <Delay>0</Delay>
+    <Width>0.000003</Width>
+  </TDC_1>
+
+
   <VSM>
     <Port>COM1</Port>
     <Baudrate>9600</Baudrate>
