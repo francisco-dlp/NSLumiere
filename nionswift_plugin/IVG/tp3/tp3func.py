@@ -610,7 +610,7 @@ class TimePix3():
                 for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
                                    "height"]:
                     cam_properties[properties] = (check_string_value(header, properties))
-                buffer_size = int(cam_properties['dataSize'] / 4)
+                buffer_size = int(cam_properties['dataSize']*16)
                 data_size = int(cam_properties['dataSize'])
                 frame_number = int(cam_properties['frameNumber'])
                 frame_time = int(cam_properties['timeAtFrame'])
