@@ -127,7 +127,7 @@ class TimePix3():
                  'Tdc': ['P0', 'P0'], 'LogLevel': 1}
         return detectorConfig
 
-    def acq_init(self, ntrig=99):
+    def acq_init(self, ntrig=99999):
         """
         Initialization of detector. Standard value is 99999 triggers in continuous mode (a single trigger).
         """
@@ -153,10 +153,13 @@ class TimePix3():
                 "Base": "file:/home/asi/load_files/data",
                 "FilePattern": "raw",
             }]
+            #"Raw": [{
+            #    "Base": "tcp://127.0.0.1:8451",
+            #}]
             #"Image": [{
-            #    "Base": "tcp://localhost:8088",
+            #    "Base": "tcp://127.0.0.1:8088",
             #    "Format": "jsonimage",
-            #    "Mode": options[port]
+            #    "Mode": options[port],
             #}]
             #{
             #    "Base": "tcp://localhost:8089",
