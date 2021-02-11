@@ -506,21 +506,18 @@ class TimePix3():
         192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
         129.175.108.52 -> CheeTah
         """
-        ip = socket.gethostbyname('192.168.199.11')
-        #ip = socket.gethostbyname('127.0.0.1')
+        ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname('192.168.199.11')
         address = (ip, port)
         try:
             client.connect(address)
             logging.info(f'***TP3***: Client connected over {ip}:{port}.')
-            client.settimeout(0.05)
+            client.settimeout(0.1)
         except ConnectionRefusedError:
             return False
 
         cam_properties = dict()
-        frame_data = b''
-        buffer_size = 1024
-        frame_number = 0
-        frame_time = 0
+        buffer_size = 64000
+
         if self.__softBinning:
             client.send(b'\x01\x00\x00\x00')
         else:
@@ -547,6 +544,7 @@ class TimePix3():
             except ValueError:
                 value = str(header[begin_value:end_value])
             return value
+
 
         def put_queue(cam_prop, frame):
             try:
@@ -602,6 +600,7 @@ class TimePix3():
             '''
             try:
                 packet_data = client.recv(buffer_size)
+                #print(len(packet_data))
                 while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
                     packet_data += client.recv(buffer_size)
                 begin_header = packet_data.index(b'{')
@@ -610,10 +609,8 @@ class TimePix3():
                 for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
                                    "height"]:
                     cam_properties[properties] = (check_string_value(header, properties))
-                buffer_size = int(cam_properties['dataSize']*16)
+
                 data_size = int(cam_properties['dataSize'])
-                frame_number = int(cam_properties['frameNumber'])
-                frame_time = int(cam_properties['timeAtFrame'])
 
                 while len(packet_data) < data_size + len(header):
                     packet_data += client.recv(buffer_size)
@@ -631,7 +628,6 @@ class TimePix3():
             if not self.__isPlaying:
                 break
 
-        logging.info(f'***TP3***: Number of counted frames is {frame_number}. Last frame arrived at {frame_time}.')
         return True
 
     def get_last_data(self):
