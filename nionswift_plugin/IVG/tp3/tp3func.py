@@ -615,10 +615,10 @@ class TimePix3():
                     cam_properties[properties] = (check_string_value(header, properties))
 
                 data_size = int(cam_properties['dataSize'])
-                print(cam_properties)
 
-                while len(packet_data) < data_size + len(header):
+                while len(packet_data) < end_header + data_size + len(header):
                     packet_data += client.recv(buffer_size)
+
 
                 # frame_data += packet_data[:begin_header]
                 # if put_queue(cam_properties, frame_data):
