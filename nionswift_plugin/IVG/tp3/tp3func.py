@@ -149,13 +149,13 @@ class TimePix3():
         """
         options = ['count', 'tot', 'toa', 'tof']
         destination = {
-            "Raw": [{
-                "Base": "file:/home/asi/load_files/data",
-                "FilePattern": "raw",
-            }]
             #"Raw": [{
-            #    "Base": "tcp://127.0.0.1:8451",
+            #    "Base": "file:/home/asi/load_files/data",
+            #    "FilePattern": "raw",
             #}]
+            "Raw": [{
+                "Base": "tcp://127.0.0.1:8098",
+            }]
             #"Image": [{
             #    "Base": "tcp://127.0.0.1:8088",
             #    "Format": "jsonimage",
@@ -603,7 +603,8 @@ class TimePix3():
             '''
             try:
                 packet_data = client.recv(buffer_size)
-                #print(len(packet_data))
+                if packet_data==b'':
+                    break
                 while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
                     packet_data += client.recv(buffer_size)
                 begin_header = packet_data.index(b'{')
@@ -614,6 +615,7 @@ class TimePix3():
                     cam_properties[properties] = (check_string_value(header, properties))
 
                 data_size = int(cam_properties['dataSize'])
+                print(cam_properties)
 
                 while len(packet_data) < data_size + len(header):
                     packet_data += client.recv(buffer_size)
