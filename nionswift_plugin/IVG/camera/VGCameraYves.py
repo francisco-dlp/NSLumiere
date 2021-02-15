@@ -533,19 +533,13 @@ class CameraDevice(camera_base.CameraDevice):
                 #    format(self.camera.get_current(self.imagedata, self.frame_number), ".3f")
                 #)
                 self.has_data_event.set()
+
             elif message==2:
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.frame_number = int(prop['frameNumber'])
-                self.imagedata += self.camera.create_image_from_bytes(last_bytes_data,
-                                                                     prop['bitDepth'], prop['width'], prop['height'])
-                self.has_data_event.set()
-            elif message==3:
-                prop, last_bytes_data = self.camera.get_last_data()
-                self.frame_number = int(prop['frameNumber'])
-                try:
-                    self.spimimagedata[self.frame_number] = self.camera.create_spimimage_from_bytes(last_bytes_data)
-                except IndexError:
-                    self.spimimagedata = numpy.append(self.spimimagedata, numpy.zeros(self.spimimagedata.shape), axis=0)
+                self.spimimagedata = self.camera.create_image_from_bytes(last_bytes_data,
+                                                                         prop['bitDepth'], prop['width'], prop['height'])
+
                 self.has_spim_data_event.set()
             """
             elif message==3: #Focus mode event based

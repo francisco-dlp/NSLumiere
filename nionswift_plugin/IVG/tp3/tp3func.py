@@ -131,11 +131,17 @@ class TimePix3():
         """
         Initialization of detector. Standard value is 99999 triggers in continuous mode (a single trigger).
         """
+        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+        scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
+
         detector_config = self.get_config()
         detector_config["nTriggers"] = ntrig
         #detector_config["TriggerMode"] = "CONTINUOUS"
         detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
         detector_config["BiasEnabled"] = True
+        detector_config["TriggerPeriod"] = 1.0 #1s
+        detector_config["ExposureTime"] = 1.0 #1s
+
 
         resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
@@ -247,12 +253,16 @@ class TimePix3():
         """
         Similar to startFocus. Just to be consistent with VGCameraYves. Message=02 because of spim.
         """
+        port = 8088
+        self.__softBinning = True
+        message = 2
+        self.__isCumul = False
         if self.getCCDStatus() == "DA_RECORDING":
-            self.stopSpim()
+            self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_listening(port=8088, message=2)
+            self.start_listening(port, message=message)
             return True
 
     def pauseSpim(self):
@@ -290,14 +300,14 @@ class TimePix3():
         """
         port = 8088
         self.__softBinning = True if displaymode=='1d' else False
-        message = 2 if accumulate else 1
+        message = 1
         self.__isCumul=bool(accumulate)
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_listening(port, message=message, cumul=accumulate)
+            self.start_listening(port, message=message)
             return True
 
     def stopFocus(self):
@@ -314,18 +324,8 @@ class TimePix3():
         """
         Set camera exposure time.
         """
-        detector_config = self.get_config()
-        detector_config["TriggerPeriod"] = exposure
-        detector_config["ExposureTime"] = exposure
-        #if exposure>0.05:
-        #    detector_config["TriggerPeriod"] = exposure
-        #else:
-        #    detector_config["TriggerPeriod"] = 0.075
-
-
-        self.__expTime = exposure
-        resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
-        data = resp.text
+        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+        scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period=exposure)
 
     def setDelayTime(self, delay):
         self.__delay = delay
@@ -464,7 +464,7 @@ class TimePix3():
     --->Functions of the client listener<---
     """
 
-    def start_listening(self, port=8088, message=1, cumul = False):
+    def start_listening(self, port=8088, message=1):
         """
         Starts the client Thread and sets isPlaying to True.
         """
@@ -521,10 +521,19 @@ class TimePix3():
         cam_properties = dict()
         buffer_size = 64000
 
-        if self.__softBinning:
-            client.send(b'\x01\x02\x00\x00\x00\x00\x00\x00')
-        else:
-            client.send(b'\x00\x01\x00\x00\x00\x00\x00\x00')
+        config_bytes = b''
+
+        if self.__softBinning:config_bytes+=b'\x01\x02'
+        else: config_bytes+=b'\x00\x01'
+
+        if self.__isCumul: config_bytes+=b'\x01'
+        else: config_bytes+=b'\x00'
+
+        if message==1: config_bytes+=b'\x00\x00'
+        elif message==2: config_bytes+=b'\x01\x20' #Spim with 32x32
+
+        config_bytes+=b'\x00\x00\x00\x00'
+        client.send(config_bytes)
 
         def check_string_value(header, prop):
             """
@@ -601,10 +610,12 @@ class TimePix3():
             '''
             try:
                 packet_data = client.recv(buffer_size)
-                if packet_data==b'':
-                    break
+                if packet_data==b'': return
                 while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
-                    packet_data += client.recv(buffer_size)
+                    temp = client.recv(buffer_size)
+                    if temp == b'': return
+                    else: packet_data += temp
+
                 begin_header = packet_data.index(b'{')
                 end_header = packet_data.index(b'}\n', begin_header)
                 header = packet_data[begin_header:end_header + 1].decode('latin-1')
@@ -615,7 +626,9 @@ class TimePix3():
                 data_size = int(cam_properties['dataSize'])
 
                 while len(packet_data) < end_header + data_size + len(header):
-                    packet_data += client.recv(buffer_size)
+                    temp = client.recv(buffer_size)
+                    if temp == b'': return
+                    else: packet_data += temp
 
                 # frame_data += packet_data[:begin_header]
                 # if put_queue(cam_properties, frame_data):
@@ -624,6 +637,7 @@ class TimePix3():
                 frame_data = packet_data[end_header + 2:end_header + 2 + data_size + 1]
                 if put_queue(cam_properties, frame_data):
                     frame_data = b''
+
             except socket.timeout:
                 if not self.__isPlaying:
                     break
