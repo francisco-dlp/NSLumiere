@@ -522,9 +522,9 @@ class TimePix3():
         buffer_size = 64000
 
         if self.__softBinning:
-            client.send(b'\x01\x00\x00\x00')
+            client.send(b'\x01\x02\x00\x00\x00\x00\x00\x00')
         else:
-            client.send(b'\x00\x00\x00\x00')
+            client.send(b'\x00\x01\x00\x00\x00\x00\x00\x00')
 
         def check_string_value(header, prop):
             """
@@ -553,15 +553,13 @@ class TimePix3():
             try:
                 assert int(cam_properties['width']) * int(cam_properties['height']) * int(
                     cam_properties['bitDepth'] / 8) == int(cam_properties['dataSize'])
-                if cam_properties['dataSize'] + 1 == len(frame):
-                    self.__dataQueue.put((cam_prop, frame))
-                    self.sendmessage((message, False))
-                    return True
-                else:
-                    return False
+                assert cam_properties['dataSize']+1 == len(frame)
+                self.__dataQueue.put((cam_prop, frame))
+                self.sendmessage((message, False))
+                return True
             except AssertionError:
                 logging.info(
-                    f'***TP3***: Problem in size assertion. Properties are {cam_properties} and data is {len(frame)}')
+                    f'***TP3***: Problem in size/len assertion. Properties are {cam_properties} and data is {len(frame)}')
                 return False
 
         while True:
@@ -618,7 +616,6 @@ class TimePix3():
 
                 while len(packet_data) < end_header + data_size + len(header):
                     packet_data += client.recv(buffer_size)
-
 
                 # frame_data += packet_data[:begin_header]
                 # if put_queue(cam_properties, frame_data):
