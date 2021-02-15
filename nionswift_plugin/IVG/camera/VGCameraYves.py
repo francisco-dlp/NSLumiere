@@ -527,12 +527,19 @@ class CameraDevice(camera_base.CameraDevice):
             if message==1:
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.frame_number = int(prop['frameNumber'])
-                self.imagedata = self.camera.create_image_from_bytes(last_bytes_data, prop['bitDepth'])
-                self.current_event.fire(
-                    format(self.camera.get_current(self.imagedata, self.frame_number), ".7f")
-                )
+                self.imagedata = self.camera.create_image_from_bytes(last_bytes_data,
+                                                                     prop['bitDepth'], prop['width'], prop['height'])
+                #self.current_event.fire(
+                #    format(self.camera.get_current(self.imagedata, self.frame_number), ".3f")
+                #)
                 self.has_data_event.set()
             elif message==2:
+                prop, last_bytes_data = self.camera.get_last_data()
+                self.frame_number = int(prop['frameNumber'])
+                self.imagedata += self.camera.create_image_from_bytes(last_bytes_data,
+                                                                     prop['bitDepth'], prop['width'], prop['height'])
+                self.has_data_event.set()
+            elif message==3:
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.frame_number = int(prop['frameNumber'])
                 try:
@@ -540,6 +547,7 @@ class CameraDevice(camera_base.CameraDevice):
                 except IndexError:
                     self.spimimagedata = numpy.append(self.spimimagedata, numpy.zeros(self.spimimagedata.shape), axis=0)
                 self.has_spim_data_event.set()
+            """
             elif message==3: #Focus mode event based
                 temp, done = self.camera.create_image_from_events(self.imagedata.shape, doit = not bufferFull and self.frame_number%2==0)
                 self.frame_number+=1
@@ -555,6 +563,7 @@ class CameraDevice(camera_base.CameraDevice):
                     self.spimimagedata += self.camera.create_spim_from_events(self.spimimagedata.shape, lineNumber = self.frame_number)[0]
                 self.frame_number+=1
                 self.has_spim_data_event.set()
+            """
         return sendMessage
 
 

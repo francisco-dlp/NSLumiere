@@ -368,8 +368,8 @@ class ivgInstrument(stem_controller.STEMController):
             else:
                 self.__obj_res = -1.
             self.property_changed_event.fire('obj_vol_f')
-        except:
-            logging.info('***IVG***: A problem happened querying lens Ojective value. Returning -1.0.')
+        except Exception as e:
+            logging.info('***IVG***: A problem happened querying lens Objective value. Returning -1.0.')
             self.__obj_cur = -1.
             self.__obj_vol = -1.
 
