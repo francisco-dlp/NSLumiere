@@ -324,8 +324,9 @@ class TimePix3():
         """
         Set camera exposure time.
         """
-        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-        scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period=exposure)
+        if not self.__simul:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period=exposure)
 
     def setDelayTime(self, delay):
         self.__delay = delay
@@ -529,8 +530,8 @@ class TimePix3():
         if self.__isCumul: config_bytes+=b'\x01'
         else: config_bytes+=b'\x00'
 
-        if message==1: config_bytes+=b'\x00\x00'
-        elif message==2: config_bytes+=b'\x01\x20' #Spim with 32x32
+        if message==1: config_bytes+=b'\x00\x01'
+        elif message==2: config_bytes+=b'\x01\x10' #Spim with 32x32
 
         config_bytes+=b'\x00\x00\x00\x00'
         client.send(config_bytes)
@@ -544,7 +545,7 @@ class TimePix3():
             start_index = header.index(prop)
             end_index = start_index + len(prop)
             begin_value = header.index(':', end_index, len(header)) + 1
-            if prop == 'height':
+            if prop == 'yspim':
                 end_value = header.index('}', end_index, len(header))
             else:
                 end_value = header.index(',', end_index, len(header))
@@ -560,8 +561,11 @@ class TimePix3():
 
         def put_queue(cam_prop, frame):
             try:
-                assert int(cam_properties['width']) * int(cam_properties['height']) * int(
-                    cam_properties['bitDepth'] / 8) == int(cam_properties['dataSize'])
+                assert int(cam_properties['width']) * int(
+                    cam_properties['height']) * int(
+                    cam_properties['bitDepth'] / 8) * int(
+                    cam_properties['xspim']) * int(
+                    cam_properties['yspim']) == int(cam_properties['dataSize'])
                 assert cam_properties['dataSize']+1 == len(frame)
                 self.__dataQueue.put((cam_prop, frame))
                 self.sendmessage((message, False))
@@ -620,7 +624,7 @@ class TimePix3():
                 end_header = packet_data.index(b'}\n', begin_header)
                 header = packet_data[begin_header:end_header + 1].decode('latin-1')
                 for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
-                                   "height"]:
+                                   "height", "xspim", "yspim"]:
                     cam_properties[properties] = (check_string_value(header, properties))
 
                 data_size = int(cam_properties['dataSize'])
@@ -686,15 +690,21 @@ class TimePix3():
             frame_int = numpy.reshape(frame_int, (1, 1024))
         return frame_int
 
-    def create_spimimage_from_bytes(self, frame_data):
+    def create_spimimage_from_bytes(self, frame_data, bitDepth, width, height, xspim, yspim):
         """
         Creates an image int8 (1 byte) from byte frame_data. No softBinning for now.
         """
+        assert height==1
         frame_data = numpy.array(frame_data[:-1])
-        frame_int = numpy.frombuffer(frame_data, dtype=numpy.int8)
-        frame_int = numpy.reshape(frame_int, (256, 1024))
-        frame_int = numpy.sum(frame_int, axis=0)
-        frame_int = numpy.reshape(frame_int, (1, 1024))
+        if bitDepth == 16:
+            dt = numpy.dtype(numpy.uint16).newbyteorder('>')
+            frame_int = numpy.frombuffer(frame_data, dtype=dt)
+            frame_int = frame_int.astype(numpy.float32)
+        elif bitDepth == 32:
+            dt = numpy.dtype(numpy.uint32).newbyteorder('>')
+            frame_int = numpy.frombuffer(frame_data, dtype=dt)
+            frame_int = frame_int.astype(numpy.float32)
+        frame_int = numpy.reshape(frame_int, (xspim, yspim, width))
         return frame_int
 
     """
