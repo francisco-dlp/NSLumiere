@@ -260,7 +260,7 @@ class TimePix3():
         if self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_listening(port, message=message)
+            self.start_listening(port, message=message, spim = nbspectra)
             return True
 
     def pauseSpim(self):
@@ -463,12 +463,12 @@ class TimePix3():
     --->Functions of the client listener<---
     """
 
-    def start_listening(self, port=8088, message=1):
+    def start_listening(self, port=8088, message=1, spim = 1):
         """
         Starts the client Thread and sets isPlaying to True.
         """
         self.__isPlaying = True
-        self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(port, message,))
+        self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(port, message, spim,))
         self.__clientThread.start()
 
     def finish_listening(self):
@@ -486,7 +486,7 @@ class TimePix3():
             self.__tdcQueue = queue.Queue()
 
 
-    def acquire_streamed_frame(self, port, message):
+    def acquire_streamed_frame(self, port, message, spim):
         """
         Main client function. Main loop is explained below.
 
@@ -539,7 +539,7 @@ class TimePix3():
             config_bytes += b'\x01\x01' #Spim size is (1, 1). A single spectrum
         elif message==2:
             config_bytes += b'\x01' #Spim is ON
-            config_bytes += b'\x10\x10' #Spim size is given by those
+            config_bytes += bytes([numpy.sqrt(spim).astype(int), numpy.sqrt(spim).astype(int)]) #Spim size is given by those
 
         config_bytes+=b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         client.send(config_bytes)
@@ -707,6 +707,10 @@ class TimePix3():
         """
         assert height==1
         frame_data = numpy.array(frame_data[:-1])
+        if bitDepth == 8:
+            dt = numpy.dtype(numpy.uint8).newbyteorder('>')
+            frame_int = numpy.frombuffer(frame_data, dtype=dt)
+            frame_int = frame_int.astype(numpy.float32)
         if bitDepth == 16:
             dt = numpy.dtype(numpy.uint16).newbyteorder('>')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)

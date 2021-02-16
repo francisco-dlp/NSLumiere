@@ -348,7 +348,7 @@ class CameraDevice(camera_base.CameraDevice):
             self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype=numpy.float32)
             self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
             self.camera.stopFocus()
-            self.camera.startSpim(32 * 32, 1,
+            self.camera.startSpim(self.current_camera_settings.spectra_count**2, 1,
                                   self.current_camera_settings.exposure_ms / 1000.,
                                   self.current_camera_settings.acquisition_mode == "2D-Chrono")
             self.camera.resumeSpim(4)
