@@ -515,7 +515,7 @@ class TimePix3():
         try:
             client.connect(address)
             logging.info(f'***TP3***: Client connected over {ip}:{port}.')
-            client.settimeout(0.1)
+            client.settimeout(1.0)
         except ConnectionRefusedError:
             return False
 
@@ -643,6 +643,7 @@ class TimePix3():
                     frame_data = b''
 
             except socket.timeout:
+                logging.info("***TP3***: Socket timeout.")
                 if not self.__isPlaying:
                     break
             if not self.__isPlaying:
