@@ -131,8 +131,6 @@ class TimePix3():
         """
         Initialization of detector. Standard value is 99999 triggers in continuous mode (a single trigger).
         """
-        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-        scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
 
         detector_config = self.get_config()
         detector_config["nTriggers"] = ntrig
