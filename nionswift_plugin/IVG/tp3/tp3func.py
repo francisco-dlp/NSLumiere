@@ -134,8 +134,8 @@ class TimePix3():
 
         detector_config = self.get_config()
         detector_config["nTriggers"] = ntrig
-        #detector_config["TriggerMode"] = "CONTINUOUS"
-        detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
+        detector_config["TriggerMode"] = "CONTINUOUS"
+        #detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
         detector_config["BiasEnabled"] = True
         detector_config["TriggerPeriod"] = 1.0 #1s
         detector_config["ExposureTime"] = 1.0 #1s
@@ -522,16 +522,26 @@ class TimePix3():
 
         config_bytes = b''
 
-        if self.__softBinning:config_bytes+=b'\x01\x02'
-        else: config_bytes+=b'\x00\x01'
+        if self.__softBinning:
+            config_bytes += b'\x01' #Soft binning
+            config_bytes += b'\x02' #Bit depth 32
+        else:
+            config_bytes += b'\x00' #No soft binning
+            config_bytes += b'\x01' #Bit depth is 16
 
-        if self.__isCumul: config_bytes+=b'\x01'
-        else: config_bytes+=b'\x00'
+        if self.__isCumul:
+            config_bytes+=b'\x01' #Cumul is ON
+        else:
+            config_bytes+=b'\x00' #Cumul is OFF
 
-        if message==1: config_bytes+=b'\x00\x01'
-        elif message==2: config_bytes+=b'\x01\x10' #Spim with 32x32
+        if message==1:
+            config_bytes += b'\x00' #Spim is OFF
+            config_bytes += b'\x01\x01' #Spim size is (1, 1). A single spectrum
+        elif message==2:
+            config_bytes += b'\x01' #Spim is ON
+            config_bytes += b'\x10\x10' #Spim size is given by those
 
-        config_bytes+=b'\x00\x00\x00\x00'
+        config_bytes+=b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         client.send(config_bytes)
 
         def check_string_value(header, prop):
@@ -618,7 +628,7 @@ class TimePix3():
                     if temp == b'': return
                     else: packet_data += temp
 
-                begin_header = packet_data.index(b'{')
+                begin_header = packet_data.index(b'{"time')
                 end_header = packet_data.index(b'}\n', begin_header)
                 header = packet_data[begin_header:end_header + 1].decode('latin-1')
                 for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
@@ -644,6 +654,8 @@ class TimePix3():
                 logging.info("***TP3***: Socket timeout.")
                 if not self.__isPlaying:
                     break
+            except ValueError:
+                print(begin_header, end_header, packet_data[begin_header:begin_header+200])
             if not self.__isPlaying:
                 break
 
