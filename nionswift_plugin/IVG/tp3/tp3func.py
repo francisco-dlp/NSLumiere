@@ -139,7 +139,7 @@ class TimePix3():
         detector_config["BiasEnabled"] = True
         detector_config["TriggerPeriod"] = 1.0 #1s
         detector_config["ExposureTime"] = 1.0 #1s
-
+        detector_config["Tdc"] = ['P0', 'N0']
 
         resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
@@ -325,6 +325,7 @@ class TimePix3():
         if not self.__simul:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period=exposure)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)
 
     def setDelayTime(self, delay):
         self.__delay = delay
@@ -513,7 +514,7 @@ class TimePix3():
         try:
             client.connect(address)
             logging.info(f'***TP3***: Client connected over {ip}:{port}.')
-            client.settimeout(1.0)
+            #client.settimeout(1.0)
         except ConnectionRefusedError:
             return False
 
@@ -524,7 +525,7 @@ class TimePix3():
 
         if self.__softBinning:
             config_bytes += b'\x01' #Soft binning
-            config_bytes += b'\x02' #Bit depth 32
+            config_bytes += b'\x01' #Bit depth 16
         else:
             config_bytes += b'\x00' #No soft binning
             config_bytes += b'\x01' #Bit depth is 16
@@ -636,11 +637,14 @@ class TimePix3():
                     cam_properties[properties] = (check_string_value(header, properties))
 
                 data_size = int(cam_properties['dataSize'])
+                print(cam_properties)
 
                 while len(packet_data) < end_header + data_size + len(header):
                     temp = client.recv(buffer_size)
                     if temp == b'': return
                     else: packet_data += temp
+
+
 
                 # frame_data += packet_data[:begin_header]
                 # if put_queue(cam_properties, frame_data):
@@ -654,8 +658,6 @@ class TimePix3():
                 logging.info("***TP3***: Socket timeout.")
                 if not self.__isPlaying:
                     break
-            except ValueError:
-                print(begin_header, end_header, packet_data[begin_header:begin_header+200])
             if not self.__isPlaying:
                 break
 
@@ -736,9 +738,6 @@ class TimePix3():
     LEGACY CODE FOR REF IN A FUTURE SELF. DO NOT USE IT!!!
     """
     def acquire_event_from_data(self, message):
-
-        #datas = [r"C:\Users\AUAD\Desktop\TimePix3\Yves_raw\19-01-2021\tdc_check___47\raw\tdc_check_0000"+format(i, '.0f').zfill(2)+".tpx3" for i in range(i)]
-
         def put_queue(data, type):
             if type=='electron':
                 self.__eventQueue.put(data)
@@ -751,7 +750,6 @@ class TimePix3():
         while True:
             filenumber = int(numpy.random.rand()*5)
             data = r"C:\Users\AUAD\Desktop\TimePix3\Yves_raw\19-01-2021\tdc_check___47\raw\tdc_check_0000"+format(filenumber, '.0f').zfill(2)+".tpx3"
-            #data = r"C:\Users\AUAD\Desktop\TimePix3\Yves_raw\withZLP\tdc_check___35_noTDC\raw\tdc_check_0000"+format(filenumber, '.0f').zfill(2)+".tpx3"
             with open(data, "rb") as f:
                 all_data = f.read()
                 #index = 0

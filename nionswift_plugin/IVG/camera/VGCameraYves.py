@@ -540,7 +540,6 @@ class CameraDevice(camera_base.CameraDevice):
                 self.spimimagedata = self.camera.create_spimimage_from_bytes(last_bytes_data,
                                                                          prop['bitDepth'], prop['width'], prop['height'],
                                                                              prop['xspim'], prop['yspim'])
-
                 self.has_spim_data_event.set()
             """
             elif message==3: #Focus mode event based
