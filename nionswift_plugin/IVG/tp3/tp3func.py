@@ -637,7 +637,7 @@ class TimePix3():
                     cam_properties[properties] = (check_string_value(header, properties))
 
                 data_size = int(cam_properties['dataSize'])
-                print(cam_properties)
+                #print(cam_properties)
 
                 while len(packet_data) < end_header + data_size + len(header):
                     temp = client.recv(buffer_size)
@@ -721,7 +721,7 @@ class TimePix3():
             dt = numpy.dtype(numpy.uint32).newbyteorder('>')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
             frame_int = frame_int.astype(numpy.float32)
-        frame_int = numpy.reshape(frame_int, (xspim, yspim, width))
+        frame_int = numpy.reshape(frame_int, (yspim, xspim, width))
         return frame_int
 
     """
