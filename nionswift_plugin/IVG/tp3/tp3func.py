@@ -8,7 +8,6 @@ import numpy
 import time
 import pathlib
 import os
-import pickle
 
 from nion.swift.model import HardwareSource
 
@@ -29,7 +28,6 @@ class TimePix3():
         self.__serverURL = url
         self.__dataQueue = queue.LifoQueue()
         self.__eventQueue = queue.Queue()
-        self.__tdcQueue = queue.Queue()
         self.__isPlaying = False
         self.__softBinning = False
         self.__isCumul = False
@@ -481,10 +479,8 @@ class TimePix3():
             self.__clientThread.join()
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__eventQueue.qsize()} electron events in the Queue.')
-            logging.info(f'***TP3***: Stopping acquisition. There was {self.__tdcQueue.qsize()} tdc in the Queue.')
             self.__dataQueue = queue.LifoQueue()
             self.__eventQueue = queue.Queue()
-            self.__tdcQueue = queue.Queue()
 
 
     def acquire_streamed_frame(self, port, message, spim):
@@ -585,81 +581,56 @@ class TimePix3():
                 return False
 
         while True:
-            '''
-            Notes
-            -----
-            Loop based on self.__isPlaying. 
-            if b'{' is in data, header is there. A few unlikely issues could kill a percentage of
-            frames. They are basically headers chopped in two different packets. To remove this, we always
-            ask a new chunk of data with 1024 bytes size.
 
-            I get both the beginning and the end of header. Most of data are:
-                b'{HEADER}\n\x00\x00... ...\x00\n'
-            This means initial frame_data is everything after header. So the beginning of a frame_data is simply
-            data[end_header+2:].
+            if message==1 or message==2:
+                try:
+                    packet_data = client.recv(buffer_size)
+                    if packet_data==b'': return
+                    while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
+                        temp = client.recv(buffer_size)
+                        if temp == b'': return
+                        else: packet_data += temp
 
-            In some cases, however, you have a data like this:
-                b'\x00\x00\x00{HEADER}\n\x00\x00... ...\x00\n'
-            This means everything before HEADER actually is part of an previous incomplete frame. This is handled
-            in begin_header!=0. In this case, your new frame will always be data[end_header+2:]. I handle good frames
-            using create_last_image, which creates this shared memory variable self.__lastImage and also sets the
-            event thread to True so image can advance.
+                    begin_header = packet_data.index(b'{"time')
+                    end_header = packet_data.index(b'}\n', begin_header)
+                    header = packet_data[begin_header:end_header + 1].decode('latin-1')
+                    for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
+                                       "height", "xspim", "yspim"]:
+                        cam_properties[properties] = (check_string_value(header, properties))
 
-            buffer size is dynamically set depending on the number of data received per frame. Packets / 2.0 is
-            the fastest, but a few mistakes can arrive during lecture. dataSize/4. was choosen and no problem arrived
-            so far.
+                    data_size = int(cam_properties['dataSize'])
 
-            When data is equal to dataSize+1 (because of the last line jump \n), raw frame data is put in an LIFOQueue
-            using put_queue. This can happen in two situations. When the received header is not in 0 (means data from
-            previous incomplete frame arrived) or when data finished smoothly.
+                    while len(packet_data) < end_header + data_size + len(header):
+                        temp = client.recv(buffer_size)
+                        if temp == b'': return
+                        else: packet_data += temp
 
-            When tcp port has no data to transfer, we will have a connection timeout. This is used to know all data
-            has been transmitted from the buffer. This, together with a non-empty Queue, sends a callback message to
-            main file saying that camera can grab an element from our LIFOQueue. This is done by means of get_last_data.
+                    # frame_data += packet_data[:begin_header]
+                    # if put_queue(cam_properties, frame_data):
+                    #    frame_data = b''
+                    # if not frame_data:
+                    frame_data = packet_data[end_header + 2:end_header + 2 + data_size + 1]
+                    if put_queue(cam_properties, frame_data):
+                        frame_data = b''
 
-            Note that if dwell time is slow enough, data will be received in a very controlled and predictable way, most
-            of the time with a new jsonimage initiating with the {HEADER}. If you go fast in dwell time, most of your
-            packets will have the len of dataSize/4, meaning there is always an momentary traffic jam of bytes.
-            '''
-            try:
-                packet_data = client.recv(buffer_size)
-                if packet_data==b'': return
-                while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
-                    temp = client.recv(buffer_size)
-                    if temp == b'': return
-                    else: packet_data += temp
-
-                begin_header = packet_data.index(b'{"time')
-                end_header = packet_data.index(b'}\n', begin_header)
-                header = packet_data[begin_header:end_header + 1].decode('latin-1')
-                for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
-                                   "height", "xspim", "yspim"]:
-                    cam_properties[properties] = (check_string_value(header, properties))
-
-                data_size = int(cam_properties['dataSize'])
-                #print(cam_properties)
-
-                while len(packet_data) < end_header + data_size + len(header):
-                    temp = client.recv(buffer_size)
-                    if temp == b'': return
-                    else: packet_data += temp
-
-
-
-                # frame_data += packet_data[:begin_header]
-                # if put_queue(cam_properties, frame_data):
-                #    frame_data = b''
-                # if not frame_data:
-                frame_data = packet_data[end_header + 2:end_header + 2 + data_size + 1]
-                if put_queue(cam_properties, frame_data):
-                    frame_data = b''
-
-            except socket.timeout:
-                logging.info("***TP3***: Socket timeout.")
+                except socket.timeout:
+                    logging.info("***TP3***: Socket timeout.")
+                    if not self.__isPlaying:
+                        break
                 if not self.__isPlaying:
                     break
-            if not self.__isPlaying:
-                break
+
+            if message==3:
+                try:
+                    packet_data = client.recv(buffer_size)
+                    if packet_data == b'': return
+
+                except socket.timeout:
+                    logging.info("***TP3***: Socket timeout.")
+                    if not self.__isPlaying:
+                        break
+                if not self.__isPlaying:
+                    break
 
         return True
 
