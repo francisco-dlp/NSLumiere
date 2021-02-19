@@ -523,7 +523,6 @@ class CameraDevice(camera_base.CameraDevice):
         arrival.
         """
         def sendMessage(message):
-            message, bufferFull = message
             if message==1:
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.frame_number = int(prop['frameNumber'])
@@ -541,13 +540,12 @@ class CameraDevice(camera_base.CameraDevice):
                                                                          prop['bitDepth'], prop['width'], prop['height'],
                                                                              prop['xspim'], prop['yspim'])
                 self.has_spim_data_event.set()
+
+            elif message==3:
+                self.frame_number += 1
+                self.spimimagedata += self.camera.create_spimimage_from_events(self.spimimagedata.shape)
+                self.has_spim_data_event.set()
             """
-            elif message==3: #Focus mode event based
-                temp, done = self.camera.create_image_from_events(self.imagedata.shape, doit = not bufferFull and self.frame_number%2==0)
-                self.frame_number+=1
-                if done:
-                    self.imagedata = temp
-                    self.has_data_event.set()
             elif message==4: #Cumul mode event based
                 self.imagedata += self.camera.create_image_from_events(self.imagedata.shape, doit = True)[0]
                 self.frame_number+=1
