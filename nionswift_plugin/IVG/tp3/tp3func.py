@@ -527,7 +527,9 @@ class TimePix3():
 
         if message==1:
             config_bytes += b'\x00' #Spim is OFF
-            config_bytes += b'\x01\x01' #Spim size is (1, 1). A single spectrum
+            size = 1
+            config_bytes += size.to_bytes(2, 'big')
+            config_bytes += size.to_bytes(2, 'big')
         elif message==2:
             self.__spimData = numpy.zeros(spim * 1024)
             self.__xspim = int(numpy.sqrt(spim))
@@ -624,10 +626,10 @@ class TimePix3():
                     dt = numpy.dtype(numpy.uint32).newbyteorder('>')
                     event_list = numpy.frombuffer(packet_data, dtype=dt)
 
-                    #self.__spimData[event_list]+=1
-                    unique, counts = numpy.unique(event_list, return_counts=True)
+                    self.__spimData[event_list]+=1
+                    #unique, counts = numpy.unique(event_list, return_counts=True)
 
-                    self.__spimData[unique]+=counts
+                    #self.__spimData[unique]+=counts
                     if len(packet_data)<buffer_size:
                         self.sendmessage(3)
 
