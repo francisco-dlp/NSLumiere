@@ -130,7 +130,6 @@ class TimePix3():
         """
         Initialization of detector. Standard value is 99999 triggers in continuous mode (a single trigger).
         """
-
         detector_config = self.get_config()
         detector_config["nTriggers"] = ntrig
         detector_config["TriggerMode"] = "CONTINUOUS"
@@ -138,7 +137,7 @@ class TimePix3():
         detector_config["BiasEnabled"] = True
         detector_config["TriggerPeriod"] = 1.0 #1s
         detector_config["ExposureTime"] = 1.0 #1s
-        detector_config["Tdc"] = ['P0', 'N0']
+        detector_config["Tdc"] = ['PN0', 'PN0']
 
         resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
@@ -250,6 +249,9 @@ class TimePix3():
         """
         Similar to startFocus. Just to be consistent with VGCameraYves. Message=02 because of spim.
         """
+        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+        scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)
+        scanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 7)
         port = 8088
         self.__softBinning = True
         message = 2
@@ -295,6 +297,8 @@ class TimePix3():
         accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
         Message=1 because it is the normal data_locker.
         """
+        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+        scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
         port = 8088
         self.__softBinning = True if displaymode=='1d' else False
         message = 1
@@ -321,10 +325,7 @@ class TimePix3():
         """
         Set camera exposure time.
         """
-        if not self.__simul:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period=exposure)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)
+        pass
 
     def setDelayTime(self, delay):
         self.__delay = delay
@@ -343,14 +344,6 @@ class TimePix3():
 
     def setSpeed(self, cameraport, speed):
         pass
-
-    def setTdc1(self, time, width):
-        frequency = int(1/time)
-
-        scanHardware = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            "orsay_scan_device")
-
-        scanHardware.scan_device.orsayscan.SetLaser(frequency, 5000000, False, -1)
 
 
     def getNumofGains(self, cameraport):
@@ -522,7 +515,7 @@ class TimePix3():
 
         if self.__softBinning:
             config_bytes += b'\x01' #Soft binning
-            config_bytes += b'\x01' #Bit depth 16
+            config_bytes += b'\x02' #Bit depth 16
         else:
             config_bytes += b'\x00' #No soft binning
             config_bytes += b'\x01' #Bit depth is 16
@@ -537,8 +530,11 @@ class TimePix3():
             config_bytes += b'\x01\x01' #Spim size is (1, 1). A single spectrum
         elif message==2:
             self.__spimData = numpy.zeros(spim * 1024)
+            self.__xspim = int(numpy.sqrt(spim))
+            self.__yspim = int(numpy.sqrt(spim))
             config_bytes += b'\x01' #Spim is ON
-            config_bytes += bytes([numpy.sqrt(spim).astype(int), numpy.sqrt(spim).astype(int)]) #Spim size is given by those
+            config_bytes += self.__xspim.to_bytes(2, 'big')
+            config_bytes += self.__yspim.to_bytes(2, 'big')
 
         config_bytes+=b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         client.send(config_bytes)
@@ -552,7 +548,7 @@ class TimePix3():
             start_index = header.index(prop)
             end_index = start_index + len(prop)
             begin_value = header.index(':', end_index, len(header)) + 1
-            if prop == 'yspim':
+            if prop == 'height':
                 end_value = header.index('}', end_index, len(header))
             else:
                 end_value = header.index(',', end_index, len(header))
@@ -569,9 +565,7 @@ class TimePix3():
             try:
                 assert int(cam_properties['width']) * int(
                     cam_properties['height']) * int(
-                    cam_properties['bitDepth'] / 8) * int(
-                    cam_properties['xspim']) * int(
-                    cam_properties['yspim']) == int(cam_properties['dataSize'])
+                    cam_properties['bitDepth'] / 8) == int(cam_properties['dataSize'])
                 assert cam_properties['dataSize']+1 == len(frame)
                 self.__dataQueue.put((cam_prop, frame))
                 self.sendmessage(message)
@@ -583,7 +577,7 @@ class TimePix3():
 
         while True:
 
-            if message==1:# or message==2:
+            if message==1:
                 try:
                     packet_data = client.recv(buffer_size)
                     if packet_data==b'': return
@@ -596,10 +590,11 @@ class TimePix3():
                     end_header = packet_data.index(b'}\n', begin_header)
                     header = packet_data[begin_header:end_header + 1].decode('latin-1')
                     for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
-                                       "height", "xspim", "yspim"]:
+                                       "height"]:
                         cam_properties[properties] = (check_string_value(header, properties))
 
                     data_size = int(cam_properties['dataSize'])
+
 
                     while len(packet_data) < end_header + data_size + len(header):
                         temp = client.recv(buffer_size)
@@ -629,8 +624,12 @@ class TimePix3():
                     dt = numpy.dtype(numpy.uint32).newbyteorder('>')
                     event_list = numpy.frombuffer(packet_data, dtype=dt)
 
-                    self.__spimData[event_list]+=1
-                    self.sendmessage(3)
+                    #self.__spimData[event_list]+=1
+                    unique, counts = numpy.unique(event_list, return_counts=True)
+
+                    self.__spimData[unique]+=counts
+                    if len(packet_data)<buffer_size:
+                        self.sendmessage(3)
 
                 except socket.timeout:
                     logging.info("***TP3***: Socket timeout.")
@@ -699,7 +698,7 @@ class TimePix3():
             dt = numpy.dtype(numpy.uint32).newbyteorder('>')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
             frame_int = frame_int.astype(numpy.float32)
-        frame_int = numpy.reshape(frame_int, (yspim, xspim, width))
+        frame_int = numpy.reshape(frame_int, (self.__yspim, self.__xspim, width))
         return frame_int
 
     def create_spimimage_from_events(self, shape):

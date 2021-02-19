@@ -537,8 +537,7 @@ class CameraDevice(camera_base.CameraDevice):
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.frame_number = int(prop['frameNumber'])
                 self.spimimagedata = self.camera.create_spimimage_from_bytes(last_bytes_data,
-                                                                         prop['bitDepth'], prop['width'], prop['height'],
-                                                                             prop['xspim'], prop['yspim'])
+                                                                         prop['bitDepth'], prop['width'], prop['height'])
                 self.has_spim_data_event.set()
 
             elif message==3:
