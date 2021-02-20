@@ -249,9 +249,10 @@ class TimePix3():
         """
         Similar to startFocus. Just to be consistent with VGCameraYves. Message=02 because of spim.
         """
-        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-        scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)
-        scanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 7)
+        if not self.__simul:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)
+            scanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 7)
         port = 8088
         self.__softBinning = True
         message = 2
@@ -297,8 +298,9 @@ class TimePix3():
         accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
         Message=1 because it is the normal data_locker.
         """
-        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-        scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
+        if not self.__simul:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
         port = 8088
         self.__softBinning = True if displaymode=='1d' else False
         message = 1
@@ -626,10 +628,8 @@ class TimePix3():
                     dt = numpy.dtype(numpy.uint32).newbyteorder('>')
                     event_list = numpy.frombuffer(packet_data, dtype=dt)
 
-                    self.__spimData[event_list]+=1
-                    #unique, counts = numpy.unique(event_list, return_counts=True)
-
-                    #self.__spimData[unique]+=counts
+                    unique, counts = numpy.unique(event_list, return_counts=True)
+                    self.__spimData[unique]+=counts
                     if len(packet_data)<buffer_size:
                         self.sendmessage(3)
 
@@ -638,6 +638,8 @@ class TimePix3():
                     if not self.__isPlaying:
                         break
                 if not self.__isPlaying:
+                    logging.info("***TP3***: Breaking spim. Showing last image.")
+                    self.sendmessage(3)
                     break
 
         return True
