@@ -5,7 +5,7 @@ import logging
 import queue
 import socket
 import numpy
-import time
+import select
 import pathlib
 import os
 
@@ -631,7 +631,7 @@ class TimePix3():
                     unique, counts = numpy.unique(event_list, return_counts=True)
                     self.__spimData[unique]+=counts
                     if len(packet_data)<buffer_size:
-                        self.sendmessage(3)
+                        self.sendmessage(message)
 
                 except socket.timeout:
                     logging.info("***TP3***: Socket timeout.")
@@ -639,7 +639,7 @@ class TimePix3():
                         break
                 if not self.__isPlaying:
                     logging.info("***TP3***: Breaking spim. Showing last image.")
-                    self.sendmessage(3)
+                    self.sendmessage(message)
                     break
 
         return True
