@@ -112,6 +112,8 @@ class Device:
 
     def stop(self) -> None:
         """Stop acquiring."""
+        self.orsayscan.stopImaging(False)
+        self.__is_scanning = False
 
     def set_idle_position_by_percentage(self, x: float, y: float) -> None:
         """Set the idle position as a percentage of the last used frame parameters."""
@@ -119,8 +121,8 @@ class Device:
 
     def cancel(self) -> None:
         """Cancel acquisition (immediate)."""
-        self.orsayscan.stopImaging(True)
-        self.__is_scanning = False
+        #self.orsayscan.stopImaging(True)
+        #self.__is_scanning = False
 
     def __get_channels(self) -> typing.List[Channel]:
         return [Channel(0, "ADF", True), Channel(1, "BF", False)]
@@ -218,7 +220,7 @@ class Device:
         a 'channel_id' indicating the index of the channel (may be an int or float).
         """
 
-        gotit = self.has_data_event.wait(5.0)
+        gotit = self.has_data_event.wait(1.0)
 
         if self.__frame is None:
             self.__start_next_frame()

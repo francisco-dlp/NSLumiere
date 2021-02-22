@@ -601,7 +601,7 @@ class orsayScan(object):
         return self.__OrsayScanSetTopBlanking(self.orsayscan,mode, source,beamontime,risingedge,nbpulses,delay)
 
     #	bool SCAN_EXPORT OrsayScanSetTdcLine(void *o, short index, short mode, short source, double period, double ontime, bool risingedge, unsigned int nbpulses, double delay);
-    def SetTdcLine(self, line, mode, source, period=0.004, on_time=0.0005, rising_edge=True, nb_pulses=0, delay=0):
+    def SetTdcLine(self, line, mode, source, period=0.004, on_time=0.000005, rising_edge=True, nb_pulses=0, delay=0):
         """defines how "Tdc" (CheeTah) works. Output Tdc are defined in scan.xml. If not does nothing.
             line : 0 ou 1
             mode : 0 => 0

@@ -252,6 +252,7 @@ class TimePix3():
         if not self.__simul:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7) #Line not used
             scanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 7)
         port = 8088
         self.__softBinning = True
@@ -637,9 +638,13 @@ class TimePix3():
                     logging.info("***TP3***: Socket timeout.")
                     if not self.__isPlaying:
                         break
+                except ConnectionResetError:
+                    logging.info("***TP3***: Socket reseted. Closing connection.")
+                    if not self.__isPlaying:
+                        break
                 if not self.__isPlaying:
                     logging.info("***TP3***: Breaking spim. Showing last image.")
-                    self.sendmessage(message)
+                    #self.sendmessage(message)
                     break
 
         return True
