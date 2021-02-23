@@ -5,7 +5,7 @@ import logging
 import queue
 import socket
 import numpy
-import select
+import struct
 import pathlib
 import os
 
@@ -15,11 +15,14 @@ from nion.swift.model import HardwareSource
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
+
 class Response():
     def __init__(self):
         self.text = '***TP3***: This is simul mode.'
 
+
 SAVE_FILE = False
+
 
 class TimePix3():
 
@@ -36,11 +39,10 @@ class TimePix3():
         self.__port = 0
         self.__delay = None
         self.__width = None
-        self.__tdc = 0 #Beginning of line n and beginning of line n+1
+        self.__tdc = 0  # Beginning of line n and beginning of line n+1
         self.__filepath = os.path.join(pathlib.Path(__file__).parent.absolute(), "data")
         self.__simul = simul
         self.sendmessage = message
-
 
         if not simul:
             try:
@@ -50,7 +52,7 @@ class TimePix3():
                 else:
                     logging.info('***TP3***: Problem initializing Timepix')
 
-            # Loading bpc and dacs
+                # Loading bpc and dacs
                 bpcFile = '/home/asi/load_files/tpx3-demo.bpc'
                 dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
                 self.cam_init(bpcFile, dacsFile)
@@ -83,7 +85,7 @@ class TimePix3():
         Status code 200 is good. Other status code meaning can be seen in serval manual.
         """
         try:
-            resp = self.request_get(url = self.__serverURL)
+            resp = self.request_get(url=self.__serverURL)
         except requests.exceptions.RequestException as e:  # Exceptions handling example
             return -1
         status_code = resp.status_code
@@ -120,7 +122,8 @@ class TimePix3():
             detectorConfig = json.loads(data)
         else:
             detectorConfig = \
-                {'Fan1PWM': 100, 'Fan2PWM': 100, 'BiasVoltage': 100, 'BiasEnabled': True, 'TriggerIn': 2, 'TriggerOut': 0,
+                {'Fan1PWM': 100, 'Fan2PWM': 100, 'BiasVoltage': 100, 'BiasEnabled': True, 'TriggerIn': 2,
+                 'TriggerOut': 0,
                  'Polarity': 'Positive', 'TriggerMode': 'AUTOTRIGSTART_TIMERSTOP', 'ExposureTime': 0.05,
                  'TriggerPeriod': 0.05, 'nTriggers': 99999, 'PeriphClk80': False, 'TriggerDelay': 0.0,
                  'Tdc': ['P0', 'P0'], 'LogLevel': 1}
@@ -133,16 +136,15 @@ class TimePix3():
         detector_config = self.get_config()
         detector_config["nTriggers"] = ntrig
         detector_config["TriggerMode"] = "CONTINUOUS"
-        #detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
+        # detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
         detector_config["BiasEnabled"] = True
-        detector_config["TriggerPeriod"] = 1.0 #1s
-        detector_config["ExposureTime"] = 1.0 #1s
+        detector_config["TriggerPeriod"] = 1.0  # 1s
+        detector_config["ExposureTime"] = 1.0  # 1s
         detector_config["Tdc"] = ['PN0', 'PN0']
 
         resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
         logging.info('Response of updating Detector Configuration: ' + data)
-
 
     def set_destination(self, port=8088):
         """
@@ -151,26 +153,26 @@ class TimePix3():
         """
         options = ['count', 'tot', 'toa', 'tof']
         destination = {
-            #"Raw": [{
+            # "Raw": [{
             #    "Base": "file:/home/asi/load_files/data",
             #    "FilePattern": "raw",
-            #}]
+            # }]
             "Raw": [{
                 "Base": "tcp://127.0.0.1:8098",
             }]
-            #"Image": [{
+            # "Image": [{
             #    "Base": "tcp://127.0.0.1:8088",
             #    "Format": "jsonimage",
             #    "Mode": options[port],
-            #}]
-            #{
+            # }]
+            # {
             #    "Base": "tcp://localhost:8089",
             #    "Format": "jsonimage",
             #    "Mode": options[port],
             #    "IntegrationSize": -1,
             #    "IntegrationMode": "Sum"
-            #}
-            #]
+            # }
+            # ]
         }
 
         resp = self.request_put(url=self.__serverURL + '/server/destination', data=json.dumps(destination))
@@ -250,9 +252,10 @@ class TimePix3():
         Similar to startFocus. Just to be consistent with VGCameraYves. Message=02 because of spim.
         """
         if not self.__simul:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)
-            #scanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 7)
+            # scanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 7)
         port = 8088
         self.__softBinning = True
         message = 2
@@ -262,7 +265,7 @@ class TimePix3():
         if self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_listening(port, message=message, spim = nbspectra)
+            self.start_listening(port, message=message, spim=nbspectra)
             return True
 
     def pauseSpim(self):
@@ -299,13 +302,14 @@ class TimePix3():
         Message=1 because it is the normal data_locker.
         """
         if not self.__simul:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 12)
         port = 8088
-        self.__softBinning = True if displaymode=='1d' else False
+        self.__softBinning = True if displaymode == '1d' else False
         message = 1
-        self.__isCumul=bool(accumulate)
+        self.__isCumul = bool(accumulate)
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE":
@@ -320,7 +324,8 @@ class TimePix3():
         .join() method. Also replaces the old Queue with a new one with no itens on it (so next one won't use old data).
         """
         if not self.__simul:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
         status = self.getCCDStatus()
@@ -351,7 +356,6 @@ class TimePix3():
 
     def setSpeed(self, cameraport, speed):
         pass
-
 
     def getNumofGains(self, cameraport):
         pass
@@ -463,7 +467,7 @@ class TimePix3():
     --->Functions of the client listener<---
     """
 
-    def start_listening(self, port=8088, message=1, spim = 1):
+    def start_listening(self, port=8088, message=1, spim=1):
         """
         Starts the client Thread and sets isPlaying to True.
         """
@@ -479,10 +483,10 @@ class TimePix3():
             self.__isPlaying = False
             self.__clientThread.join()
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
-            logging.info(f'***TP3***: Stopping acquisition. There was {self.__eventQueue.qsize()} electron events in the Queue.')
+            logging.info(
+                f'***TP3***: Stopping acquisition. There was {self.__eventQueue.qsize()} electron events in the Queue.')
             self.__dataQueue = queue.LifoQueue()
             self.__eventQueue = queue.Queue()
-
 
     def acquire_streamed_frame(self, port, message, spim):
         """
@@ -511,7 +515,6 @@ class TimePix3():
         try:
             client.connect(address)
             logging.info(f'***TP3***: Client connected over {ip}:{port}.')
-            #client.settimeout(1.0)
         except ConnectionRefusedError:
             return False
 
@@ -521,39 +524,45 @@ class TimePix3():
         config_bytes = b''
 
         if self.__softBinning:
-            config_bytes += b'\x01' #Soft binning
-            config_bytes += b'\x02' #Bit depth 16
+            config_bytes += b'\x01'  # Soft binning
+            config_bytes += b'\x02'  # Bit depth 16
         else:
-            config_bytes += b'\x00' #No soft binning
-            config_bytes += b'\x01' #Bit depth is 16
+            config_bytes += b'\x00'  # No soft binning
+            config_bytes += b'\x01'  # Bit depth is 16
 
         if self.__isCumul:
-            config_bytes+=b'\x01' #Cumul is ON
+            config_bytes += b'\x01'  # Cumul is ON
         else:
-            config_bytes+=b'\x00' #Cumul is OFF
+            config_bytes += b'\x00'  # Cumul is OFF
 
-        if message==1:
-            config_bytes += b'\x00' #Spim is OFF
+        if message == 1:
+            config_bytes += b'\x00'  # Spim is OFF
             size = 1
             config_bytes += size.to_bytes(2, 'big')
             config_bytes += size.to_bytes(2, 'big')
-        elif message==2:
+        elif message == 2:
             self.__spimData = numpy.zeros(spim * 1024, dtype=numpy.uint32)
             self.__xspim = int(numpy.sqrt(spim))
             self.__yspim = int(numpy.sqrt(spim))
-            config_bytes += b'\x01' #Spim is ON
+            config_bytes += b'\x01'  # Spim is ON
             config_bytes += self.__xspim.to_bytes(2, 'big')
             config_bytes += self.__yspim.to_bytes(2, 'big')
             self.sendmessage(message)
 
-        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-        x_size = int(scanInstrument.scan_device.current_frame_parameters['size'][0])
-        y_size = int(scanInstrument.scan_device.current_frame_parameters['size'][1])
-        config_bytes += x_size.to_bytes(2, 'big')
-        config_bytes += y_size.to_bytes(2, 'big')
+        if not self.__simul:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            x_size = int(scanInstrument.scan_device.current_frame_parameters['size'][0])
+            y_size = int(scanInstrument.scan_device.current_frame_parameters['size'][1])
+            config_bytes += x_size.to_bytes(2, 'big')
+            config_bytes += y_size.to_bytes(2, 'big')
+        else:
+            config_bytes += struct.pack(">H", 1024)
+            config_bytes += struct.pack(">H", 1024)
 
+        config_bytes += struct.pack(">f", 16000.98698778)  # BE. See https://docs.python.org/3/library/struct.html
 
-        config_bytes+=b'\x00\x00\x00\x00\x00\x00\x00'
+        config_bytes += b'\xff\xff\xff\xfd'
         client.send(config_bytes)
 
         def check_string_value(header, prop):
@@ -570,7 +579,7 @@ class TimePix3():
             else:
                 end_value = header.index(',', end_index, len(header))
             try:
-                if prop=='timeAtFrame':
+                if prop == 'timeAtFrame':
                     value = float(header[begin_value:end_value])
                 else:
                     value = int(header[begin_value:end_value])
@@ -583,7 +592,7 @@ class TimePix3():
                 assert int(cam_properties['width']) * int(
                     cam_properties['height']) * int(
                     cam_properties['bitDepth'] / 8) == int(cam_properties['dataSize'])
-                assert cam_properties['dataSize']+1 == len(frame)
+                assert cam_properties['dataSize'] + 1 == len(frame)
                 self.__dataQueue.put((cam_prop, frame))
                 self.sendmessage(message)
                 return True
@@ -594,14 +603,16 @@ class TimePix3():
 
         while True:
 
-            if message==1:
+            if message == 1:
                 try:
                     packet_data = client.recv(buffer_size)
-                    if packet_data==b'': return
+                    if packet_data == b'': return
                     while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
                         temp = client.recv(buffer_size)
-                        if temp == b'': return
-                        else: packet_data += temp
+                        if temp == b'':
+                            return
+                        else:
+                            packet_data += temp
 
                     begin_header = packet_data.index(b'{"time')
                     end_header = packet_data.index(b'}\n', begin_header)
@@ -614,8 +625,10 @@ class TimePix3():
 
                     while len(packet_data) < end_header + data_size + len(header):
                         temp = client.recv(buffer_size)
-                        if temp == b'': return
-                        else: packet_data += temp
+                        if temp == b'':
+                            return
+                        else:
+                            packet_data += temp
 
                     # frame_data += packet_data[:begin_header]
                     # if put_queue(cam_properties, frame_data):
@@ -635,7 +648,7 @@ class TimePix3():
                 if not self.__isPlaying:
                     return
 
-            elif message==2:
+            elif message == 2:
                 try:
                     packet_data = client.recv(buffer_size)
                     if packet_data == b'': return
@@ -645,9 +658,9 @@ class TimePix3():
 
                     unique, counts = numpy.unique(event_list, return_counts=True)
                     counts = counts.astype(numpy.uint32)
-                    self.__spimData[unique]+=counts
+                    self.__spimData[unique] += counts
 
-                    if len(packet_data)<buffer_size/8:
+                    if len(packet_data) < buffer_size / 8:
                         self.sendmessage(message)
 
                 except socket.timeout:
@@ -660,7 +673,7 @@ class TimePix3():
                         break
                 if not self.__isPlaying:
                     logging.info("***TP3***: Breaking spim. Showing last image.")
-                    #self.sendmessage(message)
+                    # self.sendmessage(message)
                     break
 
         return True
@@ -687,15 +700,15 @@ class TimePix3():
         Creates an image int8 (1 byte) from byte frame_data. If softBinning is True, we sum in Y axis.
         """
         frame_data = numpy.array(frame_data[:-1])
-        if bitDepth==8:
+        if bitDepth == 8:
             dt = numpy.dtype(numpy.uint8).newbyteorder('>')
             frame_int = numpy.frombuffer(frame_data, dtype=numpy.uint8)
             frame_int = frame_int.astype(numpy.float32)
-        elif bitDepth==16:
+        elif bitDepth == 16:
             dt = numpy.dtype(numpy.uint16).newbyteorder('>')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
             frame_int = frame_int.astype(numpy.float32)
-        elif bitDepth==32:
+        elif bitDepth == 32:
             dt = numpy.dtype(numpy.uint32).newbyteorder('>')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
             frame_int = frame_int.astype(numpy.float32)
@@ -709,7 +722,7 @@ class TimePix3():
         """
         Creates an image int8 (1 byte) from byte frame_data. No softBinning for now.
         """
-        assert height==1
+        assert height == 1
         frame_data = numpy.array(frame_data[:-1])
         if bitDepth == 8:
             dt = numpy.dtype(numpy.uint8).newbyteorder('>')
@@ -728,4 +741,3 @@ class TimePix3():
 
     def create_spimimage_from_events(self):
         return self.__spimData.reshape((self.__xspim, self.__yspim, 1024))
-
