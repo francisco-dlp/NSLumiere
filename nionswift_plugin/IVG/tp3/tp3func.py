@@ -252,7 +252,7 @@ class TimePix3():
         if not self.__simul:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)
+            #scanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 7)
         port = 8088
         self.__softBinning = True
         message = 2
@@ -301,7 +301,7 @@ class TimePix3():
         if not self.__simul:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period=exposure)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 12)
         port = 8088
         self.__softBinning = True if displaymode=='1d' else False
         message = 1
@@ -332,7 +332,7 @@ class TimePix3():
         """
         Set camera exposure time.
         """
-        pass
+        self.__expTime = exposure
 
     def setDelayTime(self, delay):
         self.__delay = delay
@@ -546,7 +546,14 @@ class TimePix3():
             config_bytes += self.__yspim.to_bytes(2, 'big')
             self.sendmessage(message)
 
-        config_bytes+=b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+        x_size = int(scanInstrument.scan_device.current_frame_parameters['size'][0])
+        y_size = int(scanInstrument.scan_device.current_frame_parameters['size'][1])
+        config_bytes += x_size.to_bytes(2, 'big')
+        config_bytes += y_size.to_bytes(2, 'big')
+
+
+        config_bytes+=b'\x00\x00\x00\x00\x00\x00\x00'
         client.send(config_bytes)
 
         def check_string_value(header, prop):
@@ -621,13 +628,12 @@ class TimePix3():
                 except socket.timeout:
                     logging.info("***TP3***: Socket timeout.")
                     if not self.__isPlaying:
-                        break
+                        return
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
-                    if not self.__isPlaying:
-                        break
+                    return
                 if not self.__isPlaying:
-                    break
+                    return
 
             elif message==2:
                 try:
@@ -641,8 +647,8 @@ class TimePix3():
                     counts = counts.astype(numpy.uint32)
                     self.__spimData[unique]+=counts
 
-                    #if len(packet_data)<buffer_size:
-                    #    self.sendmessage(message)
+                    if len(packet_data)<buffer_size/8:
+                        self.sendmessage(message)
 
                 except socket.timeout:
                     logging.info("***TP3***: Socket timeout.")
