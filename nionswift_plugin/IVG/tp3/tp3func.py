@@ -538,12 +538,13 @@ class TimePix3():
             config_bytes += size.to_bytes(2, 'big')
             config_bytes += size.to_bytes(2, 'big')
         elif message==2:
-            self.__spimData = numpy.zeros(spim * 1024, dtype=numpy.int32)
+            self.__spimData = numpy.zeros(spim * 1024, dtype=numpy.uint32)
             self.__xspim = int(numpy.sqrt(spim))
             self.__yspim = int(numpy.sqrt(spim))
             config_bytes += b'\x01' #Spim is ON
             config_bytes += self.__xspim.to_bytes(2, 'big')
             config_bytes += self.__yspim.to_bytes(2, 'big')
+            self.sendmessage(message)
 
         config_bytes+=b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         client.send(config_bytes)
@@ -604,7 +605,6 @@ class TimePix3():
 
                     data_size = int(cam_properties['dataSize'])
 
-
                     while len(packet_data) < end_header + data_size + len(header):
                         temp = client.recv(buffer_size)
                         if temp == b'': return
@@ -638,9 +638,11 @@ class TimePix3():
                     event_list = numpy.frombuffer(packet_data, dtype=dt)
 
                     unique, counts = numpy.unique(event_list, return_counts=True)
+                    counts = counts.astype(numpy.uint32)
                     self.__spimData[unique]+=counts
-                    if len(packet_data)<buffer_size:
-                        self.sendmessage(message)
+
+                    #if len(packet_data)<buffer_size:
+                    #    self.sendmessage(message)
 
                 except socket.timeout:
                     logging.info("***TP3***: Socket timeout.")
@@ -718,8 +720,6 @@ class TimePix3():
         frame_int = numpy.reshape(frame_int, (self.__yspim, self.__xspim, width))
         return frame_int
 
-    def create_spimimage_from_events(self, shape):
-        xspim = shape[0]
-        yspim = shape[1]
-        return self.__spimData.reshape((xspim, yspim, 1024))
+    def create_spimimage_from_events(self):
+        return self.__spimData.reshape((self.__xspim, self.__yspim, 1024))
 
