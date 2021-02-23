@@ -252,8 +252,7 @@ class TimePix3():
         if not self.__simul:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7) #Line not used
-            scanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 7)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)
         port = 8088
         self.__softBinning = True
         message = 2
@@ -302,6 +301,7 @@ class TimePix3():
         if not self.__simul:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period=exposure)
         port = 8088
         self.__softBinning = True if displaymode=='1d' else False
         message = 1
@@ -319,6 +319,10 @@ class TimePix3():
         Stop acquisition. Finish listening put global isPlaying to False and wait client thread to finish properly using
         .join() method. Also replaces the old Queue with a new one with no itens on it (so next one won't use old data).
         """
+        if not self.__simul:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
         status = self.getCCDStatus()
         resp = self.request_get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
@@ -534,7 +538,7 @@ class TimePix3():
             config_bytes += size.to_bytes(2, 'big')
             config_bytes += size.to_bytes(2, 'big')
         elif message==2:
-            self.__spimData = numpy.zeros(spim * 1024)
+            self.__spimData = numpy.zeros(spim * 1024, dtype=numpy.int32)
             self.__xspim = int(numpy.sqrt(spim))
             self.__yspim = int(numpy.sqrt(spim))
             config_bytes += b'\x01' #Spim is ON
@@ -616,6 +620,10 @@ class TimePix3():
 
                 except socket.timeout:
                     logging.info("***TP3***: Socket timeout.")
+                    if not self.__isPlaying:
+                        break
+                except ConnectionResetError:
+                    logging.info("***TP3***: Socket reseted. Closing connection.")
                     if not self.__isPlaying:
                         break
                 if not self.__isPlaying:

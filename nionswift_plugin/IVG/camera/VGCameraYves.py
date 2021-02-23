@@ -345,7 +345,7 @@ class CameraDevice(camera_base.CameraDevice):
 
         elif "SpimTP" in self.current_camera_settings.acquisition_mode:
             self.sizey = self.sizez = self.sizey = self.current_camera_settings.spectra_count
-            self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype=numpy.float32)
+            self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype=numpy.int32)
             self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
             self.camera.stopFocus()
             self.camera.startSpim(self.current_camera_settings.spectra_count**2, 1,
