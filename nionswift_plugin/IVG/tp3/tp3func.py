@@ -566,7 +566,7 @@ class TimePix3():
             config_bytes += struct.pack(">H", 1024)
             config_bytes += struct.pack(">H", 1024)
 
-        config_bytes += struct.pack(">d", self.__delay)  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack(">d", self.__delay+98000 + (1010 - self.__width))  # BE. See https://docs.python.org/3/library/struct.html
         config_bytes += struct.pack(">d", self.__width)  # BE. See https://docs.python.org/3/library/struct.html
 
         client.send(config_bytes)
