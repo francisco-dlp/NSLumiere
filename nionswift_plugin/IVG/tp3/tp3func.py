@@ -37,8 +37,8 @@ class TimePix3():
         self.__isCumul = False
         self.__expTime = None
         self.__port = 0
-        self.__delay = None
-        self.__width = None
+        self.__delay = 0.
+        self.__width = 0.
         self.__tdc = 0  # Beginning of line n and beginning of line n+1
         self.__filepath = os.path.join(pathlib.Path(__file__).parent.absolute(), "data")
         self.__simul = simul
@@ -308,8 +308,6 @@ class TimePix3():
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 12)
         self.__delay = delay
         self.__width = width
-        print(self.__delay)
-        print(self.__width)
         port = 8088
         self.__softBinning = True if displaymode == '1d' else False
         message = 1
@@ -540,10 +538,14 @@ class TimePix3():
             config_bytes += b'\x00'  # Cumul is OFF
 
         if message == 1:
-            config_bytes += b'\x00'  # Spim is OFF
+            if self.__width==0:
+                config_bytes += b'\x00'  # Focus/Cumul mode
+            else:
+                config_bytes += b'\x02'  # TR mode
             size = 1
             config_bytes += size.to_bytes(2, 'big')
             config_bytes += size.to_bytes(2, 'big')
+
         elif message == 2:
             self.__spimData = numpy.zeros(spim * 1024, dtype=numpy.uint32)
             self.__xspim = int(numpy.sqrt(spim))
@@ -564,8 +566,8 @@ class TimePix3():
             config_bytes += struct.pack(">H", 1024)
             config_bytes += struct.pack(">H", 1024)
 
-        config_bytes += struct.pack(">d", 1810.00)  # BE. See https://docs.python.org/3/library/struct.html
-        config_bytes += struct.pack(">d", 45.0)  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack(">d", self.__delay)  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack(">d", self.__width)  # BE. See https://docs.python.org/3/library/struct.html
 
         client.send(config_bytes)
 
