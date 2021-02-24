@@ -295,7 +295,7 @@ class TimePix3():
     def setupBinning(self):
         pass
 
-    def startFocus(self, exposure, displaymode, accumulate):
+    def TPstartFocus(self, exposure, displaymode, accumulate, delay, width):
         """
         Start acquisition. Displaymode can be '1d' or '2d' and regulates the global attribute self.__softBinning.
         accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
@@ -306,6 +306,10 @@ class TimePix3():
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 12)
+        self.__delay = delay
+        self.__width = width
+        print(self.__delay)
+        print(self.__width)
         port = 8088
         self.__softBinning = True if displaymode == '1d' else False
         message = 1
@@ -560,9 +564,9 @@ class TimePix3():
             config_bytes += struct.pack(">H", 1024)
             config_bytes += struct.pack(">H", 1024)
 
-        config_bytes += struct.pack(">f", 16000.98698778)  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack(">d", 1810.00)  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack(">d", 45.0)  # BE. See https://docs.python.org/3/library/struct.html
 
-        config_bytes += b'\xff\xff\xff\xfd'
         client.send(config_bytes)
 
         def check_string_value(header, prop):

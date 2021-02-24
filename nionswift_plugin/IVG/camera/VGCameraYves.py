@@ -359,7 +359,7 @@ class CameraDevice(camera_base.CameraDevice):
                 acqmode = 1
             self.imagedata = numpy.zeros((self.sizey, self.sizex), dtype=numpy.float32)
             self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
-            self.__acqon = self.camera.startFocus(self.current_camera_settings.exposure_ms / 1000, sb, acqmode)
+            self.__acqon = self.camera.TPstartFocus(self.current_camera_settings.exposure_ms / 1000, sb, acqmode, self.current_camera_settings.timeDelay, self.current_camera_settings.timeWidth)
 
         self._last_time = time.time()
 
