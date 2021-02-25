@@ -296,7 +296,7 @@ class TimePix3():
     def setupBinning(self):
         pass
 
-    def TPstartFocus(self, exposure, displaymode, accumulate, delay, width):
+    def startFocus(self, exposure, displaymode, accumulate):
         """
         Start acquisition. Displaymode can be '1d' or '2d' and regulates the global attribute self.__softBinning.
         accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
@@ -307,8 +307,6 @@ class TimePix3():
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 12)
-        self.__delay = delay
-        self.__width = width
         port = 8088
         self.__softBinning = True if displaymode == '1d' else False
         message = 1

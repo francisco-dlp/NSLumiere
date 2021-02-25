@@ -206,11 +206,17 @@ class CameraDevice(camera_base.CameraDevice):
 
         if "timeDelay" in frame_parameters:
             self.__hardware_settings.timeDelay = frame_parameters.timeDelay
-            self.camera.setDelayTime(frame_parameters.timeDelay)
+            try:
+                self.camera.setDelayTime(frame_parameters.timeDelay)
+            except AttributeError:
+                logging.info(f"***CAMERA***: Method setDelayTime not implemented for {self.camera_name}")
 
         if "timeWidth" in frame_parameters:
             self.__hardware_settings.timeWidth = frame_parameters.timeWidth
-            self.camera.setWidthTime(frame_parameters.timeWidth)
+            try:
+                self.camera.setWidthTime(frame_parameters.timeWidth)
+            except AttributeError:
+                logging.info(f"***CAMERA***: Method setWidthTime not implemented for {self.camera_name}")
 
     def __numpy_to_orsay_type(self, array: numpy.array):
         orsay_type = Orsay_Data.float
@@ -359,7 +365,7 @@ class CameraDevice(camera_base.CameraDevice):
                 acqmode = 1
             self.imagedata = numpy.zeros((self.sizey, self.sizex), dtype=numpy.float32)
             self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
-            self.__acqon = self.camera.TPstartFocus(self.current_camera_settings.exposure_ms / 1000, sb, acqmode, self.current_camera_settings.timeDelay, self.current_camera_settings.timeWidth)
+            self.__acqon = self.camera.startFocus(self.current_camera_settings.exposure_ms / 1000, sb, acqmode)
 
         self._last_time = time.time()
 
@@ -536,24 +542,6 @@ class CameraDevice(camera_base.CameraDevice):
                 self.spimimagedata = self.camera.create_spimimage_from_events()
                 self.has_spim_data_event.set()
 
-            """
-            elif message==3:
-            prop, last_bytes_data = self.camera.get_last_data()
-            self.frame_number = int(prop['frameNumber'])
-            self.spimimagedata = self.camera.create_spimimage_from_bytes(last_bytes_data,
-                                                                     prop['bitDepth'], prop['width'], prop['height'])
-            self.has_spim_data_event.set()
-            
-            elif message==4: #Cumul mode event based
-                self.imagedata += self.camera.create_image_from_events(self.imagedata.shape, doit = True)[0]
-                self.frame_number+=1
-                self.has_data_event.set()
-            elif message==5: #Chrono mode event based
-                if self.frame_number % (self.sizey)==0:
-                    self.spimimagedata += self.camera.create_spim_from_events(self.spimimagedata.shape, lineNumber = self.frame_number)[0]
-                self.frame_number+=1
-                self.has_spim_data_event.set()
-            """
         return sendMessage
 
 
