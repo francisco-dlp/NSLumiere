@@ -8,6 +8,7 @@ import numpy
 import struct
 import pathlib
 import os
+import select
 
 from nion.swift.model import HardwareSource
 
@@ -502,7 +503,10 @@ class TimePix3():
 
         check string value is a convenient function to detect the values using the header standard format for jsonimage.
         """
+        inputs = list()
+        outputs = list()
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_aux = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         """
         127.0.0.1 -> LocalHost;
@@ -515,8 +519,9 @@ class TimePix3():
         ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname('192.168.199.11')
         address = (ip, port)
         try:
-            client.connect(address)
-            logging.info(f'***TP3***: Client connected over {ip}:{port}.')
+            client.connect(address); client_aux.connect(address)
+            logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
+            inputs.append(client); inputs.append(client_aux)
         except ConnectionRefusedError:
             return False
 
@@ -608,41 +613,43 @@ class TimePix3():
                 return False
 
         while True:
-
             if message == 1:
                 try:
-                    packet_data = client.recv(buffer_size)
-                    if packet_data == b'': return
-                    while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
-                        temp = client.recv(buffer_size)
-                        if temp == b'':
-                            return
-                        else:
-                            packet_data += temp
+                    read, _, _ = select.select(inputs, outputs, inputs)
+                    for s in read:
+                        if s == client:
+                            packet_data = client.recv(buffer_size)
+                            if packet_data == b'': return
+                            while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
+                                temp = client.recv(buffer_size)
+                                if temp == b'':
+                                    return
+                                else:
+                                    packet_data += temp
 
-                    begin_header = packet_data.index(b'{"time')
-                    end_header = packet_data.index(b'}\n', begin_header)
-                    header = packet_data[begin_header:end_header + 1].decode('latin-1')
-                    for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
-                                       "height"]:
-                        cam_properties[properties] = (check_string_value(header, properties))
+                            begin_header = packet_data.index(b'{"time')
+                            end_header = packet_data.index(b'}\n', begin_header)
+                            header = packet_data[begin_header:end_header + 1].decode('latin-1')
+                            for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
+                                               "height"]:
+                                cam_properties[properties] = (check_string_value(header, properties))
 
-                    data_size = int(cam_properties['dataSize'])
+                            data_size = int(cam_properties['dataSize'])
 
-                    while len(packet_data) < end_header + data_size + len(header):
-                        temp = client.recv(buffer_size)
-                        if temp == b'':
-                            return
-                        else:
-                            packet_data += temp
+                            while len(packet_data) < end_header + data_size + len(header):
+                                temp = client.recv(buffer_size)
+                                if temp == b'':
+                                    return
+                                else:
+                                    packet_data += temp
 
-                    # frame_data += packet_data[:begin_header]
-                    # if put_queue(cam_properties, frame_data):
-                    #    frame_data = b''
-                    # if not frame_data:
-                    frame_data = packet_data[end_header + 2:end_header + 2 + data_size + 1]
-                    if put_queue(cam_properties, frame_data):
-                        frame_data = b''
+                            # frame_data += packet_data[:begin_header]
+                            # if put_queue(cam_properties, frame_data):
+                            #    frame_data = b''
+                            # if not frame_data:
+                            frame_data = packet_data[end_header + 2:end_header + 2 + data_size + 1]
+                            if put_queue(cam_properties, frame_data):
+                                frame_data = b''
 
                 except socket.timeout:
                     logging.info("***TP3***: Socket timeout.")
@@ -656,18 +663,23 @@ class TimePix3():
 
             elif message == 2:
                 try:
-                    packet_data = client.recv(buffer_size)
-                    if packet_data == b'': return
+                    read, _ , _ = select.select(inputs, outputs, inputs)
+                    for s in read:
+                        if s==client:
+                            packet_data = client.recv(buffer_size)
+                            if packet_data == b'': return
 
-                    dt = numpy.dtype(numpy.uint32).newbyteorder('>')
-                    event_list = numpy.frombuffer(packet_data, dtype=dt)
+                            dt = numpy.dtype(numpy.uint32).newbyteorder('>')
+                            event_list = numpy.frombuffer(packet_data, dtype=dt)
 
-                    unique, counts = numpy.unique(event_list, return_counts=True)
-                    counts = counts.astype(numpy.uint32)
-                    self.__spimData[unique] += counts
+                            unique, counts = numpy.unique(event_list, return_counts=True)
+                            counts = counts.astype(numpy.uint32)
+                            self.__spimData[unique] += counts
 
-                    if len(packet_data) < buffer_size / 8:
-                        self.sendmessage(message)
+                            if len(packet_data) < buffer_size / 8:
+                                self.sendmessage(message)
+                        else:
+                            pass
 
                 except socket.timeout:
                     logging.info("***TP3***: Socket timeout.")
@@ -675,8 +687,7 @@ class TimePix3():
                         break
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
-                    if not self.__isPlaying:
-                        break
+                    return
                 if not self.__isPlaying:
                     logging.info("***TP3***: Breaking spim. Showing last image.")
                     # self.sendmessage(message)
