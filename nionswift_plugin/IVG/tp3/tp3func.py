@@ -674,7 +674,7 @@ class TimePix3():
                             counts = counts.astype(numpy.uint32)
                             self.__spimData[unique] += counts
 
-                            if len(packet_data) < buffer_size / 8:
+                            if len(packet_data) < buffer_size / 16:
                                 self.sendmessage(message)
                         else:
                             pass
