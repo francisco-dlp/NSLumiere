@@ -187,12 +187,13 @@ class Device:
             self.__buffer = list()
             self.__start_next_frame()
 
+            logging.info(f"***SCAN***: Starting acquisition. Spim is {self.__spim}")
             if not self.__spim:
                 self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
                 self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
                 self.__is_scanning = self.orsayscan.startImaging(0, 1)
 
-            if self.__is_scanning: print('Acquisition Started')
+            logging.info(f'**SCAN***: Acquisition Started is {self.__is_scanning}.')
         return self.__frame_number
 
     def __start_next_frame(self):
