@@ -669,13 +669,11 @@ class TimePix3():
 
                             dt = numpy.dtype(numpy.uint32).newbyteorder('>')
                             event_list = numpy.frombuffer(packet_data, dtype=dt)
+                            self.__eventQueue.put(event_list)
 
-                            unique, counts = numpy.unique(event_list, return_counts=True)
-                            counts = counts.astype(numpy.uint32)
-                            self.__spimData[unique] += counts
+                            if len(packet_data) < buffer_size / 8:
+                                self.update_spim()
 
-                            if len(packet_data) < buffer_size / 16:
-                                self.sendmessage(message)
                         else:
                             pass
 
@@ -698,6 +696,12 @@ class TimePix3():
 
     def get_last_event(self):
         return self.__eventQueue.get()
+
+    def update_spim(self):
+        event_list = self.__eventQueue.get()
+        unique, counts = numpy.unique(event_list, return_counts=True)
+        counts = counts.astype(numpy.uint32)
+        self.__spimData[unique] += counts
 
     def get_total_counts_from_data(self, frame_int):
         return numpy.sum(frame_int)

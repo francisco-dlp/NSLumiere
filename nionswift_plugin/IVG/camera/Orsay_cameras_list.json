@@ -1,5 +1,14 @@
 [
     {
+        "manufacturer": 2,
+        "model": "Newton",
+        "type": "eire",
+        "id": "orsay_camera_eire",
+        "name": "EIRE",
+        "simulation": false
+    },
+
+    {
         "manufacturer": 4,
         "model": "CheeTah",
             "ip_address": "http://129.175.108.52:8080",
