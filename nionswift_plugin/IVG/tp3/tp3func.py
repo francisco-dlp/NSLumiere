@@ -306,7 +306,7 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 12)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)
         port = 8088
         self.__softBinning = True if displaymode == '1d' else False
         message = 1
@@ -569,7 +569,7 @@ class TimePix3():
             config_bytes += struct.pack(">H", 1024)
             config_bytes += struct.pack(">H", 1024)
 
-        config_bytes += struct.pack(">d", self.__delay+98000 + (1010 - self.__width))  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack(">d", self.__delay)  # BE. See https://docs.python.org/3/library/struct.html
         config_bytes += struct.pack(">d", self.__width)  # BE. See https://docs.python.org/3/library/struct.html
 
         client.send(config_bytes)
@@ -610,8 +610,9 @@ class TimePix3():
                     f'***TP3***: Problem in size/len assertion. Properties are {cam_properties} and data is {len(frame)}')
                 return False
 
-        while True:
-            if message == 1:
+
+        if message == 1:
+            while True:
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
@@ -649,47 +650,36 @@ class TimePix3():
                             if put_queue(cam_properties, frame_data):
                                 frame_data = b''
 
-                except socket.timeout:
-                    logging.info("***TP3***: Socket timeout.")
-                    if not self.__isPlaying:
-                        return
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
                     return
                 if not self.__isPlaying:
                     return
 
-            elif message == 2:
+        elif message == 2:
+            while True:
                 try:
                     read, _ , _ = select.select(inputs, outputs, inputs)
                     for s in read:
                         if s==client:
                             packet_data = client.recv(buffer_size)
-                            if packet_data == b'': return
+                            if packet_data == b'':
+                                logging.info('***TP3***: No more packets received in SPIM.')
+                                self.update_spim_all()
+                                return
 
                             dt = numpy.dtype(numpy.uint32).newbyteorder('>')
                             event_list = numpy.frombuffer(packet_data, dtype=dt)
                             self.__eventQueue.put(event_list)
 
-                            if len(packet_data) < buffer_size / 8:
+                            if len(packet_data) < buffer_size / 2:
                                 self.update_spim()
 
-                        else:
-                            pass
-
-                except socket.timeout:
-                    logging.info("***TP3***: Socket timeout.")
-                    if not self.__isPlaying:
-                        break
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
                     return
-                if not self.__isPlaying:
-                    logging.info("***TP3***: Breaking spim. Showing last image.")
-                    # self.sendmessage(message)
-                    break
 
-        return True
+        return
 
     def get_last_data(self):
         return self.__dataQueue.get()
@@ -702,6 +692,15 @@ class TimePix3():
         unique, counts = numpy.unique(event_list, return_counts=True)
         counts = counts.astype(numpy.uint32)
         self.__spimData[unique] += counts
+
+    def update_spim_all(self):
+        logging.info('***TP3***: Emptying queue and closing connection.')
+        while not self.__eventQueue.empty():
+            event_list = self.__eventQueue.get()
+            unique, counts = numpy.unique(event_list, return_counts=True)
+            counts = counts.astype(numpy.uint32)
+            self.__spimData[unique] += counts
+        logging.info('***TP3***: SPIM finished.')
 
     def get_total_counts_from_data(self, frame_int):
         return numpy.sum(frame_int)
