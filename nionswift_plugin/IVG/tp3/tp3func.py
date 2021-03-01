@@ -610,7 +610,6 @@ class TimePix3():
                     f'***TP3***: Problem in size/len assertion. Properties are {cam_properties} and data is {len(frame)}')
                 return False
 
-
         if message == 1:
             while True:
                 try:
@@ -635,7 +634,7 @@ class TimePix3():
 
                             data_size = int(cam_properties['dataSize'])
 
-                            while len(packet_data) < end_header + data_size + len(header):
+                            while len(packet_data) < begin_header + data_size + len(header):
                                 temp = client.recv(buffer_size)
                                 if temp == b'':
                                     return
