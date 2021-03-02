@@ -678,6 +678,9 @@ class TimePix3():
                     logging.info("***TP3***: Socket reseted. Closing connection.")
                     return
 
+                if not self.__isPlaying:
+                    return
+
         return
 
     def get_last_data(self):
