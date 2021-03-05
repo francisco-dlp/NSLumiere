@@ -147,33 +147,37 @@ class TimePix3():
         data = resp.text
         logging.info('Response of updating Detector Configuration: ' + data)
 
-    def set_destination(self, port=8088):
+    def set_destination(self, port):
         """
         Sets the destination of the data. Data modes in ports are also defined here. Note that you always have
         data flown in port 8088 and 8089 but only one client at a time.
         """
-        options = ['count', 'tot', 'toa', 'tof']
-        destination = {
-            # "Raw": [{
-            #    "Base": "file:/home/asi/load_files/data",
-            #    "FilePattern": "raw",
-            # }]
+        options = self.getPortNames()
+        if port==0:
+            destination = {
+                "Raw": [{
+                    "Base": "tcp://127.0.0.1:8098",
+                }]
+                # "Image": [{
+                #    "Base": "tcp://127.0.0.1:8088",
+                #    "Format": "jsonimage",
+                #    "Mode": options[port],
+                # }]
+                # {
+                #    "Base": "tcp://localhost:8089",
+                #    "Format": "jsonimage",
+                #    "Mode": options[port],
+                #    "IntegrationSize": -1,
+                #    "IntegrationMode": "Sum"
+                # }
+                # ]
+            }
+        elif port==1:
+            destination = {
             "Raw": [{
-                "Base": "tcp://127.0.0.1:8098",
+                "Base": "file:/home/asi/load_files/data",
+                "FilePattern": "raw",
             }]
-            # "Image": [{
-            #    "Base": "tcp://127.0.0.1:8088",
-            #    "Format": "jsonimage",
-            #    "Mode": options[port],
-            # }]
-            # {
-            #    "Base": "tcp://localhost:8089",
-            #    "Format": "jsonimage",
-            #    "Mode": options[port],
-            #    "IntegrationSize": -1,
-            #    "IntegrationMode": "Sum"
-            # }
-            # ]
         }
 
         resp = self.request_put(url=self.__serverURL + '/server/destination', data=json.dumps(destination))
@@ -182,7 +186,7 @@ class TimePix3():
         logging.info(f'***TP3***: Selected port is {port} and corresponds to: ' + options[port])
 
     def getPortNames(self):
-        return ['Counts', 'Time over Threshold (ToT)', 'Time of Arrival (ToA)', 'Time of Flight (ToF)']
+        return ['TCP Stream', 'Save Locally', 'JSON Image (counts)', 'JSON Image (ToT)']
 
     def getCCDSize(self):
         return (256, 1024)
