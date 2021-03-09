@@ -1,0 +1,23 @@
+import time
+from nion.swift.model import HardwareSource
+from nion.typeshed import API_1_0 as API
+from nion.typeshed import UI_1_0 as UI
+
+api = api_broker.get_api(API.version, UI.version)  # type: API
+
+cam = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_timepix3")
+scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+
+fov = scan.scan_device.field_of_view
+time_us = scan.scan_device.current_frame_parameters['pixel_time_us']
+ia = scan.scan_device.Image_area
+texp = cam.get_current_frame_parameters()['exposure_ms']/1000.
+cam_fp = cam.get_current_frame_parameters()['acquisition_mode']
+
+print(cam_fp == 'Focus')
+#scan.start_playing()
+#im = scan.grab_next_to_start()
+#scan.abort_playing()
+
+#data = cam.grab_next_to_finish()
+#cam.start_playing()
