@@ -10,11 +10,11 @@ scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_s
 
 fov = scan.scan_device.field_of_view
 time_us = scan.scan_device.current_frame_parameters['pixel_time_us']
-ia = scan.scan_device.Image_area
-texp = cam.get_current_frame_parameters()['exposure_ms']/1000.
-cam_fp = cam.get_current_frame_parameters()['acquisition_mode']
+#ia = scan.scan_device.Image_area
+#texp = cam.get_current_frame_parameters()['exposure_ms']/1000.
+#cam_fp = cam.get_current_frame_parameters()['acquisition_mode']
 
-print(cam_fp == 'Focus')
+print(time_us)
 #scan.start_playing()
 #im = scan.grab_next_to_start()
 #scan.abort_playing()

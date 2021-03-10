@@ -260,6 +260,7 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)
             # scanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 7)
         port = 8088
         self.__softBinning = True
@@ -283,6 +284,11 @@ class TimePix3():
         """
         Identical to stopFocus. Just to be consistent with VGCameraYves.
         """
+        if not self.__simul:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
         status = self.getCCDStatus()
         resp = self.request_get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
