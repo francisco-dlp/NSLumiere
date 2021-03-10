@@ -548,7 +548,7 @@ class TimePix3():
             if self.__width==0:
                 config_bytes += b'\x00'  # Focus/Cumul mode
             else:
-                config_bytes += b'\x02'  # TR mode
+                config_bytes += b'\x01'  # TR mode
             size = 1
             config_bytes += size.to_bytes(2, 'big')
             config_bytes += size.to_bytes(2, 'big')
@@ -557,7 +557,10 @@ class TimePix3():
             self.__spimData = numpy.zeros(spim * 1024, dtype=numpy.uint32)
             self.__xspim = int(numpy.sqrt(spim))
             self.__yspim = int(numpy.sqrt(spim))
-            config_bytes += b'\x01'  # Spim is ON
+            if self.__width==0:
+                config_bytes += b'\x02'  # Spim is ON
+            else:
+                config_bytes += b'\x03'
             config_bytes += self.__xspim.to_bytes(2, 'big')
             config_bytes += self.__yspim.to_bytes(2, 'big')
             self.sendmessage(message)
