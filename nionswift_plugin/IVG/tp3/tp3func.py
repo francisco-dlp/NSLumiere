@@ -557,10 +557,17 @@ class TimePix3():
             self.__spimData = numpy.zeros(spim * 1024, dtype=numpy.uint32)
             self.__xspim = int(numpy.sqrt(spim))
             self.__yspim = int(numpy.sqrt(spim))
-            if self.__width==0:
+            if self.__width==0: # Normal SPIM
                 config_bytes += b'\x02'  # Spim is ON
-            else:
-                config_bytes += b'\x03'
+            else: #Time Resolved SPIM
+                if not self.__simul:
+                    scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                        "orsay_scan_device")
+                    pixel_time = int(scanInstrument.scan_device.current_frame_parameters['pixel_time_us'])
+                else:
+                    pixel_time = 100.0
+                if pixel_time >= 100.0: config_bytes += b'\x03'
+                else: config_bytes += b'\x02'
             config_bytes += self.__xspim.to_bytes(2, 'big')
             config_bytes += self.__yspim.to_bytes(2, 'big')
             self.sendmessage(message)
