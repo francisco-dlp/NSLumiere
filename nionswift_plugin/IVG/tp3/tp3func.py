@@ -572,8 +572,12 @@ class TimePix3():
                     pixel_time = int(scanInstrument.scan_device.current_frame_parameters['pixel_time_us'])
                 else:
                     pixel_time = 100.0
-                if pixel_time >= 100.0: config_bytes += b'\x03'
-                else: config_bytes += b'\x02'
+                if pixel_time >= 100.0:
+                    config_bytes += b'\x03'
+                    scanInstrument.scan_device.orsayscan.SetLaser(12000, 0, False, -1)
+                    scanInstrument.scan_device.orsayscan.StartLaser(3, 5)
+                else:
+                    config_bytes += b'\x02'
             config_bytes += self.__xspim.to_bytes(2, 'big')
             config_bytes += self.__yspim.to_bytes(2, 'big')
             self.sendmessage(message)
