@@ -36,6 +36,7 @@ class TimePix3():
         self.__isPlaying = False
         self.__softBinning = False
         self.__isCumul = False
+        self.__tr = False
         self.__expTime = None
         self.__port = 0
         self.__delay = 0.
@@ -261,7 +262,6 @@ class TimePix3():
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)
-            # scanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 7)
         port = 8088
         self.__softBinning = True
         message = 2
@@ -293,6 +293,14 @@ class TimePix3():
         resp = self.request_get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
         self.finish_listening()
+
+        if not self.__tr:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.CancelLaser()
+            scanInstrument.scan_device.orsayscan.SetLaser(10000, 0, False, -1)
+            scanInstrument.scan_device.orsayscan.StartLaser(7)
+
 
     def isCameraThere(self):
         return True
@@ -538,6 +546,8 @@ class TimePix3():
 
         config_bytes = b''
 
+        self.__tr = False #Start always with false and will be updated if otherwise
+
         if self.__softBinning:
             config_bytes += b'\x01'  # Soft binning
             config_bytes += b'\x02'  # Bit depth 16
@@ -554,6 +564,7 @@ class TimePix3():
             if self.__width==0:
                 config_bytes += b'\x00'  # Focus/Cumul mode
             else:
+                self.__tr = True
                 config_bytes += b'\x01'  # TR mode
             size = 1
             config_bytes += size.to_bytes(2, 'big')
@@ -573,9 +584,12 @@ class TimePix3():
                 else:
                     pixel_time = 100.0
                 if pixel_time >= 100.0:
+                    self.__tr = True
                     config_bytes += b'\x03'
+                    scanInstrument.scan_device.orsayscan.CancelLaser()
                     scanInstrument.scan_device.orsayscan.SetLaser(12000, 0, False, -1)
                     scanInstrument.scan_device.orsayscan.StartLaser(3, 5)
+                    scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13) #Not sure if needed, but recopy TDC
                 else:
                     config_bytes += b'\x02'
             config_bytes += self.__xspim.to_bytes(2, 'big')
