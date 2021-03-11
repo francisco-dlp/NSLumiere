@@ -105,6 +105,12 @@ class orsayScan(object):
         # bool SCAN_EXPORT OrsayScansetPose(void* o, int gene, double time);
         self.__OrsayScansetPose = _buildFunction(_library.OrsayScansetPose, [c_void_p, c_int, c_double], c_bool)
 
+        # double SCAN_EXPORT OrsayScanSetRetourLigne(void* o, int gene, double rt);
+        self.__OrsayScanSetRetourLigne = _buildFunction(_library.OrsayScanSetRetourLigne, [c_void_p, c_int, c_double],
+                                                        c_double)
+        # double SCAN_EXPORT OrsayScanGetRetourligne(void* o, int gene);
+        self.__OrsayScanGetRetourLigne = _buildFunction(_library.OrsayScanGetRetourLigne, [c_void_p, c_int], c_double)
+
         # double SCAN_EXPORT OrsayScanGetImageTime(void* o, int gene);
         self.__OrsayScanGetImageTime = _buildFunction(_library.OrsayScanGetImageTime, [c_void_p, c_int], c_double)
 
@@ -240,6 +246,9 @@ class orsayScan(object):
 
         # void SCAN_EXPORT OrsayScanStartLaser(self.orsayscan, int mode);
         self.__OrsayScanStartLaser = _buildFunction(_library.OrsayScanStartLaser, [c_void_p, c_int], None)
+
+        # void SCAN_EXPORT OrsayScanStartLaserA(self.orsayscan, int mode, short source);
+        self.__OrsayScanStartLaserA = _buildFunction(_library.OrsayScanStartLaserA, [c_void_p, c_int, c_short], None)
 
         # void SCAN_EXPORT OrsayScanCancelLaser(self.orsayscan);
         self.__OrsayScanCancelLaser = _buildFunction(_library.OrsayScanCancelLaser, [c_void_p], None)
@@ -684,9 +693,16 @@ class orsayScan(object):
         self.__OrsayScanSetLaser(self.orsayscan,frequency,nbpulses,bottomblanking,sync)
 
    #void SCAN_EXPORT OrsayScanStartLaser(self.orsayscan, int mode);
-    def StartLaser(self,mode):
-        """ Démarre le laser """
-        self.__OrsayScanStartLaser(self.orsayscan,mode)
+    def StartLaser(self, mode, source = -1):
+        """
+        Démarre le laser
+        when mode = 7 => internal generator with frequency defined by SetLaser function
+        when mode = 3 => source is taken as trigger, for instance 5 for pixel clock.
+        """
+        if source == -1:
+            self.__OrsayScanStartLaser(self.orsayscan, mode)
+        else:
+            self.__OrsayScanStartLaserA(self.orsayscan, mode, source)
 
    #void SCAN_EXPORT OrsayScanCancelLaser(self.orsayscan);
     def CancelLaser(self):
@@ -732,4 +748,10 @@ class orsayScan(object):
         Si 0, pas de simulation d'horloge camera.
         """
         self.__OrsayScanSetClockSimulationTime(self.orsayscan, self.gene, value)
+
+    def SetFlybackTime(self, flyback: float) -> float:
+        return self.__OrsayScanSetRetourLigne(self.orsayscan, self.gene, flyback)
+
+    def GetFlybackTime(self) -> float:
+        return self.__OrsayScanGetRetourLigne(self.orsayscan, self.gene)
 
