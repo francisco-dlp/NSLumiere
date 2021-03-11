@@ -581,17 +581,20 @@ class TimePix3():
                     scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                         "orsay_scan_device")
                     pixel_time = int(scanInstrument.scan_device.current_frame_parameters['pixel_time_us'])
+                    if pixel_time == 100.0:
+                        self.__tr = True
+                        scanInstrument.scan_device.orsayscan.CancelLaser()
+                        scanInstrument.scan_device.orsayscan.SetLaser(12000, 0, False, -1)
+                        scanInstrument.scan_device.orsayscan.StartLaser(3, 5)
+                        scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Not sure if needed, but recopy TDC
                 else:
-                    pixel_time = 100.0
-                if pixel_time >= 100.0:
                     self.__tr = True
+
+                if self.__tr:
                     config_bytes += b'\x03'
-                    scanInstrument.scan_device.orsayscan.CancelLaser()
-                    scanInstrument.scan_device.orsayscan.SetLaser(12000, 0, False, -1)
-                    scanInstrument.scan_device.orsayscan.StartLaser(3, 5)
-                    scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13) #Not sure if needed, but recopy TDC
                 else:
                     config_bytes += b'\x02'
+
             config_bytes += self.__xspim.to_bytes(2, 'big')
             config_bytes += self.__yspim.to_bytes(2, 'big')
             self.sendmessage(message)
