@@ -298,7 +298,11 @@ class TimePix3():
             logging.info(f'***TP3***: TR is on. Cancelling Laser.')
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.CancelLaser()
+            LaserInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("sgain_controller")
+            if LaserInstrument:
+                LaserInstrument.fast_blanker_status_f = False
+            else:
+                scanInstrument.scan_device.orsayscan.CancelLaser()
 
 
     def isCameraThere(self):
