@@ -604,8 +604,12 @@ class TimePix3():
         if not self.__simul:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            x_size = int(scanInstrument.scan_device.current_frame_parameters['size'][0])
-            y_size = int(scanInstrument.scan_device.current_frame_parameters['size'][1])
+            if scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size']:
+                x_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][0])
+                y_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][1])
+            else:
+                x_size = int(scanInstrument.scan_device.current_frame_parameters['size'][0])
+                y_size = int(scanInstrument.scan_device.current_frame_parameters['size'][1])
             config_bytes += x_size.to_bytes(2, 'big')
             config_bytes += y_size.to_bytes(2, 'big')
         else:
