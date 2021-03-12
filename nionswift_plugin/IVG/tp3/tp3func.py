@@ -260,8 +260,8 @@ class TimePix3():
         if not self.__simul:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7) # Copy Line Start
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13) # Copy line 05
         port = 8088
         self.__softBinning = True
         message = 2
@@ -294,12 +294,11 @@ class TimePix3():
         data = resp.text
         self.finish_listening()
 
-        if not self.__tr:
+        if self.__tr:
+            logging.info(f'***TP3***: TR is on. Cancelling Laser.')
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.CancelLaser()
-            scanInstrument.scan_device.orsayscan.SetLaser(10000, 0, False, -1)
-            scanInstrument.scan_device.orsayscan.StartLaser(7)
 
 
     def isCameraThere(self):
@@ -324,7 +323,7 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13) # Copy Line 05
         port = 8088
         self.__softBinning = True if displaymode == '1d' else False
         message = 1
@@ -583,10 +582,9 @@ class TimePix3():
                     pixel_time = int(scanInstrument.scan_device.current_frame_parameters['pixel_time_us'])
                     if pixel_time == 100.0:
                         self.__tr = True
-                        scanInstrument.scan_device.orsayscan.CancelLaser()
+                        logging.info(f'***TP3***: TR is True. Setting laser controlled by pixel clock.')
                         scanInstrument.scan_device.orsayscan.SetLaser(12000, 0, False, -1)
                         scanInstrument.scan_device.orsayscan.StartLaser(3, 5)
-                        scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Not sure if needed, but recopy TDC
                 else:
                     self.__tr = True
 
