@@ -300,6 +300,7 @@ class TimePix3():
                 "orsay_scan_device")
             LaserInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("sgain_controller")
             if LaserInstrument:
+                LaserInstrument.sht_f = False
                 LaserInstrument.fast_blanker_status_f = False
             else:
                 scanInstrument.scan_device.orsayscan.CancelLaser()

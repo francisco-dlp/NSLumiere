@@ -167,6 +167,8 @@ class Device:
                     0] / 2)
             self.p3 = self.p2 + frame_parameters['subscan_pixel_size'][1]
             self.p5 = self.p4 + frame_parameters['subscan_pixel_size'][0]
+            subscan = frame_parameters['subscan_pixel_size']
+            logging.info(f'***SCAN***: Setting subscan to {subscan}.')
             self.Image_area = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
         else:
             if self.subscan_status or (self.Image_area[0], self.Image_area[1]) != frame_parameters['size']:
