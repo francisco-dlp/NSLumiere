@@ -299,11 +299,7 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             LaserInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("sgain_controller")
-            if LaserInstrument:
-                LaserInstrument.sht_f = False
-                LaserInstrument.fast_blanker_status_f = False
-            else:
-                scanInstrument.scan_device.orsayscan.CancelLaser()
+            LaserInstrument.over_spim_TP3()
 
 
     def isCameraThere(self):
@@ -584,12 +580,14 @@ class TimePix3():
                 if not self.__simul:
                     scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                         "orsay_scan_device")
+                    LaserInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("sgain_controller")
                     pixel_time = int(scanInstrument.scan_device.current_frame_parameters['pixel_time_us'])
-                    if pixel_time == 100.0:
+                    if pixel_time == 100.0 and LaserInstrument:
                         self.__tr = True
                         logging.info(f'***TP3***: TR is True. Setting laser controlled by pixel clock.')
-                        scanInstrument.scan_device.orsayscan.SetLaser(12000, 0, False, -1)
-                        scanInstrument.scan_device.orsayscan.StartLaser(3, 5)
+                        LaserInstrument.prepare_spim_TP3()
+                    else:
+                        logging.info(f'***TP3***: Pixel time is not 100 us || LaserInstrument was not found.')
                 else:
                     self.__tr = True
 
