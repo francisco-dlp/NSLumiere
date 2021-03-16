@@ -47,7 +47,3 @@ class GunVacuum:
         except:
             self.sendmessage(5)
             return 0
-
-
-    
-		

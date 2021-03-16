@@ -155,6 +155,7 @@ class probeDevice(Observable.Observable):
     @obj_global_f.setter
     def obj_global_f(self, value):
         self.__obj_global = value
+        if self.__obj_wobbler: self.obj_wobbler_f = False
         if value:
             self.__lenses_ps.locked_set_val(self.__obj, 'OBJ')
         else:
@@ -211,6 +212,7 @@ class probeDevice(Observable.Observable):
     @c1_global_f.setter
     def c1_global_f(self, value):
         self.__c1_global = value
+        if self.__c1_wobbler: self.c1_wobbler_f = False
         if value:
             self.__lenses_ps.locked_set_val(self.__c1, 'C1')
         else:
@@ -265,6 +267,7 @@ class probeDevice(Observable.Observable):
     @c2_global_f.setter
     def c2_global_f(self, value):
         self.__c2_global = value
+        if self.__c2_wobbler: self.c2_wobbler_f = False
         if value:
             self.__lenses_ps.locked_set_val(self.__c2, 'C2')
         else:
