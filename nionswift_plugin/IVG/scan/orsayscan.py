@@ -335,8 +335,19 @@ class orsayScan(object):
         self.__OrsayScanGetPMTLimits = _buildFunction(_library.OrsayScanGetPMTLimits,
                                                       [c_void_p, c_int, c_double, c_double], c_bool)
 
+        #	double SCAN_EXPORT OrsayScanGetVSM(void *o);
+        self.__OrsayScanGetVSM = _buildFunction(_library.OrsayScanGetVSM, [c_void_p], c_double)
+
+        #	void SCAN_EXPORT OrsayScanSetVSM(void *o, double value);
+        self.__OrsayScanSetVSM = _buildFunction(_library.OrsayScanSetVSM, [c_void_p, c_double], None)
+
     def __init__(self, gene, scandllobject=0, vg=False):
         self.__initialize_library()
+        #
+        # Should read initial value from configuration file
+        #
+        self.__drift_tube = {"offset": 0.0, "gain": 1.0/10.0, "range": {"min":-10.0, "max":10.0}, "value": 0.0}
+
         self.gene = gene
         cproduct = c_short()
         crevision = c_short()
@@ -794,7 +805,6 @@ class orsayScan(object):
         return self.__OrsayScanGetPMTLimits(self.orsayscan, index, vmin, vmax)
 
     ### END YVES ###
-
     @property
     def clock_simulation_time(self) -> float:
         """
@@ -817,3 +827,39 @@ class orsayScan(object):
 
     def GetFlybackTime(self) -> float:
         return self.__OrsayScanGetRetourLigne(self.orsayscan, self.gene)
+
+    @property
+    def drift_tube_calibration(self) -> dict:
+        return [self.__drift_tube["offset"], self.__drift_tube["gain"]]
+
+    @drift_tube_calibration.setter
+    def drift_tube_calibration(self, calib: dict):
+        self.__drift_tube["offset"] = calib["offset"]
+        self.__drift_tube["gain"] = calib["gain"]
+        # calculate new range
+        self.__drift_tube["range"]["min"] = -1/self.__drift_tube["gain"] + self.__drift_tube["offset"]
+        self.__drift_tube["range"]["max"] = 1/self.__drift_tube["gain"] + self.__drift_tube["offset"]
+        # refresh value with new calibrations
+        self.drift_tube = self.__drift_tube["value"]
+
+    @property
+    def drift_tube(self) -> float:
+        """
+        read back the current value of drift tube voltage, ie energy shift
+        """
+        return self.__drift_tube["value"]
+
+    @drift_tube.setter
+    def drift_tube(self, value: float):
+        """
+        Set the drift tube voltage
+        """
+        if (value > self.__drift_tube["range"]["max"]):
+            value = self.__drift_tube["range"]["max"]
+        else:
+            if (value < self.__drift_tube["range"]["min"]):
+                value = self.__drift_tube["range"]["min"]
+        self.__drift_tube["value"] = value
+        dac_value = 32767 * (value - self.__drift_tube["offset"]) * self.__drift_tube["gain"]
+        self.__OrsayScanSetVSM(self, dac_value)
+
