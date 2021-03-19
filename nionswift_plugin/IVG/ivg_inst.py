@@ -607,7 +607,8 @@ class ivgInstrument(stem_controller.STEMController):
         if s == "eels_y_offset":
             return True, 0
         elif s == "eels_x_offset":
-            return True, self.__EELSInstrument.ene_offset_edit_f
+            #return True, self.__EELSInstrument.ene_offset_edit_f
+            return True, 0
         elif s == "eels_y_scale":
             return True, 1
         elif s == "eels_x_scale":

@@ -324,8 +324,8 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13) # Copy Line 05
-            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 3, 3, period=0.000050, on_time=0.000045) # Copy Line 05
+            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13) # Copy Line 05
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
         port = 8088
         self.__softBinning = True if displaymode == '1d' else False
         message = 1
