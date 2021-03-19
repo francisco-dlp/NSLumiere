@@ -2,18 +2,15 @@ import serial
 import sys
 import time
 import threading
-
+from nion.swift.model import HardwareSource
 
 __author__ = "Yves Auad"
-
 
 def _isPython3():
     return sys.version_info[0] >= 3
 
-
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
-
 
 class espec:
 
@@ -48,6 +45,12 @@ class espec:
                 self.sendmessage(2)
         else:
             self.sendmessage(3)
+
+    def set_vsm(self, val):
+        scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+        if scan is not None:
+            scan.scan_device.orsayscan.drift_tube = val
+
 
     def wobbler_loop(self, current, intensity, which):
         self.wobbler_thread = threading.currentThread()

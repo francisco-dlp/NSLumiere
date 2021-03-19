@@ -252,7 +252,7 @@ class eels_spec_View:
         self.vsm_label = ui.create_label(text='Energy Offset: ')
         self.vsm_value = ui.create_line_edit(name='vsm_value', text='@binding(instrument.ene_offset_edit_f)')
         self.vsm_row=ui.create_row(self.vsm_label, self.vsm_value)
-        self.vsm_slider=ui.create_slider(name='vsm_slider', value='@binding(instrument.ene_offset_f)', minimum=-1000, maximum=1000)
+        self.vsm_slider=ui.create_slider(name='vsm_slider', value='@binding(instrument.ene_offset_f)', minimum=-5000, maximum=5000)
         self.vsm_tab = ui.create_tab(label='VSM', content=ui.create_column( \
             self.vsm_row, self.vsm_slider, ui.create_stretch()))
 

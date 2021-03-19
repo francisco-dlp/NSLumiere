@@ -26,6 +26,9 @@ class espec:
         else:
             self.sendmessage(3)
 
+    def set_vsm(self, val):
+        pass
+
     def wobbler_loop(self, current, intensity, which):
         self.wobbler_thread = threading.currentThread()
         sens = 1

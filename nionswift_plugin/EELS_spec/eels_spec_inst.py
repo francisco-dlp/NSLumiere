@@ -466,11 +466,12 @@ class EELS_SPEC_Device(Observable.Observable):
 
     @property
     def ene_offset_f(self):
-        return int(self.__ene_offset*10.)
+        return int(self.__ene_offset*1000.)
 
     @ene_offset_f.setter
     def ene_offset_f(self, value):
-        self.__ene_offset = value/10.
+        self.__ene_offset = value/1000.
+        self.__eels_spec.set_vsm(self.__ene_offset)
         self.property_changed_event.fire('ene_offset_f')
         self.property_changed_event.fire('ene_offset_edit_f')
 
@@ -481,5 +482,6 @@ class EELS_SPEC_Device(Observable.Observable):
     @ene_offset_edit_f.setter
     def ene_offset_edit_f(self, value):
         self.__ene_offset = float(value)
+        self.__eels_spec.set_vsm(self.__ene_offset)
         self.property_changed_event.fire('ene_offset_f')
         self.property_changed_event.fire('ene_offset_edit_f')
