@@ -282,7 +282,6 @@ class orsayScan(object):
 
     def __init__(self, gene, scandllobject = 0, vg=False):
         self.__initialize_library()
-        self.__drift_tube = {"offset": 0.0, "gain": 1.0/10.0, "range": {"min":-10.0, "max":10.0}, "value": 0.0}
         self.gene = gene
         cproduct = c_short()
         crevision = c_short()
@@ -301,6 +300,10 @@ class orsayScan(object):
         self._minor = cminor.value
         if self._major < 5:
             raise AttributeError("No device connected")
+
+        self.__drift_tube = {"offset": 0.0, "gain": 1.0/10.0, "range": {"min":-10.0, "max":10.0}, "value": 0.0}
+        drift_tube = {"offset": 0.002, "gain": 1.0/5.005}
+        self.drift_tube_calibration = drift_tube
 
     def close(self):
         self.__OrsayScanClose(self.orsayscan)
@@ -793,4 +796,5 @@ class orsayScan(object):
         self.__drift_tube["value"] = value
         dac_value = 32767 * (value - self.__drift_tube["offset"]) * self.__drift_tube["gain"]
         self.__OrsayScanSetVSM(self.orsayscan, dac_value)
+
 
