@@ -16,18 +16,18 @@ class espec:
         self.sendmessage=sendmessage
 
     def set_val(self, val, which):
-        if abs(val)<32767:
-            if val < 0:
-                val = abs(val)
-            else:
-                val = 0xffff - val
-            string = which+' 0,'+hex(val)[2:6]+'\r'
-            return None
+        if which=="VSM":
+            pass
         else:
-            self.sendmessage(3)
-
-    def set_vsm(self, val):
-        pass
+            if abs(val)<32767:
+                if val < 0:
+                    val = abs(val)
+                else:
+                    val = 0xffff - val
+                string = which+' 0,'+hex(val)[2:6]+'\r'
+                return None
+            else:
+                self.sendmessage(3)
 
     def wobbler_loop(self, current, intensity, which):
         self.wobbler_thread = threading.currentThread()

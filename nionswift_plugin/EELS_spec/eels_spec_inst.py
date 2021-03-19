@@ -42,6 +42,7 @@ class EELS_SPEC_Device(Observable.Observable):
         self.__dx = 0
         self.__dmx = 0
         self.ene_offset_f=0
+        self.__vsm_wobbler = False
 
         self.__focus_wobbler_int=25
         self.__dispersion_wobbler_int=25
@@ -471,7 +472,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @ene_offset_f.setter
     def ene_offset_f(self, value):
         self.__ene_offset = value/1000.
-        self.__eels_spec.set_vsm(self.__ene_offset)
+        self.__eels_spec.set_val(self.__ene_offset, 'VSM')
         self.property_changed_event.fire('ene_offset_f')
         self.property_changed_event.fire('ene_offset_edit_f')
 
@@ -482,6 +483,20 @@ class EELS_SPEC_Device(Observable.Observable):
     @ene_offset_edit_f.setter
     def ene_offset_edit_f(self, value):
         self.__ene_offset = float(value)
-        self.__eels_spec.set_vsm(self.__ene_offset)
+        self.__eels_spec.set_val(self.__ene_offset, 'VSM')
         self.property_changed_event.fire('ene_offset_f')
         self.property_changed_event.fire('ene_offset_edit_f')
+
+    @property
+    def vsm_wobbler_f(self):
+        return self.__vsm_wobbler
+
+    @vsm_wobbler_f.setter
+    def vsm_wobbler_f(self, value):
+        self.__vsm_wobbler = value
+        if value:
+            self.__eels_spec.wobbler_on(self.__ene_offset, 5-abs(self.__ene_offset), 'VSM')
+        else:
+            self.__eels_spec.wobbler_off()
+            time.sleep(1.1)
+            self.ene_offset_edit_f = self.__ene_offset

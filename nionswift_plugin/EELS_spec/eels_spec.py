@@ -32,24 +32,24 @@ class espec:
             self.sendmessage(1)
 
     def set_val(self, val, which):
-        if abs(val)<32767:
-            try:
-                if val < 0:
-                    val = abs(val)
-                else:
-                    val = 0xffff - val
-                string = which + ' 0,' + hex(val)[2:6] + '\r'
-                self.ser.write(string.encode())
-                return self.ser.read(6)
-            except:
-                self.sendmessage(2)
+        if which=="VSM":
+            scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+            if scan is not None:
+                scan.scan_device.orsayscan.drift_tube = float(val)
         else:
-            self.sendmessage(3)
-
-    def set_vsm(self, val):
-        scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-        if scan is not None:
-            scan.scan_device.orsayscan.drift_tube = val
+            if abs(val)<32767:
+                try:
+                    if val < 0:
+                        val = abs(val)
+                    else:
+                        val = 0xffff - val
+                    string = which + ' 0,' + hex(val)[2:6] + '\r'
+                    self.ser.write(string.encode())
+                    return self.ser.read(6)
+                except:
+                    self.sendmessage(2)
+            else:
+                self.sendmessage(3)
 
 
     def wobbler_loop(self, current, intensity, which):
