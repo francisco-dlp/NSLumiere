@@ -2,11 +2,15 @@
 Class controlling orsay scan hardware.
 """
 import sys
+from json import load as json_load
+from json import dump as json_dump
+import gettext
 from ctypes import cdll, create_string_buffer, POINTER, byref
 from ctypes import c_uint, c_int, c_char, c_char_p, c_void_p, c_short, c_long, c_bool, c_double, c_uint64, c_uint32, \
     Array, CFUNCTYPE, WINFUNCTYPE
 import os
 from shutil import copy2
+_ = gettext.gettext
 
 __author__ = "Marcel Tence"
 __status__ = "alpha"
@@ -346,7 +350,8 @@ class orsayScan(object):
         #
         # Should read initial value from configuration file
         #
-        self.__drift_tube = {"offset": 0.0, "gain": 1.0/10.0, "range": {"min":-10.0, "max":10.0}, "value": 0.0}
+        if (gene == 1):
+            self.__load_drift_tube()
 
         self.gene = gene
         cproduct = c_short()
@@ -367,6 +372,19 @@ class orsayScan(object):
         self._minor = cminor.value
         if self._major < 5:
             raise AttributeError("No device connected")
+
+    def __load_drift_tube(self):
+        self.__drift_tube_config_file = os.environ['ALLUSERSPROFILE'] + "\\Nion\\Nion Swift\\Drift_tube.json"
+        try:
+            with open(self.__drift_tube_config_file) as f:
+                self.__drift_tube = json_load(f)
+        except Exception as e:
+            self.__drift_tube = {_("offset"): 0.0, _("gain"): 1.0 / 10.0, _("range"): {_("min"): -10.0, _("max"): 10.0}, _("value"): 0.0}
+            try:
+                with open(self.__drift_tube_config_file, "w") as fp:
+                    json_dump(self.__drift_tube, fp, skipkeys=True, indent=4)
+            except Exception as ex:
+                print("error saving vsm calibrations" + ex)
 
     def close(self):
         self.__OrsayScanClose(self.orsayscan)
@@ -841,6 +859,12 @@ class orsayScan(object):
         self.__drift_tube["range"]["max"] = 1/self.__drift_tube["gain"] + self.__drift_tube["offset"]
         # refresh value with new calibrations
         self.drift_tube = self.__drift_tube["value"]
+        # save calibration values
+        try:
+            with open(self.__drift_tube_config_file, "w") as fp:
+                json_dump(self.__drift_tube, fp, skipkeys=True, indent=4)
+        except Exception as ex:
+            print("error saving vsm calibrations" + ex)
 
     @property
     def drift_tube(self) -> float:
