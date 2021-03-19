@@ -885,5 +885,5 @@ class orsayScan(object):
                 value = self.__drift_tube["range"]["min"]
         self.__drift_tube["value"] = value
         dac_value = 32767 * (value - self.__drift_tube["offset"]) * self.__drift_tube["gain"]
-        self.__OrsayScanSetVSM(self, dac_value)
+        self.__OrsayScanSetVSM(self.orsayscan, dac_value)
 
