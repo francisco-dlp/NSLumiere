@@ -159,19 +159,6 @@ class TimePix3():
                 "Raw": [{
                     "Base": "tcp://127.0.0.1:8098",
                 }]
-                # "Image": [{
-                #    "Base": "tcp://127.0.0.1:8088",
-                #    "Format": "jsonimage",
-                #    "Mode": options[port],
-                # }]
-                # {
-                #    "Base": "tcp://localhost:8089",
-                #    "Format": "jsonimage",
-                #    "Mode": options[port],
-                #    "IntegrationSize": -1,
-                #    "IntegrationMode": "Sum"
-                # }
-                # ]
             }
         elif port==1:
             destination = {
@@ -179,8 +166,23 @@ class TimePix3():
                 "Base": "file:/home/asi/load_files/data",
                 "FilePattern": "raw",
             }]
-        }
-
+            }
+        elif port==2:
+            destination = {
+            "Image": [{
+                "Base": "tcp://127.0.0.1:8088",
+                "Format": "jsonimage",
+                "Mode": "count",
+            }]
+            }
+        elif port==3:
+            destination = {
+                "Image": [{
+                    "Base": "tcp://127.0.0.1:8088",
+                    "Format": "jsonimage",
+                    "Mode": "tot",
+                }]
+            }
         resp = self.request_put(url=self.__serverURL + '/server/destination', data=json.dumps(destination))
         data = resp.text
         logging.info('***TP3***: Response of uploading the Destination Configuration to SERVAL : ' + data)
@@ -324,8 +326,8 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
-            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13) # Copy Line 05
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13) # Copy Line 05
+            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
         port = 8088
         self.__softBinning = True if displaymode == '1d' else False
         message = 1
