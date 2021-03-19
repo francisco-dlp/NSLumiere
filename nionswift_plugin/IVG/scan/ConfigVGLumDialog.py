@@ -42,7 +42,7 @@ class Handler:
         if self.__bot_blanker:
             self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(1, 0)
             #self.__OrsayScanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7) # Copy Line Start
-            #self.__OrsayScanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 12)
+            #self.__OrsayScanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 13) #Copy Line 05
         else:
             self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(0, 0)
 
