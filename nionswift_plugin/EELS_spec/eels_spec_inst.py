@@ -181,7 +181,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @fx_slider_f.setter
     def fx_slider_f(self, value):
         self.__elem[0] = value
-        self.__eels_spec.set_val(self.__elem[0], self.__names[0])
+        self.__eels_spec.locked_set_val(self.__elem[0], self.__names[0])
         self.property_changed_event.fire("fx_slider_f")
         self.property_changed_event.fire("fx_edit_f")
 
@@ -192,7 +192,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @fx_edit_f.setter
     def fx_edit_f(self, value):
         self.__elem[0] = int(value)
-        self.__eels_spec.set_val(self.__elem[0], self.__names[0])
+        self.__eels_spec.locked_set_val(self.__elem[0], self.__names[0])
         self.property_changed_event.fire("fx_slider_f")
         self.property_changed_event.fire("fx_edit_f")
 
@@ -206,7 +206,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @fy_slider_f.setter
     def fy_slider_f(self, value):
         self.__elem[1] = value
-        self.__eels_spec.set_val(self.__elem[1], self.__names[1])
+        self.__eels_spec.locked_set_val(self.__elem[1], self.__names[1])
         self.property_changed_event.fire("fy_slider_f")
         self.property_changed_event.fire("fy_edit_f")
 
@@ -217,7 +217,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @fy_edit_f.setter
     def fy_edit_f(self, value):
         self.__elem[1] = int(value)
-        self.__eels_spec.set_val(self.__elem[1], self.__names[1])
+        self.__eels_spec.locked_set_val(self.__elem[1], self.__names[1])
         self.property_changed_event.fire("fy_slider_f")
         self.property_changed_event.fire("fy_edit_f")
 
@@ -231,7 +231,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @sx_slider_f.setter
     def sx_slider_f(self, value):
         self.__elem[2] = value
-        self.__eels_spec.set_val(self.__elem[2], self.__names[2])
+        self.__eels_spec.locked_set_val(self.__elem[2], self.__names[2])
         self.property_changed_event.fire("sx_slider_f")
         self.property_changed_event.fire("sx_edit_f")
 
@@ -242,7 +242,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @sx_edit_f.setter
     def sx_edit_f(self, value):
         self.__elem[2] = int(value)
-        self.__eels_spec.set_val(self.__elem[2], self.__names[2])
+        self.__eels_spec.locked_set_val(self.__elem[2], self.__names[2])
         self.property_changed_event.fire("sx_slider_f")
         self.property_changed_event.fire("sx_edit_f")
 
@@ -256,7 +256,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @sy_slider_f.setter
     def sy_slider_f(self, value):
         self.__elem[3] = value
-        self.__eels_spec.set_val(self.__elem[3], self.__names[3])
+        self.__eels_spec.locked_set_val(self.__elem[3], self.__names[3])
         self.property_changed_event.fire("sy_slider_f")
         self.property_changed_event.fire("sy_edit_f")
 
@@ -267,7 +267,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @sy_edit_f.setter
     def sy_edit_f(self, value):
         self.__elem[3] = int(value)
-        self.__eels_spec.set_val(self.__elem[3], self.__names[3])
+        self.__eels_spec.locked_set_val(self.__elem[3], self.__names[3])
         self.property_changed_event.fire("sy_slider_f")
         self.property_changed_event.fire("sy_edit_f")
 
@@ -281,7 +281,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @dy_slider_f.setter
     def dy_slider_f(self, value):
         self.__elem[4] = value
-        self.__eels_spec.set_val(self.__elem[4], self.__names[4])
+        self.__eels_spec.locked_set_val(self.__elem[4], self.__names[4])
         self.property_changed_event.fire("dy_slider_f")
         self.property_changed_event.fire("dy_edit_f")
 
@@ -292,7 +292,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @dy_edit_f.setter
     def dy_edit_f(self, value):
         self.__elem[4] = int(value)
-        self.__eels_spec.set_val(self.__elem[4], self.__names[4])
+        self.__eels_spec.locked_set_val(self.__elem[4], self.__names[4])
         self.property_changed_event.fire("dy_slider_f")
         self.property_changed_event.fire("dy_edit_f")
 
@@ -306,7 +306,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @q1_slider_f.setter
     def q1_slider_f(self, value):
         self.__elem[5] = value
-        self.__eels_spec.set_val(self.__elem[5], self.__names[5])
+        self.__eels_spec.locked_set_val(self.__elem[5], self.__names[5])
         self.property_changed_event.fire("q1_slider_f")
         self.property_changed_event.fire("q1_edit_f")
 
@@ -317,7 +317,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @q1_edit_f.setter
     def q1_edit_f(self, value):
         sself.__elem[5] = int(value)
-        self.__eels_spec.set_val(self.__elem[5], self.__names[5])
+        self.__eels_spec.locked_set_val(self.__elem[5], self.__names[5])
         self.property_changed_event.fire("q1_slider_f")
         self.property_changed_event.fire("q1_edit_f")
 
@@ -331,7 +331,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @q2_slider_f.setter
     def q2_slider_f(self, value):
         self.__elem[6] = value
-        self.__eels_spec.set_val(self.__elem[6], self.__names[6])
+        self.__eels_spec.locked_set_val(self.__elem[6], self.__names[6])
         self.property_changed_event.fire("q2_slider_f")
         self.property_changed_event.fire("q2_edit_f")
 
@@ -342,7 +342,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @q2_edit_f.setter
     def q2_edit_f(self, value):
         self.__elem[6] = int(value)
-        self.__eels_spec.set_val(self.__elem[6], self.__names[6])
+        self.__eels_spec.locked_set_val(self.__elem[6], self.__names[6])
         self.property_changed_event.fire("q2_slider_f")
         self.property_changed_event.fire("q2_edit_f")
 
@@ -356,7 +356,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @q3_slider_f.setter
     def q3_slider_f(self, value):
         self.__elem[7] = value
-        self.__eels_spec.set_val(self.__elem[7], self.__names[7])
+        self.__eels_spec.locked_set_val(self.__elem[7], self.__names[7])
         self.property_changed_event.fire("q3_slider_f")
         self.property_changed_event.fire("q3_edit_f")
 
@@ -367,7 +367,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @q3_edit_f.setter
     def q3_edit_f(self, value):
         self.__elem[7] = int(value)
-        self.__eels_spec.set_val(self.__elem[7], self.__names[7])
+        self.__eels_spec.locked_set_val(self.__elem[7], self.__names[7])
         self.property_changed_event.fire("q3_slider_f")
         self.property_changed_event.fire("q3_edit_f")
 
@@ -381,7 +381,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @q4_slider_f.setter
     def q4_slider_f(self, value):
         self.__elem[8] = value
-        self.__eels_spec.set_val(self.__elem[8], self.__names[8])
+        self.__eels_spec.locked_set_val(self.__elem[8], self.__names[8])
         self.property_changed_event.fire("q4_slider_f")
         self.property_changed_event.fire("q4_edit_f")
 
@@ -392,7 +392,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @q4_edit_f.setter
     def q4_edit_f(self, value):
         self.__elem[8] = int(value)
-        self.__eels_spec.set_val(self.__elem[8], self.__names[8])
+        self.__eels_spec.locked_set_val(self.__elem[8], self.__names[8])
         self.property_changed_event.fire("q4_slider_f")
         self.property_changed_event.fire("q4_edit_f")
 
@@ -406,7 +406,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @dx_slider_f.setter
     def dx_slider_f(self, value):
         self.__elem[9] = value
-        self.__eels_spec.set_val(self.__elem[9], self.__names[9])
+        self.__eels_spec.locked_set_val(self.__elem[9], self.__names[9])
         self.property_changed_event.fire("dx_slider_f")
         self.property_changed_event.fire("dx_edit_f")
 
@@ -417,7 +417,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @dx_edit_f.setter
     def dx_edit_f(self, value):
         self.__elem[9] = int(value)
-        self.__eels_spec.set_val(self.__elem[9], self.__names[9])
+        self.__eels_spec.locked_set_val(self.__elem[9], self.__names[9])
         self.property_changed_event.fire("dx_slider_f")
         self.property_changed_event.fire("dx_edit_f")
 
@@ -431,7 +431,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @dmx_slider_f.setter
     def dmx_slider_f(self, value):
         self.__elem[10] = value
-        self.__eels_spec.set_val(self.__elem[10], self.__names[10])
+        self.__eels_spec.locked_set_val(self.__elem[10], self.__names[10])
         self.property_changed_event.fire("dmx_slider_f")
         self.property_changed_event.fire("dmx_edit_f")
 
@@ -442,7 +442,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @dmx_edit_f.setter
     def dmx_edit_f(self, value):
         self.__elem[10] = int(value)
-        self.__eels_spec.set_val(self.__elem[10], self.__names[10])
+        self.__eels_spec.locked_set_val(self.__elem[10], self.__names[10])
         self.property_changed_event.fire("dmx_slider_f")
         self.property_changed_event.fire("dmx_edit_f")
 
@@ -456,7 +456,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @ene_offset_f.setter
     def ene_offset_f(self, value):
         self.__elem[11] = value/1000.
-        self.__eels_spec.set_val(self.__elem[11], self.__names[11])
+        self.__eels_spec.locked_set_val(self.__elem[11], self.__names[11])
         self.property_changed_event.fire('ene_offset_f')
         self.property_changed_event.fire('ene_offset_edit_f')
 
@@ -467,7 +467,7 @@ class EELS_SPEC_Device(Observable.Observable):
     @ene_offset_edit_f.setter
     def ene_offset_edit_f(self, value):
         self.__elem[11] = float(value)
-        self.__eels_spec.set_val(self.__elem[11], self.__names[11])
+        self.__eels_spec.locked_set_val(self.__elem[11], self.__names[11])
         self.property_changed_event.fire('ene_offset_f')
         self.property_changed_event.fire('ene_offset_edit_f')
 
