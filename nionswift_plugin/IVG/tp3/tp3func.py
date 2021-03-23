@@ -301,7 +301,7 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             LaserInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("sgain_controller")
-            LaserInstrument.over_spim_TP3()
+            if LaserInstrument is not None and not self.__simul: LaserInstrument.over_spim_TP3()
 
 
     def isCameraThere(self):
@@ -553,7 +553,7 @@ class TimePix3():
 
         if self.__softBinning:
             config_bytes += b'\x01'  # Soft binning
-            config_bytes += b'\x02'  # Bit depth 16
+            config_bytes += b'\x02'  # Bit depth 32
         else:
             config_bytes += b'\x00'  # No soft binning
             config_bytes += b'\x01'  # Bit depth is 16
@@ -579,6 +579,8 @@ class TimePix3():
             self.__yspim = int(numpy.sqrt(spim))
             if self.__width==0: # Normal SPIM
                 config_bytes += b'\x02'  # Spim is ON
+            elif self.__width < 0:
+                config_bytes += b'\x04'  # Mode is TDC Spim
             else: #Time Resolved SPIM
                 if not self.__simul:
                     scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
@@ -595,9 +597,9 @@ class TimePix3():
                     self.__tr = True
 
                 if self.__tr:
-                    config_bytes += b'\x03'
+                    config_bytes += b'\x03' #Mode is 03
                 else:
-                    config_bytes += b'\x02'
+                    config_bytes += b'\x02' #Mode is 02
 
             config_bytes += self.__xspim.to_bytes(2, 'big')
             config_bytes += self.__yspim.to_bytes(2, 'big')
@@ -729,7 +731,6 @@ class TimePix3():
 
                 if not self.__isPlaying:
                     return
-
         return
 
     def get_last_data(self):
@@ -771,7 +772,7 @@ class TimePix3():
         frame_data = numpy.array(frame_data[:-1])
         if bitDepth == 8:
             dt = numpy.dtype(numpy.uint8).newbyteorder('>')
-            frame_int = numpy.frombuffer(frame_data, dtype=numpy.uint8)
+            frame_int = numpy.frombuffer(frame_data, dtype=dt)
             frame_int = frame_int.astype(numpy.float32)
         elif bitDepth == 16:
             dt = numpy.dtype(numpy.uint16).newbyteorder('>')
@@ -782,9 +783,9 @@ class TimePix3():
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
             frame_int = frame_int.astype(numpy.float32)
         frame_int = numpy.reshape(frame_int, (height, width))
-        if self.__softBinning:
-            frame_int = numpy.sum(frame_int, axis=0)
-            frame_int = numpy.reshape(frame_int, (1, 1024))
+        #if self.__softBinning:
+        #    frame_int = numpy.sum(frame_int, axis=0)
+        #    frame_int = numpy.reshape(frame_int, (1, 1024))
         return frame_int
 
     def create_spimimage_from_bytes(self, frame_data, bitDepth, width, height, xspim, yspim):
