@@ -574,7 +574,7 @@ class TimePix3():
             config_bytes += size.to_bytes(2, 'big')
 
         elif message == 2:
-            self.__spimData = numpy.zeros(spim * 1024, dtype=numpy.uint32)
+            self.__spimData = numpy.zeros(spim * 1025, dtype=numpy.uint32)
             self.__xspim = int(numpy.sqrt(spim))
             self.__yspim = int(numpy.sqrt(spim))
             if self.__width==0: # Normal SPIM
@@ -810,4 +810,4 @@ class TimePix3():
         return frame_int
 
     def create_spimimage_from_events(self):
-        return self.__spimData.reshape((self.__xspim, self.__yspim, 1024))
+        return self.__spimData.reshape((self.__xspim, self.__yspim, 1025))
