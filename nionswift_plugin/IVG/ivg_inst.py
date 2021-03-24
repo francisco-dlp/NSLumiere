@@ -116,10 +116,9 @@ class ivgInstrument(stem_controller.STEMController):
         #self.__optSpecInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("optSpec_controller")
         self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_scan_device")
-        self.__OrsayCamEIRE = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            "orsay_camera_eire")
-        self.__OrsayCamEELS = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            "orsay_camera_eels")
+
+        self.__EIRE = "orsay_camera_eire"
+        self.__EELS = "orsay_camera_eels"
 
         if SLOW_PERIODIC: self.periodic()
         if FAST_PERIODIC: self.stage_periodic()
@@ -209,11 +208,15 @@ class ivgInstrument(stem_controller.STEMController):
 
     def start_spim_push_button(self, x_pix, y_pix):
         if self.__spim_trigger == 0:
-            now_cam = [self.__OrsayCamEELS]
+            now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            self.__EELS)]
         elif self.__spim_trigger == 1:
-            now_cam = [self.__OrsayCamEIRE]
+            now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            self.__EIRE)]
         elif self.__spim_trigger == 2:
-            now_cam = [self.__OrsayCamEELS, self.__OrsayCamEIRE]
+            now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            self.__EELS), HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            self.__EIRE)]
             logging.info(
                 '***IVG***: Both measurement not yet implemented. Please check back later. Using EELS instead.')
 
@@ -229,11 +232,15 @@ class ivgInstrument(stem_controller.STEMController):
 
     def stop_spim_push_button(self):
         if self.__spim_trigger == 0:
-            now_cam = [self.__OrsayCamEELS]
+            now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            self.__EELS)]
         elif self.__spim_trigger == 1:
-            now_cam = [self.__OrsayCamEIRE]
+            now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            self.__EIRE)]
         elif self.__spim_trigger == 2:
-            now_cam = [self.__OrsayCamEELS, self.__OrsayCamEIRE]
+            now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            self.__EELS), HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            self.__EIRE)]
         for cam in now_cam:
             cam.stop_playing()
 
@@ -554,11 +561,14 @@ class ivgInstrument(stem_controller.STEMController):
     def spim_time_f(self):
         try:
             if self.__spim_trigger == 0:
-                now_cam = self.__OrsayCamEELS
+                now_cam = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            self.__EELS)
             elif self.__spim_trigger == 1:
-                now_cam = self.__OrsayCamEIRE
+                now_cam = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            self.__EIRE)
             elif self.__spim_trigger == 2:
-                now_cam = self.__OrsayCamEELS
+                now_cam = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            self.__EELS)
                 logging.info(
                     '***IVG***: Both measurement not yet implemented. Please check back later. Using EELS instead.')
 
