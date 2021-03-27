@@ -19,7 +19,7 @@
         },
         "MAX_PTS": 5000,
         "OBJECTIVE": {
-            "MAX_TEMP": 52.0,
+            "MAX_TEMP": 65.0,
             "RESISTANCE": 5.18,
             "TEMP_COEF": 0.004041
         },
