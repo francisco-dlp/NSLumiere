@@ -612,7 +612,7 @@ class TimePix3():
             if self.__width==0: # Normal SPIM
                 config_bytes += b'\x02'  # Spim is ON
             elif self.__width < 0:
-                config_bytes += b'\x04'  # Mode is TDC Spim
+                config_bytes += b'\x04'  # Mode is TDC Spim. Used for PMT, for example.
             else: #Time Resolved SPIM
                 if not self.__simul:
                     scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
