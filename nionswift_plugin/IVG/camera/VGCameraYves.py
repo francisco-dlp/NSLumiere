@@ -205,19 +205,21 @@ class CameraDevice(camera_base.CameraDevice):
         if "processing" in frame_parameters:
             self.__hardware_settings.processing = frame_parameters.processing
 
-        if "timeDelay" in frame_parameters:
+        if self.isTimepix and "timeDelay" in frame_parameters:
             self.__hardware_settings.timeDelay = frame_parameters.timeDelay
-            try:
-                self.camera.setDelayTime(frame_parameters.timeDelay)
-            except AttributeError:
-                logging.info(f"***CAMERA***: Method setDelayTime not implemented for {self.camera_name}")
+            self.camera.setDelayTime(frame_parameters.timeDelay)
 
-        if "timeWidth" in frame_parameters:
+        if self.isTimepix and "timeWidth" in frame_parameters:
             self.__hardware_settings.timeWidth = frame_parameters.timeWidth
-            try:
-                self.camera.setWidthTime(frame_parameters.timeWidth)
-            except AttributeError:
-                logging.info(f"***CAMERA***: Method setWidthTime not implemented for {self.camera_name}")
+            self.camera.setWidthTime(frame_parameters.timeWidth)
+
+        if self.isTimepix and "tdc01" in frame_parameters:
+            self.__hardware_settings.tdc01 = frame_parameters.tdc01
+            #self.camera.setTdc01(frame_parameters.tdc01, exposure=frame_parameters.exposure_ms/1000.)
+
+        if self.isTimepix and "tdc02" in frame_parameters:
+            self.__hardware_settings.tdc02 = frame_parameters.tdc02
+            #self.camera.setTdc02(frame_parameters.tdc02)
 
     def __numpy_to_orsay_type(self, array: numpy.array):
         orsay_type = Orsay_Data.float

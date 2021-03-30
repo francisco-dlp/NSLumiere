@@ -316,6 +316,38 @@ class TimePix3():
     def setupBinning(self):
         pass
 
+    def setTdc01(self, index, **kargs):
+        if self.__simul: return
+        if index==0:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
+        if index == 1: # Internal Generator
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
+        if index == 2: # Start of Line
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7) # Copy Line Start
+
+
+    def setTdc02(self, index, **kargs):
+        if self.__simul: return
+        if index==0:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
+        if index == 1: # Laser Line. Copying an output.
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period=exposure)
+        if index == 2: # High Tension. Copying an input.
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045)
+
+
     def startFocus(self, exposure, displaymode, accumulate):
         """
         Start acquisition. Displaymode can be '1d' or '2d' and regulates the global attribute self.__softBinning.
