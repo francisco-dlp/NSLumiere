@@ -107,8 +107,8 @@ class CameraDevice(camera_base.CameraDevice):
             "flipped": False,
             "timeDelay": 0,
             "timeWidth": 0,
-            "TDC01": 0,
-            "TDC02": 0
+            "tdc01": 1,
+            "tdc02": 0
         }
 
         self.current_camera_settings = CameraFrameParameters(d)
@@ -576,8 +576,8 @@ class CameraFrameParameters(dict):
         self.flipped = self.get("flipped", False)
         self.timeDelay = self.get("timeDelay", 0)
         self.timeWidth = self.get("timeWidth", 0)
-        self.tdc01 = self.get("TDC01", 0)
-        self.tdc02 = self.get("TDC02", 0)
+        self.tdc01 = self.get("tdc01", 0)
+        self.tdc02 = self.get("tdc02", 0)
         self.integration_count = 1  # required
 
     def __copy__(self):
