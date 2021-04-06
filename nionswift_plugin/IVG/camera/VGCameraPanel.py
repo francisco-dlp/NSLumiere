@@ -423,7 +423,7 @@ class CameraPanelFactory:
         width_row = ui.create_row(width_label, width_value, ui.create_stretch())
 
         tp3mode = ui.create_row(ui.create_label(text=_("Tp3 Mode: ")),
-                              ui.create_combo_box(items=["None", "Internal Generator", "Start Line"],  current_index="@binding(tp3mode_item.value)"), ui.create_stretch())
+                              ui.create_combo_box(items=["Spectrum", "Spectrum TR", "Spim", "Spim TR", "Spim PM", "Spim [Save Locally]"],  current_index="@binding(tp3mode_item.value)"), ui.create_stretch())
 
         tp3_column = ui.create_column(current_column, delay_row, width_row, tp3mode, spacing=2)
         tp3_group = ui.create_group(tp3_column, title=_("TimePix3"))

@@ -214,7 +214,7 @@ class CameraDevice(camera_base.CameraDevice):
 
         if self.isTimepix and "tp3mode" in frame_parameters:
             self.__hardware_settings.tp3mode = frame_parameters.tp3mode
-            #self.camera.setTdc01(frame_parameters.tdc01, exposure=frame_parameters.exposure_ms/1000.)
+            self.camera.setTp3Mode(frame_parameters.tp3mode)
 
     def __numpy_to_orsay_type(self, array: numpy.array):
         orsay_type = Orsay_Data.float

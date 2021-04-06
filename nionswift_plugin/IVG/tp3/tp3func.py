@@ -42,6 +42,7 @@ class TimePix3():
         self.__delay = 0.
         self.__width = 0.
         self.__tdc = 0  # Beginning of line n and beginning of line n+1
+        self.__tp3mode = 0
         self.__filepath = os.path.join(pathlib.Path(__file__).parent.absolute(), "data")
         self.__simul = simul
         self.sendmessage = message
@@ -387,6 +388,7 @@ class TimePix3():
         data = resp.text
         self.finish_listening()
 
+
     def setExposureTime(self, exposure):
         """
         Set camera exposure time.
@@ -398,6 +400,9 @@ class TimePix3():
 
     def setWidthTime(self, width):
         self.__width = width
+
+    def setTp3Mode(self, mode):
+        self.__tp3mode = mode
 
     def getNumofSpeeds(self, cameraport):
         pass
@@ -610,7 +615,10 @@ class TimePix3():
             self.__xspim = int(numpy.sqrt(spim))
             self.__yspim = int(numpy.sqrt(spim))
             if self.__width==0: # Normal SPIM
-                config_bytes += b'\x02'  # Spim is ON.
+                if self.__tp3mode==5: # SPIM Save Locally
+                    config_bytes += b'\x05'
+                else:
+                    config_bytes += b'\x02'  # Normal SPIM
             elif self.__width < 0:
                 config_bytes += b'\x04'  # Mode is TDC Spim. Used for PMT, for example.
             else: #Time Resolved SPIM
