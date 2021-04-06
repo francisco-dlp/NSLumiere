@@ -610,7 +610,7 @@ class TimePix3():
             self.__xspim = int(numpy.sqrt(spim))
             self.__yspim = int(numpy.sqrt(spim))
             if self.__width==0: # Normal SPIM
-                config_bytes += b'\x02'  # Spim is ON
+                config_bytes += b'\x05'  # Spim is ON.
             elif self.__width < 0:
                 config_bytes += b'\x04'  # Mode is TDC Spim. Used for PMT, for example.
             else: #Time Resolved SPIM
@@ -649,8 +649,8 @@ class TimePix3():
             config_bytes += x_size.to_bytes(2, 'big')
             config_bytes += y_size.to_bytes(2, 'big')
         else:
-            config_bytes += struct.pack(">H", 1024)
-            config_bytes += struct.pack(">H", 1024)
+            config_bytes += struct.pack(">H", 64)
+            config_bytes += struct.pack(">H", 64)
 
         config_bytes += struct.pack(">d", self.__delay)  # BE. See https://docs.python.org/3/library/struct.html
         config_bytes += struct.pack(">d", self.__width)  # BE. See https://docs.python.org/3/library/struct.html
