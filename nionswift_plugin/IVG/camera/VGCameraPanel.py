@@ -106,8 +106,7 @@ class CameraHandler:
         self.mode_item = Model.PropertyModel(self.camera_settings.modes.index(frame_parameters["acquisition_mode"]))
         self.mode_item_text = Model.PropertyModel("???g")
 
-        self.tdc01_item = Model.PropertyModel(frame_parameters["tdc01"])
-        self.tdc02_item = Model.PropertyModel(frame_parameters["tdc02"])
+        self.tp3mode_item = Model.PropertyModel(frame_parameters["tp3mode"])
 
         #def frame_parameter_changed(name, *args, **kwargs):
         #    if name == "acquisition_mode":
@@ -282,14 +281,9 @@ class CameraHandler:
             frame_parameters["timeWidth"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
 
-        def set_tdc01(value):
+        def set_tp3mode(value):
             frame_parameters = self.camera_settings.get_current_frame_parameters()
-            frame_parameters["tdc01"] = value
-            self.camera_settings.set_current_frame_parameters(frame_parameters)
-
-        def set_tdc02(value):
-            frame_parameters = self.camera_settings.get_current_frame_parameters()
-            frame_parameters["tdc02"] = value
+            frame_parameters["tp3mode"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
 
         self.roi_item.on_value_changed = set_roi
@@ -310,8 +304,7 @@ class CameraHandler:
         self.flip_model.on_value_changed=set_flip
         self.delay_value.on_value_changed=set_tp3_delay
         self.width_value.on_value_changed=set_tp3_width
-        self.tdc01_item.on_value_changed = set_tdc01
-        self.tdc02_item.on_value_changed = set_tdc02
+        self.tp3mode_item.on_value_changed = set_tp3mode
 
         self.mode_item.on_value_changed = set_mode
 
@@ -429,12 +422,10 @@ class CameraPanelFactory:
         width_value = ui.create_line_edit(name='width_label_value', text="@binding(width_value.value, converter=time_converter)")
         width_row = ui.create_row(width_label, width_value, ui.create_stretch())
 
-        tdc01 = ui.create_row(ui.create_label(text=_("Tdc 01: ")),
-                              ui.create_combo_box(items=["None", "Internal Generator", "Start Line"],  current_index="@binding(tdc01_item.value)"), ui.create_stretch())
-        tdc02 = ui.create_row(ui.create_label(text=_("Tdc 02: ")),
-                              ui.create_combo_box(items=["None", "Laser Line", "High Tension Sync"], current_index="@binding(tdc02_item.value)"), ui.create_stretch())
+        tp3mode = ui.create_row(ui.create_label(text=_("Tp3 Mode: ")),
+                              ui.create_combo_box(items=["None", "Internal Generator", "Start Line"],  current_index="@binding(tp3mode_item.value)"), ui.create_stretch())
 
-        tp3_column = ui.create_column(current_column, delay_row, width_row, tdc01, tdc02, spacing=2)
+        tp3_column = ui.create_column(current_column, delay_row, width_row, tp3mode, spacing=2)
         tp3_group = ui.create_group(tp3_column, title=_("TimePix3"))
 
         """

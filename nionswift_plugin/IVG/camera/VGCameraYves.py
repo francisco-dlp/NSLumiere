@@ -107,8 +107,7 @@ class CameraDevice(camera_base.CameraDevice):
             "flipped": False,
             "timeDelay": 0,
             "timeWidth": 0,
-            "tdc01": 1,
-            "tdc02": 0
+            "tp3mode": 1,
         }
 
         self.current_camera_settings = CameraFrameParameters(d)
@@ -213,13 +212,9 @@ class CameraDevice(camera_base.CameraDevice):
             self.__hardware_settings.timeWidth = frame_parameters.timeWidth
             self.camera.setWidthTime(frame_parameters.timeWidth)
 
-        if self.isTimepix and "tdc01" in frame_parameters:
-            self.__hardware_settings.tdc01 = frame_parameters.tdc01
+        if self.isTimepix and "tp3mode" in frame_parameters:
+            self.__hardware_settings.tp3mode = frame_parameters.tp3mode
             #self.camera.setTdc01(frame_parameters.tdc01, exposure=frame_parameters.exposure_ms/1000.)
-
-        if self.isTimepix and "tdc02" in frame_parameters:
-            self.__hardware_settings.tdc02 = frame_parameters.tdc02
-            #self.camera.setTdc02(frame_parameters.tdc02)
 
     def __numpy_to_orsay_type(self, array: numpy.array):
         orsay_type = Orsay_Data.float
@@ -578,8 +573,7 @@ class CameraFrameParameters(dict):
         self.flipped = self.get("flipped", False)
         self.timeDelay = self.get("timeDelay", 0)
         self.timeWidth = self.get("timeWidth", 0)
-        self.tdc01 = self.get("tdc01", 0)
-        self.tdc02 = self.get("tdc02", 0)
+        self.tp3mode = self.get("tp3mode", 0)
         self.integration_count = 1  # required
 
     def __copy__(self):
@@ -617,8 +611,7 @@ class CameraFrameParameters(dict):
             "flipped": self.flipped,
             "timeDelay": self.timeDelay,
             "timeWidth": self.timeWidth,
-            "TDC01": self.tdc01,
-            "TDC02": self.tdc02
+            "tp3mode": self.tp3mode,
         }
 
 
