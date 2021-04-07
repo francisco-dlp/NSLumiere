@@ -271,11 +271,14 @@ class TimePix3():
         self.__isCumul = False
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
-        if self.getCCDStatus() == "DA_IDLE":
+        if self.getCCDStatus() == "DA_IDLE" and (self.__tp3mode==2 or self.__tp3mode==3 or
+                                                 self.__tp3mode==4 or self.__tp3mode==5):
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
             self.start_listening(port, message=message, spim=nbspectra)
             return True
+        else:
+            logging.info('***TP3***: Check if experiment type matches mode selection.')
 
     def pauseSpim(self):
         pass
@@ -367,11 +370,13 @@ class TimePix3():
         self.__isCumul = bool(accumulate)
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
-        if self.getCCDStatus() == "DA_IDLE":
+        if self.getCCDStatus() == "DA_IDLE" and (self.__tp3mode==0 or self.__tp3mode==1):
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
             self.start_listening(port, message=message)
             return True
+        else:
+            logging.info('***TP3***: Check if experiment type matches mode selection.')
 
     def stopFocus(self):
         """
@@ -600,12 +605,8 @@ class TimePix3():
         else:
             config_bytes += b'\x00'  # Cumul is OFF
 
+        config_bytes += bytes([self.__tp3mode])
         if message == 1:
-            if self.__width==0:
-                config_bytes += b'\x00'  # Focus/Cumul mode
-            else:
-                self.__tr = True
-                config_bytes += b'\x01'  # TR mode
             size = 1
             config_bytes += size.to_bytes(2, 'big')
             config_bytes += size.to_bytes(2, 'big')
@@ -614,14 +615,8 @@ class TimePix3():
             self.__spimData = numpy.zeros(spim * 1025, dtype=numpy.uint32)
             self.__xspim = int(numpy.sqrt(spim))
             self.__yspim = int(numpy.sqrt(spim))
-            if self.__width==0: # Normal SPIM
-                if self.__tp3mode==5: # SPIM Save Locally
-                    config_bytes += b'\x05'
-                else:
-                    config_bytes += b'\x02'  # Normal SPIM
-            elif self.__width < 0:
-                config_bytes += b'\x04'  # Mode is TDC Spim. Used for PMT, for example.
-            else: #Time Resolved SPIM
+
+            if self.__tp3mode == 3: #Time Resolved SPIM
                 if not self.__simul:
                     scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                         "orsay_scan_device")
@@ -635,11 +630,6 @@ class TimePix3():
                         logging.info(f'***TP3***: Pixel time is not 100 us || LaserInstrument was not found.')
                 else:
                     self.__tr = True
-
-                if self.__tr:
-                    config_bytes += b'\x03' #Mode is 03
-                else:
-                    config_bytes += b'\x02' #Mode is 02
 
             config_bytes += self.__xspim.to_bytes(2, 'big')
             config_bytes += self.__yspim.to_bytes(2, 'big')
