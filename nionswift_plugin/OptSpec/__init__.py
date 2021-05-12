@@ -1,7 +1,6 @@
 from nion.swift.model import HardwareSource
 
-from . import optspec_inst
-from . import optspec_panel
+from . import optspec_inst, optspec_panel
 
 import os
 import json
@@ -15,11 +14,14 @@ try:
 except KeyError:
     DEBUG = False
     MANUFACTURER = ["ATTOLIGHT"]
+except FileNotFoundError:
+    DEBUG = False
+    MANUFACTURER = ["DEBUG", "ATTOLIGHT", "PRINCETON"]
 
 def run():
     for MAN in MANUFACTURER:
-        simpleInstrument=optspec_inst.OptSpecDevice(MAN)
-        HardwareSource.HardwareSourceManager().register_instrument("optSpec_controller "+MAN.lower(), simpleInstrument)
-        optspec_panel.run(simpleInstrument, 'Optical Spectrometer '+MAN.lower())
+        simpleInstrument= optspec_inst.OptSpecDevice(MAN)
+        HardwareSource.HardwareSourceManager().register_instrument("optSpec_controller "+MAN, simpleInstrument)
+        optspec_panel.run(simpleInstrument, 'Optical Spectrometer ' + MAN)
 
 
