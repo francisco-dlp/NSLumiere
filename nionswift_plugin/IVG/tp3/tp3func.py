@@ -161,22 +161,22 @@ class TimePix3():
                     "Base": "tcp://127.0.0.1:8098",
                 }]
             }
-        elif port==1:
+        elif port == 1:
             destination = {
-            "Raw": [{
-                "Base": "file:/home/asi/load_files/data",
-                "FilePattern": "raw",
-            }]
+                "Raw": [{
+                    "Base": "file:/home/asi/load_files/data",
+                    "FilePattern": "raw",
+                }]
             }
-        elif port==2:
+        elif port == 2:
             destination = {
-            "Image": [{
-                "Base": "tcp://127.0.0.1:8088",
-                "Format": "jsonimage",
-                "Mode": "count",
-            }]
+                "Image": [{
+                    "Base": "tcp://127.0.0.1:8088",
+                    "Format": "jsonimage",
+                    "Mode": "count",
+                }]
             }
-        elif port==3:
+        elif port == 3:
             destination = {
                 "Image": [{
                     "Base": "tcp://127.0.0.1:8088",
@@ -263,16 +263,16 @@ class TimePix3():
         if not self.__simul:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7) # Copy Line Start
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13) # Copy line 05
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
         port = 8088
         self.__softBinning = True
         message = 2
         self.__isCumul = False
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
-        if self.getCCDStatus() == "DA_IDLE" and (self.__tp3mode==2 or self.__tp3mode==3 or
-                                                 self.__tp3mode==4 or self.__tp3mode==5):
+        if self.getCCDStatus() == "DA_IDLE" and (self.__tp3mode == 2 or self.__tp3mode == 3 or
+                                                 self.__tp3mode == 4 or self.__tp3mode == 5):
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
             self.start_listening(port, message=message, spim=nbspectra)
@@ -307,7 +307,6 @@ class TimePix3():
             LaserInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("sgain_controller")
             if LaserInstrument is not None and not self.__simul: LaserInstrument.over_spim_TP3()
 
-
     def isCameraThere(self):
         return True
 
@@ -322,35 +321,33 @@ class TimePix3():
 
     def setTdc01(self, index, **kargs):
         if self.__simul: return
-        if index==0:
+        if index == 0:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
-        if index == 1: # Internal Generator
+        if index == 1:  # Internal Generator
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
-        if index == 2: # Start of Line
+        if index == 2:  # Start of Line
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7) # Copy Line Start
-
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
 
     def setTdc02(self, index, **kargs):
         if self.__simul: return
-        if index==0:
+        if index == 0:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
-        if index == 1: # Laser Line. Copying an output.
+        if index == 1:  # Laser Line. Copying an output.
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period=exposure)
-        if index == 2: # High Tension. Copying an input.
+        if index == 2:  # High Tension. Copying an input.
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045)
-
 
     def startFocus(self, exposure, displaymode, accumulate):
         """
@@ -362,15 +359,15 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13) # Copy Line 05
-            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy Line 05
+            # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
         port = 8088
         self.__softBinning = True if displaymode == '1d' else False
         message = 1
         self.__isCumul = bool(accumulate)
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
-        if self.getCCDStatus() == "DA_IDLE" and (self.__tp3mode==0 or self.__tp3mode==1):
+        if self.getCCDStatus() == "DA_IDLE" and (self.__tp3mode == 0 or self.__tp3mode == 1):
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
             self.start_listening(port, message=message)
@@ -392,7 +389,6 @@ class TimePix3():
         resp = self.request_get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
         self.finish_listening()
-
 
     def setExposureTime(self, exposure):
         """
@@ -580,9 +576,11 @@ class TimePix3():
         ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname('192.168.199.11')
         address = (ip, port)
         try:
-            client.connect(address); client_aux.connect(address)
+            client.connect(address);
+            client_aux.connect(address)
             logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
-            inputs.append(client); inputs.append(client_aux)
+            inputs.append(client);
+            inputs.append(client_aux)
         except ConnectionRefusedError:
             return False
 
@@ -591,11 +589,14 @@ class TimePix3():
 
         config_bytes = b''
 
-        self.__tr = False #Start always with false and will be updated if otherwise
+        self.__tr = False  # Start always with false and will be updated if otherwise
 
         if self.__softBinning:
             config_bytes += b'\x01'  # Soft binning
-            config_bytes += b'\x02'  # Bit depth 32
+            if self.__tp3mode == 5:
+                config_bytes += b'\x01'  # Bit depth 16 when saving SPIM locally
+            else:
+                config_bytes += b'\x02'  # Bit depth 32 otherwise
         else:
             config_bytes += b'\x00'  # No soft binning
             config_bytes += b'\x01'  # Bit depth is 16
@@ -616,7 +617,7 @@ class TimePix3():
             self.__xspim = int(numpy.sqrt(spim))
             self.__yspim = int(numpy.sqrt(spim))
 
-            if self.__tp3mode == 3: #Time Resolved SPIM
+            if self.__tp3mode == 3:  # Time Resolved SPIM
                 if not self.__simul:
                     scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                         "orsay_scan_device")
@@ -709,7 +710,8 @@ class TimePix3():
                             begin_header = packet_data.index(b'{"time')
                             end_header = packet_data.index(b'}\n', begin_header)
                             header = packet_data[begin_header:end_header + 1].decode('latin-1')
-                            for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth", "width",
+                            for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth",
+                                               "width",
                                                "height"]:
                                 cam_properties[properties] = (check_string_value(header, properties))
 
@@ -739,9 +741,9 @@ class TimePix3():
         elif message == 2:
             while True:
                 try:
-                    read, _ , _ = select.select(inputs, outputs, inputs)
+                    read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
-                        if s==client:
+                        if s == client:
                             packet_data = client.recv(buffer_size)
                             if packet_data == b'':
                                 logging.info('***TP3***: No more packets received in SPIM.')
@@ -813,7 +815,7 @@ class TimePix3():
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
             frame_int = frame_int.astype(numpy.float32)
         frame_int = numpy.reshape(frame_int, (height, width))
-        #if self.__softBinning:
+        # if self.__softBinning:
         #    frame_int = numpy.sum(frame_int, axis=0)
         #    frame_int = numpy.reshape(frame_int, (1, 1024))
         return frame_int
