@@ -1,6 +1,6 @@
 {
     "EELS": {
-        "DEBUG": 0
+        "DEBUG": 1
     },
     "IVG": {
         "CAMERA": {
@@ -8,10 +8,10 @@
             "PIXELS": 1600,
             "SIZE": 25.6
         },
-        "DEBUG_SCAN": 0,
+        "DEBUG_SCAN": 1,
         "AMBIENT_TEMPERATURE": 23,
         "DEBUG_AIRLOCK": 1,
-        "DEBUG_GUN": 0,
+        "DEBUG_GUN": 1,
         "EHT_INITIAL": 3,
         "FAST_PERIODIC": {
             "ACTIVE": 1,
@@ -35,18 +35,18 @@
         "MANUFACTURER": ["DEBUG", "ATTOLIGHT", "PRINCETON"]
     },
     "diaf": {
-        "DEBUG": 0
+        "DEBUG": 1
     },
     "lenses": {
-        "DEBUG": 0,
+        "DEBUG": 1,
         "MAX_OBJ": 9.5,
         "MAX_C1": 1.5,
         "MAX_C2": 1.5
     },
     "stage": {
-        "DEBUG": 0
+        "DEBUG": 1
     },
     "mirror": {
-        "DEBUG": 0
+        "DEBUG": 1
     }
 }

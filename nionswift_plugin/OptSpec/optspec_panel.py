@@ -8,11 +8,11 @@ from nion.swift import Workspace
 from nion.ui import Declarative
 from nion.ui import UserInterface
 from nion.swift.model import Utility
-from nion.data import Calibration
 from nion.data import DataAndMetadata
 from nion.swift.model import DataItem
 
-from . import optspec_inst
+from nionswift_plugin.OptSpec import optspec_inst
+
 _ = gettext.gettext
 
 GRATINGS = list()
@@ -20,7 +20,7 @@ GRATINGS = list()
 class OptSpechandler:
 
 
-    def __init__(self, instrument:optspec_inst.OptSpecDevice, document_controller):
+    def __init__(self, instrument: optspec_inst.OptSpecDevice, document_controller):
 
         self.event_loop = document_controller.event_loop
         self.document_controller = document_controller
@@ -109,7 +109,7 @@ class OptSpechandler:
 
 class OptSpecView:
 
-    def __init__(self, instrument:optspec_inst.OptSpecDevice):
+    def __init__(self, instrument: optspec_inst.OptSpecDevice):
         ui = Declarative.DeclarativeUI()
 
         self.init_pb = ui.create_push_button(name='init_pb', text='Init Hardware', on_clicked='init')
