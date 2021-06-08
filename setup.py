@@ -9,6 +9,6 @@ setup(
     packages=find_packages(
         include=['nionswift_plugin.OptSpec',]),
     package_dir={"": "."},
-    python_requires='>=3.8.5',
-    install_requires=["pyserial>=3.5", "requests>=2.25.1", "nionswift_usim>=0.3.0"]
+    python_requires='~=3.8.5',
+    install_requires=["pyserial>=3.5", "requests>=2.25.1"]
 )

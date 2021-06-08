@@ -18,7 +18,6 @@ class EELS_Spectrometer(EELS_controller.EELSController):
                 else:
                     val = 0xffff - val
                 string = which+' 0,'+hex(val)[2:6]+'\r'
-                print(string)
                 return None
             else:
                 self.sendmessage(3)
