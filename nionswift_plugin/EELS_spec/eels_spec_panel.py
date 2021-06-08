@@ -119,7 +119,7 @@ class eels_spec_View:
         # range selection
 
         self.dispersion_label = ui.create_label(text='Dispersion: ')
-        self.dispersion_value = ui.create_combo_box(name='dispersion_value', items=['d1', 'd2', 'd3'],
+        self.dispersion_value = ui.create_combo_box(name='dispersion_value', items=['d1', 'd2', 'd3', 'VGCold_d1', 'VGCold_d2', 'VGCold_d3'],
                                                     current_index='@binding(instrument.disp_change_f)')
 
         self.range_label = ui.create_label(text='Dispersion: ')
