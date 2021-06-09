@@ -1,8 +1,8 @@
 from setuptools import setup
 
 setup(
-    name="OrsayLumiere",
-    version="5.7.1",
+    name="OrsayChromaTEM",
+    version="LumiereBranch",
     author="Yves Auad",
     description="Set of tools to run a VG Microscope in Nionswift",
     url="https://github.com/yvesauad/swift_lumiere",
@@ -13,7 +13,7 @@ setup(
               'nionswift_plugin.OptSpec', 'nionswift_plugin.stage'],
     python_requires='>=3.8.5',
     data_files=[('nionswift_plugin/aux_files/config', [
-        'nionswift_plugin/aux_files/config/global_settings.json',
+        'nionswift_plugin/aux_files/config/ChromaTEM/global_settings.json',
         'nionswift_plugin/aux_files/config/diafs_settings.json',
         'nionswift_plugin/aux_files/config/eels_settings.json',
         'nionswift_plugin/aux_files/config/lenses_settings.json',
