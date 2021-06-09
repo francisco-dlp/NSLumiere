@@ -13,8 +13,8 @@ setup(
     python_requires='>=3.8.5',
     data_files=[('nionswift_plugin/aux_files/config', [
         'nionswift_plugin/aux_files/config/Cold/global_settings.json',
-        'nionswift_plugin/aux_files/config/eels_settings.json',
-        'nionswift_plugin/aux_files/config/Orsay_cameras_list.json',
+        'nionswift_plugin/aux_files/config/Cold/eels_settings.json',
+        'nionswift_plugin/aux_files/config/Cold/Orsay_cameras_list.json',
 
     ]), ('nionswift_plugin/aux_files/DLLs', [
         'nionswift_plugin/aux_files/DLLs/Cameras.dll',
