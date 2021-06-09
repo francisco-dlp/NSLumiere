@@ -1,0 +1,52 @@
+{
+    "EELS": {
+        "DEBUG": 1
+    },
+    "IVG": {
+        "CAMERA": {
+            "DEBUG": 0,
+            "PIXELS": 1600,
+            "SIZE": 25.6
+        },
+        "DEBUG_SCAN": 1,
+        "AMBIENT_TEMPERATURE": 23,
+        "DEBUG_AIRLOCK": 1,
+        "DEBUG_GUN": 1,
+        "EHT_INITIAL": 3,
+        "FAST_PERIODIC": {
+            "ACTIVE": 1,
+            "PERIOD": 0.1
+        },
+        "MAX_PTS": 5000,
+        "OBJECTIVE": {
+            "MAX_TEMP": 60.0,
+            "RESISTANCE": 5.18,
+            "TEMP_COEF": 0.004041
+        },
+        "SENDMAIL": 1,
+        "SLOW_PERIODIC": {
+            "ACTIVE": 1,
+            "PERIOD": 1.0
+        },
+        "STAGE_MATRIX_SIZE": 160
+    },
+    "SPECTROMETER": {
+        "DEBUG": 0,
+        "MANUFACTURER": ["DEBUG", "ATTOLIGHT", "PRINCETON"]
+    },
+    "diaf": {
+        "DEBUG": 1
+    },
+    "lenses": {
+        "DEBUG": 1,
+        "MAX_OBJ": 9.5,
+        "MAX_C1": 1.5,
+        "MAX_C2": 1.5
+    },
+    "stage": {
+        "DEBUG": 1
+    },
+    "mirror": {
+        "DEBUG": 1
+    }
+}

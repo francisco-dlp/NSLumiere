@@ -714,7 +714,7 @@ def run(instrument: ivg_inst.ivgInstrument):
     try:
         # config_file = os.environ['ALLUSERSPROFILE'] + "\\Nion\\Nion Swift\\Orsay_cameras_list.json"
         panel_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(panel_dir, 'Orsay_cameras_list.json')
+        abs_path = os.path.join(panel_dir, '../../aux_files/config/Orsay_cameras_list.json')
         with open(abs_path) as f:
             cameras = json.load(f)
     except Exception as e:

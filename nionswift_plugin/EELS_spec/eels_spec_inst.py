@@ -7,7 +7,7 @@ import time
 from nion.utils import Event
 from nion.utils import Observable
 
-abs_path = os.path.abspath(os.path.join((__file__+"/../../"), "global_settings.json"))
+abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
 with open(abs_path) as savfile:
     settings = json.load(savfile)
 DEBUG = settings["EELS"]["DEBUG"]
@@ -41,15 +41,16 @@ class EELS_SPEC_Device(Observable.Observable):
 
         self.__EHT = '3'
 
-        try:
-            inst_dir = os.path.dirname(__file__)
-            abs_path = os.path.join(inst_dir, 'eels_settings.json')
-            with open(abs_path) as savfile:
-                data = json.load(savfile)
-            self.__dispIndex = int(data["3"]["last"])
-            self.disp_change_f = self.__dispIndex  # put last index
-        except:
-            logging.info('***EELS SPEC***: No saved values.')
+        #try:
+        inst_dir = os.path.dirname(__file__)
+        abs_path = os.path.join(inst_dir, '../aux_files/config/eels_settings.json')
+        print(abs_path)
+        with open(abs_path) as savfile:
+            data = json.load(savfile)
+        self.__dispIndex = int(data["3"]["last"])
+        self.disp_change_f = self.__dispIndex  # put last index
+        #except:
+        #    logging.info('***EELS SPEC***: No saved values.')
 
     def init_handler(self):
         self.focus_wobbler_f=0
@@ -58,7 +59,7 @@ class EELS_SPEC_Device(Observable.Observable):
 
     def set_spec_values(self, value):
         inst_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(inst_dir, 'eels_settings.json')
+        abs_path = os.path.join(inst_dir, '../aux_files/config/eels_settings.json')
         with open(abs_path) as savfile:
             data = json.load(savfile)
 

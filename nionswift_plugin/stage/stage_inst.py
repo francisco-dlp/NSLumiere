@@ -3,11 +3,13 @@ import json
 import logging
 import os
 import sys
+from pathlib import Path
+import shutil
 
 from nion.utils import Event
 from nion.utils import Observable
 
-abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
+abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
 with open(abs_path) as savfile:
     settings = json.load(savfile)
 
@@ -23,7 +25,10 @@ else:
 class stageDevice(Observable.Observable):
 
     def __init__(self):
-        logging.info(f'***VG STAGE***: Please put Stepper.dll at the following folder: {sys.executable}.')
+        logging.info(f'***VG STAGE***: Placing Stepper.dll in {sys.executable}.')
+        dll_path = abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/DLLs/Stepper.dll')
+        parent_exec = os.path.join(Path(sys.executable).parent.absolute(), 'Stepper.dll')
+        shutil.copyfile(dll_path, parent_exec)
 
 
         self.property_changed_event = Event.Event()

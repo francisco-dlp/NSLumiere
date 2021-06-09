@@ -39,7 +39,7 @@ class diafhandler:
 
     def save_ROA(self, widget):
         panel_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(panel_dir, 'diafs_settings.json')
+        abs_path = os.path.join(panel_dir, '../aux_files/config/diafs_settings.json')
         with open(abs_path) as savfile:
             json_object = json.load(savfile)  # data is load json
 
@@ -53,7 +53,7 @@ class diafhandler:
 
     def save_SA(self, widget):
         panel_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(panel_dir, 'diafs_settings.json')
+        abs_path = os.path.join(panel_dir, '../aux_files/config/diafs_settings.json')
         with open(abs_path) as savfile:
             json_object = json.load(savfile)  # data is load json
 

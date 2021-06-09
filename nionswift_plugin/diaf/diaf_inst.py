@@ -6,7 +6,7 @@ import logging
 from nion.utils import Event
 from nion.utils import Observable
 
-abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
+abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
 with open(abs_path) as savfile:
     settings = json.load(savfile)
 DEBUG = settings["diaf"]["DEBUG"]
@@ -33,7 +33,7 @@ class diafDevice(Observable.Observable):
         if START_DIAF:
             try:
                 inst_dir = os.path.dirname(__file__)
-                abs_path = os.path.join(inst_dir, 'diafs_settings.json')
+                abs_path = os.path.join(inst_dir, '../aux_files/config/diafs_settings.json')
                 with open(abs_path) as savfile:
                     data = json.load(savfile)  # data is load json
                 self.roa_change_f = int(data['ROA']['last'])
@@ -55,7 +55,7 @@ class diafDevice(Observable.Observable):
         diaf_list = ['None', '50', '100', '150']
         value = diaf_list[value]
         inst_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(inst_dir, 'diafs_settings.json')
+        abs_path = os.path.join(inst_dir, '../aux_files/config/diafs_settings.json')
         with open(abs_path) as savfile:
             data = json.load(savfile)  # data is load json
         if which == 'ROA':

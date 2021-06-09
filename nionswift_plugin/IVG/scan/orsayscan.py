@@ -36,7 +36,7 @@ def _toString23(string):
 #is64bit = sys.maxsize > 2**32
 if (sys.maxsize > 2**32):
     libname = os.path.dirname(__file__)
-    libname = os.path.join(libname, "Scan.dll")
+    libname = os.path.join(libname, "../../aux_files/DLLs/Scan.dll")
     _library = cdll.LoadLibrary(libname)
     #print(f"OrsayScan library: {_library}")
 else:
