@@ -10,7 +10,15 @@ Clone master branch or most up-to-date development branch using:
 
 Inside your nionswift environment, if you are using anaconda/miniconda, install locally using 
 
-`pip install -e swift_lumiere`
+`python setupLum.py clean --all install`
+
+or `python setupCold.py clean --all install`
+
+or `python setupChromaTEM.py clean --all install`
+
+or `python setupVirtual.py clean --all install`
+
+Depending on the microscope you wish to Install. Any custom microscope can be easily built creating a new setup file.
 
 All required packages will be automatically installed. In this case, we use pyserial for controlling all our serial instruments. Apertures, EELS Spectrometer, Lenses (C1, C2 and OBJ), gauges are a few examples of this instrument list.
 
