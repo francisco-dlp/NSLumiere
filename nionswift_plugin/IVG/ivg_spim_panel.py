@@ -84,7 +84,7 @@ class ivgSpimhandler:
             self.start_button.enabled=False
         else:
             self.start_button.enabled=True
-        self.trigger_value.items = self.__cams[current_index]
+        #self.trigger_value.items = self.__cams[current_index]
 
     def prepare_widget_enable(self,  value):
         self.event_loop.create_task(self.do_enable(True, ['start_button', 'cancel_button']))

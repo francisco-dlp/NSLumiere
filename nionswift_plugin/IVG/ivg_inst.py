@@ -213,6 +213,7 @@ class ivgInstrument(stem_controller.STEMController):
         elif self.__spim_trigger == 1:
             now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             self.__EIRE)]
+            print(now_cam)
         elif self.__spim_trigger == 2:
             now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             self.__EELS), HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
