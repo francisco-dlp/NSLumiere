@@ -44,7 +44,7 @@ class eels_spec_handler:
 
     def save_spec(self, widget):
         panel_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(panel_dir, 'eels_settings.json')
+        abs_path = os.path.join(panel_dir, '../aux_files/config/eels_settings.json')
         with open(abs_path) as savfile:
             json_object = json.load(savfile)
 

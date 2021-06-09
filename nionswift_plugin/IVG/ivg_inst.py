@@ -18,7 +18,7 @@ Subject: Objective Lens @ VG Lumiere
 
 This message was automatically sent and means objective lens @ VG Lum. was shutdown because of its high temperature"""
 
-abs_path = os.path.abspath(os.path.join((__file__ + "/../../"), 'global_settings.json'))
+abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
 with open(abs_path) as savfile:
     settings = json.load(savfile)
 

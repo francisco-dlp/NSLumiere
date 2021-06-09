@@ -44,7 +44,7 @@ def _toString23(string):
 # is64bit = sys.maxsize > 2**32
 if (sys.maxsize > 2 ** 32):
     libname = os.path.dirname(__file__)
-    libname = os.path.join(libname, "STEMSerial.dll")
+    libname = os.path.join(libname, "../aux_files/DLLs/STEMSerial.dll")
     _library = cdll.LoadLibrary(libname)
     print("Orsay STEMSerial library: ", _library)
 else:

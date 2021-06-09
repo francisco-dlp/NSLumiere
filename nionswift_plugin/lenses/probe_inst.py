@@ -7,9 +7,8 @@ import time
 from nion.utils import Event
 from nion.utils import Observable
 from nion.swift.model import HardwareSource
-from nion.utils import Registry
 
-abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
+abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
 with open(abs_path) as savfile:
     settings = json.load(savfile)
 
@@ -51,7 +50,7 @@ class probeDevice(Observable.Observable):
     def init_handler(self):
         try:
             inst_dir = os.path.dirname(__file__)
-            abs_path = os.path.join(inst_dir, 'lenses_settings.json')
+            abs_path = os.path.join(inst_dir, '../aux_files/config/lenses_settings.json')
             with open(abs_path) as savfile:
                 data = json.load(savfile)  # data is load json
             self.obj_edit_f = data["3"]["obj"]
@@ -70,7 +69,7 @@ class probeDevice(Observable.Observable):
 
     def EHT_change(self, value):
         inst_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(inst_dir, 'lenses_settings.json')
+        abs_path = os.path.join(inst_dir, '../aux_files/config/lenses_settings.json')
         with open(abs_path) as savfile:
             data = json.load(savfile)  # data is load json
         self.obj_edit_f = data[str(value)]['obj']

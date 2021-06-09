@@ -45,7 +45,7 @@ if (sys.maxsize > 2**32):
     pos = python_folder.find("python.exe")
     if pos>0:
         python_folder=python_folder.replace("python.exe","")
-        lib2name=os.path.join(libpath, "AttoClient.dll")
+        lib2name=os.path.join(libpath, "../aux_files/DLLs/AttoClient.dll")
         copy2(lib2name,python_folder)
 
     logging.info(f'Please put AttoClient.dll and '
@@ -55,10 +55,10 @@ if (sys.maxsize > 2**32):
         libname = os.path.join(libpath, "C:/Monch_plugins/swift-spectro/nionswift_plugin/spectro/SpectroCL.dll")
         _library = cdll.LoadLibrary(libname)
     except FileNotFoundError:
-        libname = os.path.join(libpath, "SpectroCL.dll")
+        libname = os.path.join(libpath, "../aux_files/DLLs/SpectroCL.dll")
         _library = cdll.LoadLibrary(libname)
     except OSError:
-        libname = os.path.join(libpath, "SpectroCL.dll")
+        libname = os.path.join(libpath, "../aux_files/DLLs/SpectroCL.dll")
         _library = cdll.LoadLibrary(libname)
 
     logging.info(f"Orsay SpectroCL library: {_library}")

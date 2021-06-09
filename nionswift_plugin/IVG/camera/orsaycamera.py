@@ -52,7 +52,7 @@ if (sys.maxsize > 2**32):
         lib3nameconfig = os.path.join(libpath, "Connection.dll.config")
         copy2(lib3nameconfig, python_folder)
     libname = os.path.dirname(__file__)
-    libname = os.path.join(libname, "Cameras.dll")
+    libname = os.path.join(libname, "../../aux_files/DLLs/Cameras.dll")
     _library = cdll.LoadLibrary(libname)
 else:
     raise Exception("It must a python 64 bit version")
