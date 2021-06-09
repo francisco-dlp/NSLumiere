@@ -18,18 +18,16 @@ from .camera import VGCameraPanel, VGCameraYves
 if not DEBUG_SCAN:
     from .scan import VGScanYves
 
-TIMEPIX_SETTINGS = False
-
 def run():
 
     instrument = ivg_inst.ivgInstrument('VG_Lum_controller')
+    # You definitely need to register the instrument over here.
+    Registry.register_component(instrument, {"instrument_controller", "stem_controller"})
+
     ivg_panel.run(instrument)
     if not DEBUG_CAMERA and not DEBUG_SCAN: ivg_spim_panel.run(instrument)
     if not DEBUG_SCAN: VGScanYves.run(instrument)
     if not DEBUG_CAMERA:
         VGCameraYves.run(instrument)
         VGCameraPanel.run()
-    if TIMEPIX_SETTINGS:
-        tp3_aux_panel.run()
 
-    Registry.register_component(instrument, {"instrument_controller", "stem_controller"})
