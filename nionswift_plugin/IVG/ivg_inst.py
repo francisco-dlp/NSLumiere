@@ -23,7 +23,7 @@ with open(abs_path) as savfile:
     settings = json.load(savfile)
 
 SERIAL_PORT_GUN = settings["IVG"]["COM_GUN"]
-DEBUG_airlock = settings["IVG"]["DEBUG_AIRLOCK"]
+SERIAL_PORT_AIRLOCK = settings["IVG"]["COM_AIRLOCK"]
 SENDMAIL = settings["IVG"]["SENDMAIL"]
 FAST_PERIODIC = settings["IVG"]["FAST_PERIODIC"]["ACTIVE"]
 TIME_FAST_PERIODIC = settings["IVG"]["FAST_PERIODIC"]["PERIOD"]
@@ -35,12 +35,7 @@ TEMP_COEF = settings["IVG"]["OBJECTIVE"]["TEMP_COEF"]
 MAX_PTS = settings["IVG"]["MAX_PTS"]
 
 from . import gun as gun
-
-if DEBUG_airlock:
-    from .virtual_instruments import airlock_vi as al
-else:
-    from . import airlock as al
-
+from . import airlock as al
 
 class ivgInstrument(stem_controller.STEMController):
     def __init__(self, instrument_id: str):
@@ -98,8 +93,10 @@ class ivgInstrument(stem_controller.STEMController):
             from .virtual_instruments import gun_vi
             self.__gun_gauge = gun_vi.GunVacuum()
 
-        self.__ll_sendmessage = al.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        self.__ll_gauge = al.AirLockVacuum(self.__ll_sendmessage)
+        self.__ll_gauge = al.AirLockVacuum(SERIAL_PORT_AIRLOCK)
+        if not self.__ll_gauge.success:
+            from .virtual_instruments import airlock_vi
+            self.__ll_gauge = airlock_vi.AirLockVacuum()
 
     def init_handler(self):
         self.__lensInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("lenses_controller")
@@ -241,14 +238,6 @@ class ivgInstrument(stem_controller.STEMController):
         def sendMessage(message):
             if message == 1:
                 logging.info("***IVG***: Could not find some or all of the hardwares")
-            if message == 4:
-                logging.info("***AIRLOCK GAUGE@IVG***: Could not find hardware. Check connection.")
-            if message == 5:
-                logging.info(
-                    "***GUN GAUGE@IVG***: Problem querying gun gauge. Returning zero instead. If it is an intermitent problem, you are querying too fast.")
-            if message == 6:
-                logging.info("***AIRLOCK GAUGE@IVG***: Problem querying gun gauge. Returning zero instead.")
-
         return sendMessage
 
     @property

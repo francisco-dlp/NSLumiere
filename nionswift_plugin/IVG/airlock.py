@@ -1,24 +1,15 @@
 import serial
 import logging
-import time
-import threading
-import numpy
 
 __author__ = "Yves Auad"
 
-def _isPython3():
-    return sys.version_info[0] >= 3
-
-def SENDMYMESSAGEFUNC(sendmessagefunc):
-    return sendmessagefunc
-
 class AirLockVacuum:
 
-    def __init__(self, sendmessage):
-        self.sendmessage=sendmessage
+    def __init__(self, sport):
+        self.success = False
         self.ser=serial.Serial()
         self.ser.baudrate=9600
-        self.ser.port='COM6'
+        self.ser.port=sport
         self.ser.parity=serial.PARITY_NONE
         self.ser.stopbits=serial.STOPBITS_ONE
         self.ser.bytesize=serial.EIGHTBITS
@@ -27,10 +18,9 @@ class AirLockVacuum:
         try:
             if not self.ser.is_open:
                 self.ser.open()
-                time.sleep(0.1)
+            self.success = True
         except:
-            self.sendmessage(4)
-
+            logging.info("***AIRLOCK GAUGE***: Could not find hardware. Entering in debug mode.")
 
     def query(self):
         try:
@@ -42,9 +32,5 @@ class AirLockVacuum:
             value = int(data)/1000. * 10**(int(ex)-20)
             return value
         except:
+            logging.info("***AIRLOCK GAUGE***: Problem querying gun gauge. Entering in debug mode.")
             return 0.0
-            self.sendmessage(6)
-
-
-    
-		

@@ -7,7 +7,7 @@
             "DEBUG": 1
         },
         "DEBUG_SCAN": 1,
-        "DEBUG_AIRLOCK": 1,
+        "COM_AIRLOCK": "COM35",
         "COM_GUN": "COM5",
         "FAST_PERIODIC": {
             "ACTIVE": 0,
