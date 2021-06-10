@@ -1,10 +1,11 @@
 import serial
-import sys
 import time
 import threading
 import os
 import json
 import logging
+
+from . import Lens_controller
 
 abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
 with open(abs_path) as savfile:
@@ -16,9 +17,10 @@ MAX_C2 = settings["lenses"]["MAX_C2"]
 
 __author__ = "Yves Auad"
 
-class Lenses:
+class Lenses(Lens_controller.LensesController):
 
     def __init__(self, sport):
+        super().__init__()
         self.success = False
         self.ser = serial.Serial()
         self.ser.baudrate = 57600
@@ -55,11 +57,16 @@ class Lenses:
                          'Monitor software.')
         return current, voltage
 
-    def locked_query(self, which):
-        with self.lock:
-            return self.query(which)
-
     def set_val(self, val, which):
+        if which == 'OBJ_STIG':
+            scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+            scan.scan_device.orsayscan.ObjectiveStigmateur(val[0] / 1000., val[1] / 1000.)
+            return
+        if which == 'GUN_STIG':
+            scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scan.scan_device.orsayscan.CondensorStigmateur(val[0] / 1000., val[1] / 1000.)
+            return
         if which == 'OBJ' and val<=MAX_OBJ and val>=0:
             string_init = '>1,1,1,'
         elif which == 'C1' and val<=MAX_C1 and val>=0:
@@ -73,24 +80,3 @@ class Lenses:
         string = string_init + str(val) + ',0.5\r'
         self.ser.write(string.encode())
         return self.ser.readline()
-
-    def locked_set_val(self, val, which):
-        with self.lock:
-            return self.set_val(val, which)
-
-    def wobbler_loop(self, current, intensity, frequency, which):
-        self.wobbler_thread = threading.currentThread()
-        sens = 1
-        while getattr(self.wobbler_thread, "do_run", True):
-            sens = sens * -1
-            if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / frequency)
-            self.locked_set_val(current + sens * intensity, which)
-            if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / frequency)
-            self.locked_set_val(current, which)
-
-    def wobbler_on(self, current, intensity, frequency, which):
-        self.wobbler_thread = threading.Thread(target=self.wobbler_loop, args=(current, intensity, frequency, which), )
-        self.wobbler_thread.start()
-
-    def wobbler_off(self):
-        self.wobbler_thread.do_run = False

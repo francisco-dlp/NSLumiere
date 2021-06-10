@@ -43,8 +43,6 @@ class probeDevice(Observable.Observable):
         self.wobbler_frequency_f = 2
         self.__wobbler_intensity = 0.02
 
-        self.__ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
-
     def init_handler(self):
         try:
             inst_dir = os.path.dirname(__file__)
@@ -117,23 +115,22 @@ class probeDevice(Observable.Observable):
 
     @property
     def obj_stigmateur0_f(self):
-        #return self.__objStig[0]
-        return self.__ivg.obj_stig00_f
+        return self.__objStig[0]
 
     @obj_stigmateur0_f.setter
     def obj_stigmateur0_f(self, value):
-        self.__ivg.obj_stig00_f=value
-        #self.__objStig[0] = value
-        #self.__lenses_ps.locked_set_val(self.__objStig, 'OBJ_STIG')
+        self.__objStig[0] = value
+        self.__lenses_ps.locked_set_val(self.__objStig, 'OBJ_STIG')
         self.property_changed_event.fire('obj_stigmateur0_f')
 
     @property
     def obj_stigmateur1_f(self):
-        return self.__ivg.obj_stig01_f
+        return self.__objStig[1]
 
     @obj_stigmateur1_f.setter
     def obj_stigmateur1_f(self, value):
-        self.__ivg.obj_stig01_f=value
+        self.__objStig[1] = value
+        self.__lenses_ps.locked_set_val(self.__objStig, 'OBJ_STIG')
         self.property_changed_event.fire('obj_stigmateur1_f')
 
     @property
@@ -304,18 +301,20 @@ class probeDevice(Observable.Observable):
     ### COND ASTIGMATORS ###
     @property
     def gun_stigmateur0_f(self):
-        return self.__ivg.gun_stig00_f
+        return self.__gunStig[0]
 
     @gun_stigmateur0_f.setter
     def gun_stigmateur0_f(self, value):
-        self.__ivg.gun_stig00_f = value
+        self.__gunStig[0] = value
+        self.__lenses_ps.locked_set_val(self.__gunStig, 'GUN_STIG')
         self.property_changed_event.fire('gun_stigmateur0_f')
 
     @property
     def gun_stigmateur1_f(self):
-        return self.__ivg.gun_stig01_f
+        return self.__gunStig[1]
 
     @gun_stigmateur1_f.setter
     def gun_stigmateur1_f(self, value):
-        self.__ivg.gun_stig01_f = value
+        self.__gunStig[1] = value
+        self.__lenses_ps.locked_set_val(self.__gunStig, 'GUN_STIG')
         self.property_changed_event.fire('gun_stigmateur1_f')
