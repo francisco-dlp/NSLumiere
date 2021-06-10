@@ -303,66 +303,6 @@ class ivgInstrument(stem_controller.STEMController):
         return str('{:.2E}'.format(self.__LL_vac)) + ' mBar'
 
     @property
-    def obj_stig00_f(self):
-        return int(self.__obj_stig[0] * 1e3)
-
-    @obj_stig00_f.setter
-    def obj_stig00_f(self, value):
-        self.__obj_stig[0] = value / 1e3
-        try:
-            if not DEBUG_SCAN:
-                self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_stig[0],
-                                                                                     self.__obj_stig[1])
-        except:
-            logging.info('***LENSES***: Could not acess objective astigmators. Please check Scan Module.')
-        self.property_changed_event.fire('obj_astig00_f')
-
-    @property
-    def obj_stig01_f(self):
-        return int(self.__obj_stig[1] * 1e3)
-
-    @obj_stig01_f.setter
-    def obj_stig01_f(self, value):
-        self.__obj_stig[1] = value / 1e3
-        try:
-            if not DEBUG_SCAN:
-                self.__OrsayScanInstrument.scan_device.orsayscan.ObjectiveStigmateur(self.__obj_stig[0],
-                                                                                     self.__obj_stig[1])
-        except:
-            logging.info('***LENSES***: Could not acess objective astigmators. Please check Scan Module.')
-        self.property_changed_event.fire('obj_astig01_f')
-
-    @property
-    def gun_stig00_f(self):
-        return int(self.__gun_stig[0] * 1e3)
-
-    @gun_stig00_f.setter
-    def gun_stig00_f(self, value):
-        self.__gun_stig[0] = value / 1e3
-        try:
-            if not DEBUG_SCAN:
-                self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__gun_stig[0],
-                                                                                     self.__gun_stig[1])
-        except:
-            logging.info('***LENSES***: Could not acess gun astigmators. Please check Scan Module.')
-        self.property_changed_event.fire('gun_astig00_f')
-
-    @property
-    def gun_stig01_f(self):
-        return int(self.__gun_stig[1] * 1e3)
-
-    @gun_stig01_f.setter
-    def gun_stig01_f(self, value):
-        self.__gun_stig[1] = value / 1e3
-        try:
-            if not DEBUG_SCAN:
-                self.__OrsayScanInstrument.scan_device.orsayscan.CondensorStigmateur(self.__gun_stig[0],
-                                                                                     self.__gun_stig[1])
-        except:
-            logging.info('***LENSES***: Could not acess gun astigmators. Please check Scan Module.')
-        self.property_changed_event.fire('gun_astig01_f')
-
-    @property
     def obj_cur_f(self):
         try:
             self.__obj_cur, self.__obj_vol = self.__lensInstrument.get_values('OBJ')
