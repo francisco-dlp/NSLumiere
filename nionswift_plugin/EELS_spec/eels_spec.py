@@ -1,5 +1,4 @@
 import serial
-import time
 import logging
 from . import EELS_controller
 from nion.swift.model import HardwareSource
@@ -25,7 +24,7 @@ class EELS_Spectrometer(EELS_controller.EELSController):
             self.success = True
         except:
             logging.info("***EELS SPECTROMETER***: Could not find EELS Spec. Please check hardware. "
-                         "Entering in debug mode...")
+                         "Entering in debug mode.")
 
     def set_val(self, val, which):
         if which=="off":

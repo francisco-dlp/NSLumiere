@@ -1,25 +1,20 @@
 import serial
 import sys
 import numpy
+import logging
 
 __author__ = "Yves Auad"
-
 
 def _isPython3():
     return sys.version_info[0] >= 3
 
-
-def SENDMYMESSAGEFUNC(sendmessagefunc):
-    return sendmessagefunc
-
-
 class Diafs:
 
-    def __init__(self, sendmessage):
-        self.sendmessage = sendmessage
+    def __init__(self, sport):
+        self.succesfull = False
         self.ser = serial.Serial()
         self.ser.baudrate = 9600
-        self.ser.port = 'COM7'
+        self.ser.port = sport
         self.ser.parity = serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
         self.ser.bytesize = serial.EIGHTBITS
@@ -28,10 +23,9 @@ class Diafs:
         try:
             if not self.ser.is_open:
                 self.ser.open()
+            self.succesfull = True
         except:
-            self.sendmessage(1)
-
-        self.ser.readline()
+            logging.info("***APERTURES***: Could not find apertures hardware. Entering in debug mode.")
 
     def pos_to_bytes(self, pos):
         rem = pos
@@ -50,4 +44,5 @@ class Diafs:
             self.ser.write(byt_array)
             self.ser.read(6)
         except:
-            self.sendmessage(2)
+            logging.info(
+                "***APERTURES***: Communication problem over serial port. Easy check using Serial Port Monitor.")

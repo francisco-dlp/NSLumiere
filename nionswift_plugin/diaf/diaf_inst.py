@@ -9,14 +9,10 @@ from nion.utils import Observable
 abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
 with open(abs_path) as savfile:
     settings = json.load(savfile)
-DEBUG = settings["diaf"]["DEBUG"]
+SERIAL_PORT = settings["diaf"]["COM"]
 START_DIAF = True
 
-if DEBUG:
-    from . import diaf_vi as diaf
-else:
-    from . import diaf as diaf
-
+from . import diaf as diaf
 
 class diafDevice(Observable.Observable):
 
@@ -27,8 +23,10 @@ class diafDevice(Observable.Observable):
         self.busy_event = Event.Event()
         self.set_full_range = Event.Event()
 
-        self.__sendmessage = diaf.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        self.__apert = diaf.Diafs(self.__sendmessage)
+        self.__apert = diaf.Diafs(SERIAL_PORT)
+        if not self.__apert.succesfull:
+            from . import diaf_vi
+            self.__apert = diaf_vi.Diafs()
 
         if START_DIAF:
             try:
@@ -38,18 +36,8 @@ class diafDevice(Observable.Observable):
                     data = json.load(savfile)  # data is load json
                 self.roa_change_f = int(data['ROA']['last'])
                 self.voa_change_f = int(data['VOA']['last'])
-
             except:
                 logging.info('***APERTURES***: No saved values. Check your json file.')
-
-    def sendMessageFactory(self):
-        def sendMessage(message):
-            if message == 1:
-                logging.info("***APERTURES***: Could not find Apertures Hardware")
-            if message == 2:
-                logging.info("***APERTURES***: Communication problem over serial port. Easy check using Serial Port Monitor.")
-
-        return sendMessage
 
     def set_values(self, value, which):
         diaf_list = ['None', '50', '100', '150']

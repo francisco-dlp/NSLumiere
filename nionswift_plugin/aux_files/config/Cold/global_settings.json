@@ -30,10 +30,6 @@
         },
         "STAGE_MATRIX_SIZE": 160
     },
-    "SPECTROMETER": {
-        "DEBUG": 0,
-        "MANUFACTURER": ["DEBUG", "ATTOLIGHT", "PRINCETON"]
-    },
     "stage": {
         "DEBUG": 0
     }
