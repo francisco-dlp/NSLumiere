@@ -1,27 +1,17 @@
 import serial
-import sys
-import time
-import os
-import json
 
 __author__ = "Yves Auad"
-
-
-def _isPython3():
-    return sys.version_info[0] >= 3
-
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
-
 class OptSpectrometer:
 
-    def __init__(self, sendmessage):
+    def __init__(self, sendmessage, sport):
         self.sendmessage = sendmessage
         self.ser = serial.Serial()
         self.ser.baudrate = 9600
-        self.ser.port = 'COM16'
+        self.ser.port = sport
         self.ser.parity = serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
         self.ser.bytesize = serial.EIGHTBITS

@@ -6,7 +6,7 @@
         "type": "eels",
         "id": "orsay_camera_timepix3",
         "name": "tp3_EELS",
-        "simulation": true
+        "simulation": false
     },
 
     {
@@ -15,6 +15,6 @@
         "type": "eire",
         "id": "orsay_camera_eire",
         "name": "EIRE",
-        "simulation": true
+        "simulation": false
     }
 ]

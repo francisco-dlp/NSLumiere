@@ -1,3 +1,10 @@
 {
-
+  "spectrometer": {
+    "WHICH": [
+      "DEBUG",
+      "ATTOLIGHT",
+      "PRINCETON"
+    ],
+    "COM_PRINCETON": "COM16"
+  }
 }

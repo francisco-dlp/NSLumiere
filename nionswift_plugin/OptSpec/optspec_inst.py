@@ -8,7 +8,7 @@ from nion.utils import Observable
 from nion.swift.model import HardwareSource
 
 class OptSpecDevice(Observable.Observable):
-    def __init__(self, MANUFACTURER='DEBUG'):
+    def __init__(self, MANUFACTURER):
         self.property_changed_event = Event.Event()
         self.property_changed_power_event = Event.Event()
         self.communicating_event = Event.Event()
@@ -30,7 +30,14 @@ class OptSpecDevice(Observable.Observable):
         elif self.__model=='PRINCETON': from . import spec as optSpec
 
         self.__sendmessage = optSpec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        self.__Spec = optSpec.OptSpectrometer(self.__sendmessage)
+        if self.__model == 'PRINCETON':
+            abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
+            with open(abs_path) as savfile:
+                settings = json.load(savfile)
+            SERIAL_PORT_PRINCETON = settings["spectrometer"]["COM_PRINCETON"]
+            self.__Spec = optSpec.OptSpectrometer(self.__sendmessage, SERIAL_PORT_PRINCETON)
+        else:
+            self.__Spec = optSpec.OptSpectrometer(self.__sendmessage)
 
         self.__gratings = self.__Spec.gratingNames()
         self.send_gratings.fire(self.__gratings)
