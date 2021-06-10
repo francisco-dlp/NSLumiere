@@ -10,14 +10,9 @@ from nion.utils import Observable
 abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
 with open(abs_path) as savfile:
     settings = json.load(savfile)
-DEBUG = settings["EELS"]["DEBUG"]
+SERIAL_PORT = settings["EELS"]["COM"]
 
-
-if DEBUG:
-    from . import eels_spec_vi as spec
-else:
-    from . import eels_spec as spec
-
+from . import eels_spec as spec
 
 class EELS_SPEC_Device(Observable.Observable):
 
@@ -27,7 +22,10 @@ class EELS_SPEC_Device(Observable.Observable):
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
 
-        self.__eels_spec = spec.EELS_Spectrometer()
+        self.__eels_spec = spec.EELS_Spectrometer(SERIAL_PORT)
+        if not self.__eels_spec.success:
+            from . import eels_spec_vi as spec_vi
+            self.__eels_spec = spec_vi.EELS_Spectrometer()
 
         self.__elem = [0] * nElem
         self.__names = ElemNames
@@ -41,16 +39,15 @@ class EELS_SPEC_Device(Observable.Observable):
 
         self.__EHT = '3'
 
-        #try:
-        inst_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(inst_dir, '../aux_files/config/eels_settings.json')
-        print(abs_path)
-        with open(abs_path) as savfile:
-            data = json.load(savfile)
-        self.__dispIndex = int(data["3"]["last"])
-        self.disp_change_f = self.__dispIndex  # put last index
-        #except:
-        #    logging.info('***EELS SPEC***: No saved values.')
+        try:
+            inst_dir = os.path.dirname(__file__)
+            abs_path = os.path.join(inst_dir, '../aux_files/config/eels_settings.json')
+            with open(abs_path) as savfile:
+                data = json.load(savfile)
+            self.__dispIndex = int(data["3"]["last"])
+            self.disp_change_f = self.__dispIndex  # put last index
+        except:
+            logging.info('***EELS SPEC***: No saved values.')
 
     def init_handler(self):
         self.focus_wobbler_f=0

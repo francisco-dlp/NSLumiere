@@ -4,16 +4,16 @@ import logging
 from . import EELS_controller
 from nion.swift.model import HardwareSource
 
-
 __author__ = "Yves Auad"
 
 class EELS_Spectrometer(EELS_controller.EELSController):
 
-    def __init__(self):
+    def __init__(self, sport):
         super().__init__()
+        self.success = False
         self.ser = serial.Serial()
         self.ser.baudrate = 9600
-        self.ser.port = 'COM4'
+        self.ser.port = sport
         self.ser.parity = serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
         self.ser.bytesize = serial.EIGHTBITS
@@ -22,9 +22,10 @@ class EELS_Spectrometer(EELS_controller.EELSController):
         try:
             if not self.ser.is_open:
                 self.ser.open()
-                time.sleep(0.1)
+            self.success = True
         except:
-            logging.info("***EELS SPECTROMETER***: Could not find EELS Spec. Check Hardware")
+            logging.info("***EELS SPECTROMETER***: Could not find EELS Spec. Please check hardware. "
+                         "Entering in debug mode...")
 
     def set_val(self, val, which):
         if which=="off":

@@ -1,6 +1,6 @@
 {
     "EELS": {
-        "DEBUG": 0
+        "COM": "COM4"
     },
     "IVG": {
         "CAMERA": {
