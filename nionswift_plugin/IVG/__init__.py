@@ -6,7 +6,6 @@ abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_s
 with open(abs_path) as savfile:
     settings = json.load(savfile)
 
-DEBUG_CAMERA = settings["IVG"]["CAMERA"]["DEBUG"]
 DEBUG_SCAN = settings["IVG"]["DEBUG_SCAN"]
 
 from . import ivg_inst
@@ -25,9 +24,8 @@ def run():
     Registry.register_component(instrument, {"instrument_controller", "stem_controller"})
 
     ivg_panel.run(instrument)
-    if not DEBUG_CAMERA and not DEBUG_SCAN: ivg_spim_panel.run(instrument)
+    if not DEBUG_SCAN: ivg_spim_panel.run(instrument)
     if not DEBUG_SCAN: VGScanYves.run(instrument)
-    if not DEBUG_CAMERA:
-        VGCameraYves.run(instrument)
-        VGCameraPanel.run()
+    VGCameraYves.run(instrument)
+    VGCameraPanel.run()
 
