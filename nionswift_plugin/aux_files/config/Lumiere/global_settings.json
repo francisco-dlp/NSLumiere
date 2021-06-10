@@ -7,10 +7,8 @@
             "DEBUG": 1
         },
         "DEBUG_SCAN": 1,
-        "AMBIENT_TEMPERATURE": 23,
         "DEBUG_AIRLOCK": 1,
-        "DEBUG_GUN": 1,
-        "EHT_INITIAL": 3,
+        "COM_GUN": "COM5",
         "FAST_PERIODIC": {
             "ACTIVE": 0,
             "PERIOD": 0.1

@@ -1,24 +1,15 @@
 import serial
 import logging
-import time
-import threading
-import numpy
 
 __author__ = "Yves Auad"
 
-def _isPython3():
-    return sys.version_info[0] >= 3
-
-def SENDMYMESSAGEFUNC(sendmessagefunc):
-    return sendmessagefunc
-
 class GunVacuum:
 
-    def __init__(self, sendmessage):
-        self.sendmessage=sendmessage
+    def __init__(self, sport):
+        self.success = False
         self.ser=serial.Serial()
         self.ser.baudrate=115200
-        self.ser.port='COM5'
+        self.ser.port=sport
         self.ser.parity=serial.PARITY_NONE
         self.ser.stopbits=serial.STOPBITS_ONE
         self.ser.bytesize=serial.EIGHTBITS
@@ -27,13 +18,11 @@ class GunVacuum:
         try:
             if not self.ser.is_open:
                 self.ser.open()
-                time.sleep(0.1)
             self.ser.write(b'GDAT? 1\n')
             self.ser.readline()
+            self.success = True
         except:
-            self.sendmessage(3)
-
-
+            logging.info("***GUN GAUGE***: Could not find hardware. Entering in debug mode.")
 
     def query(self):
         try:
@@ -45,5 +34,5 @@ class GunVacuum:
             vide=sig * 10**ex
             return vide
         except:
-            self.sendmessage(5)
+            logging.info("***GUN GAUGE@IVG***: Problem querying gun gauge. Returning zero instead.")
             return 0

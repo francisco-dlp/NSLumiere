@@ -22,7 +22,7 @@ abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_s
 with open(abs_path) as savfile:
     settings = json.load(savfile)
 
-DEBUG_gun = settings["IVG"]["DEBUG_GUN"]
+SERIAL_PORT_GUN = settings["IVG"]["COM_GUN"]
 DEBUG_airlock = settings["IVG"]["DEBUG_AIRLOCK"]
 SENDMAIL = settings["IVG"]["SENDMAIL"]
 FAST_PERIODIC = settings["IVG"]["FAST_PERIODIC"]["ACTIVE"]
@@ -33,14 +33,8 @@ OBJECTIVE_MAX_TEMPERATURE = settings["IVG"]["OBJECTIVE"]["MAX_TEMP"]
 OBJECTIVE_RESISTANCE = settings["IVG"]["OBJECTIVE"]["RESISTANCE"]
 TEMP_COEF = settings["IVG"]["OBJECTIVE"]["TEMP_COEF"]
 MAX_PTS = settings["IVG"]["MAX_PTS"]
-AMBIENT_TEMPERATURE = settings["IVG"]["AMBIENT_TEMPERATURE"]
-EHT_INITIAL = settings["IVG"]["EHT_INITIAL"]
-DEBUG_SCAN = settings["IVG"]["DEBUG_SCAN"]
 
-if DEBUG_gun:
-    from .virtual_instruments import gun_vi as gun
-else:
-    from . import gun as gun
+from . import gun as gun
 
 if DEBUG_airlock:
     from .virtual_instruments import airlock_vi as al
@@ -75,9 +69,9 @@ class ivgInstrument(stem_controller.STEMController):
         self.__haadf_gain = 250
         self.__bf_gain = 250
 
-        self.__EHT = EHT_INITIAL
+        self.__EHT = 3
         self.__obj_res_ref = OBJECTIVE_RESISTANCE
-        self.__amb_temp = AMBIENT_TEMPERATURE
+        self.__amb_temp = 23
         self.__stand = False
         self.__stage_moving = [False, False] #x and y stage moving
 
@@ -99,8 +93,10 @@ class ivgInstrument(stem_controller.STEMController):
 
         ## spim properties attributes END
 
-        self.__gun_sendmessage = gun.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        self.__gun_gauge = gun.GunVacuum(self.__gun_sendmessage)
+        self.__gun_gauge = gun.GunVacuum(SERIAL_PORT_GUN)
+        if not self.__gun_gauge.success:
+            from .virtual_instruments import gun_vi
+            self.__gun_gauge = gun_vi.GunVacuum()
 
         self.__ll_sendmessage = al.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__ll_gauge = al.AirLockVacuum(self.__ll_sendmessage)
@@ -110,7 +106,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__EELSInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_controller")
         self.__AperInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("diaf_controller")
         self.__StageInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
-        #self.__optSpecInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("optSpec_controller")
         self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_scan_device")
 
@@ -246,8 +241,6 @@ class ivgInstrument(stem_controller.STEMController):
         def sendMessage(message):
             if message == 1:
                 logging.info("***IVG***: Could not find some or all of the hardwares")
-            if message == 3:
-                logging.info("***GUN GAUGE@IVG***: Could not find hardware. Check connection.")
             if message == 4:
                 logging.info("***AIRLOCK GAUGE@IVG***: Could not find hardware. Check connection.")
             if message == 5:
@@ -534,16 +527,18 @@ class ivgInstrument(stem_controller.STEMController):
         self.__probe_position = probe_position
 
     def change_pmt_gain(self, pmt_type, *, factor: float) -> None:
-        if not DEBUG_SCAN:
+        scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "orsay_scan_device")
+        if scan is not None:
             if pmt_type == 0:
-                self.__haadf_gain = int(self.__OrsayScanInstrument.scan_device.orsayscan.GetPMT(1))
+                self.__haadf_gain = int(scan.scan_device.orsayscan.GetPMT(1))
                 self.__haadf_gain = int(self.__haadf_gain * 1.05) if factor > 1 else int(self.__haadf_gain * 0.95)
                 if self.__haadf_gain > 2500: self.__haadf_gain = 2500
             if pmt_type == 1:
-                self.__bf_gain = int(self.__OrsayScanInstrument.scan_device.orsayscan.GetPMT(0))
+                self.__bf_gain = int(scan.scan_device.orsayscan.GetPMT(0))
                 self.__bf_gain = int(self.__bf_gain * 1.05) if factor > 1 else int(self.__bf_gain * 0.95)
                 if self.__bf_gain > 2500: self.__bf_gain = 2500
-            self.__OrsayScanInstrument.scan_device.orsayscan.SetPMT(-pmt_type + 1, self.__haadf_gain)
+            scan.scan_device.orsayscan.SetPMT(-pmt_type + 1, self.__haadf_gain)
 
     def change_stage_position(self, *, dy: int = None, dx: int = None):
         self.__StageInstrument.x_pos_f += dx * 1e8
