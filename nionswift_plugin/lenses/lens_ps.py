@@ -1,9 +1,10 @@
 import serial
-import time
 import threading
 import os
 import json
 import logging
+
+from nion.swift.model import HardwareSource
 
 from . import Lens_controller
 
@@ -60,12 +61,18 @@ class Lenses(Lens_controller.LensesController):
     def set_val(self, val, which):
         if which == 'OBJ_STIG':
             scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-            scan.scan_device.orsayscan.ObjectiveStigmateur(val[0] / 1000., val[1] / 1000.)
+            if scan is not None:
+                scan.scan_device.orsayscan.ObjectiveStigmateur(val[0] / 1000., val[1] / 1000.)
+            else:
+                logging.info('***LENSES***: Could not find objetive stigmator.')
             return
         if which == 'GUN_STIG':
             scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            scan.scan_device.orsayscan.CondensorStigmateur(val[0] / 1000., val[1] / 1000.)
+            if scan is not None:
+                scan.scan_device.orsayscan.CondensorStigmateur(val[0] / 1000., val[1] / 1000.)
+            else:
+                logging.info('***LENSES***: Could not find gun stigmator.')
             return
         if which == 'OBJ' and val<=MAX_OBJ and val>=0:
             string_init = '>1,1,1,'
