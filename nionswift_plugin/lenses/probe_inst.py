@@ -32,6 +32,8 @@ class probeDevice(Observable.Observable):
         self.__obj = 0.
         self.__c1 = 0.
         self.__c2 = 0.
+        self.__objStig = [0, 0]
+        self.__gunStig = [0, 0]
         self.__obj_global = True
         self.__c1_global = True
         self.__c2_global = True
@@ -115,11 +117,14 @@ class probeDevice(Observable.Observable):
 
     @property
     def obj_stigmateur0_f(self):
+        #return self.__objStig[0]
         return self.__ivg.obj_stig00_f
 
     @obj_stigmateur0_f.setter
     def obj_stigmateur0_f(self, value):
         self.__ivg.obj_stig00_f=value
+        #self.__objStig[0] = value
+        #self.__lenses_ps.locked_set_val(self.__objStig, 'OBJ_STIG')
         self.property_changed_event.fire('obj_stigmateur0_f')
 
     @property

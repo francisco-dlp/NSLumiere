@@ -1,7 +1,7 @@
 # standard libraries
 import threading
 import logging
-import smtplib, ssl
+import smtplib
 import os
 import json
 
@@ -35,9 +35,6 @@ TEMP_COEF = settings["IVG"]["OBJECTIVE"]["TEMP_COEF"]
 MAX_PTS = settings["IVG"]["MAX_PTS"]
 AMBIENT_TEMPERATURE = settings["IVG"]["AMBIENT_TEMPERATURE"]
 EHT_INITIAL = settings["IVG"]["EHT_INITIAL"]
-DEBUG_CAMERA = settings["IVG"]["CAMERA"]["DEBUG"]
-CAMERA_PIXELS = settings["IVG"]["CAMERA"]["PIXELS"]
-CAMERA_SIZE = settings["IVG"]["CAMERA"]["SIZE"]
 DEBUG_SCAN = settings["IVG"]["DEBUG_SCAN"]
 
 if DEBUG_gun:
@@ -624,16 +621,6 @@ class ivgInstrument(stem_controller.STEMController):
             return True, 1
         elif s == "eels_x_scale":
             return True, self.__EELSInstrument.range_f
-
-        #if s == "eire_y_offset":
-        #    return True, 0
-        #elif s == "eire_x_offset":
-        #    return True, (float(self.__optSpecInstrument.wav_f) - self.__optSpecInstrument.dispersion_f * CAMERA_SIZE / 2.)
-        #elif s == "eire_y_scale":
-        #    return True, 1
-        #elif s == "eire_x_scale":
-        #    return True, self.__optSpecInstrument.dispersion_f * CAMERA_SIZE / CAMERA_PIXELS
-
         else:
             return False, 0
 
