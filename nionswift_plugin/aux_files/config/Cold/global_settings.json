@@ -3,16 +3,9 @@
         "COM": "COM4"
     },
     "IVG": {
-        "CAMERA": {
-            "DEBUG": 0,
-            "PIXELS": 1600,
-            "SIZE": 25.6
-        },
         "DEBUG_SCAN": 1,
-        "AMBIENT_TEMPERATURE": 23,
-        "DEBUG_AIRLOCK": 1,
-        "DEBUG_GUN": 1,
-        "EHT_INITIAL": 3,
+        "COM_AIRLOCK": "COM35",
+        "COM_GUN": "COM5",
         "FAST_PERIODIC": {
             "ACTIVE": 0,
             "PERIOD": 0.1
@@ -29,6 +22,12 @@
             "PERIOD": 1.0
         },
         "STAGE_MATRIX_SIZE": 160
+    },
+    "lenses": {
+        "COM": "COM13",
+        "MAX_OBJ": 9.5,
+        "MAX_C1": 1.5,
+        "MAX_C2": 1.5
     },
     "stage": {
         "DEBUG": 0
