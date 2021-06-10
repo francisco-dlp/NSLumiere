@@ -34,7 +34,7 @@
         "COM": "COM7"
     },
     "lenses": {
-        "DEBUG": 1,
+        "COM": "COM13",
         "MAX_OBJ": 9.5,
         "MAX_C1": 1.5,
         "MAX_C2": 1.5

@@ -11,16 +11,9 @@ from nion.swift.model import HardwareSource
 abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
 with open(abs_path) as savfile:
     settings = json.load(savfile)
+SERIAL_PORT = settings["lenses"]["COM"]
 
-DEBUG = settings["lenses"]["DEBUG"]
-
-
-if DEBUG:
-    from . import lens_ps_vi as lens_ps
-else:
-    from . import lens_ps as lens_ps
-
-
+from . import lens_ps as lens_ps
 
 class probeDevice(Observable.Observable):
 
@@ -30,8 +23,11 @@ class probeDevice(Observable.Observable):
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
 
-        self.__sendmessage = lens_ps.SENDMYMESSAGEFUNC(self.sendMessageFactory())
-        self.__lenses_ps = lens_ps.Lenses(self.__sendmessage)
+        self.__lenses_ps = lens_ps.Lenses(SERIAL_PORT)
+        if not self.__lenses_ps.success:
+            from . import lens_ps_vi
+            self.__lenses_ps = lens_ps_vi.Lenses()
+
 
         self.__obj = 0.
         self.__c1 = 0.
@@ -82,18 +78,6 @@ class probeDevice(Observable.Observable):
 
     def get_orsay_scan_instrument(self):
         self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-
-    def sendMessageFactory(self):
-        def sendMessage(message):
-            if message == 1:
-                logging.info("***LENSES***: Could not find Lenses PS")
-            if message == 2:
-                logging.info("***LENSES***: Attempt to set values out of range.")
-            if message == 4:
-                logging.info('***LENSES***: Communication Error over Serial Port. Easy check using Serial Port '
-                             'Monitor software.')
-
-        return sendMessage
 
     ### General ###
 
