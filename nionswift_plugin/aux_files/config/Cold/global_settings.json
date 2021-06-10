@@ -1,6 +1,6 @@
 {
     "EELS": {
-        "DEBUG": 1
+        "DEBUG": 0
     },
     "IVG": {
         "CAMERA": {
@@ -8,7 +8,7 @@
             "PIXELS": 1600,
             "SIZE": 25.6
         },
-        "DEBUG_SCAN": 1,
+        "DEBUG_SCAN": 0,
         "AMBIENT_TEMPERATURE": 23,
         "DEBUG_AIRLOCK": 1,
         "DEBUG_GUN": 1,
@@ -35,6 +35,6 @@
         "MANUFACTURER": ["DEBUG", "ATTOLIGHT", "PRINCETON"]
     },
     "stage": {
-        "DEBUG": 1
+        "DEBUG": 0
     }
 }
