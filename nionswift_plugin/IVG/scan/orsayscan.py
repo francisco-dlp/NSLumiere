@@ -1,10 +1,9 @@
 ﻿"""
 Class controlling orsay scan hardware.
 """
-import sys
+import sys, os
 from ctypes import cdll, create_string_buffer, POINTER, byref
 from ctypes import c_uint, c_int, c_char, c_char_p, c_void_p, c_short, c_long, c_bool, c_double, c_uint64, c_uint32, Array, CFUNCTYPE, WINFUNCTYPE
-import os
 
 __author__  = "Marcel Tence"
 __status__  = "alpha"
@@ -35,8 +34,7 @@ def _toString23(string):
 
 #is64bit = sys.maxsize > 2**32
 if (sys.maxsize > 2**32):
-    libname = os.path.dirname(__file__)
-    libname = os.path.join(libname, "../../aux_files/DLLs/Scan.dll")
+    libname = os.path.join(os.path.dirname(__file__), "../../aux_files/DLLs/Scan.dll")
     _library = cdll.LoadLibrary(libname)
     #print(f"OrsayScan library: {_library}")
 else:
