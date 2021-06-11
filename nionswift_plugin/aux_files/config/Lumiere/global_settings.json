@@ -3,7 +3,6 @@
     "COM": "COM4"
   },
   "IVG": {
-    "DEBUG_SCAN": 0,
     "COM_AIRLOCK": "COM99",
     "COM_GUN": "COM5",
     "FAST_PERIODIC": {
