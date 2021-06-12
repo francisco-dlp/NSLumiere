@@ -2,15 +2,14 @@
 # -*- coding:utf-8 -*-
 Class wrapping the Marcel Tencé dll for controlling an optical spectrometer.
 """
-import sys
+import sys, os
 from ctypes import cdll, create_string_buffer, POINTER, byref
 from ctypes import c_uint, c_int, c_char, c_char_p, c_void_p, c_int, c_long, c_bool, c_double, c_uint64, c_uint32, Array, CFUNCTYPE, WINFUNCTYPE
-from shutil import copy2
-import os
+import shutil
+from pathlib import Path
 import logging
-import time
 
-__author__  = "Marcel Tence & Mathieu Kociak"
+__author__  = "Marcel Tence & Mathieu Kociak & Yves Auad"
 __status__  = "alpha"
 __version__ = "0.1"
 
@@ -39,18 +38,13 @@ def _toString23(string):
 
 #is64bit = sys.maxsize > 2**32
 if (sys.maxsize > 2**32):
-    #first copy the extra dll to python folder
+
+    logging.info(f'***OPT SPEC***: Placing AttoClient.dll in {sys.executable}.')
+    dll_path = abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/DLLs/AttoClient.dll')
+    parent_exec = os.path.join(Path(sys.executable).parent.absolute(), 'AttoClient.dll')
+    shutil.copyfile(dll_path, parent_exec)
+
     libpath = os.path.dirname(__file__)
-    python_folder = sys.executable
-    pos = python_folder.find("python.exe")
-    if pos>0:
-        python_folder=python_folder.replace("python.exe","")
-        lib2name=os.path.join(libpath, "../aux_files/DLLs/AttoClient.dll")
-        copy2(lib2name,python_folder)
-
-    logging.info(f'Please put AttoClient.dll and '
-                 f'SpectroCL.dll at the following folder: {sys.executable}.')
-
     try:
         libname = os.path.join(libpath, "C:/Monch_plugins/swift-spectro/nionswift_plugin/spectro/SpectroCL.dll")
         _library = cdll.LoadLibrary(libname)

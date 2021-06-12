@@ -2,6 +2,7 @@
 import threading
 import numpy
 import queue
+import os, json
 
 from nion.utils import Event
 from nion.utils import Observable
