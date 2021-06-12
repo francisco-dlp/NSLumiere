@@ -29,6 +29,7 @@ class TimePix3():
 
     def __init__(self, url, simul, message):
 
+        self.success = False
         self.__serverURL = url
         self.__dataQueue = queue.LifoQueue()
         self.__eventQueue = queue.Queue()
@@ -53,7 +54,7 @@ class TimePix3():
                 if initial_status_code == 200:
                     logging.info('***TP3***: Timepix has initialized correctly.')
                 else:
-                    logging.info('***TP3***: Problem initializing Timepix')
+                    logging.info('***TP3***: Problem initializing Timepix3. Bad status code.')
 
                 # Loading bpc and dacs
                 bpcFile = '/home/asi/load_files/tpx3-demo.bpc'
@@ -62,8 +63,9 @@ class TimePix3():
                 self.acq_init(99999)
                 self.set_destination(self.__port)
                 logging.info(f'***TP3***: Current detector configuration is {self.get_config()}.')
+                self.success = True
             except:
-                logging.info('***TP3***: Problem initializing Timepix3.')
+                logging.info('***TP3***: Problem initializing Timepix3. Cannot load files.')
         else:
             logging.info('***TP3***: Timepix3 in simulation mode.')
 
