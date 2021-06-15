@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="OrsayLumiere",
-    version="5.9.0",
+    version="5.9.1",
     author="Yves Auad",
     description="Set of tools to run a VG Microscope in Nionswift",
     url="https://github.com/yvesauad/swift_lumiere",
@@ -28,6 +28,8 @@ setup(
         'nionswift_plugin/aux_files/DLLs/Stepper.dll',
         'nionswift_plugin/aux_files/DLLs/SpectroCL.dll',
         'nionswift_plugin/aux_files/DLLs/AttoClient.dll',
+    ]), ('swift_rust/target/release', [
+        'swift_rust/target/release/rust2swift.pyd'
     ]
 
     )],

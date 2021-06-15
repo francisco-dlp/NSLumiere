@@ -11,7 +11,9 @@ import os
 import select
 
 from nion.swift.model import HardwareSource
+from swift_rust.target.release import rust2swift
 
+a = rust2swift.hello_swift()
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
