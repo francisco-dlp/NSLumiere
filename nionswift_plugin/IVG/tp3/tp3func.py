@@ -14,6 +14,8 @@ from nion.swift.model import HardwareSource
 from swift_rust.target.release import rust2swift
 
 a = rust2swift.hello_swift()
+b = rust2swift.update_spim([1, 2, 3, 4])
+print(b)
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
@@ -754,6 +756,8 @@ class TimePix3():
                                 self.update_spim_all()
                                 return
 
+                            b = rust2swift.update_spim(packet_data)
+                            print(b)
                             dt = numpy.dtype(numpy.uint32).newbyteorder('>')
                             event_list = numpy.frombuffer(packet_data, dtype=dt)
                             self.__eventQueue.put(event_list)

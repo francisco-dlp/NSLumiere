@@ -4,6 +4,7 @@ py_module_initializer!(rust2swift, |py, m| {
     m.add(py, "__doc__", "This module is implemented in Rust.")?;
     m.add(py, "sum_as_string", py_fn!(py, sum_as_string_py(a: i64, b:i64)))?;
     m.add(py, "hello_swift", py_fn!(py, hello_swift_py()))?;
+    m.add(py, "update_spim", py_fn!(py, update_spim_py(data: &[u8])))?;
     Ok(())
 });
 
@@ -22,5 +23,15 @@ fn hello_swift() -> String {
 
 fn hello_swift_py(_: Python) -> PyResult<String> {
     let out = hello_swift();
+    Ok(out)
+}
+
+fn update_spim(data: &[u8]) -> String {
+    println!("{:?}", data);
+    String::from("OK")
+}
+
+fn update_spim_py(_: Python, data: &[u8]) -> PyResult<String> {
+    let out = update_spim(data);
     Ok(out)
 }
