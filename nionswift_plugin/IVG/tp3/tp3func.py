@@ -766,6 +766,8 @@ class TimePix3():
                     return
 
                 if not self.__isPlaying:
+                    logging.info('***TP3***: Finishing SPIM.')
+                    self.update_spim_all()
                     return
         return
 
