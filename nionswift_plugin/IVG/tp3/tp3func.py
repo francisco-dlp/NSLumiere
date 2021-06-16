@@ -11,7 +11,7 @@ import os
 import select
 
 from nion.swift.model import HardwareSource
-from swift_rust.target.release import rust2swift
+#from swift_rust.target.release import rust2swift
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
@@ -786,6 +786,9 @@ class TimePix3():
     def update_spim_all(self):
         logging.info('***TP3***: Emptying queue and closing connection.')
         while not self.__eventQueue.empty():
+            qs = self.__eventQueue.qsize()
+            if qs % 100 == 0:
+                logging.info(f'***TP3***: Approximate points left: {qs}')
             event_list = self.__eventQueue.get()
             unique, counts = numpy.unique(event_list, return_counts=True)
             counts = counts.astype(numpy.uint32)
