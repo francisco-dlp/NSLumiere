@@ -51,6 +51,7 @@ class OptSpecDevice(Observable.Observable):
 
         self.__eirecamera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             self.__cameraName)
+        print(self.__eirecamera)
 
         return (True and self.__eirecamera is not None)
 
@@ -87,6 +88,7 @@ class OptSpecDevice(Observable.Observable):
         self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
                                                 {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
                                                  "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels, "units": "nm"}]
+        print(self.__eirecamera.camera.calibration)
 
     def measure(self):
         self.__running = True
