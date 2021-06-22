@@ -84,9 +84,13 @@ class OptSpecDevice(Observable.Observable):
         self.upt_calibs()
 
     def upt_calibs(self):
+
+
         self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
                                                 {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
                                                  "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels, "units": "nm"}]
+        print(self.__eirecamera.camera.calibration)
+        print(self.__eirecamera.camera.calibration_controls)
 
     def measure(self):
         self.__running = True
