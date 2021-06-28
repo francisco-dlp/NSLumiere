@@ -274,7 +274,7 @@ class TimePix3():
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE" and (self.__tp3mode == 2 or self.__tp3mode == 3 or
-                                                 self.__tp3mode == 4 or self.__tp3mode == 5):
+                                                 self.__tp3mode == 4):
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
             self.start_listening(port, message=message, spim=nbspectra)
@@ -565,8 +565,11 @@ class TimePix3():
         inputs = list()
         outputs = list()
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_aux = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+        client_aux = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        if self.__simul:
+            client_aux.bind(("127.0.0.1", 9088))
+        else:
+            client_aux.bind(("192.168.199.11", 9088))
         """
         127.0.0.1 -> LocalHost;
         129.175.108.58 -> Patrick;
@@ -578,11 +581,11 @@ class TimePix3():
         ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname('192.168.199.11')
         address = (ip, port)
         try:
-            client.connect(address);
-            client_aux.connect(address)
+            client.connect(address)
+            #client_aux.connect(address)
             logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
-            inputs.append(client);
-            inputs.append(client_aux)
+            inputs.append(client)
+            #inputs.append(client_aux)
         except ConnectionRefusedError:
             return False
 
