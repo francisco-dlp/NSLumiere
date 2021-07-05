@@ -30,6 +30,10 @@ class stageDevice(Observable.Observable):
         parent_exec = os.path.join(Path(sys.executable).parent.absolute(), 'Stepper.dll')
         shutil.copyfile(dll_path, parent_exec)
 
+        logging.info(f'***VG STAGE***: Placing delib64.dll in {sys.executable}.')
+        dll_path = os.path.join(os.path.dirname(__file__), '../aux_files/DLLs/delib64.dll')
+        parent_exec = os.path.join(Path(sys.executable).parent.absolute(), 'delib64.dll')
+        shutil.copyfile(dll_path, parent_exec)
 
         self.property_changed_event = Event.Event()
         self.property_changed_power_event = Event.Event()
