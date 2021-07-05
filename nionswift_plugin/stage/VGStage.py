@@ -12,16 +12,13 @@ from nion.utils import Event
 
 __author__ = "Marcel Tence & Mathieu Kociak & Yves Auad"
 
-
 def _isPython3():
     return sys.version_info[0] >= 3
-
 
 def _buildFunction(call, args, result):
     call.argtypes = args
     call.restype = result
     return call
-
 
 def _createCharBuffer23(size):
     if (_isPython3()):
@@ -40,7 +37,6 @@ def _toString23(string):
         return string.encode("utf-8")
     return string
 
-
 # is64bit = sys.maxsize > 2**32
 if (sys.maxsize > 2 ** 32):
     libname = os.path.dirname(__file__)
@@ -52,8 +48,6 @@ else:
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
-
-
 
 LOGGERFUNC = WINFUNCTYPE(None, c_char_p)
 MOTOR = WINFUNCTYPE(c_void_p)
@@ -95,13 +89,11 @@ class VGStage(object):
             self.__logger_func = fn
 
         self._InitOk = False
-        try:
-            self._stage = _OrsayStageInit()
-            if not self._stage:
-                self.sendmessage(1)
-            self._InitOk = _OrsayStageIsInitialised(self._stage, 0)
-        except:
-            pass
+        self._stage = _OrsayStageInit()
+        print(self._stage)
+        if not self._stage:
+            self.sendmessage(1)
+        self._InitOk = _OrsayStageIsInitialised(self._stage, 0)
 
     def close(self):
         """ ferme la dll """

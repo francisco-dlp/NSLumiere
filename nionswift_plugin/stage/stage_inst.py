@@ -26,7 +26,7 @@ class stageDevice(Observable.Observable):
 
     def __init__(self):
         logging.info(f'***VG STAGE***: Placing Stepper.dll in {sys.executable}.')
-        dll_path = abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/DLLs/Stepper.dll')
+        dll_path = os.path.join(os.path.dirname(__file__), '../aux_files/DLLs/Stepper.dll')
         parent_exec = os.path.join(Path(sys.executable).parent.absolute(), 'Stepper.dll')
         shutil.copyfile(dll_path, parent_exec)
 
