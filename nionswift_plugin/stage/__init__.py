@@ -1,10 +1,7 @@
 from nion.swift.model import HardwareSource
 
-
-import logging
 from . import stage_inst
 from . import stage_panel
-
 
 def run():
 
