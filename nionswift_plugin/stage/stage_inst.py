@@ -33,6 +33,7 @@ class stageDevice(Observable.Observable):
         logging.info(f'***VG STAGE***: Placing delib64.dll in {sys.executable}.')
         dll_path = os.path.join(os.path.dirname(__file__), '../aux_files/DLLs/delib64.dll')
         parent_exec = os.path.join(Path(sys.executable).parent.absolute(), 'delib64.dll')
+        #logging.info(f'***VG STAGE***: Not Placing delib64.dll in {sys.executable}.')
         shutil.copyfile(dll_path, parent_exec)
 
         self.property_changed_event = Event.Event()
