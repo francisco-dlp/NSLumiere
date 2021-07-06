@@ -1,5 +1,15 @@
 [
     {
+        "manufacturer": 4,
+        "model": "CheeTah",
+            "ip_address": "http://192.168.199.11:8080",
+        "type": "eels",
+        "id": "orsay_camera_timepix3",
+        "name": "tp3_EELS",
+        "simulation": false
+    },
+
+    {
         "manufacturer": 2,
         "model": "Newton",
         "type": "eire",
