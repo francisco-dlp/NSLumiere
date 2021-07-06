@@ -566,10 +566,10 @@ class TimePix3():
         outputs = list()
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_aux = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        if self.__simul:
-            client_aux.bind(("127.0.0.1", 9088))
-        else:
-            client_aux.bind(("192.168.199.11", 9088))
+        #if self.__simul:
+        #    client_aux.bind(("127.0.0.1", 9088))
+        #else:
+        #    client_aux.bind(("192.168.199.11", 9088))
         """
         127.0.0.1 -> LocalHost;
         129.175.108.58 -> Patrick;
