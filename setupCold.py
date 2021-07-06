@@ -9,11 +9,13 @@ setup(
     packages=['nionswift_plugin.EELS_spec',
               'nionswift_plugin.IVG', 'nionswift_plugin.IVG.virtual_instruments',
               'nionswift_plugin.IVG.tp3', 'nionswift_plugin.IVG.camera',
-              'nionswift_plugin.IVG.scan', 'nionswift_plugin.OptSpec', 'nionswift_plugin.stage'],
+              'nionswift_plugin.IVG.scan', 'nionswift_plugin.OptSpec',
+              'nionswift_plugin.lenses', 'nionswift_plugin.stage'],
     python_requires='>=3.8.5',
     data_files=[('nionswift_plugin/aux_files/config', [
         'nionswift_plugin/aux_files/config/Cold/global_settings.json',
         'nionswift_plugin/aux_files/config/Cold/eels_settings.json',
+        'nionswift_plugin/aux_files/config/Cold/lenses_settings.json',
         'nionswift_plugin/aux_files/config/Cold/Orsay_cameras_list.json',
 
     ]), ('nionswift_plugin/aux_files/DLLs', [

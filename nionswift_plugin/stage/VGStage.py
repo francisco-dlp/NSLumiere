@@ -90,7 +90,6 @@ class VGStage(object):
 
         self._InitOk = False
         self._stage = _OrsayStageInit()
-        print(self._stage)
         if not self._stage:
             self.sendmessage(1)
         self._InitOk = _OrsayStageIsInitialised(self._stage, 0)
