@@ -753,8 +753,8 @@ def run(instrument: ivg_inst.ivgInstrument):
                 # frame_parameters = camera_settings.get_current_frame_parameters()
                 # frame_parameters["simulated"] = camera["simulation"]
                 # camera_settings.set_current_frame_parameters(frame_parameters)
-        except:
-            logging.info(f"Failed to start camera: {manufacturer}  model: {model}")
+        except Exception as e:
+            logging.info(f"Failed to start camera: {manufacturer}.  model: {model}. Exception: {e}")
         # finally:
         #    pass
         # camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"], instrument, camera["id"], camera["name"], camera["type"])
