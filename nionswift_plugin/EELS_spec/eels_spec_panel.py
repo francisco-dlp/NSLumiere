@@ -67,40 +67,10 @@ class eels_spec_handler:
         widget.minimum = widget.value - 1500
 
     def reset_all(self):
-        self.fx_slider.maximum = 32767
-        self.fx_slider.minimum = -32767
-
-        self.fy_slider.maximum = 32767
-        self.fy_slider.minimum = -32767
-
-        self.sx_slider.maximum = 32767
-        self.sx_slider.minimum = -32767
-
-        self.sy_slider.maximum = 32767
-        self.sy_slider.minimum = -32767
-
-        self.dy_slider.maximum = 32767
-        self.dy_slider.minimum = -32767
-
-        self.q1_slider.maximum = 32767
-        self.q1_slider.minimum = -32767
-
-        self.q2_slider.maximum = 32767
-        self.q2_slider.minimum = -32767
-
-        self.q3_slider.maximum = 32767
-        self.q3_slider.minimum = -32767
-
-        self.q4_slider.maximum = 32767
-        self.q4_slider.minimum = -32767
-
-        self.dx_slider.maximum = 32767
-        self.dx_slider.minimum = -32767
-
-        self.dmx_slider.maximum = 32767
-        self.dmx_slider.minimum = -32767
-
-
+        for prop in [self.fx_slider, self.fy_slider, self.sx_slider, self.sy_slider, self.dy_slider, self.q1_slider, self.q2_slider, self.q3_slider, self.q4_slider,
+                     self.dx_slider, self.dmx_slider]:
+            prop.maximum = 32767
+            prop.minimum = -32767
 
 class eels_spec_View:
 

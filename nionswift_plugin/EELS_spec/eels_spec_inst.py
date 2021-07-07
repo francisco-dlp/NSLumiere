@@ -30,8 +30,8 @@ class EELS_SPEC_Device(Observable.Observable):
         self.__names = ElemNames
         assert len(self.__names)==nElem
 
-        self.__focus_wobbler_int=25
-        self.__dispersion_wobbler_int=25
+        self.__focus_wobbler_int=250
+        self.__dispersion_wobbler_int=250
         self.__focus_wobbler_index = 0
         self.__dispersion_wobbler_index = 0
         self.__vsm_wobbler = False
