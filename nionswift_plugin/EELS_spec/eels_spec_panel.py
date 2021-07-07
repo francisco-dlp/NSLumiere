@@ -23,7 +23,7 @@ class eels_spec_handler:
         self.instrument = instrument
         self.enabled = False
         self.property_changed_event_listener = self.instrument.property_changed_event.listen(self.prepare_widget_enable)
-        self.busy_event_listener = self.instrument.busy_event.listen(self.prepare_widget_disable)
+        self.reset_slider_listener = self.instrument.reset_slider.listen(self.reset_all)
 
     def init_handler(self):
         self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id('VG_Lum_controller')
@@ -38,9 +38,6 @@ class eels_spec_handler:
 
     def prepare_widget_enable(self, value):
         self.event_loop.create_task(self.do_enable(True, []))
-
-    def prepare_widget_disable(self, value):
-        self.event_loop.create_task(self.do_enable(False, []))
 
     def save_spec(self, widget):
         panel_dir = os.path.dirname(__file__)
@@ -63,7 +60,13 @@ class eels_spec_handler:
         self.full_range(widget)
 
     def full_range(self, widget):
+        self.reset_all()
 
+    def slider_release(self, widget):
+        widget.maximum = widget.value + 1500
+        widget.minimum = widget.value - 1500
+
+    def reset_all(self):
         self.fx_slider.maximum = 32767
         self.fx_slider.minimum = -32767
 
@@ -97,9 +100,6 @@ class eels_spec_handler:
         self.dmx_slider.maximum = 32767
         self.dmx_slider.minimum = -32767
 
-    def slider_release(self, widget):
-        widget.maximum = widget.value + 1500
-        widget.minimum = widget.value - 1500
 
 
 class eels_spec_View:
@@ -119,7 +119,7 @@ class eels_spec_View:
         # range selection
 
         self.dispersion_label = ui.create_label(text='Dispersion: ')
-        self.dispersion_value = ui.create_combo_box(name='dispersion_value', items=['d1', 'd2', 'd3'],
+        self.dispersion_value = ui.create_combo_box(name='dispersion_value', items=['d1', 'd2', 'd3', 'd4', 'd5'],
                                                     current_index='@binding(instrument.disp_change_f)')
 
         self.range_label = ui.create_label(text='Dispersion: ')

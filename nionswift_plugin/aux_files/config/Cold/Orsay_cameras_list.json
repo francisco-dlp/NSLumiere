@@ -6,15 +6,6 @@
         "type": "eels",
         "id": "orsay_camera_timepix3",
         "name": "tp3_EELS",
-        "simulation": false
-    },
-
-    {
-        "manufacturer": 2,
-        "model": "Newton",
-        "type": "eire",
-        "id": "orsay_camera_eire",
-        "name": "EIRE",
-        "simulation": false
+        "simulation": true
     }
 ]

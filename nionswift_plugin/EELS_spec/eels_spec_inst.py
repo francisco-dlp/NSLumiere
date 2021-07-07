@@ -18,9 +18,8 @@ class EELS_SPEC_Device(Observable.Observable):
 
     def __init__(self, nElem, ElemNames):
         self.property_changed_event = Event.Event()
-        self.property_changed_power_event = Event.Event()
-        self.communicating_event = Event.Event()
-        self.busy_event = Event.Event()
+        self.reset_slider = Event.Event()
+
 
         self.__eels_spec = spec.EELS_Spectrometer(SERIAL_PORT)
         if not self.__eels_spec.success:
@@ -107,6 +106,7 @@ class EELS_SPEC_Device(Observable.Observable):
 
     @disp_change_f.setter
     def disp_change_f(self, value):
+        self.reset_slider.fire()
         self.__dispIndex = value
         self.set_spec_values(str(value))
         self.property_changed_event.fire('disp_change_f')
