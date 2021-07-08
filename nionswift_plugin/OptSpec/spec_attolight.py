@@ -322,7 +322,11 @@ class OptSpectrometer:
         return True
 
     def get_which(self):
-        return self.exitMirror()
+        val = self.exitMirror()
+        if val == 1:
+            return 0
+        elif val == 2:
+            return 1
 
     def set_which(self, value):
         if value==0: #AXIAL
@@ -334,7 +338,8 @@ class OptSpectrometer:
         return 320.0
 
     def which_camera(self):
-        return 'orsay_camera_eire'
+        return 'usim_eels_camera'
+        #return 'orsay_camera_eire'
 
     def camera_pixels(self):
         return 1600
