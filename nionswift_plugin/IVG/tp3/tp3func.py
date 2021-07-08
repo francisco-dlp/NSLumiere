@@ -567,9 +567,9 @@ class TimePix3():
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_aux = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         #if self.__simul:
-        #    client_aux.bind(("127.0.0.1", 9088))
+        client_aux.bind(("127.0.0.1", 9088))
         #else:
-        #    client_aux.bind(("192.168.199.11", 9088))
+        #    client_aux.bind(("192.168.199.10", 9088))
         """
         127.0.0.1 -> LocalHost;
         129.175.108.58 -> Patrick;
@@ -582,10 +582,9 @@ class TimePix3():
         address = (ip, port)
         try:
             client.connect(address)
-            #client_aux.connect(address)
             logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
             inputs.append(client)
-            #inputs.append(client_aux)
+            inputs.append(client_aux)
         except ConnectionRefusedError:
             return False
 
@@ -736,6 +735,8 @@ class TimePix3():
                             frame_data = packet_data[end_header + 2:end_header + 2 + data_size + 1]
                             if put_queue(cam_properties, frame_data):
                                 frame_data = b''
+                        elif s==client_aux: #UDP Packet
+                            pass
 
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
@@ -763,6 +764,8 @@ class TimePix3():
 
                             if len(packet_data) < buffer_size / 2:
                                 self.update_spim()
+                        elif s==client_aux: #UDP Packet
+                            pass
 
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")

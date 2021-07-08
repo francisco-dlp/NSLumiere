@@ -205,7 +205,6 @@ class gainView:
 
         self.ui_view = ui.create_column(self.tabs)
 
-
 def create_spectro_panel(document_controller, panel_id, properties):
     instrument = properties["instrument"]
     ui_handler = gainhandler(instrument, document_controller.event_loop)
@@ -220,7 +219,6 @@ def create_spectro_panel(document_controller, panel_id, properties):
     if ui_handler and hasattr(ui_handler, "init_handler"):
         ui_handler.init_handler()
     return panel
-
 
 def run(instrument: probe_inst.probeDevice) -> None:
     panel_id = "Probe"  # make sure it is unique, otherwise only one of the panel will be displayed
