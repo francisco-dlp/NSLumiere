@@ -3,10 +3,11 @@ Class controlling orsay scan hardware.
 """
 import sys
 import threading
+import shutil
 from ctypes import cdll, create_string_buffer, POINTER, byref
 from ctypes import c_uint, c_int, c_char, c_char_p, c_void_p, c_short, c_long, c_bool, c_double, c_uint64, c_uint32, Array, CFUNCTYPE, WINFUNCTYPE
 from ctypes import c_ushort, c_ulong, c_float
-from shutil import copy2
+from pathlib import Path
 
 import os
 
@@ -46,14 +47,18 @@ if (sys.maxsize > 2**32):
     if pos>0:
         python_folder=python_folder.replace("python.exe","")
         lib2name=os.path.join(libpath, "STEMSerial.dll")
-        copy2(lib2name,python_folder)
+        shutil.copy2(lib2name,python_folder)
         lib3name = os.path.join(libpath, "Connection.dll")
-        copy2(lib3name, python_folder)
+        shutil.copy2(lib3name, python_folder)
         lib3nameconfig = os.path.join(libpath, "Connection.dll.config")
-        copy2(lib3nameconfig, python_folder)
+        shutil.copy2(lib3nameconfig, python_folder)
     libname = os.path.dirname(__file__)
     libname = os.path.join(libname, "../../aux_files/DLLs/Cameras.dll")
     _library = cdll.LoadLibrary(libname)
+    print(f'***CAMERA***: Placing atmcd64d.dll in {sys.executable}.')
+    dll_path = os.path.join(os.path.dirname(__file__), '../../aux_files/DLLs/atmcd64d.dll')
+    parent_exec = os.path.join(Path(sys.executable).parent.absolute(), 'atmcd64d.dll')
+    shutil.copyfile(dll_path, parent_exec)
 else:
     raise Exception("It must a python 64 bit version")
 
@@ -268,12 +273,12 @@ class orsayCamera(object):
         modelb = _toString23(model)
         self.orsaycamera = self.__OrsayCameraInit(manufacturer, modelb,  _toString23(sn), self.fnlog, simul)
         if not self.orsaycamera:
-            raise Exception ("Camera not created")
+            raise Exception ("Camera not created.")
         self.addConnectionListener(self.fnconnection)
         self.messagesevent.wait(5.0)
         self.messagesevent.clear()
         if not self.__OrsayCameraInit_data_structures(self.orsaycamera):
-            raise Exception ("Camera not initialised properly")
+            raise Exception ("Camera not initialised properly.")
         print(f"Camera: {self.__OrsayCameraIsCameraThere(self.orsaycamera)}")
         self.setAccumulationNumber(10)
 
