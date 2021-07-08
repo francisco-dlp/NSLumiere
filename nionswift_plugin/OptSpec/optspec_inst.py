@@ -8,6 +8,7 @@ from nion.utils import Event
 from nion.utils import Observable
 from nion.swift.model import HardwareSource
 
+
 class OptSpecDevice(Observable.Observable):
     def __init__(self, MANUFACTURER):
         self.property_changed_event = Event.Event()
@@ -20,15 +21,18 @@ class OptSpecDevice(Observable.Observable):
         self.warn_panel_over = Event.Event()
 
         self.__queue = queue.Queue()
-        self.__running=False
+        self.__running = False
         self.__successful = False
         self.__model = MANUFACTURER
         self.__thread = None
 
     def init(self):
-        if self.__model=='DEBUG': from . import spec_vi as optSpec
-        elif self.__model=='ATTOLIGHT': from . import spec_attolight as optSpec
-        elif self.__model=='PRINCETON': from . import spec as optSpec
+        if self.__model == 'DEBUG':
+            from . import spec_vi as optSpec
+        elif self.__model == 'ATTOLIGHT':
+            from . import spec_attolight as optSpec
+        elif self.__model == 'PRINCETON':
+            from . import spec as optSpec
 
         self.__sendmessage = optSpec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         if self.__model == 'PRINCETON':
@@ -86,7 +90,8 @@ class OptSpecDevice(Observable.Observable):
     def upt_calibs(self):
         self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
                                                 {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
-                                                 "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels, "units": "nm"}]
+                                                 "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
+                                                 "units": "nm"}]
 
     def measure(self):
         self.__running = True
@@ -102,8 +107,8 @@ class OptSpecDevice(Observable.Observable):
             cam_hor = numpy.sum(cam_data.data, axis=0) if len(cam_data.data.shape) > 1 else cam_data.data
             cam_total = numpy.sum(cam_hor)
             self.send_data.fire(cam_total, index)
-            index+=1
-            if index==200: index=0
+            index += 1
+            if index == 200: index = 0
 
     def abort(self):
         if self.__running:
@@ -115,10 +120,11 @@ class OptSpecDevice(Observable.Observable):
     def sendMessageFactory(self):
         def sendMessage(message):
             if message:
-                self.__running=False
+                self.__running = False
                 self.upt_values()
                 self.property_changed_event.fire('wav_f')
                 if self.__successful: self.upt_calibs()
+
         return sendMessage
 
     @property
@@ -131,11 +137,11 @@ class OptSpecDevice(Observable.Observable):
 
     @wav_f.setter
     def wav_f(self, value):
-        if self.__wl != float(value) and 0<=float(value)<=1500:
+        if self.__wl != float(value) and 0 <= float(value) <= 2500:
             self.__wl = float(value)
             self.busy_event.fire("")
             if not self.__running: threading.Thread(target=self.__Spec.set_wavelength, args=(self.__wl,)).start()
-            self.__running=True
+            self.__running = True
 
     @property
     def grating_f(self):
@@ -177,8 +183,8 @@ class OptSpecDevice(Observable.Observable):
         the diffracted angle divided by two.
         '''
         try:
-            ab2 = numpy.arcsin((1/2. * 1e-6 * self.__wl * self.lpmm_f) / numpy.cos(self.__devAngle/2.))
-            return (2*ab2 + self.__devAngle)/2.
+            ab2 = numpy.arcsin((1 / 2. * 1e-6 * self.__wl * self.lpmm_f) / numpy.cos(self.__devAngle / 2.))
+            return (2 * ab2 + self.__devAngle) / 2.
         except AttributeError:
             return 'None'
 
@@ -191,7 +197,7 @@ class OptSpecDevice(Observable.Observable):
         This is often called reciprocal linear dispersion. It is measured in nm/mm.
         '''
         try:
-            return 1e6/self.__lpmms[self.__grating] * numpy.cos(self.dif_angle_f) / self.__fl
+            return 1e6 / self.__lpmms[self.__grating] * numpy.cos(self.dif_angle_f) / self.__fl
         except AttributeError:
             return 'None'
 
@@ -205,10 +211,11 @@ class OptSpecDevice(Observable.Observable):
 
     @entrance_slit_f.setter
     def entrance_slit_f(self, value):
-        if self.__entrance_slit != float(value) and 0<=float(value)<=5000:
+        if self.__entrance_slit != float(value) and 0 <= float(value) <= 5000:
             self.__entrance_slit = float(value)
             self.busy_event.fire("")
-            if not self.__running: threading.Thread(target=self.__Spec.set_entrance, args=(self.__entrance_slit,)).start()
+            if not self.__running: threading.Thread(target=self.__Spec.set_entrance,
+                                                    args=(self.__entrance_slit,)).start()
             self.__running = True
 
     @property
@@ -221,7 +228,7 @@ class OptSpecDevice(Observable.Observable):
 
     @exit_slit_f.setter
     def exit_slit_f(self, value):
-        if self.__exit_slit != float(value) and 0<=float(value)<=5000:
+        if self.__exit_slit != float(value) and 0 <= float(value) <= 5000:
             self.__exit_slit = float(value)
             self.busy_event.fire("")
             if not self.__running: threading.Thread(target=self.__Spec.set_exit, args=(self.__exit_slit,)).start()
