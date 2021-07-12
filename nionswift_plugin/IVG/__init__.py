@@ -15,7 +15,7 @@ def run():
 
     ivg_panel.run(instrument)
     ivg_spim_panel.run(instrument)
-    VGScanYves.run(instrument)
+    #VGScanYves.run(instrument)
     VGCameraYves.run(instrument)
     VGCameraPanel.run()
 

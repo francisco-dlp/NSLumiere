@@ -63,8 +63,8 @@ class CameraDevice(camera_base.CameraDevice):
         self.stop_acquitisition_event = Event.Event()
         self.current_event = Event.Event()
 
-        if manufacturer != 4:
         # register data locker for focus acquisition
+        if manufacturer != 4:
             self.fnlock = orsaycamera.DATALOCKFUNC(self.__data_locker)
             self.camera.registerDataLocker(self.fnlock)
             self.fnunlock = orsaycamera.DATAUNLOCKFUNC(self.__data_unlocker)
@@ -74,8 +74,8 @@ class CameraDevice(camera_base.CameraDevice):
         self.acquire_data = None
         self.has_data_event = threading.Event()
 
-        # register data locker for SPIM acquisition
-        if manufacturer != 4:
+    # register data locker for SPIM acquisition
+        if manufacturer !=4:
             self.fnspimlock = orsaycamera.SPIMLOCKFUNC(self.__spim_data_locker)
             self.camera.registerSpimDataLocker(self.fnspimlock)
             self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
