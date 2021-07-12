@@ -19,7 +19,7 @@ from nion.utils import Registry
 
 from nion.instrumentation import camera_base
 
-from nionswift_plugin.IVG.camera import orsaycamera
+#from nionswift_plugin.IVG.camera import orsaycamera
 from nionswift_plugin.IVG.tp3 import tp3func
 
 from nionswift_plugin.IVG import ivg_inst
@@ -48,6 +48,7 @@ class CameraDevice(camera_base.CameraDevice):
             self.camera_callback = tp3func.SENDMYMESSAGEFUNC(self.sendMessageFactory())
             self.camera = tp3func.TimePix3(sn, simul, self.sendMessageFactory())
         else:
+            from nionswift_plugin.IVG.camera import orsaycamera
             self.camera = orsaycamera.orsayCamera(manufacturer, model, sn, simul)
         self.__config_dialog_handler = None
         self.__sensor_dimensions = self.camera.getCCDSize()
@@ -62,25 +63,27 @@ class CameraDevice(camera_base.CameraDevice):
         self.stop_acquitisition_event = Event.Event()
         self.current_event = Event.Event()
 
+        if manufacturer != 4:
         # register data locker for focus acquisition
-        self.fnlock = orsaycamera.DATALOCKFUNC(self.__data_locker)
-        self.camera.registerDataLocker(self.fnlock)
-        self.fnunlock = orsaycamera.DATAUNLOCKFUNC(self.__data_unlocker)
-        self.camera.registerDataUnlocker(self.fnunlock)
+            self.fnlock = orsaycamera.DATALOCKFUNC(self.__data_locker)
+            self.camera.registerDataLocker(self.fnlock)
+            self.fnunlock = orsaycamera.DATAUNLOCKFUNC(self.__data_unlocker)
+            self.camera.registerDataUnlocker(self.fnunlock)
         self.imagedata = None
         self.imagedata_ptr = None
         self.acquire_data = None
         self.has_data_event = threading.Event()
 
         # register data locker for SPIM acquisition
-        self.fnspimlock = orsaycamera.SPIMLOCKFUNC(self.__spim_data_locker)
-        self.camera.registerSpimDataLocker(self.fnspimlock)
-        self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
-        self.camera.registerSpimDataUnlocker(self.fnspimunlock)
-        self.fnspectrumlock = orsaycamera.SPECTLOCKFUNC(self.__spectrum_data_locker)
-        self.camera.registerSpectrumDataLocker(self.fnspectrumlock)
-        self.fnspectrumunlock = orsaycamera.SPECTUNLOCKFUNC(self.__spectrum_data_unlocker)
-        self.camera.registerSpectrumDataUnlocker(self.fnspectrumunlock)
+        if manufacturer != 4:
+            self.fnspimlock = orsaycamera.SPIMLOCKFUNC(self.__spim_data_locker)
+            self.camera.registerSpimDataLocker(self.fnspimlock)
+            self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
+            self.camera.registerSpimDataUnlocker(self.fnspimunlock)
+            self.fnspectrumlock = orsaycamera.SPECTLOCKFUNC(self.__spectrum_data_locker)
+            self.camera.registerSpectrumDataLocker(self.fnspectrumlock)
+            self.fnspectrumunlock = orsaycamera.SPECTUNLOCKFUNC(self.__spectrum_data_unlocker)
+            self.camera.registerSpectrumDataUnlocker(self.fnspectrumunlock)
         self.spimimagedata = None
         self.spimimagedata_ptr = None
         self.has_spim_data_event = threading.Event()
