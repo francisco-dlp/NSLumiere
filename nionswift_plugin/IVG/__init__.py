@@ -5,7 +5,7 @@ from . import ivg_panel
 from . import ivg_spim_panel
 
 from .camera import VGCameraPanel, VGCameraYves
-#from .scan import VGScanYves
+from .scan import VGScanYves
 
 def run():
 
@@ -15,7 +15,7 @@ def run():
 
     ivg_panel.run(instrument)
     ivg_spim_panel.run(instrument)
-    #VGScanYves.run(instrument)
+    VGScanYves.run(instrument)
     VGCameraYves.run(instrument)
     VGCameraPanel.run()
 
