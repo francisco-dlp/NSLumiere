@@ -29,8 +29,13 @@ class TimePix3():
 
     def __init__(self, url, simul, message):
 
+        fst_string = url.find('http://')
+        assert fst_string==0, "***TP3***: Put ip_address in the form of 'http://IP:PORT'."
+        sec_string = url.find(':', fst_string+7)
+
         self.success = False
         self.__serverURL = url
+        self.__camIP = url[fst_string+7:sec_string]
         self.__dataQueue = queue.LifoQueue()
         self.__eventQueue = queue.Queue()
         self.__spimData = None
@@ -578,7 +583,7 @@ class TimePix3():
         192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
         129.175.108.52 -> CheeTah
         """
-        ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname('192.168.199.11')
+        ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname(self.__camIP)
         address = (ip, port)
         try:
             client.connect(address)
