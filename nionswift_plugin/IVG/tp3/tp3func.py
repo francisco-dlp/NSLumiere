@@ -267,11 +267,13 @@ class TimePix3():
         """
         Similar to startFocus. Just to be consistent with VGCameraYves. Message=02 because of spim.
         """
-        if not self.__simul:
+        try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
+        except AttributeError:
+            logging.info("***TP3***: Could not set TDC to spim acquisition.")
         port = 8088
         self.__softBinning = True
         message = 2
@@ -297,11 +299,13 @@ class TimePix3():
         """
         Identical to stopFocus. Just to be consistent with VGCameraYves.
         """
-        if not self.__simul:
+        try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
+        except AttributeError:
+            logging.info("***TP3***: Could not turn off TDC after spim acquisition.")
         status = self.getCCDStatus()
         resp = self.request_get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
