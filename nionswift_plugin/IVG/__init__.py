@@ -8,7 +8,6 @@ from .camera import VGCameraPanel, VGCameraYves
 from .scan import VGScanYves
 
 def run():
-
     instrument = ivg_inst.ivgInstrument('VG_Lum_controller')
     # You definitely need to register the instrument over here.
     Registry.register_component(instrument, {"instrument_controller", "stem_controller"})

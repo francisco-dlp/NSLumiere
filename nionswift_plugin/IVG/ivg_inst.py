@@ -56,7 +56,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__scan_context = stem_controller.ScanContext()
         self.__probe_position = None
         self.__live_probe_position = None
-        self.__fov = None
+        self.__fov = 4.0 #Begin fov as 4.0 microns
         self.__is_subscan = [False, 1, 1]
         self.__spim_time = 0.
         self.__obj_stig = [0, 0]
