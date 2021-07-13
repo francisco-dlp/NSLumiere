@@ -7,8 +7,7 @@ setup(
     description="Set of tools to run VG Cold Microscope in Nionswift",
     url="https://github.com/yvesauad/swift_lumiere",
     packages=['nionswift_plugin.EELS_spec', 'nionswift_plugin.IVG', 'nionswift_plugin.IVG.virtual_instruments',
-              'nionswift_plugin.IVG.tp3', 'nionswift_plugin.IVG.camera',
-              'nionswift_plugin.IVG.scan'],
+              'nionswift_plugin.IVG.tp3', 'nionswift_plugin.IVG.camera'],
     python_requires='>=3.8.5',
     data_files=[('nionswift_plugin/aux_files/config', [
         'nionswift_plugin/aux_files/config/Lille/global_settings.json',
