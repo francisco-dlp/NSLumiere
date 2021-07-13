@@ -362,12 +362,15 @@ class TimePix3():
         accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
         Message=1 because it is the normal data_locker.
         """
-        if not self.__simul:
+        #if not self.__simul:
+        try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy Line 05
             # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
+        except AttributeError:
+            logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
         port = 8088
         self.__softBinning = True if displaymode == '1d' else False
         message = 1
@@ -387,11 +390,13 @@ class TimePix3():
         Stop acquisition. Finish listening put global isPlaying to False and wait client thread to finish properly using
         .join() method. Also replaces the old Queue with a new one with no itens on it (so next one won't use old data).
         """
-        if not self.__simul:
+        try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
+        except AttributeError:
+            logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly turned down.")
         status = self.getCCDStatus()
         resp = self.request_get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
@@ -645,7 +650,7 @@ class TimePix3():
             config_bytes += self.__yspim.to_bytes(2, 'big')
             self.sendmessage(message)
 
-        if not self.__simul:
+        try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             if scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size']:
@@ -656,7 +661,8 @@ class TimePix3():
                 y_size = int(scanInstrument.scan_device.current_frame_parameters['size'][1])
             config_bytes += x_size.to_bytes(2, 'big')
             config_bytes += y_size.to_bytes(2, 'big')
-        else:
+        except AttributeError:
+            logging.info("***TP3***: Could not grab scan parameters. Sending (64, 64) to TP3.")
             config_bytes += struct.pack(">H", 64)
             config_bytes += struct.pack(">H", 64)
 
