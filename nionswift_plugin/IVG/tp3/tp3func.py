@@ -697,6 +697,25 @@ class TimePix3():
                 value = str(header[begin_value:end_value])
             return value
 
+        def check_spim_string_value(header, prop):
+            """
+            Check the value in the header dictionary. Some values are not number so a valueError
+            exception handles this.
+            """
+
+            start_index = header.index(prop)
+            end_index = start_index + len(prop)
+            begin_value = header.index(':', end_index, len(header)) + 1
+            if prop == 'dataSize':
+                end_value = header.index('}', end_index, len(header))
+            else:
+                end_value = header.index(',', end_index, len(header))
+            try:
+                value = int(header[begin_value:end_value])
+            except ValueError:
+                value = str(header[begin_value:end_value])
+            return value
+
         def put_queue(cam_prop, frame):
             try:
                 assert int(cam_properties['width']) * int(
@@ -761,11 +780,32 @@ class TimePix3():
 
         elif message == 2:
             while True:
+                dt_unique = numpy.dtype(numpy.uint8).newbyteorder('>')
+                dt = numpy.dtype(numpy.uint32).newbyteorder('>')
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
                         if s == client:
                             packet_data = client.recv(buffer_size)
+
+                            # Method 01
+                            """
+                            index = 0
+                            while index < len(packet_data):
+                                index = packet_data.find(b'{StartUnique}', index)
+                                if index == -1: break
+                                index2 = packet_data.find(b'{StartIndexes}', index)
+                                try:
+                                    unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
+                                    event_list = numpy.frombuffer(
+                                        packet_data[index2+14:index2+14+(index2-index-13)*4], dtype=dt)
+                                    index += 1
+                                    self.__spimData[event_list] += unique
+                                except:
+                                    pass
+                            """
+
+                            #Method 02
                             if packet_data == b'':
                                 logging.info('***TP3***: No more packets received in SPIM.')
                                 self.update_spim_all()

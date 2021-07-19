@@ -8,6 +8,7 @@ DI = api.library.get_data_item_by_uuid(uuid.UUID("fcd81687-234e-4014-b01c-5e1e8a
 
 print(f'Data Item title is {DI.title}')
 print(f'Data item has shape of {DI.data.shape}')
+print(dir(api.library))
 
 def dist(val1, val2):
     return numpy.sum(numpy.power(numpy.subtract(val1, val2), 2))**(0.5)
