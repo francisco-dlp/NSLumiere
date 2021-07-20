@@ -789,7 +789,7 @@ class TimePix3():
                             packet_data = client.recv(buffer_size)
 
                             # Method 01
-                            """
+                            #"""
                             index = 0
                             while index < len(packet_data):
                                 index = packet_data.find(b'{StartUnique}', index)
@@ -799,13 +799,14 @@ class TimePix3():
                                     unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
                                     event_list = numpy.frombuffer(
                                         packet_data[index2+14:index2+14+(index2-index-13)*4], dtype=dt)
-                                    index += 1
-                                    self.__spimData[event_list] += unique
+                                    index += 13
+                                    self.__spimData[event_list] = unique
                                 except:
                                     pass
-                            """
+                            #"""
 
                             #Method 02
+                            """
                             if packet_data == b'':
                                 logging.info('***TP3***: No more packets received in SPIM.')
                                 self.update_spim_all()
@@ -821,6 +822,7 @@ class TimePix3():
                                 self.update_spim()
                         elif s==client_aux: #UDP Packet
                             pass
+                        """
 
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
