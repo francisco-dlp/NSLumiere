@@ -148,6 +148,9 @@ class TimePix3():
         detector_config["TriggerMode"] = "CONTINUOUS"
         # detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
         detector_config["BiasEnabled"] = True
+        detector_config["BiasVoltage"] = 100 #100V
+        detector_config["Fan1PWM"] = 100 #100V
+        detector_config["Fan2PWM"] = 100 #100V
         detector_config["TriggerPeriod"] = 1.0  # 1s
         detector_config["ExposureTime"] = 1.0  # 1s
         detector_config["Tdc"] = ['PN0', 'PN0']
@@ -800,9 +803,9 @@ class TimePix3():
                                     event_list = numpy.frombuffer(
                                         packet_data[index2+14:index2+14+(index2-index-13)*4], dtype=dt)
                                     index += 13
-                                    self.__spimData[event_list] = unique
+                                    self.__spimData[event_list] += unique
                                 except:
-                                    pass
+                                    break
                             #"""
 
                             #Method 02
