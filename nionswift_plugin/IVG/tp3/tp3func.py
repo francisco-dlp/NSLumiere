@@ -606,7 +606,7 @@ class TimePix3():
             return False
 
         cam_properties = dict()
-        buffer_size = 64000
+        buffer_size = 2*64000
 
         config_bytes = b''
 
@@ -800,12 +800,17 @@ class TimePix3():
                                 index2 = packet_data.find(b'{StartIndexes}', index)
                                 try:
                                     unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
+                                    last_index = index2+14+(index2-index-13)*4
                                     event_list = numpy.frombuffer(
-                                        packet_data[index2+14:index2+14+(index2-index-13)*4], dtype=dt)
+                                        packet_data[index2+14:last_index], dtype=dt)
                                     index += 13
                                     self.__spimData[event_list] += unique
-                                except:
+                                except IndexError:
+                                    logging.info(f'***TP3***: Indexing error.')
+                                except ValueError:
+                                    logging.info(f'***TP3***: Incomplete data.')
                                     break
+
                             #"""
 
                             #Method 02
