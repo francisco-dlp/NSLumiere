@@ -178,6 +178,7 @@ class TimePix3():
                     "FilePattern": "raw",
                 }]
             }
+        """
         elif port == 2:
             destination = {
                 "Image": [{
@@ -194,13 +195,14 @@ class TimePix3():
                     "Mode": "tot",
                 }]
             }
+        """
         resp = self.request_put(url=self.__serverURL + '/server/destination', data=json.dumps(destination))
         data = resp.text
         logging.info('***TP3***: Response of uploading the Destination Configuration to SERVAL : ' + data)
         logging.info(f'***TP3***: Selected port is {port} and corresponds to: ' + options[port])
 
     def getPortNames(self):
-        return ['TCP Stream', 'Save Locally', 'JSON Image (counts)', 'JSON Image (ToT)']
+        return ['TCP Stream', 'Save Locally']
 
     def getCCDSize(self):
         return (256, 1024)
@@ -579,6 +581,11 @@ class TimePix3():
 
         check string value is a convenient function to detect the values using the header standard format for jsonimage.
         """
+
+        if self.__port==1:
+            logging.info('***TP3***: Save locally is activated. No socket will be open.')
+            return
+
         inputs = list()
         outputs = list()
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -783,7 +790,7 @@ class TimePix3():
 
         elif message == 2:
             while True:
-                dt_unique = numpy.dtype(numpy.uint8).newbyteorder('>')
+                dt_unique = numpy.dtype(numpy.uint16).newbyteorder('>')
                 dt = numpy.dtype(numpy.uint32).newbyteorder('>')
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
@@ -800,7 +807,7 @@ class TimePix3():
                                 index2 = packet_data.find(b'{StartIndexes}', index)
                                 try:
                                     unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
-                                    last_index = index2+14+(index2-index-13)*4
+                                    last_index = index2+14+(index2-index-13)*2
                                     event_list = numpy.frombuffer(
                                         packet_data[index2+14:last_index], dtype=dt)
                                     index += 13
