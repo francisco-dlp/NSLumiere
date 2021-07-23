@@ -168,7 +168,7 @@ class TimePix3():
         if port==0:
             destination = {
                 "Raw": [{
-                    "Base": "tcp://127.0.0.1:8098",
+                    "Base": "tcp://connect@127.0.0.1:8098",
                 }]
             }
         elif port == 1:
