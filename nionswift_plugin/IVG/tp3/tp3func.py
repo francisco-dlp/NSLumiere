@@ -588,6 +588,7 @@ class TimePix3():
 
         inputs = list()
         outputs = list()
+        nbsockets = 2
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_aux = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         #if self.__simul:
@@ -683,6 +684,7 @@ class TimePix3():
         config_bytes += struct.pack(">d", self.__delay)  # BE. See https://docs.python.org/3/library/struct.html
         config_bytes += struct.pack(">d", self.__width)  # BE. See https://docs.python.org/3/library/struct.html
 
+        config_bytes += nbsockets.to_bytes(2, 'big')
         client.send(config_bytes)
 
         def check_string_value(header, prop):
