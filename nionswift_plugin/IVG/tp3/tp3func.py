@@ -590,11 +590,6 @@ class TimePix3():
         outputs = list()
         nbsockets = 2
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_aux = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        #if self.__simul:
-        client_aux.bind(("127.0.0.1", 9088))
-        #else:
-        #    client_aux.bind(("192.168.199.10", 9088))
         """
         127.0.0.1 -> LocalHost;
         129.175.108.58 -> Patrick;
@@ -609,7 +604,6 @@ class TimePix3():
             client.connect(address)
             logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
             inputs.append(client)
-            inputs.append(client_aux)
         except ConnectionRefusedError:
             return False
 
@@ -684,8 +678,16 @@ class TimePix3():
         config_bytes += struct.pack(">d", self.__delay)  # BE. See https://docs.python.org/3/library/struct.html
         config_bytes += struct.pack(">d", self.__width)  # BE. See https://docs.python.org/3/library/struct.html
 
+        #Number of sockets that will be opened
         config_bytes += nbsockets.to_bytes(2, 'big')
         client.send(config_bytes)
+
+        #Opening the other sockets
+        for i in range(nbsockets-1):
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect(address)
+            logging.info(f'***TP3***: Connecting client {i}.')
+            inputs.append(client)
 
         def check_string_value(header, prop):
             """
@@ -747,11 +749,11 @@ class TimePix3():
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
-                        if s == client:
-                            packet_data = client.recv(buffer_size)
+                        if s == inputs[0]:
+                            packet_data = s.recv(buffer_size)
                             if packet_data == b'': return
                             while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
-                                temp = client.recv(buffer_size)
+                                temp = s.recv(buffer_size)
                                 if temp == b'':
                                     return
                                 else:
@@ -768,7 +770,7 @@ class TimePix3():
                             data_size = int(cam_properties['dataSize'])
 
                             while len(packet_data) < begin_header + data_size + len(header):
-                                temp = client.recv(buffer_size)
+                                temp = s.recv(buffer_size)
                                 if temp == b'':
                                     return
                                 else:
@@ -781,8 +783,6 @@ class TimePix3():
                             frame_data = packet_data[end_header + 2:end_header + 2 + data_size + 1]
                             if put_queue(cam_properties, frame_data):
                                 frame_data = b''
-                        elif s==client_aux: #UDP Packet
-                            pass
 
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
@@ -797,8 +797,8 @@ class TimePix3():
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
-                        if s == client:
-                            packet_data = client.recv(buffer_size)
+                        if s == inputs[0]:
+                            packet_data = s.recv(buffer_size)
 
                             # Method 01
                             #"""
@@ -837,8 +837,6 @@ class TimePix3():
 
                             if len(packet_data) < buffer_size / 2:
                                 self.update_spim()
-                        elif s==client_aux: #UDP Packet
-                            pass
                         """
 
                 except ConnectionResetError:
