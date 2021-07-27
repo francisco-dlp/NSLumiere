@@ -589,6 +589,8 @@ class TimePix3():
         inputs = list()
         outputs = list()
         nbsockets = 4
+        assert (nbsockets == 1) or (nbsockets % 4 == 0)
+        nbsockets_chip = nbsockets / 4
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         """
         127.0.0.1 -> LocalHost;
@@ -797,17 +799,6 @@ class TimePix3():
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
-                        #if s in inputs:
-                        #if s==inputs[0]:
-                        #    offset = 0
-                            #offset = spim * 256 * 1
-                        #elif s==inputs[1]:
-                        #    offset = spim * 256 * 0
-                        #elif s==inputs[2]:
-                        #    offset = spim * 256 * 0
-                        #elif s==inputs[3]:
-                        #    offset = spim * 256 * 0
-
                         packet_data = s.recv(buffer_size)
 
                         # Method 01
@@ -823,22 +814,33 @@ class TimePix3():
                                 event_list = numpy.frombuffer(
                                     packet_data[index2+14:last_index], dtype=dt)
 
-                                offset = event_list % 1025
-                                if s == inputs[0]:
-                                    event_list = event_list - 2*offset + 255
-                                elif s==inputs[1]:
-                                    event_list = event_list - 2*offset + 256*4 - 1
-                                elif s==inputs[2]:
-                                    event_list = event_list - 2*offset + 256*3 - 1
-                                elif s==inputs[3]:
-                                   event_list = event_list - 2*offset + 256*2 - 1
+                                #offset = event_list % 1025
+                                #now_socket = inputs.index(s)
+                                #if now_socket < nbsockets_chip:
+                                #    event_list = event_list - 2 * offset + 255
+                                #elif now_socket < nbsockets_chip*2:
+                                #    event_list = event_list - 2 * offset + 256 * 4 - 1
+                                #elif now_socket < nbsockets_chip * 3:
+                                #    event_list = event_list - 2 * offset + 256 * 3 - 1
+                                #elif now_socket < nbsockets_chip * 4:
+                                #    event_list = event_list - 2 * offset + 256 * 2 - 1
+
+
+                                #if s in inputs[0:2]:
+                                #    event_list = event_list - 2*offset + 255
+                                #elif s in inputs[2:4]:
+                                #    event_list = event_list - 2*offset + 256*4 - 1
+                                #elif s in inputs[4:6]:
+                                #    event_list = event_list - 2*offset + 256*3 - 1
+                                #elif s in inputs[6:8]:
+                                #   event_list = event_list - 2*offset + 256*2 - 1
 
                                 index += 13
                                 self.__spimData[event_list] += unique
                             except IndexError:
                                 logging.info(f'***TP3***: Indexing error.')
                             except ValueError:
-                                logging.info(f'***TP3***: Incomplete data.')
+                                #logging.info(f'***TP3***: Incomplete data.')
                                 break
 
                             #"""

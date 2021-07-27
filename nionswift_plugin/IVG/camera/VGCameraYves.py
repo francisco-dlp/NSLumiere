@@ -414,7 +414,7 @@ class CameraDevice(camera_base.CameraDevice):
             datum_dimensions = 1
 
         elif "SpimTP" in acquisition_mode:
-            self.has_spim_data_event.wait(0.1)
+            self.has_spim_data_event.wait(1.0)
             self.acquire_data = self.spimimagedata
             collection_dimensions = 2
             datum_dimensions = 1
