@@ -588,7 +588,7 @@ class TimePix3():
 
         inputs = list()
         outputs = list()
-        nbsockets = 4
+        nbsockets = 1
         assert (nbsockets == 1) or (nbsockets % 4 == 0)
         nbsockets_chip = nbsockets / 4
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -814,16 +814,16 @@ class TimePix3():
                                 event_list = numpy.frombuffer(
                                     packet_data[index2+14:last_index], dtype=dt)
 
-                                offset = event_list % 1025
-                                now_socket = inputs.index(s)
-                                if now_socket < nbsockets_chip:
-                                    event_list = event_list - 2 * offset + 255
-                                elif now_socket < nbsockets_chip*2:
-                                    event_list = event_list - 2 * offset + 256 * 4 - 1
-                                elif now_socket < nbsockets_chip * 3:
-                                    event_list = event_list - 2 * offset + 256 * 3 - 1
-                                elif now_socket < nbsockets_chip * 4:
-                                    event_list = event_list - 2 * offset + 256 * 2 - 1
+                                #offset = event_list % 1025
+                                #now_socket = inputs.index(s)
+                                #if now_socket < nbsockets_chip:
+                                #    event_list = event_list - 2 * offset + 255
+                                #elif now_socket < nbsockets_chip*2:
+                                #    event_list = event_list - 2 * offset + 256 * 4 - 1
+                                #elif now_socket < nbsockets_chip * 3:
+                                #    event_list = event_list - 2 * offset + 256 * 3 - 1
+                                #elif now_socket < nbsockets_chip * 4:
+                                #    event_list = event_list - 2 * offset + 256 * 2 - 1
 
 
                                 index += 13
