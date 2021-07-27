@@ -588,7 +588,7 @@ class TimePix3():
 
         inputs = list()
         outputs = list()
-        nbsockets = 2
+        nbsockets = 4
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         """
         127.0.0.1 -> LocalHost;
@@ -797,28 +797,49 @@ class TimePix3():
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
-                        if s == inputs[0]:
-                            packet_data = s.recv(buffer_size)
+                        #if s in inputs:
+                        #if s==inputs[0]:
+                        #    offset = 0
+                            #offset = spim * 256 * 1
+                        #elif s==inputs[1]:
+                        #    offset = spim * 256 * 0
+                        #elif s==inputs[2]:
+                        #    offset = spim * 256 * 0
+                        #elif s==inputs[3]:
+                        #    offset = spim * 256 * 0
 
-                            # Method 01
-                            #"""
-                            index = 0
-                            while index < len(packet_data):
-                                index = packet_data.find(b'{StartUnique}', index)
-                                if index == -1: break
-                                index2 = packet_data.find(b'{StartIndexes}', index)
-                                try:
-                                    unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
-                                    last_index = index2+14+(index2-index-13)*2
-                                    event_list = numpy.frombuffer(
-                                        packet_data[index2+14:last_index], dtype=dt)
-                                    index += 13
-                                    self.__spimData[event_list] += unique
-                                except IndexError:
-                                    logging.info(f'***TP3***: Indexing error.')
-                                except ValueError:
-                                    logging.info(f'***TP3***: Incomplete data.')
-                                    break
+                        packet_data = s.recv(buffer_size)
+
+                        # Method 01
+                        #"""
+                        index = 0
+                        while index < len(packet_data):
+                            index = packet_data.find(b'{StartUnique}', index)
+                            if index == -1: break
+                            index2 = packet_data.find(b'{StartIndexes}', index)
+                            try:
+                                unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
+                                last_index = index2+14+(index2-index-13)*2
+                                event_list = numpy.frombuffer(
+                                    packet_data[index2+14:last_index], dtype=dt)
+
+                                offset = event_list % 1025
+                                if s == inputs[0]:
+                                    event_list = event_list - 2*offset + 255
+                                elif s==inputs[1]:
+                                    event_list = event_list - 2*offset + 256*4 - 1
+                                elif s==inputs[2]:
+                                    event_list = event_list - 2*offset + 256*3 - 1
+                                elif s==inputs[3]:
+                                   event_list = event_list - 2*offset + 256*2 - 1
+
+                                index += 13
+                                self.__spimData[event_list] += unique
+                            except IndexError:
+                                logging.info(f'***TP3***: Indexing error.')
+                            except ValueError:
+                                logging.info(f'***TP3***: Incomplete data.')
+                                break
 
                             #"""
 
