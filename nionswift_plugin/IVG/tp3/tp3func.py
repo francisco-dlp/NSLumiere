@@ -814,26 +814,17 @@ class TimePix3():
                                 event_list = numpy.frombuffer(
                                     packet_data[index2+14:last_index], dtype=dt)
 
-                                #offset = event_list % 1025
-                                #now_socket = inputs.index(s)
-                                #if now_socket < nbsockets_chip:
-                                #    event_list = event_list - 2 * offset + 255
-                                #elif now_socket < nbsockets_chip*2:
-                                #    event_list = event_list - 2 * offset + 256 * 4 - 1
-                                #elif now_socket < nbsockets_chip * 3:
-                                #    event_list = event_list - 2 * offset + 256 * 3 - 1
-                                #elif now_socket < nbsockets_chip * 4:
-                                #    event_list = event_list - 2 * offset + 256 * 2 - 1
+                                offset = event_list % 1025
+                                now_socket = inputs.index(s)
+                                if now_socket < nbsockets_chip:
+                                    event_list = event_list - 2 * offset + 255
+                                elif now_socket < nbsockets_chip*2:
+                                    event_list = event_list - 2 * offset + 256 * 4 - 1
+                                elif now_socket < nbsockets_chip * 3:
+                                    event_list = event_list - 2 * offset + 256 * 3 - 1
+                                elif now_socket < nbsockets_chip * 4:
+                                    event_list = event_list - 2 * offset + 256 * 2 - 1
 
-
-                                #if s in inputs[0:2]:
-                                #    event_list = event_list - 2*offset + 255
-                                #elif s in inputs[2:4]:
-                                #    event_list = event_list - 2*offset + 256*4 - 1
-                                #elif s in inputs[4:6]:
-                                #    event_list = event_list - 2*offset + 256*3 - 1
-                                #elif s in inputs[6:8]:
-                                #   event_list = event_list - 2*offset + 256*2 - 1
 
                                 index += 13
                                 self.__spimData[event_list] += unique
