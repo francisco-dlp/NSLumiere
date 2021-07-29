@@ -794,7 +794,7 @@ class TimePix3():
 
         elif message == 2:
             while True:
-                dt_unique = numpy.dtype(numpy.uint16).newbyteorder('>')
+                dt_unique = numpy.dtype(numpy.uint8).newbyteorder('>')
                 dt = numpy.dtype(numpy.uint32).newbyteorder('>')
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
@@ -810,7 +810,7 @@ class TimePix3():
                             index2 = packet_data.find(b'{StartIndexes}', index)
                             try:
                                 unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
-                                last_index = index2+14+(index2-index-13)*2
+                                last_index = index2+14+(index2-index-13)*4
                                 event_list = numpy.frombuffer(
                                     packet_data[index2+14:last_index], dtype=dt)
 
@@ -836,22 +836,22 @@ class TimePix3():
 
                             #"""
 
-                            #Method 02
-                            """
-                            if packet_data == b'':
-                                logging.info('***TP3***: No more packets received in SPIM.')
-                                self.update_spim_all()
-                                return
-
-                            #rust2swift.update_spim(packet_data)
-
-                            dt = numpy.dtype(numpy.uint32).newbyteorder('>')
-                            event_list = numpy.frombuffer(packet_data, dtype=dt)
-                            self.__eventQueue.put(event_list)
-
-                            if len(packet_data) < buffer_size / 2:
-                                self.update_spim()
+                        #Method 02
                         """
+                        if packet_data == b'':
+                            logging.info('***TP3***: No more packets received in SPIM.')
+                            self.update_spim_all()
+                            return
+
+                        #rust2swift.update_spim(packet_data)
+
+                        dt = numpy.dtype(numpy.uint32).newbyteorder('>')
+                        event_list = numpy.frombuffer(packet_data, dtype=dt)
+                        self.__eventQueue.put(event_list)
+
+                        if len(packet_data) < buffer_size / 2:
+                            self.update_spim()
+                    """
 
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
