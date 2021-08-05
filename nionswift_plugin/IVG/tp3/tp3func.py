@@ -583,7 +583,14 @@ class TimePix3():
         """
 
         if self.__port==1:
-            logging.info('***TP3***: Save locally is activated. No socket will be open.')
+            logging.info('***TP3***: Save locally is activated. No socket will be open. Line start and line 05 is sent to TDC.')
+            try:
+                scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                    "orsay_scan_device")
+                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
+                scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
+            except AttributeError:
+                logging.info("***TP3***: Could not set TDC to spim acquisition.")
             return
 
         inputs = list()
