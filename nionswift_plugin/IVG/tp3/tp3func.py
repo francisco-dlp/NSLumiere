@@ -62,7 +62,7 @@ class TimePix3():
                     logging.info('***TP3***: Problem initializing Timepix3. Bad status code.')
 
                 # Loading bpc and dacs
-                bpcFile = '/home/asi/load_files/tpx3-demo.bpc'
+                bpcFile = '/home/asi/load_files/tpx3-demo-masking.bpc'
                 dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
                 self.cam_init(bpcFile, dacsFile)
                 self.acq_init(99999)

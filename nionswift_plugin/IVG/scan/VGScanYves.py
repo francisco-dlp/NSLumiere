@@ -97,7 +97,7 @@ class Device:
         self.p4 = 0
         self.p5 = 512
         self.Image_area = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
-        self.orsayscan.setScanRotation(35.0)
+        self.orsayscan.setScanRotation(30.0)
 
         #Set HADF and BF initial gain values
         self.orsayscan.SetPMT(1, 2200)
