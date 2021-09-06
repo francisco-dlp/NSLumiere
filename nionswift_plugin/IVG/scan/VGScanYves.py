@@ -129,7 +129,7 @@ class Device:
 
     def __get_initial_profiles(self) -> typing.List[scan_base.ScanFrameParameters]:
         profiles = list()
-        profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 0.5, "fov_nm": 4000., "rotation_rad": 0.610}))
+        profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 0.5, "fov_nm": 4000., "rotation_rad": 0.524}))
         profiles.append(scan_base.ScanFrameParameters({"size": (128, 128), "pixel_time_us": 1, "fov_nm": 100.}))
         profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 1, "fov_nm": 100.}))
         return profiles
