@@ -727,6 +727,10 @@ class orsayScan(object):
     def SetPMT(self, index, value):
         self.__OrsayScanSetPMT(self.orsayscan, index, value)
 
+    # double SCAN_EXPORT OrsayScanGetVSM(void *o);
+    def GetVSM(self):
+        return self.__OrsayScanGetVSM(self.orsayscan)
+
     # int SCAN_EXPORT OrsayScanCountPMTs (self.orsayscan)
     def CountPMTs(self):
         return self.__OrsayScanCountPMTs(self.orsayscan)
