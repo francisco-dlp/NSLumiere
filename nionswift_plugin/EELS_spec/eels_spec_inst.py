@@ -52,6 +52,8 @@ class EELS_SPEC_Device(Observable.Observable):
         self.focus_wobbler_f=0
         self.dispersion_wobbler_f=0
         self.disp_change_f = self.__dispIndex  # put last index
+        self.ene_offset_f = 0 #putting VSM back to zero
+
 
     def set_spec_values(self, value):
         inst_dir = os.path.dirname(__file__)
@@ -449,11 +451,11 @@ class EELS_SPEC_Device(Observable.Observable):
     """
     @property
     def ene_offset_f(self):
-        return int(self.__elem[11]*1000.)
+        return int(self.__elem[11]/10.)
 
     @ene_offset_f.setter
     def ene_offset_f(self, value):
-        self.__elem[11] = value/1000.
+        self.__elem[11] = value*10.
         self.__eels_spec.locked_set_val(self.__elem[11], self.__names[11])
         self.property_changed_event.fire('ene_offset_f')
         self.property_changed_event.fire('ene_offset_edit_f')
