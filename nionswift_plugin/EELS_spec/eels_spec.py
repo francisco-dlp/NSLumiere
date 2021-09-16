@@ -38,12 +38,12 @@ class EELS_Spectrometer(EELS_controller.EELSController):
 
     def set_val(self, val, which):
         if which=="off":
-            if val<=1000:
+            if val<=1000 and val>=0:
                 veff = int(val / 10)
                 plus = ('HV+ ' + str(veff) + '\n').encode()
                 self.sock.sendall(plus)
             else:
-                logging.info('***EELS***: VSM value too high. Current maximum value is 1000 V.')
+                logging.info('***EELS***: VSM value too high or negative. Current maximum value is 1000 V.')
             #scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
             #if scan is not None:
             #    scan.scan_device.orsayscan.drift_tube = float(val)

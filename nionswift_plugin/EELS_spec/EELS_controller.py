@@ -43,6 +43,6 @@ class EELSController(abc.ABC):
 
     def wobbler_off(self):
         if self.wobbler_thread.is_alive():
-            self.locked_set_val(self.last_wobbler_value, self.last_wobbler_which)
             self.wobbler_thread.do_run = False
             self.wobbler_thread.join()
+            self.locked_set_val(self.last_wobbler_value, self.last_wobbler_which)

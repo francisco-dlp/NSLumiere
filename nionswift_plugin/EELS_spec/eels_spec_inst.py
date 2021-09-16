@@ -479,8 +479,7 @@ class EELS_SPEC_Device(Observable.Observable):
     def vsm_wobbler_f(self, value):
         self.__vsm_wobbler = value
         if value:
-            self.__eels_spec.wobbler_on(self.__elem[11], 5-abs(self.__elem[11]), self.__names[11])
+            self.__eels_spec.wobbler_on(self.__elem[11], 30, self.__names[11])
         else:
             self.__eels_spec.wobbler_off()
-            time.sleep(1.1)
             self.ene_offset_edit_f = self.__elem[11]
