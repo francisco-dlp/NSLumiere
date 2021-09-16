@@ -8,7 +8,7 @@ class EELS_Spectrometer(EELS_controller.EELSController):
         super().__init__()
 
     def set_val(self, val, which):
-        if which=="vsm":
+        if which=="off":
             pass
         else:
             if which == "dmx": which = "al"

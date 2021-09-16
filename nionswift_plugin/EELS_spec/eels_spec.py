@@ -2,6 +2,7 @@ import serial
 import logging
 from . import EELS_controller
 from nion.swift.model import HardwareSource
+import socket
 
 __author__ = "Yves Auad"
 
@@ -19,6 +20,15 @@ class EELS_Spectrometer(EELS_controller.EELSController):
         self.ser.timeout = 0.2
 
         try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.settimeout(0.1)
+            self.sock.connect(("129.175.82.70", 80))
+        except socket.timeout:
+            logging.info("***EELS SPECTROMETER***: Could not find VSM. Please check hardware. "
+                         "Entering in debug mode.")
+            return
+
+        try:
             if not self.ser.is_open:
                 self.ser.open()
             self.success = True
@@ -28,9 +38,15 @@ class EELS_Spectrometer(EELS_controller.EELSController):
 
     def set_val(self, val, which):
         if which=="off":
-            scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-            if scan is not None:
-                scan.scan_device.orsayscan.drift_tube = float(val)
+            if val<=1000 and val>=0:
+                veff = int(val / 10)
+                plus = ('HV+ ' + str(veff) + '\n').encode()
+                self.sock.sendall(plus)
+            else:
+                logging.info('***EELS***: VSM value too high or negative. Current maximum value is 1000 V.')
+            #scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+            #if scan is not None:
+            #    scan.scan_device.orsayscan.drift_tube = float(val)
         else:
             if which=="dmx": which="al"
             if abs(val)<32767:
