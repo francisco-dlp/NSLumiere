@@ -1,8 +1,8 @@
 from setuptools import setup
 
 setup(
-    name="OrsayLumiere",
-    version="5.17.1",
+    name="OrsayDebug",
+    version="5.16.2",
     author="Yves Auad",
     description="Set of tools to run a VG Microscope in Nionswift",
     url="https://github.com/yvesauad/swift_lumiere",
@@ -13,11 +13,11 @@ setup(
               'nionswift_plugin.OptSpec', 'nionswift_plugin.stage'],
     python_requires='>=3.8.5',
     data_files=[('nionswift_plugin/aux_files/config', [
-        'nionswift_plugin/aux_files/config/Lumiere/global_settings.json',
-        'nionswift_plugin/aux_files/config/Lumiere/diafs_settings.json',
-        'nionswift_plugin/aux_files/config/Lumiere/eels_settings.json',
-        'nionswift_plugin/aux_files/config/Lumiere/lenses_settings.json',
-        'nionswift_plugin/aux_files/config/Lumiere/Orsay_cameras_list.json',
+        'nionswift_plugin/aux_files/config/Debug/global_settings.json',
+        'nionswift_plugin/aux_files/config/Debug/diafs_settings.json',
+        'nionswift_plugin/aux_files/config/Debug/eels_settings.json',
+        'nionswift_plugin/aux_files/config/Debug/lenses_settings.json',
+        'nionswift_plugin/aux_files/config/Debug/Orsay_cameras_list.json',
 
     ]), ('nionswift_plugin/aux_files/DLLs', [
         'nionswift_plugin/aux_files/DLLs/Cameras.dll',
