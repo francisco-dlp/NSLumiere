@@ -112,8 +112,9 @@ class Device:
 
     def stop(self) -> None:
         """Stop acquiring."""
-        self.orsayscan.stopImaging(False)
-        self.__is_scanning = False
+        if self.__is_scanning:
+            self.orsayscan.stopImaging(True)
+            self.__is_scanning = False
 
     def set_idle_position_by_percentage(self, x: float, y: float) -> None:
         """Set the idle position as a percentage of the last used frame parameters."""
@@ -121,8 +122,9 @@ class Device:
 
     def cancel(self) -> None:
         """Cancel acquisition (immediate)."""
-        #self.orsayscan.stopImaging(True)
-        #self.__is_scanning = False
+        if self.__is_scanning:
+            self.orsayscan.stopImaging(False)
+            self.__is_scanning = False
 
     def __get_channels(self) -> typing.List[Channel]:
         return [Channel(0, "ADF", True), Channel(1, "BF", False)]
@@ -223,7 +225,7 @@ class Device:
         a 'channel_id' indicating the index of the channel (may be an int or float).
         """
 
-        gotit = self.has_data_event.wait(1.0)
+        gotit = self.has_data_event.wait(2.0)
 
         if self.__frame is None:
             self.__start_next_frame()
@@ -234,7 +236,8 @@ class Device:
 
         for channel in current_frame.channels:  # At the end of the day this uses channel_id, which is a 0, 1 saying which channel is which
             data_element = dict()
-            if not self.__spim and self.__is_scanning:
+            if not self.__spim:
+            #if not self.__spim:
                 data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):(channel.channel_id + 1) * (
                 self.__scan_area[1]),
                              0+1: (self.__scan_area[0]-1)].astype(numpy.uint16)
@@ -250,7 +253,7 @@ class Device:
                 if data_array is not None:
                     data_elements.append(data_element)
 
-            else:
+            elif self.__spim:
                 data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):channel.channel_id * (
                     self.__scan_area[1]) + self.__spim_pixels[1],
                              0: (self.__spim_pixels[0])].astype(numpy.float32)
@@ -268,10 +271,13 @@ class Device:
                     data_elements.append(data_element)
 
         self.has_data_event.clear()
+        #assert gotit and self.__is_scanning
 
         current_frame.complete = True
-        if current_frame.complete:
+        if current_frame.complete and self.__is_scanning:
             self.__frame = None
+
+        print(data_elements)
 
         # return data_elements, complete, bad_frame, sub_area, frame_number, pixels_to_skip
         return data_elements, True, False, ((0, 0), data_array.shape), None, 0
