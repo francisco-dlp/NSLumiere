@@ -20,7 +20,6 @@ class EELS_SPEC_Device(Observable.Observable):
         self.property_changed_event = Event.Event()
         self.reset_slider = Event.Event()
 
-
         self.__eels_spec = spec.EELS_Spectrometer(SERIAL_PORT)
         if not self.__eels_spec.success:
             from . import eels_spec_vi as spec_vi
