@@ -277,8 +277,6 @@ class Device:
         if current_frame.complete and self.__is_scanning:
             self.__frame = None
 
-        print(data_elements)
-
         # return data_elements, complete, bad_frame, sub_area, frame_number, pixels_to_skip
         return data_elements, True, False, ((0, 0), data_array.shape), None, 0
 
