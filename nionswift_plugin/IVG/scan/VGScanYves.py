@@ -92,6 +92,7 @@ class Device:
         self.__spim_pixels = (0, 0)
         self.subscan_status = True
         self.__spim = False
+        self.__tpx3_spim = False
 
         self.p0 = 512
         self.p1 = 512
@@ -200,14 +201,17 @@ class Device:
     def prepare_timepix3(self):
         self.__tpx3_camera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_camera_timepix3")
-        self.__tpx3_camera.camera.camera.StartSpimFromScan()
-        self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
-        self.__tpx3 = self.__tpx3_camera.camera.camera.create_spimimage_from_events()
+        self.__tpx3_spim = self.__tpx3_camera.camera.camera.StartSpimFromScan()
+        if self.__tpx3_spim: #If start spim from scan is successful
+            self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
+            self.__tpx3 = self.__tpx3_camera.camera.camera.create_spimimage_from_events()
 
     def stop_timepix3(self):
-        self.__tpx3_camera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+        if self.__tpx3_spim: #only stop if this was on
+            self.__tpx3_camera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_camera_timepix3")
-        self.__tpx3_camera.camera.camera.stopSpim(True)
+            self.__tpx3_camera.camera.camera.stopSpim(True)
+            self.__tpx3_spim = False
 
     def no_prepare_timepix3(self):
         self.__tpx3 = None

@@ -315,14 +315,13 @@ class TimePix3():
         message = 2
         self.__isCumul = False
         if self.getCCDStatus() == "DA_RECORDING":
-            self.stopFocus()
-        if self.getCCDStatus() == "DA_IDLE":
+            logging.info("***TPX3***: Please turn off TPX3 from camera panel.")
+            return False
+        elif self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
             self.start_listening_from_scan(port, message=message)
             return True
-        else:
-            logging.info('***TP3***: Check if experiment type matches mode selection.')
 
     def resumeSpim(self, mode):
         pass
