@@ -127,7 +127,7 @@ class Device:
             self.__is_scanning = False
 
     def __get_channels(self) -> typing.List[Channel]:
-        return [Channel(0, "ADF", True), Channel(1, "BF", False)]
+        return [Channel(0, "ADF", True), Channel(1, "BF", False), Channel(2, "TPX3", False)]
 
     def __get_initial_profiles(self) -> typing.List[scan_base.ScanFrameParameters]:
         profiles = list()
@@ -196,6 +196,12 @@ class Device:
                 #self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
                 #self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
                 self.__is_scanning = self.orsayscan.startImaging(0, 1)
+                for channel in self.__channels:
+                    if channel.name == 'TPX3':
+                        if channel.enabled:
+                            self.__tpx3 = numpy.random.random((self.__scan_area[1], self.__scan_area[0], 1024))
+                        else:
+                            self.__tpx3 = None
 
             logging.info(f'**SCAN***: Acquisition Started is {self.__is_scanning}.')
         return self.__frame_number
@@ -225,7 +231,7 @@ class Device:
         a 'channel_id' indicating the index of the channel (may be an int or float).
         """
 
-        gotit = self.has_data_event.wait(2.0)
+        gotit = self.has_data_event.wait(1.0)
 
         if self.__frame is None:
             self.__start_next_frame()
@@ -234,15 +240,12 @@ class Device:
         assert current_frame is not None
         data_elements = list()
 
-        for channel in current_frame.channels:  # At the end of the day this uses channel_id, which is a 0, 1 saying which channel is which
+        for channel in current_frame.channels:
             data_element = dict()
-            if not self.__spim:
-            #if not self.__spim:
-                data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):(channel.channel_id + 1) * (
-                self.__scan_area[1]),
-                             0+1: (self.__scan_area[0]-1)].astype(numpy.uint16)
-                if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
-                    data_array = data_array[self.p4:self.p5, self.p2:self.p3]
+
+            #Timepix3 Spim channel
+            if channel.name == 'TPX3':
+                data_array = self.__tpx3
                 data_element["data"] = data_array
                 properties = current_frame.frame_parameters.as_dict()
                 properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
@@ -253,28 +256,45 @@ class Device:
                 if data_array is not None:
                     data_elements.append(data_element)
 
-            elif self.__spim:
-                data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):channel.channel_id * (
-                    self.__scan_area[1]) + self.__spim_pixels[1],
-                             0: (self.__spim_pixels[0])].astype(numpy.float32)
-                #data_array = self.imagedata.astype(numpy.float32)
-                #if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
-                #    data_array = data_array[self.p4:self.p5, self.p2:self.p3]
-                data_element["data"] = data_array
-                properties = current_frame.frame_parameters.as_dict()
-                properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
-                properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
-                properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
-                properties["channel_id"] = channel.channel_id
-                data_element["properties"] = properties
-                if data_array is not None:
-                    data_elements.append(data_element)
+            else:
+                if not self.__spim:
+                #if not self.__spim and self.__isplaying:
+                    data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):(channel.channel_id + 1) * (
+                    self.__scan_area[1]),
+                                 0+1: (self.__scan_area[0]-1)].astype(numpy.uint16)
+                    if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
+                        data_array = data_array[self.p4:self.p5, self.p2:self.p3]
+                    data_element["data"] = data_array
+                    properties = current_frame.frame_parameters.as_dict()
+                    properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
+                    properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
+                    properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
+                    properties["channel_id"] = channel.channel_id
+                    data_element["properties"] = properties
+                    if data_array is not None:
+                        data_elements.append(data_element)
+
+                elif self.__spim:
+                    data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):channel.channel_id * (
+                        self.__scan_area[1]) + self.__spim_pixels[1],
+                                 0: (self.__spim_pixels[0])].astype(numpy.float32)
+                    #data_array = self.imagedata.astype(numpy.float32)
+                    #if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
+                    #    data_array = data_array[self.p4:self.p5, self.p2:self.p3]
+                    data_element["data"] = data_array
+                    properties = current_frame.frame_parameters.as_dict()
+                    properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
+                    properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
+                    properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
+                    properties["channel_id"] = channel.channel_id
+                    data_element["properties"] = properties
+                    if data_array is not None:
+                        data_elements.append(data_element)
 
         self.has_data_event.clear()
-        #assert gotit and self.__is_scanning
 
         current_frame.complete = True
-        if current_frame.complete and self.__is_scanning:
+        if current_frame.complete:
             self.__frame = None
 
         # return data_elements, complete, bad_frame, sub_area, frame_number, pixels_to_skip
