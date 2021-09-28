@@ -117,6 +117,7 @@ class Device:
         """Stop acquiring."""
         if self.__is_scanning:
             self.orsayscan.stopImaging(True)
+            self.stop_timepix3()
             self.__is_scanning = False
 
     def set_idle_position_by_percentage(self, x: float, y: float) -> None:
@@ -127,6 +128,7 @@ class Device:
         """Cancel acquisition (immediate)."""
         if self.__is_scanning:
             self.orsayscan.stopImaging(False)
+            self.stop_timepix3()
             self.__is_scanning = False
 
     def __get_channels(self) -> typing.List[Channel]:
@@ -198,15 +200,14 @@ class Device:
     def prepare_timepix3(self):
         self.__tpx3_camera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_camera_timepix3")
-        print(dir(self.__tpx3_camera.camera.camera))
-        #self.__tpx3_camera.camera.camera.camera
-        #self.orsayscan.SetTdcLine(1, 2, 7)
-        #self.orsayscan.SetTdcLine(0, 2, 13)
         self.__tpx3_camera.camera.camera.StartSpimFromScan()
+        self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
         self.__tpx3 = self.__tpx3_camera.camera.camera.create_spimimage_from_events()
 
     def stop_timepix3(self):
-        pass
+        self.__tpx3_camera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "orsay_camera_timepix3")
+        self.__tpx3_camera.camera.camera.stopSpim(True)
 
     def no_prepare_timepix3(self):
         self.__tpx3 = None

@@ -51,6 +51,7 @@ class TimePix3():
         self.__tp3mode = 0
         self.__filepath = os.path.join(pathlib.Path(__file__).parent.absolute(), "data")
         self.__simul = simul
+        self.__isReady = threading.Event()
         self.sendmessage = message
 
         if not simul:
@@ -301,6 +302,7 @@ class TimePix3():
         """
          This function must be called when you want to have a SPIM as a Scan Channel.
          """
+        self.__isReady.clear()
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
@@ -591,19 +593,6 @@ class TimePix3():
 
 
     def finish_listening(self):
-        """
-        .join() the client Thread, puts isPlaying to false and replaces old queue to a new one with no itens on it.
-        """
-        if self.__isPlaying:
-            self.__isPlaying = False
-            self.__clientThread.join()
-            logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
-            logging.info(
-                f'***TP3***: Stopping acquisition. There was {self.__eventQueue.qsize()} electron events in the Queue.')
-            self.__dataQueue = queue.LifoQueue()
-            self.__eventQueue = queue.Queue()
-
-    def finish_listening_from_scan(self):
         """
         .join() the client Thread, puts isPlaying to false and replaces old queue to a new one with no itens on it.
         """
@@ -986,7 +975,6 @@ class TimePix3():
 
         #Scan and Spim are equal here
         self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint32)
-        print('here')
         self.__xspim = x_size
         self.__yspim = y_size
         config_bytes += x_size.to_bytes(2, 'big') #spimx
@@ -1007,6 +995,7 @@ class TimePix3():
             logging.info(f'***TP3***: Connecting client {i}.')
             inputs.append(client)
 
+        self.__isReady.set() #This waits until spimData is created so scan can have access to it.
         if message == 2:
             while True:
                 dt_unique = numpy.dtype(numpy.uint8).newbyteorder('>')
