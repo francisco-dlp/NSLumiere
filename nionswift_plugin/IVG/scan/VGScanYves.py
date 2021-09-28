@@ -16,6 +16,7 @@ from nion.utils import Registry
 from nion.utils import Geometry
 from nion.instrumentation import scan_base
 from nion.instrumentation import stem_controller
+from nion.swift.model import HardwareSource
 
 from nionswift_plugin.IVG.scan.orsayscan import orsayScan, LOCKERFUNC, UNLOCKERFUNCA
 from nionswift_plugin.IVG.scan.ConfigVGLumDialog import ConfigDialog
@@ -195,7 +196,14 @@ class Device:
         pass
 
     def prepare_timepix3(self):
-        self.__tpx3 = numpy.random.random((self.__scan_area[1], self.__scan_area[0], 1024))
+        self.__tpx3_camera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "orsay_camera_timepix3")
+        print(dir(self.__tpx3_camera.camera.camera))
+        #self.__tpx3_camera.camera.camera.camera
+        #self.orsayscan.SetTdcLine(1, 2, 7)
+        #self.orsayscan.SetTdcLine(0, 2, 13)
+        self.__tpx3_camera.camera.camera.StartSpimFromScan()
+        self.__tpx3 = self.__tpx3_camera.camera.camera.create_spimimage_from_events()
 
     def stop_timepix3(self):
         pass

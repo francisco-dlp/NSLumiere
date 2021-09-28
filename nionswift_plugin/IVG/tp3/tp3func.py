@@ -297,6 +297,31 @@ class TimePix3():
     def pauseSpim(self):
         pass
 
+    def StartSpimFromScan(self):
+        """
+         This function must be called when you want to have a SPIM as a Scan Channel.
+         """
+        try:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
+        except AttributeError:
+            logging.info("***TP3***: Could not set TDC to spim acquisition.")
+        port = 8088
+        self.__softBinning = True
+        message = 2
+        self.__isCumul = False
+        if self.getCCDStatus() == "DA_RECORDING":
+            self.stopFocus()
+        if self.getCCDStatus() == "DA_IDLE":
+            resp = self.request_get(url=self.__serverURL + '/measurement/start')
+            data = resp.text
+            self.start_listening_from_scan(port, message=message)
+            return True
+        else:
+            logging.info('***TP3***: Check if experiment type matches mode selection.')
+
     def resumeSpim(self, mode):
         pass
 
@@ -556,7 +581,29 @@ class TimePix3():
         self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(port, message, spim,))
         self.__clientThread.start()
 
+    def start_listening_from_scan(self, port=8088, message=1):
+        """
+        Starts the client Thread and sets isPlaying to True.
+        """
+        self.__isPlaying = True
+        self.__clientThread = threading.Thread(target=self.acquire_streamed_frame_from_scan, args=(port, message,))
+        self.__clientThread.start()
+
+
     def finish_listening(self):
+        """
+        .join() the client Thread, puts isPlaying to false and replaces old queue to a new one with no itens on it.
+        """
+        if self.__isPlaying:
+            self.__isPlaying = False
+            self.__clientThread.join()
+            logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
+            logging.info(
+                f'***TP3***: Stopping acquisition. There was {self.__eventQueue.qsize()} electron events in the Queue.')
+            self.__dataQueue = queue.LifoQueue()
+            self.__eventQueue = queue.Queue()
+
+    def finish_listening_from_scan(self):
         """
         .join() the client Thread, puts isPlaying to false and replaces old queue to a new one with no itens on it.
         """
@@ -859,6 +906,134 @@ class TimePix3():
                         if len(packet_data) < buffer_size / 2:
                             self.update_spim()
                     """
+
+                except ConnectionResetError:
+                    logging.info("***TP3***: Socket reseted. Closing connection.")
+                    return
+
+                if not self.__isPlaying:
+                    logging.info('***TP3***: Finishing SPIM.')
+                    self.update_spim_all()
+                    return
+        return
+
+    def acquire_streamed_frame_from_scan(self, port, message):
+        """
+        Main client function. Main loop is explained below.
+
+        Client is a socket connected to camera in host computer 129.175.108.52. Port depends on which kind of data you
+        are listening on. After connection, timeout is set to 5 ms, which is camera current dead time. cam_properties
+        is a dict containing all info camera sends through tcp (the header); frame_data is the frame; buffer_size is how
+        many bytes we collect within each loop interaction; frame_number is the frame counter and frame_time is when the
+        whole frame began.
+
+        check string value is a convenient function to detect the values using the header standard format for jsonimage.
+        """
+
+        if self.__port==1:
+            logging.info('***TP3***: Save locally is activated. No socket will be open. Line start and line 05 is sent to TDC.')
+            try:
+                scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                    "orsay_scan_device")
+                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
+                scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
+            except AttributeError:
+                logging.info("***TP3***: Could not set TDC to spim acquisition.")
+            return
+
+        inputs = list()
+        outputs = list()
+        nbsockets = 1
+        assert (nbsockets == 1) or (nbsockets % 4 == 0)
+        nbsockets_chip = nbsockets / 4
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        """
+        127.0.0.1 -> LocalHost;
+        129.175.108.58 -> Patrick;
+        129.175.81.162 -> My personal Dell PC;
+        192.0.0.11 -> My old personal (outside lps.intra);
+        192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
+        129.175.108.52 -> CheeTah
+        """
+        ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname(self.__camIP)
+        address = (ip, port)
+        try:
+            client.connect(address)
+            logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
+            inputs.append(client)
+        except ConnectionRefusedError:
+            return False
+
+        cam_properties = dict()
+        buffer_size = 2*64000
+
+        config_bytes = b''
+
+        self.__tr = False  # Start always with false and will be updated if otherwise
+
+        config_bytes += b'\x01'  # Soft binning
+        config_bytes += b'\x02'  # Bit depth 32 otherwise
+        config_bytes += b'\x00'  # Cumul is OFF
+        config_bytes += bytes([2]) #Mode 02 (SPIM)
+        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "orsay_scan_device")
+        if scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size']:
+            x_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][0])
+            y_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][1])
+        else:
+            x_size = int(scanInstrument.scan_device.current_frame_parameters['size'][0])
+            y_size = int(scanInstrument.scan_device.current_frame_parameters['size'][1])
+
+        #Scan and Spim are equal here
+        self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint32)
+        print('here')
+        self.__xspim = x_size
+        self.__yspim = y_size
+        config_bytes += x_size.to_bytes(2, 'big') #spimx
+        config_bytes += y_size.to_bytes(2, 'big') #spimy
+        config_bytes += x_size.to_bytes(2, 'big') #scanx
+        config_bytes += y_size.to_bytes(2, 'big') #scany
+
+        config_bytes += struct.pack(">d", 0.0)  # BE. See https://docs.python.org/3/library/struct.html. Delay
+        config_bytes += struct.pack(">d", 0.0)  # BE. See https://docs.python.org/3/library/struct.html. Widge
+
+        config_bytes += nbsockets.to_bytes(2, 'big')
+        client.send(config_bytes)
+
+        #Opening the other sockets
+        for i in range(nbsockets-1):
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect(address)
+            logging.info(f'***TP3***: Connecting client {i}.')
+            inputs.append(client)
+
+        if message == 2:
+            while True:
+                dt_unique = numpy.dtype(numpy.uint8).newbyteorder('>')
+                dt = numpy.dtype(numpy.uint32).newbyteorder('>')
+                try:
+                    read, _, _ = select.select(inputs, outputs, inputs)
+                    for s in read:
+                        packet_data = s.recv(buffer_size)
+
+                        ### Method 01 ###
+                        index = 0
+                        while index < len(packet_data):
+                            index = packet_data.find(b'{StartUnique}', index)
+                            if index == -1: break
+                            index2 = packet_data.find(b'{StartIndexes}', index)
+                            try:
+                                unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
+                                last_index = index2+14+(index2-index-13)*4
+                                event_list = numpy.frombuffer(
+                                    packet_data[index2+14:last_index], dtype=dt)
+
+                                index += 13
+                                self.__spimData[event_list] += unique
+                            except IndexError:
+                                logging.info(f'***TP3***: Indexing error.')
+                            except ValueError:
+                                break
 
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
