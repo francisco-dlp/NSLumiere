@@ -185,6 +185,12 @@ class Device:
         """Called when shutting down. Save frame parameters to persistent storage."""
         pass
 
+    def prepare_timepix3(self):
+        self.__tpx3 = numpy.random.random((self.__scan_area[1], self.__scan_area[0], 1024))
+
+    def no_prepare_timepix3(self):
+        self.__tpx3 = None
+
     def start_frame(self, is_continuous: bool) -> int:
         """Start acquiring. Return the frame number."""
         if not self.__is_scanning:
@@ -199,9 +205,9 @@ class Device:
                 for channel in self.__channels:
                     if channel.name == 'TPX3':
                         if channel.enabled:
-                            self.__tpx3 = numpy.random.random((self.__scan_area[1], self.__scan_area[0], 1024))
+                            self.prepare_timepix3()
                         else:
-                            self.__tpx3 = None
+                            self.no_prepare_timepix3()
 
             logging.info(f'**SCAN***: Acquisition Started is {self.__is_scanning}.')
         return self.__frame_number
