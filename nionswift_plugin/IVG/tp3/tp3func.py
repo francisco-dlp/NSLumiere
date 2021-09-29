@@ -960,20 +960,32 @@ class TimePix3():
         self.__tr = False  # Start always with false and will be updated if otherwise
 
         config_bytes += b'\x01'  # Soft binning
-        config_bytes += b'\x02'  # Bit depth 32 otherwise
+        config_bytes += b'\x01'  # Bit depth 32 otherwise
         config_bytes += b'\x00'  # Cumul is OFF
         config_bytes += bytes([2]) #Mode 02 (SPIM)
         scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_scan_device")
         if scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size']:
-            x_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][0])
-            y_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][1])
+            x_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][1])
+            y_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][0])
         else:
-            x_size = int(scanInstrument.scan_device.current_frame_parameters['size'][0])
-            y_size = int(scanInstrument.scan_device.current_frame_parameters['size'][1])
+            x_size = int(scanInstrument.scan_device.current_frame_parameters['size'][1])
+            y_size = int(scanInstrument.scan_device.current_frame_parameters['size'][0])
+
+        max_val = max(x_size, y_size)
+        if max_val <= 64:
+            self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint32)
+        elif max_val <= 256:
+            self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint16)
+        else:
+            self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint8)
+
+        print(x_size)
+
+
 
         #Scan and Spim are equal here
-        self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint32)
+        #self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint8)
         self.__xspim = x_size
         self.__yspim = y_size
         config_bytes += x_size.to_bytes(2, 'big') #spimx
