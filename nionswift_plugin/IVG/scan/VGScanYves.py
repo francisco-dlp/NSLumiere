@@ -202,7 +202,7 @@ class Device:
         self.__tpx3_camera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_camera_timepix3")
         self.__tpx3_spim = self.__tpx3_camera.camera.camera.StartSpimFromScan()
-        if self.__tpx3_spim: #If start spim from scan is successful
+        if self.__tpx3_spim: #True if successful
             self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
             self.__tpx3 = self.__tpx3_camera.camera.camera.create_spimimage_from_events()
 
@@ -283,6 +283,8 @@ class Device:
                 properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
                 properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
                 properties["channel_id"] = channel.channel_id
+                properties["eels_dispersion"] = 0.1
+                properties["eels_offset"] = 0.0
                 data_element["properties"] = properties
                 if data_array is not None:
                     data_elements.append(data_element)

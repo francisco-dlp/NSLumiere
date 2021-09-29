@@ -475,7 +475,7 @@ class CameraPanelFactory:
         preamp_row = ui.create_row(ui.create_label(text=_("Preamplifier")), ui.create_stretch(), gain_combo_box,
                                    spacing=8)
 
-        if "Electron Multiplied" in ports:
+        if "Electron Multiplied" in ports or "EMCCD" in ports:
             multiplier_line_edit = ui.create_line_edit(
                 text="@binding(multiplication_model.value, converter=multiplication_converter)")
             multiplier_row = ui.create_row(ui.create_label(text=_("Multiplier")), ui.create_stretch(),
