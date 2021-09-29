@@ -138,6 +138,12 @@ class eels_spec_View:
             self.sy_row, self.sy_slider, ui.create_spacing(10), \
             self.dy_row, self.dy_slider))
 
+        # offset
+        self.tare_label = ui.create_label(text='ZLP Tare: ', name='tare_label')
+        self.tare_value = ui.create_line_edit(name='tare_value', width = 150, text='@binding(instrument.tare_edit_f)')
+
+        self.tare_column = ui.create_column(self.tare_label, self.tare_value, ui.create_stretch())
+
         #wobbler funcs
         self.wobbler_combo=ui.create_combo_box(name='wobbler_combo', items=['OFF', 'Fx', 'Fy', 'Sx', 'Sy', 'Dy'], current_index='@binding(instrument.focus_wobbler_f)')
         self.wobbler_int=ui.create_line_edit(name='wobbler_int', width=50, text='@binding(instrument.focus_wobbler_int_f)')
@@ -157,6 +163,7 @@ class eels_spec_View:
             self.range_label, self.range_value, ui.create_stretch(), \
             self.first_order_group, ui.create_stretch(), \
             self.second_order_group, \
+            self.tare_column, \
             self.wobbler_group, \
             self.pb_row))
 

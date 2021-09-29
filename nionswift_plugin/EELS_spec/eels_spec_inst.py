@@ -29,6 +29,8 @@ class EELS_SPEC_Device(Observable.Observable):
         self.__names = ElemNames
         assert len(self.__names)==nElem
 
+        self.__zlpTare = 0.0
+
         self.__focus_wobbler_int=250
         self.__dispersion_wobbler_int=250
         self.__focus_wobbler_index = 0
@@ -294,6 +296,21 @@ class EELS_SPEC_Device(Observable.Observable):
         self.__eels_spec.locked_set_val(self.__elem[4], self.__names[4])
         self.property_changed_event.fire("dy_slider_f")
         self.property_changed_event.fire("dy_edit_f")
+
+    """
+    TARE
+    """
+
+    @property
+    def tare_edit_f(self):
+        return self.__zlpTare
+
+    @tare_edit_f.setter
+    def tare_edit_f(self, value):
+        try:
+            self.__zlpTare = float(value)
+        except:
+            logging.info('***EELS SPEC***: ZLP tare must be float.')
 
     """
     Q1
