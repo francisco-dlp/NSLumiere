@@ -141,7 +141,11 @@ class Device:
         self.__spim_pixels = (0, 0)
         self.subscan_status = True
         self.__spim = False
+
         self.__tpx3_spim = False
+        self.__tpx3_data = None
+        self.__tpx3_camera = None
+        self.__tpx3_calib = dict()
 
         self.p0 = 512
         self.p1 = 512
@@ -252,8 +256,11 @@ class Device:
             "orsay_camera_timepix3")
         self.__tpx3_spim = self.__tpx3_camera.camera.camera.StartSpimFromScan()
         if self.__tpx3_spim: #True if successful
+
+            self.__tpx3_calib["dispersion"] = self.__instrument.TryGetVal("eels_x_scale")[1]
+            self.__tpx3_calib["offset"] = self.__instrument.TryGetVal("eels_x_offset")[1]
             self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
-            self.__tpx3 = self.__tpx3_camera.camera.camera.create_spimimage_from_events()
+            self.__tpx3_data = self.__tpx3_camera.camera.camera.create_spimimage_from_events()
 
     def stop_timepix3(self):
         if self.__tpx3_spim: #only stop if this was on
@@ -263,7 +270,7 @@ class Device:
             self.__tpx3_spim = False
 
     def no_prepare_timepix3(self):
-        self.__tpx3 = None
+        self.__tpx3_data = None
 
     def start_frame(self, is_continuous: bool) -> int:
         """Start acquiring. Return the frame number."""
@@ -325,15 +332,15 @@ class Device:
 
             #Timepix3 Spim channel
             if channel.name == 'TPX3':
-                data_array = self.__tpx3
+                data_array = self.__tpx3_data
                 data_element["data"] = data_array
                 properties = current_frame.frame_parameters.as_dict()
                 properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
                 properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
                 properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
                 properties["channel_id"] = channel.channel_id
-                properties["eels_dispersion"] = 0.1
-                properties["eels_offset"] = 0.0
+                properties["eels_dispersion"] = self.__tpx3_calib["dispersion"]
+                properties["eels_offset"] = self.__tpx3_calib["offset"]
                 data_element["properties"] = properties
                 if data_array is not None:
                     data_elements.append(data_element)
