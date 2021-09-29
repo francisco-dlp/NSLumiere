@@ -26,6 +26,56 @@ from nionswift_plugin.IVG import ivg_inst
 _ = gettext.gettext
 
 
+# set the calibrations for this image. does not touch metadata.
+def test_update_scan_data_element(data_element, scan_frame_parameters, data_shape, channel_name, channel_id,
+                             scan_properties):
+    scan_properties = copy.deepcopy(scan_properties)
+    pixel_time_us = float(scan_properties["pixel_time_us"])
+    line_time_us = float(scan_properties["line_time_us"]) if "line_time_us" in scan_properties else pixel_time_us * \
+                                                                                                    data_shape[1]
+    center_x_nm = float(scan_properties.get("center_x_nm", 0.0))
+    center_y_nm = float(scan_properties.get("center_y_nm", 0.0))
+    fov_nm = float(scan_frame_parameters["fov_nm"])  # context fov_nm, not actual fov_nm returned from low level
+    if scan_frame_parameters.size[0] > scan_frame_parameters.size[1]:
+        fractional_size = scan_frame_parameters.subscan_fractional_size[
+            0] if scan_frame_parameters.subscan_fractional_size else 1.0
+        pixel_size = scan_frame_parameters.subscan_pixel_size[0] if scan_frame_parameters.subscan_pixel_size else \
+        scan_frame_parameters.size[0]
+        pixel_size_nm = fov_nm * fractional_size / pixel_size
+    else:
+        fractional_size = scan_frame_parameters.subscan_fractional_size[
+            1] if scan_frame_parameters.subscan_fractional_size else 1.0
+        pixel_size = scan_frame_parameters.subscan_pixel_size[1] if scan_frame_parameters.subscan_pixel_size else \
+        scan_frame_parameters.size[1]
+        pixel_size_nm = fov_nm * fractional_size / pixel_size
+    data_element["title"] = channel_name
+    data_element["version"] = 1
+    data_element["channel_id"] = channel_id  # needed to match to the channel
+    data_element["channel_name"] = channel_name  # needed to match to the channel
+    if scan_properties.get("calibration_style") == "time":
+        data_element["spatial_calibrations"] = (
+            {"offset": 0.0, "scale": line_time_us / 1E6, "units": "s"},
+            {"offset": 0.0, "scale": pixel_time_us / 1E6, "units": "s"}
+        )
+    else:
+        data_element["spatial_calibrations"] = [
+            {"offset": -center_y_nm - pixel_size_nm * data_shape[0] * 0.5, "scale": pixel_size_nm, "units": "nm"},
+            {"offset": -center_x_nm - pixel_size_nm * data_shape[1] * 0.5, "scale": pixel_size_nm, "units": "nm"}
+        ]
+        if len(data_shape) == 3: #3D acquisitions. This is typically a hyperspectral image.
+            eels_dispersion = float(scan_properties.get("eels_dispersion", 1.0))
+            eels_offset = float(scan_properties.get("eels_offset", 0.0))
+            data_element["spatial_calibrations"].append(
+                {"offset": eels_offset, "scale": eels_dispersion, "units": "eV"}
+            )
+
+#This is a very ugly thing apparently called MONKEY PATCHING. Although ugly, it is a perfectly fine solution
+scan_base.update_scan_data_element = test_update_scan_data_element
+
+
+
+
+
 class Channel:
     def __init__(self, channel_id: int, name: str, enabled: bool):
         self.channel_id = channel_id
@@ -46,7 +96,6 @@ class Frame:
         self.data_count = 0
         self.start_time = time.time()
         self.scan_data = None
-
 
 class Device:
 
