@@ -146,6 +146,7 @@ class Device:
         self.__tpx3_data = None
         self.__tpx3_camera = None
         self.__tpx3_calib = dict()
+        self.__tpx3_frameStop = 0
 
         self.p0 = 512
         self.p1 = 512
@@ -256,7 +257,6 @@ class Device:
             "orsay_camera_timepix3")
         self.__tpx3_spim = self.__tpx3_camera.camera.camera.StartSpimFromScan()
         if self.__tpx3_spim: #True if successful
-
             self.__tpx3_calib["dispersion"] = self.__instrument.TryGetVal("eels_x_scale")[1]
             self.__tpx3_calib["offset"] = self.__instrument.TryGetVal("eels_x_offset")[1]
             self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
@@ -301,7 +301,7 @@ class Device:
             frame_parameters.subscan_pixel_size if frame_parameters.subscan_pixel_size else frame_parameters.size)
         for channel in channels:
             channel.data = numpy.zeros(tuple(size), numpy.float32)
-        self.__frame_number += 1
+        #self.__frame_number += 1 #This is updated in the self.__frame_number
         self.__frame = Frame(self.__frame_number, channels, frame_parameters)
 
     def read_partial(self, frame_number, pixels_to_skip) -> (typing.Sequence[dict], bool, bool, tuple, int, int):
@@ -386,8 +386,17 @@ class Device:
         if current_frame.complete:
             self.__frame = None
 
+        #Stop by using the number of frames
+        if self.__tpx3_spim and self.__tpx3_frameStop != 0 and self.__frame_number >= self.__tpx3_frameStop:
+            logging.info(f"***SCAN***: Stopped frame acquisition by using the frame stop property. Total number"
+                         f"of frames are {self.__frame_number}.")
+            self.stop()
+
+
+
+
         # return data_elements, complete, bad_frame, sub_area, frame_number, pixels_to_skip
-        return data_elements, True, False, ((0, 0), data_array.shape), None, 0
+        return data_elements, current_frame.complete, False, ((0, 0), data_array.shape), None, 0
 
     #This one is called in scan_base
     def prepare_synchronized_scan(self, scan_frame_parameters: scan_base.ScanFrameParameters, *, camera_exposure_ms, **kwargs) -> None:
@@ -519,7 +528,6 @@ class Device:
             for counter, value in enumerate(self.channels_enabled):
                 if value: pmts.append(counter)
             self.__instrument.warn_Scan_instrument_spim_over(self.imagedata, self.__spim_pixels, pmts)
-
 
     @property
     def set_spim_pixels(self):
