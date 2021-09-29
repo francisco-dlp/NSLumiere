@@ -980,14 +980,11 @@ class TimePix3():
         else:
             self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint8)
 
-        print(x_size)
-
-
-
         #Scan and Spim are equal here
         #self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint8)
         self.__xspim = x_size
         self.__yspim = y_size
+        print(self.__xspim)
         config_bytes += x_size.to_bytes(2, 'big') #spimx
         config_bytes += y_size.to_bytes(2, 'big') #spimy
         config_bytes += x_size.to_bytes(2, 'big') #scanx
@@ -1125,4 +1122,4 @@ class TimePix3():
         return frame_int
 
     def create_spimimage_from_events(self):
-        return self.__spimData.reshape((self.__xspim, self.__yspim, 1025))
+        return self.__spimData.reshape((self.__yspim, self.__xspim, 1025))
