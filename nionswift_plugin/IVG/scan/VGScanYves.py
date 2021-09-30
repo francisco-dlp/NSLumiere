@@ -282,13 +282,14 @@ class Device:
             if not self.__spim:
                 #self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
                 #self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
-                self.__is_scanning = self.orsayscan.startImaging(0, 1)
                 for channel in self.__channels:
                     if channel.name == 'TPX3':
                         if channel.enabled:
                             self.prepare_timepix3()
                         else:
                             self.no_prepare_timepix3()
+                #Scan must be started after timepix3 so we are ready for receiving TDC's
+                self.__is_scanning = self.orsayscan.startImaging(0, 1)
 
             logging.info(f'**SCAN***: Acquisition Started is {self.__is_scanning}.')
         return self.__frame_number
