@@ -11,6 +11,8 @@ class EELS_Spectrometer(EELS_controller.EELSController):
     def __init__(self, sport):
         super().__init__()
         self.success = False
+        self.serial_success = False
+        self.vsm_success = False
         self.ser = serial.Serial()
         self.ser.baudrate = 9600
         self.ser.port = sport
@@ -23,18 +25,23 @@ class EELS_Spectrometer(EELS_controller.EELSController):
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.settimeout(0.1)
             self.sock.connect(("129.175.82.70", 80))
+            self.vsm_success = True
         except socket.timeout:
             logging.info("***EELS SPECTROMETER***: Could not find VSM. Please check hardware. "
                          "Entering in debug mode.")
-            return
+        else:
+            logging.info("***EELS SPECTROMETER***: Unknown exception. Could not find VSM. Please check hardware. "
+                         "Entering in debug mode.")
 
         try:
             if not self.ser.is_open:
                 self.ser.open()
-            self.success = True
+            self.serial_success = True
         except:
             logging.info("***EELS SPECTROMETER***: Could not find EELS Spec. Please check hardware. "
                          "Entering in debug mode.")
+
+        self.success = self.serial_success and self.vsm_success
 
     def set_val(self, val, which):
         if which=="off":
