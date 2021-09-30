@@ -69,10 +69,10 @@ class View():
         self.bot_blanker_check_box = ui.create_check_box(name='bot_blanker_check_box', text='Botton Blanker EELS',
                                                          checked='@binding(bottom_blanker)')
         self.spim_stop_label = ui.create_label(name='spim_stop_label', text='SPIM Frame Stop: ')
-        self.spim_stop_line_edit = ui.create_line_edit(name='spim_stop_line_edit', text='@binding(spim_stop)')
+        self.spim_stop_line_edit = ui.create_line_edit(name='spim_stop_line_edit', text='@binding(spim_stop)', width=50)
         self.spim_row = ui.create_row(self.spim_stop_label, self.spim_stop_line_edit, ui.create_stretch())
         self.column = ui.create_column(self.hadf_label, self.hadf_gain_slider, ui.create_spacing(25), self.bf_label,
-                                       self.bf_gain_slider, self.bot_blanker_check_box, self.spim_row)
+                                       self.bf_gain_slider, self.bot_blanker_check_box, ui.create_spacing(25), self.spim_row)
         self.dialog = ui.create_modeless_dialog(self.column, title="Scan Settings")
 
 
