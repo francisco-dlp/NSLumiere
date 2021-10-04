@@ -401,8 +401,7 @@ class CameraDevice(camera_base.CameraDevice):
         if "Chrono" in acquisition_mode:
             self.has_spim_data_event.wait(1.0)
             self.has_spim_data_event.clear()
-            #self.acquire_data = self.spimimagedata
-            self.acquire_data = self.imagedata
+            self.acquire_data = self.spimimagedata
             if "2D" in acquisition_mode:
                 collection_dimensions = 1
                 datum_dimensions = 2
@@ -556,6 +555,13 @@ class CameraDevice(camera_base.CameraDevice):
                 self.frame_number += 1
                 self.spimimagedata = self.camera.create_spimimage_from_events()
                 self.has_spim_data_event.set()
+
+            elif message == 3:
+                prop, last_bytes_data = self.camera.get_last_data()
+                self.frame_number = int(prop['frameNumber'])
+                self.spimimagedata = self.camera.create_image_from_bytes(last_bytes_data,
+                                                                     prop['bitDepth'], prop['width'], prop['height'])
+                self.has_data_event.set()
 
         return sendMessage
 

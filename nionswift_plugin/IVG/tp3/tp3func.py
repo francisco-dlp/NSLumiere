@@ -332,7 +332,7 @@ class TimePix3():
             logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
         port = 8088
         self.__softBinning = True if displaymode == '1d' else False
-        message = 1
+        message = 3
         self.__isCumul = bool(accumulate)
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
@@ -701,7 +701,7 @@ class TimePix3():
             config_bytes += b'\x00'  # Cumul is OFF
 
         config_bytes += bytes([self.__tp3mode])
-        if message == 1: #Focus/Cumul (message=1) and Chrono (message=3)
+        if message == 1 or message == 3: #Focus/Cumul (message=1) and Chrono (message=3)
             size = int(spim)
             config_bytes += size.to_bytes(2, 'big')
             config_bytes += size.to_bytes(2, 'big')
@@ -816,7 +816,7 @@ class TimePix3():
                     f'***TP3***: Problem in size/len assertion. Properties are {cam_properties} and data is {len(frame)}')
                 return False
 
-        if message == 1:
+        if message == 1 or message == 3:
             while True:
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
@@ -1102,19 +1102,13 @@ class TimePix3():
         if bitDepth == 8:
             dt = numpy.dtype(numpy.uint8).newbyteorder('>')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
-            frame_int = frame_int.astype(numpy.float32)
         elif bitDepth == 16:
             dt = numpy.dtype(numpy.uint16).newbyteorder('>')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
-            frame_int = frame_int.astype(numpy.float32)
         elif bitDepth == 32:
             dt = numpy.dtype(numpy.uint32).newbyteorder('>')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
-            frame_int = frame_int.astype(numpy.float32)
         frame_int = numpy.reshape(frame_int, (height, width))
-        # if self.__softBinning:
-        #    frame_int = numpy.sum(frame_int, axis=0)
-        #    frame_int = numpy.reshape(frame_int, (1, 1024))
         return frame_int
 
     def create_spimimage_from_bytes(self, frame_data, bitDepth, width, height, xspim, yspim):
