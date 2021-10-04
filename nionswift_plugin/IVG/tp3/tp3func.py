@@ -269,128 +269,6 @@ class TimePix3():
     def setSpimMode(self, mode):
         pass
 
-    def startSpim(self, nbspectra, nbspectraperpixel, dwelltime, is2D):
-        """
-        Similar to startFocus. Just to be consistent with VGCameraYves. Message=02 because of spim.
-        """
-        try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
-        except AttributeError:
-            logging.info("***TP3***: Could not set TDC to spim acquisition.")
-        port = 8088
-        self.__softBinning = True
-        message = 2
-        self.__isCumul = False
-        if self.getCCDStatus() == "DA_RECORDING":
-            self.stopFocus()
-        if self.getCCDStatus() == "DA_IDLE" and (self.__tp3mode == 2 or self.__tp3mode == 3 or
-                                                 self.__tp3mode == 4):
-            resp = self.request_get(url=self.__serverURL + '/measurement/start')
-            data = resp.text
-            self.start_listening(port, message=message, spim=nbspectra)
-            return True
-        else:
-            logging.info('***TP3***: Check if experiment type matches mode selection.')
-
-    def pauseSpim(self):
-        pass
-
-    def StartSpimFromScan(self):
-        """
-         This function must be called when you want to have a SPIM as a Scan Channel.
-         """
-        self.__isReady.clear()
-        try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
-        except AttributeError:
-            logging.info("***TP3***: Could not set TDC to spim acquisition.")
-        port = 8088
-        self.__softBinning = True
-        message = 2
-        self.__isCumul = False
-        if self.getCCDStatus() == "DA_RECORDING":
-            logging.info("***TPX3***: Please turn off TPX3 from camera panel.")
-            return False
-        elif self.getCCDStatus() == "DA_IDLE":
-            resp = self.request_get(url=self.__serverURL + '/measurement/start')
-            data = resp.text
-            self.start_listening_from_scan(port, message=message)
-            return True
-
-    def resumeSpim(self, mode):
-        pass
-
-    def stopSpim(self, immediate):
-        """
-        Identical to stopFocus. Just to be consistent with VGCameraYves.
-        """
-        try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
-        except AttributeError:
-            logging.info("***TP3***: Could not turn off TDC after spim acquisition.")
-        status = self.getCCDStatus()
-        resp = self.request_get(url=self.__serverURL + '/measurement/stop')
-        data = resp.text
-        self.finish_listening()
-
-        if self.__tr:
-            logging.info(f'***TP3***: TR is on. Cancelling Laser.')
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            LaserInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("sgain_controller")
-            if LaserInstrument is not None and not self.__simul: LaserInstrument.over_spim_TP3()
-
-    def isCameraThere(self):
-        return True
-
-    def getTemperature(self):
-        pass
-
-    def setTemperature(self, temperature):
-        pass
-
-    def setupBinning(self):
-        pass
-
-    def setTdc01(self, index, **kargs):
-        if self.__simul: return
-        if index == 0:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
-        if index == 1:  # Internal Generator
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
-        if index == 2:  # Start of Line
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-
-    def setTdc02(self, index, **kargs):
-        if self.__simul: return
-        if index == 0:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
-        if index == 1:  # Laser Line. Copying an output.
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period=exposure)
-        if index == 2:  # High Tension. Copying an input.
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045)
-
     def startFocus(self, exposure, displaymode, accumulate):
         """
         Start acquisition. Displaymode can be '1d' or '2d' and regulates the global attribute self.__softBinning.
@@ -436,6 +314,158 @@ class TimePix3():
         resp = self.request_get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
         self.finish_listening()
+
+    def startChrono(self, exposure, displaymode, accumulate, counter):
+        """
+        Start acquisition. Displaymode can be '1d' or '2d' and regulates the global attribute self.__softBinning.
+        accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
+        Message=1 because it is the normal data_locker.
+        """
+        #if not self.__simul:
+        try:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy Line 05
+            # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
+        except AttributeError:
+            logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
+        port = 8088
+        self.__softBinning = True if displaymode == '1d' else False
+        message = 1
+        self.__isCumul = bool(accumulate)
+        if self.getCCDStatus() == "DA_RECORDING":
+            self.stopFocus()
+        if self.getCCDStatus() == "DA_IDLE":
+            self.__tp3mode = 6
+            resp = self.request_get(url=self.__serverURL + '/measurement/start')
+            data = resp.text
+            self.start_listening(port, message=message, spim=counter)
+            return True
+        else:
+            logging.info('***TP3***: Check if experiment type matches mode selection.')
+
+    def startSpim(self, nbspectra, nbspectraperpixel, dwelltime, is2D):
+        """
+        Similar to startFocus. Just to be consistent with VGCameraYves. Message=02 because of spim.
+        """
+        try:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
+        except AttributeError:
+            logging.info("***TP3***: Could not set TDC to spim acquisition.")
+        port = 8088
+        self.__softBinning = True
+        message = 2
+        self.__isCumul = False
+        if self.getCCDStatus() == "DA_RECORDING":
+            self.stopFocus()
+        if self.getCCDStatus() == "DA_IDLE" and (self.__tp3mode == 2 or self.__tp3mode == 3 or
+                                                 self.__tp3mode == 4):
+            resp = self.request_get(url=self.__serverURL + '/measurement/start')
+            data = resp.text
+            self.start_listening(port, message=message, spim=nbspectra)
+            return True
+        else:
+            logging.info('***TP3***: Check if experiment type matches mode selection.')
+
+    def StartSpimFromScan(self):
+        """
+         This function must be called when you want to have a SPIM as a Scan Channel.
+         """
+        self.__isReady.clear()
+        try:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
+        except AttributeError:
+            logging.info("***TP3***: Could not set TDC to spim acquisition.")
+        port = 8088
+        self.__softBinning = True
+        message = 2
+        self.__isCumul = False
+        if self.getCCDStatus() == "DA_RECORDING":
+            logging.info("***TPX3***: Please turn off TPX3 from camera panel.")
+            return False
+        elif self.getCCDStatus() == "DA_IDLE":
+            resp = self.request_get(url=self.__serverURL + '/measurement/start')
+            data = resp.text
+            self.start_listening_from_scan(port, message=message)
+            return True
+
+    def stopSpim(self, immediate):
+        """
+        Identical to stopFocus. Just to be consistent with VGCameraYves.
+        """
+        try:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
+        except AttributeError:
+            logging.info("***TP3***: Could not turn off TDC after spim acquisition.")
+        status = self.getCCDStatus()
+        resp = self.request_get(url=self.__serverURL + '/measurement/stop')
+        data = resp.text
+        self.finish_listening()
+
+        if self.__tr:
+            logging.info(f'***TP3***: TR is on. Cancelling Laser.')
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            LaserInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("sgain_controller")
+            if LaserInstrument is not None and not self.__simul: LaserInstrument.over_spim_TP3()
+
+    def pauseSpim(self):
+        pass
+
+    def resumeSpim(self, mode):
+        pass
+
+    def isCameraThere(self):
+        return True
+
+    def getTemperature(self):
+        pass
+
+    def setTemperature(self, temperature):
+        pass
+
+    def setupBinning(self):
+        pass
+
+    def setTdc01(self, index, **kargs):
+        if self.__simul: return
+        if index == 0:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
+        if index == 1:  # Internal Generator
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
+        if index == 2:  # Start of Line
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
+
+    def setTdc02(self, index, **kargs):
+        if self.__simul: return
+        if index == 0:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
+        if index == 1:  # Laser Line. Copying an output.
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period=exposure)
+        if index == 2:  # High Tension. Copying an input.
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045)
 
     def setExposureTime(self, exposure):
         """
@@ -660,10 +690,7 @@ class TimePix3():
 
         if self.__softBinning:
             config_bytes += b'\x01'  # Soft binning
-            if self.__tp3mode == 5:
-                config_bytes += b'\x01'  # Bit depth 16 when saving SPIM locally
-            else:
-                config_bytes += b'\x02'  # Bit depth 32 otherwise
+            config_bytes += b'\x02'  # Bit depth 32
         else:
             config_bytes += b'\x00'  # No soft binning
             config_bytes += b'\x01'  # Bit depth is 16
@@ -674,8 +701,8 @@ class TimePix3():
             config_bytes += b'\x00'  # Cumul is OFF
 
         config_bytes += bytes([self.__tp3mode])
-        if message == 1:
-            size = 1
+        if message == 1: #Focus/Cumul (message=1) and Chrono (message=3)
+            size = int(spim)
             config_bytes += size.to_bytes(2, 'big')
             config_bytes += size.to_bytes(2, 'big')
 
@@ -721,6 +748,7 @@ class TimePix3():
 
         config_bytes += struct.pack(">d", self.__delay)  # BE. See https://docs.python.org/3/library/struct.html
         config_bytes += struct.pack(">d", self.__width)  # BE. See https://docs.python.org/3/library/struct.html
+
 
         #Number of sockets that will be opened
         config_bytes += nbsockets.to_bytes(2, 'big')
@@ -974,7 +1002,6 @@ class TimePix3():
         #self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint8)
         self.__xspim = x_size
         self.__yspim = y_size
-        print(self.__xspim)
         config_bytes += x_size.to_bytes(2, 'big') #spimx
         config_bytes += y_size.to_bytes(2, 'big') #spimy
         config_bytes += x_size.to_bytes(2, 'big') #scanx

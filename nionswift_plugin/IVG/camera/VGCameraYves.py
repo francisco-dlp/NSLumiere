@@ -334,9 +334,15 @@ class CameraDevice(camera_base.CameraDevice):
                 self.spimimagedata = numpy.zeros((self.sizey, self.sizex), dtype=numpy.float32)
             self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
             self.camera.stopFocus()
-            self.camera.startSpim(self.current_camera_settings.spectra_count, 1,
-                                  self.current_camera_settings.exposure_ms / 1000.,
-                                  self.current_camera_settings.acquisition_mode == "2D-Chrono")
+            if self.isTimepix:
+                sb = "1d" if self.current_camera_settings.soft_binning else "2d"
+                acqmode = 0 #No cumul
+                self.__acqon = self.camera.startChrono(self.current_camera_settings.exposure_ms / 1000, sb, acqmode,
+                                                       self.current_camera_settings.spectra_count)
+            else:
+                self.camera.startSpim(self.current_camera_settings.spectra_count, 1,
+                                      self.current_camera_settings.exposure_ms / 1000.,
+                                      self.current_camera_settings.acquisition_mode == "2D-Chrono")
             self.camera.resumeSpim(4)
             if self.current_camera_settings.acquisition_mode == "1D-Chrono-Live":
                 self.camera.setSpimMode(1)
@@ -395,7 +401,8 @@ class CameraDevice(camera_base.CameraDevice):
         if "Chrono" in acquisition_mode:
             self.has_spim_data_event.wait(1.0)
             self.has_spim_data_event.clear()
-            self.acquire_data = self.spimimagedata
+            #self.acquire_data = self.spimimagedata
+            self.acquire_data = self.imagedata
             if "2D" in acquisition_mode:
                 collection_dimensions = 1
                 datum_dimensions = 2
