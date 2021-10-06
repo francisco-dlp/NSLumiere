@@ -18,6 +18,7 @@ from nion.swift.model import HardwareSource
 from nion.utils import Registry
 
 from nion.instrumentation import camera_base
+from nion.instrumentation.camera_base import build_calibration_dict
 
 #from nionswift_plugin.IVG.camera import orsaycamera
 from nionswift_plugin.IVG.tp3 import tp3func
@@ -25,6 +26,41 @@ from nionswift_plugin.IVG.tp3 import tp3func
 from nionswift_plugin.IVG import ivg_inst
 
 _ = gettext.gettext
+
+
+#Monkey patching camera_base because of the has_attr
+def test_update_spatial_calibrations(data_element, instrument_controller, camera, camera_category, data_shape, scaling_x, scaling_y):
+    if "spatial_calibrations" not in data_element:
+        if "spatial_calibrations" in data_element.get("hardware_source", dict()):
+            data_element["spatial_calibrations"] = data_element["hardware_source"]["spatial_calibrations"]
+        elif hasattr(camera, "calibration"):  # used in nionccd1010
+            if len(data_shape) == 1:
+                data_element["spatial_calibrations"] = [camera.calibration[1]]
+            elif len(data_shape) == 2:
+                data_element["spatial_calibrations"] = camera.calibration
+        elif instrument_controller:
+            if "calibration_controls" in data_element:
+                calibration_controls = data_element["calibration_controls"]
+            elif hasattr(camera, "calibration_controls"):
+                calibration_controls = camera.calibration_controls
+            else:
+                calibration_controls = None
+            if calibration_controls is not None:
+                x_calibration_dict = build_calibration_dict(instrument_controller, calibration_controls, "x", scaling_x, data_shape[0])
+                y_calibration_dict = build_calibration_dict(instrument_controller, calibration_controls, "y", scaling_y, data_shape[1] if len(data_shape) > 1 else 0)
+                z_calibration_dict = build_calibration_dict(instrument_controller, calibration_controls, "z", 1, data_shape[2] if len(data_shape) > 2 else 0)
+                # leave this here for backwards compatibility until origin override is specified in NionCameraManager.py
+                if camera_category.lower() == "ronchigram" and len(data_shape) == 2:
+                    y_calibration_dict["offset"] = -y_calibration_dict.get("scale", 1) * data_shape[0] * 0.5
+                    x_calibration_dict["offset"] = -x_calibration_dict.get("scale", 1) * data_shape[1] * 0.5
+                if len(data_shape) == 1:
+                    data_element["spatial_calibrations"] = [x_calibration_dict]
+                if len(data_shape) == 2:
+                    data_element["spatial_calibrations"] = [y_calibration_dict, x_calibration_dict]
+                if len(data_shape) == 3:
+                    data_element["spatial_calibrations"] = [z_calibration_dict, y_calibration_dict, x_calibration_dict]
+
+camera_base.update_spatial_calibrations = test_update_spatial_calibrations
 
 
 class Orsay_Data(Enum):
