@@ -660,7 +660,7 @@ class TimePix3():
 
         inputs = list()
         outputs = list()
-        nbsockets = 1
+        nbsockets = 4
         assert (nbsockets == 1) or (nbsockets % 4 == 0)
         nbsockets_chip = nbsockets / 4
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -863,9 +863,15 @@ class TimePix3():
                     return
 
         elif message == 2:
-            while True:
+            byte_unique = 1
+            if byte_unique == 2:
+                dt_unique = numpy.dtype(numpy.uint16).newbyteorder('>')
+                mult_factor = 2
+            elif byte_unique == 1:
                 dt_unique = numpy.dtype(numpy.uint8).newbyteorder('>')
-                dt = numpy.dtype(numpy.uint32).newbyteorder('>')
+                mult_factor = 4
+            dt = numpy.dtype(numpy.uint32).newbyteorder('>')
+            while True:
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
@@ -878,11 +884,18 @@ class TimePix3():
                             index = packet_data.find(b'{StartUnique}', index)
                             if index == -1: break
                             index2 = packet_data.find(b'{StartIndexes}', index)
-                            try:
-                                unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
-                                last_index = index2+14+(index2-index-13)*4
-                                event_list = numpy.frombuffer(
-                                    packet_data[index2+14:last_index], dtype=dt)
+                            if index2 == -1: #If there is not, do another call.
+                                packet_data += s.recv(buffer_size)
+                                index2 = packet_data.find(b'{StartIndexes}', index)
+                            #try:
+                            unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
+                            last_index = index2+14+(index2-index-13)*mult_factor
+                            if last_index > len(packet_data):
+                                packet_data += s.recv(last_index - len(packet_data))
+                            event_list = numpy.frombuffer(packet_data[index2+14:last_index], dtype=dt)
+
+                                #print(len(unique))
+                                #print(len(event_list))
 
                                 #offset = event_list % 1025
                                 #now_socket = inputs.index(s)
@@ -896,13 +909,26 @@ class TimePix3():
                                 #    event_list = event_list - 2 * offset + 256 * 2 - 1
 
 
-                                index += 13
+                            index += 13
+                            try:
                                 self.__spimData[event_list] += unique
-                            except IndexError:
-                                logging.info(f'***TP3***: Indexing error.')
-                            except ValueError:
+                            except:
+                                pass
+                                #print(event_list)
+                                #print(unique)
+                            #except IndexError:
+                            #    logging.info(f'***TP3***: Indexing error.')
+                            #except ValueError:
+                            #    print('here2')
+                            #    print(len(unique))
+                            #    print(len(event_list))
+                            #    print(index, index2)
+                            #    print(last_index)
+                            #    print(len(packet_data))
+
+                            #    logging.info(f'***TP3***: Value error.')
                                 #logging.info(f'***TP3***: Incomplete data.')
-                                break
+                            #    break
 
                             #"""
 
