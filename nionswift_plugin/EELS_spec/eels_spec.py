@@ -46,7 +46,7 @@ class EELS_Spectrometer(EELS_controller.EELSController):
     def set_val(self, val, which):
         if which=="off":
             if val<=1000 and val>=0:
-                veff = int(val / 10)
+                veff = int(val * 4.095)
                 plus = ('HV+ ' + str(veff) + '\n').encode()
                 self.sock.sendall(plus)
             else:

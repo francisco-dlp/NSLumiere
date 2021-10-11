@@ -467,11 +467,11 @@ class EELS_SPEC_Device(Observable.Observable):
     """
     @property
     def ene_offset_f(self):
-        return int(self.__elem[11]/10.)
+        return int(self.__elem[11] * 4.095)
 
     @ene_offset_f.setter
     def ene_offset_f(self, value):
-        self.__elem[11] = value*10.
+        self.__elem[11] = value / 4.095
         self.__eels_spec.locked_set_val(self.__elem[11], self.__names[11])
         self.property_changed_event.fire('ene_offset_f')
         self.property_changed_event.fire('ene_offset_edit_f')
