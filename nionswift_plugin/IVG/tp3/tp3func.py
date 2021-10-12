@@ -871,14 +871,16 @@ class TimePix3():
                 dt_unique = numpy.dtype(numpy.uint8).newbyteorder('>')
                 mult_factor = 4
             dt = numpy.dtype(numpy.uint32).newbyteorder('>')
+            counter = 0
             while True:
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
+                        counter += 1
                         packet_data = s.recv(buffer_size)
 
                         # Method 01
-                        #"""
+                        """
                         index = 0
                         while index < len(packet_data):
                             index = packet_data.find(b'{StartUnique}', index)
@@ -894,45 +896,52 @@ class TimePix3():
                                 packet_data += s.recv(last_index - len(packet_data))
                             event_list = numpy.frombuffer(packet_data[index2+14:last_index], dtype=dt)
 
-                                #print(len(unique))
-                                #print(len(event_list))
-
-                                #offset = event_list % 1025
-                                #now_socket = inputs.index(s)
-                                #if now_socket < nbsockets_chip:
-                                #    event_list = event_list - 2 * offset + 255
-                                #elif now_socket < nbsockets_chip*2:
-                                #    event_list = event_list - 2 * offset + 256 * 4 - 1
-                                #elif now_socket < nbsockets_chip * 3:
-                                #    event_list = event_list - 2 * offset + 256 * 3 - 1
-                                #elif now_socket < nbsockets_chip * 4:
-                                #    event_list = event_list - 2 * offset + 256 * 2 - 1
-
-
                             index += 13
                             try:
                                 self.__spimData[event_list] += unique
-                            except:
-                                pass
-                                #print(event_list)
-                                #print(unique)
-                            #except IndexError:
-                            #    logging.info(f'***TP3***: Indexing error.')
-                            #except ValueError:
-                            #    print('here2')
-                            #    print(len(unique))
-                            #    print(len(event_list))
-                            #    print(index, index2)
-                            #    print(last_index)
-                            #    print(len(packet_data))
-
-                            #    logging.info(f'***TP3***: Value error.')
-                                #logging.info(f'***TP3***: Incomplete data.')
-                            #    break
-
-                            #"""
+                            except IndexError:
+                                logging.info(f'***TP3***: Indexing error.')
+                            except ValueError:
+                                logging.info(f'***TP3***: Value error.')
+                                logging.info(f'***TP3***: Incomplete data.')
+                        """
 
                         #Method 02
+
+
+                        #if len(event_list) > 0:
+                        #    self.__eventQueue.put(event_list)
+
+                        #if counter % 2 == 0:
+                        #    self.update_spim()
+
+                        if len(packet_data) == 0:
+                            logging.info('***TP3***: No more packets received. Finishing SPIM.')
+                            self.update_spim_all()
+                            return
+
+                        q = len(packet_data) % 32
+                        if q:
+                            packet_data += s.recv(32-q)
+
+                        try:
+                            event_list = numpy.frombuffer(packet_data, dtype=dt)
+                            if len(event_list) > 0:
+                                self.__eventQueue.put(event_list)
+                            if counter % 2 == 0:
+                                self.update_spim()
+                            #unique, counts = numpy.unique(event_list, return_counts=True)
+                            #counts = counts.astype(numpy.uint16)
+                            #self.__spimData[unique] += counts
+                        except ValueError:
+                            logging.info(f'***TP3***: Value error.')
+                        except IndexError:
+                            logging.info(f'***TP3***: Indexing error.')
+
+
+
+
+                        #Method 03
                         """
                         if packet_data == b'':
                             logging.info('***TP3***: No more packets received in SPIM.')
@@ -1004,7 +1013,7 @@ class TimePix3():
         self.__tr = False  # Start always with false and will be updated if otherwise
 
         config_bytes += b'\x01'  # Soft binning
-        config_bytes += b'\x01'  # Bit depth 32 otherwise
+        config_bytes += b'\x02'  # Bit depth 32 otherwise
         config_bytes += b'\x00'  # Cumul is OFF
         config_bytes += bytes([2]) #Mode 02 (SPIM)
         scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
@@ -1048,15 +1057,18 @@ class TimePix3():
 
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
         if message == 2:
+            counter = 0
             while True:
                 dt_unique = numpy.dtype(numpy.uint8).newbyteorder('>')
                 dt = numpy.dtype(numpy.uint32).newbyteorder('>')
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
+                        counter += 1
                         packet_data = s.recv(buffer_size)
 
                         ### Method 01 ###
+                        """
                         index = 0
                         while index < len(packet_data):
                             index = packet_data.find(b'{StartUnique}', index)
@@ -1074,6 +1086,28 @@ class TimePix3():
                                 logging.info(f'***TP3***: Indexing error.')
                             except ValueError:
                                 break
+                        """
+
+                        ### Method 02 ###
+                        if len(packet_data) == 0:
+                            logging.info('***TP3***: No more packets received. Finishing SPIM.')
+                            self.update_spim_all()
+                            return
+
+                        q = len(packet_data) % 32
+                        if q:
+                            packet_data += s.recv(32 - q)
+
+                        try:
+                            event_list = numpy.frombuffer(packet_data, dtype=dt)
+                            if len(event_list) > 0:
+                                self.__eventQueue.put(event_list)
+                            if counter % 2 == 0:
+                                self.update_spim()
+                        except ValueError:
+                            logging.info(f'***TP3***: Value error.')
+                        except IndexError:
+                            logging.info(f'***TP3***: Indexing error.')
 
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
