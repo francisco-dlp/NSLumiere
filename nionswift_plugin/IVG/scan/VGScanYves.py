@@ -10,6 +10,7 @@ import time
 import logging
 import os
 import json
+import time
 
 # local libraries
 from nion.utils import Registry
@@ -261,6 +262,7 @@ class Device:
             self.__tpx3_calib["offset"] = self.__instrument.TryGetVal("eels_x_offset")[1]
             self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
             self.__tpx3_data = self.__tpx3_camera.camera.camera.create_spimimage_from_events()
+            time.sleep(0.25) #Timepix has already a socket connected. Wait until it is definitely reading data
 
     def stop_timepix3(self):
         if self.__tpx3_spim: #only stop if this was on
@@ -333,6 +335,7 @@ class Device:
 
             #Timepix3 Spim channel
             if channel.name == 'TPX3':
+                self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(0.5)
                 data_array = self.__tpx3_data
                 data_element["data"] = data_array
                 properties = current_frame.frame_parameters.as_dict()
@@ -345,6 +348,7 @@ class Device:
                 data_element["properties"] = properties
                 if data_array is not None:
                     data_elements.append(data_element)
+                self.__tpx3_camera.camera.camera._TimePix3__isReady.clear()
 
             else:
                 if not self.__spim:

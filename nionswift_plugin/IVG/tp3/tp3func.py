@@ -660,7 +660,7 @@ class TimePix3():
 
         inputs = list()
         outputs = list()
-        nbsockets = 4
+        nbsockets = 1
         assert (nbsockets == 1) or (nbsockets % 4 == 0)
         nbsockets_chip = nbsockets / 4
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -1101,9 +1101,11 @@ class TimePix3():
                         try:
                             event_list = numpy.frombuffer(packet_data, dtype=dt)
                             if len(event_list) > 0:
-                                self.__eventQueue.put(event_list)
-                            if counter % 2 == 0:
-                                self.update_spim()
+                                #self.__eventQueue.put(event_list)
+                                self.update_spim_direct(event_list)
+                                if counter % 100 == 0:
+                                    self.__isReady.set()  # This waits until spimData is created so scan can have access to it.
+                                    #self.update_spim()
                         except ValueError:
                             logging.info(f'***TP3***: Value error.')
                         except IndexError:
@@ -1119,6 +1121,7 @@ class TimePix3():
                     return
         return
 
+
     def get_last_data(self):
         return self.__dataQueue.get()
 
@@ -1127,6 +1130,11 @@ class TimePix3():
 
     def update_spim(self):
         event_list = self.__eventQueue.get()
+        unique, counts = numpy.unique(event_list, return_counts=True)
+        counts = counts.astype(numpy.uint32)
+        self.__spimData[unique] += counts
+
+    def update_spim_direct(self, event_list):
         unique, counts = numpy.unique(event_list, return_counts=True)
         counts = counts.astype(numpy.uint32)
         self.__spimData[unique] += counts
