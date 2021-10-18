@@ -634,6 +634,9 @@ class TimePix3():
             self.__dataQueue = queue.LifoQueue()
             self.__eventQueue = queue.Queue()
 
+    def create_config_bytes(self):
+        pass
+
     def acquire_streamed_frame(self, port, message, spim):
         """
         Main client function. Main loop is explained below.
@@ -783,25 +786,6 @@ class TimePix3():
                 value = str(header[begin_value:end_value])
             return value
 
-        def check_spim_string_value(header, prop):
-            """
-            Check the value in the header dictionary. Some values are not number so a valueError
-            exception handles this.
-            """
-
-            start_index = header.index(prop)
-            end_index = start_index + len(prop)
-            begin_value = header.index(':', end_index, len(header)) + 1
-            if prop == 'dataSize':
-                end_value = header.index('}', end_index, len(header))
-            else:
-                end_value = header.index(',', end_index, len(header))
-            try:
-                value = int(header[begin_value:end_value])
-            except ValueError:
-                value = str(header[begin_value:end_value])
-            return value
-
         def put_queue(cam_prop, frame):
             try:
                 assert int(cam_properties['width']) * int(
@@ -848,10 +832,6 @@ class TimePix3():
                                 else:
                                     packet_data += temp
 
-                            # frame_data += packet_data[:begin_header]
-                            # if put_queue(cam_properties, frame_data):
-                            #    frame_data = b''
-                            # if not frame_data:
                             frame_data = packet_data[end_header + 2:end_header + 2 + data_size + 1]
                             if put_queue(cam_properties, frame_data):
                                 frame_data = b''
@@ -906,9 +886,8 @@ class TimePix3():
                                 logging.info(f'***TP3***: Incomplete data.')
                         """
 
-                        #Method 02
-
-
+                        # Method 02
+                        #"""
                         #if len(event_list) > 0:
                         #    self.__eventQueue.put(event_list)
 
@@ -937,7 +916,7 @@ class TimePix3():
                             logging.info(f'***TP3***: Value error.')
                         except IndexError:
                             logging.info(f'***TP3***: Indexing error.')
-
+                        """"
 
 
 
@@ -956,7 +935,7 @@ class TimePix3():
 
                         if len(packet_data) < buffer_size / 2:
                             self.update_spim()
-                    """
+                    #"""
 
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
