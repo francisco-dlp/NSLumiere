@@ -229,7 +229,7 @@ class eels_spec_View:
         self.vsm_label = ui.create_label(text='Energy Offset: ')
         self.vsm_value = ui.create_line_edit(name='vsm_value', text='@binding(instrument.ene_offset_edit_f)')
         self.vsm_row=ui.create_row(self.vsm_label, self.vsm_value)
-        self.vsm_slider=ui.create_slider(name='vsm_slider', value='@binding(instrument.ene_offset_f)', minimum=0, maximum=100)
+        self.vsm_slider=ui.create_slider(name='vsm_slider', value='@binding(instrument.ene_offset_f)', minimum=0, maximum=4095)
 
         self.vsm_wobbler = ui.create_check_box(text='Wobbler [30V]: ', name='wobbler_cb',
                                                   checked='@binding(instrument.vsm_wobbler_f)')

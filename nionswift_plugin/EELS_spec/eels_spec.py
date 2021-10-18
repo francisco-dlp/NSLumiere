@@ -22,18 +22,6 @@ class EELS_Spectrometer(EELS_controller.EELSController):
         self.ser.timeout = 0.2
 
         try:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.settimeout(0.1)
-            self.sock.connect(("129.175.82.70", 80))
-            self.vsm_success = True
-        except socket.timeout:
-            logging.info("***EELS SPECTROMETER***: Could not find VSM. Please check hardware. "
-                         "Entering in debug mode.")
-        else:
-            logging.info("***EELS SPECTROMETER***: Unknown exception. Could not find VSM. Please check hardware. "
-                         "Entering in debug mode.")
-
-        try:
             if not self.ser.is_open:
                 self.ser.open()
             self.serial_success = True
@@ -41,12 +29,27 @@ class EELS_Spectrometer(EELS_controller.EELSController):
             logging.info("***EELS SPECTROMETER***: Could not find EELS Spec. Please check hardware. "
                          "Entering in debug mode.")
 
+        if self.serial_success:
+            try:
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sock.settimeout(0.1)
+                self.sock.connect(("129.175.82.70", 80))
+                self.vsm_success = True
+            except socket.timeout:
+                logging.info("***EELS SPECTROMETER***: Could not find VSM. Please check hardware. "
+                             "Entering in debug mode.")
+            else:
+                logging.info("***EELS SPECTROMETER***: Unknown exception. Could not find VSM. Please check hardware. "
+                             "Entering in debug mode.")
+
+
+
         self.success = self.serial_success and self.vsm_success
 
     def set_val(self, val, which):
         if which=="off":
             if val<=1000 and val>=0:
-                veff = int(val / 10)
+                veff = int(val * 4.095)
                 plus = ('HV+ ' + str(veff) + '\n').encode()
                 self.sock.sendall(plus)
             else:
