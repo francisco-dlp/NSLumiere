@@ -41,5 +41,8 @@
   },
   "stage": {
     "DEBUG": 0
+  },
+  "mirror": {
+    "DEBUG": 1
   }
 }

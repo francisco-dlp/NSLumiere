@@ -22,8 +22,11 @@
     },
     "STAGE_MATRIX_SIZE": 160
   },
+    "diaf": {
+    "COM": "COM99"
+  },
   "lenses": {
-    "COM": "COM13",
+    "COM": "COM99",
     "MAX_OBJ": 9.5,
     "MAX_C1": 1.5,
     "MAX_C2": 1.5
@@ -38,5 +41,8 @@
   },
   "stage": {
     "DEBUG": 0
+  },
+  "mirror": {
+    "DEBUG": 1
   }
 }

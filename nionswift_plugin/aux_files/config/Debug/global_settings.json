@@ -40,6 +40,9 @@
     "COM_PRINCETON": "COM99"
   },
   "stage": {
-    "DEBUG": 0
+    "DEBUG": 1
+  },
+  "mirror": {
+    "DEBUG": 1
   }
 }

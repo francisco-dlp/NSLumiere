@@ -15,16 +15,11 @@ except FileNotFoundError:
     with open(abs_path) as savfile:
         settings = json.load(savfile)
 
-if "mirror" in settings:
-    DEBUG = settings["mirror"]["DEBUG"]
-    if DEBUG:
-        from . import mirror_vi as mirror
-    else:
-        from . import mirror as mirror
-else:
+DEBUG = settings["mirror"]["DEBUG"]
+if DEBUG:
     from . import mirror_vi as mirror
-
-
+else:
+    from . import mirror as mirror
 
 class mirrorDevice(Observable.Observable):
 

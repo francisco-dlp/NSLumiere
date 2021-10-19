@@ -1,6 +1,6 @@
 {
   "EELS": {
-    "COM": "COM1"
+    "COM": "COM99"
   },
   "IVG": {
     "COM_AIRLOCK": "COM99",
@@ -21,5 +21,28 @@
       "PERIOD": 1.0
     },
     "STAGE_MATRIX_SIZE": 160
+  },
+    "diaf": {
+    "COM": "COM99"
+  },
+  "lenses": {
+    "COM": "COM99",
+    "MAX_OBJ": 9.5,
+    "MAX_C1": 1.5,
+    "MAX_C2": 1.5
+  },
+    "spectrometer": {
+    "WHICH": [
+      "DEBUG",
+      "ATTOLIGHT",
+      "PRINCETON"
+    ],
+    "COM_PRINCETON": "COM99"
+  },
+  "stage": {
+    "DEBUG": 1
+  },
+  "mirror": {
+    "DEBUG": 1
   }
 }
