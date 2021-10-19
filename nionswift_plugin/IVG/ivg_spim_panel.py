@@ -19,9 +19,14 @@ from . import ivg_inst
 
 _ = gettext.gettext
 
-abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
-with open(abs_path) as savfile:
-    settings = json.load(savfile)
+abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
+try:
+    with open(abs_path) as savfile:
+        settings = json.load(savfile)
+except FileNotFoundError:
+    abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
+    with open(abs_path) as savfile:
+        settings = json.load(savfile)
 
 MAX_PTS = settings["IVG"]["MAX_PTS"]
 STAGE_MATRIX_SIZE = settings["IVG"]["STAGE_MATRIX_SIZE"]

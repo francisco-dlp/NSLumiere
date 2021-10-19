@@ -6,15 +6,24 @@ import logging
 from nion.utils import Event
 from nion.utils import Observable
 
-abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
-with open(abs_path) as savfile:
-    settings = json.load(savfile)
-DEBUG = settings["mirror"]["DEBUG"]
+abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
+try:
+    with open(abs_path) as savfile:
+        settings = json.load(savfile)
+except FileNotFoundError:
+    abs_path = os.path.abspath(os.path.join((__file__+"/../../"), 'global_settings.json'))
+    with open(abs_path) as savfile:
+        settings = json.load(savfile)
 
-if DEBUG:
-    from . import mirror_vi as mirror
+if "mirror" in settings:
+    DEBUG = settings["mirror"]["DEBUG"]
+    if DEBUG:
+        from . import mirror_vi as mirror
+    else:
+        from . import mirror as mirror
 else:
-    from . import mirror as mirror
+    from . import mirror_vi as mirror
+
 
 
 class mirrorDevice(Observable.Observable):

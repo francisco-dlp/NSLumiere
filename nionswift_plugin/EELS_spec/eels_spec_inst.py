@@ -7,10 +7,17 @@ import time
 from nion.utils import Event
 from nion.utils import Observable
 
-abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
-with open(abs_path) as savfile:
-    settings = json.load(savfile)
-SERIAL_PORT = settings["EELS"]["COM"]
+abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
+try:
+    with open(abs_path) as savfile:
+        settings = json.load(savfile)
+    SERIAL_PORT = settings["EELS"]["COM"]
+except FileNotFoundError:
+    logging.info('***EELS SPEC***: No file found in Microscope main folder. Searching locally...')
+    abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
+    with open(abs_path) as savfile:
+        settings = json.load(savfile)
+    SERIAL_PORT = settings["EELS"]["COM"]
 
 from . import eels_spec as spec
 
@@ -42,12 +49,17 @@ class EELS_SPEC_Device(Observable.Observable):
         self.__EHT = '3'
 
         try:
-            inst_dir = os.path.dirname(__file__)
-            abs_path = os.path.join(inst_dir, '../aux_files/config/eels_settings.json')
-            with open(abs_path) as savfile:
-                data = json.load(savfile)
+            abs_path = os.path.abspath('C:\ProgramData\Microscope\eels_settings.json')
+            try:
+                with open(abs_path) as savfile:
+                    data = json.load(savfile)
+            except FileNotFoundError:
+                abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/eels_settings.json')
+                with open(abs_path) as savfile:
+                    data = json.load(savfile)
             self.__dispIndex = int(data["3"]["last"])
             self.disp_change_f = self.__dispIndex  # put last index
+
         except:
             logging.info('***EELS SPEC***: No saved values.')
 
@@ -60,10 +72,14 @@ class EELS_SPEC_Device(Observable.Observable):
 
 
     def set_spec_values(self, value):
-        inst_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(inst_dir, '../aux_files/config/eels_settings.json')
-        with open(abs_path) as savfile:
-            data = json.load(savfile)
+        abs_path = os.path.abspath('C:\ProgramData\Microscope\eels_settings.json')
+        try:
+            with open(abs_path) as savfile:
+                data = json.load(savfile)
+        except FileNotFoundError:
+            abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/eels_settings.json')
+            with open(abs_path) as savfile:
+                data = json.load(savfile)
 
         self.range_f = data[self.__EHT][value]['range']
         self.note_f = data[self.__EHT][value]['note']

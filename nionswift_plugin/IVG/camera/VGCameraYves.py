@@ -765,10 +765,14 @@ def run(instrument: ivg_inst.ivgInstrument):
     cameras = list()
     try:
         # config_file = os.environ['ALLUSERSPROFILE'] + "\\Nion\\Nion Swift\\Orsay_cameras_list.json"
-        panel_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(panel_dir, '../../aux_files/config/Orsay_cameras_list.json')
-        with open(abs_path) as f:
-            cameras = json.load(f)
+        abs_path = os.path.abspath('C:\ProgramData\Microscope\Orsay_cameras_list.json')
+        try:
+            with open(abs_path) as savfile:
+                cameras = json.load(savfile)
+        except FileNotFoundError:
+            abs_path = os.path.join(os.path.dirname(__file__), '../../aux_files/config/Orsay_cameras_list.json')
+            with open(abs_path) as f:
+                cameras = json.load(f)
     except Exception as e:
         cameras.append(
             {"manufacturer": 1, "model": "KURO: 2048B", "type": "eels", "id": "orsay_camera_kuro", "name": "EELS",

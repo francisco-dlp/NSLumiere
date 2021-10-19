@@ -8,11 +8,16 @@ from nion.utils import Event
 from nion.utils import Observable
 from nion.swift.model import HardwareSource
 
-abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
-with open(abs_path) as savfile:
-    settings = json.load(savfile)
-SERIAL_PORT = settings["lenses"]["COM"]
+abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
+try:
+    with open(abs_path) as savfile:
+        settings = json.load(savfile)
+except FileNotFoundError:
+    abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
+    with open(abs_path) as savfile:
+        settings = json.load(savfile)
 
+SERIAL_PORT = settings["lenses"]["COM"]
 from . import lens_ps as lens_ps
 
 class probeDevice(Observable.Observable):

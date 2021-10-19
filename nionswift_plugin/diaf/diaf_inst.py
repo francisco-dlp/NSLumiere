@@ -6,9 +6,16 @@ import logging
 from nion.utils import Event
 from nion.utils import Observable
 
-abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
-with open(abs_path) as savfile:
-    settings = json.load(savfile)
+
+abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
+try:
+    with open(abs_path) as savfile:
+        settings = json.load(savfile)
+except FileNotFoundError:
+    abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
+    with open(abs_path) as savfile:
+        settings = json.load(savfile)
+
 SERIAL_PORT = settings["diaf"]["COM"]
 START_DIAF = True
 
@@ -30,10 +37,14 @@ class diafDevice(Observable.Observable):
 
         if START_DIAF:
             try:
-                inst_dir = os.path.dirname(__file__)
-                abs_path = os.path.join(inst_dir, '../aux_files/config/diafs_settings.json')
-                with open(abs_path) as savfile:
-                    data = json.load(savfile)  # data is load json
+                abs_path = os.path.abspath('C:\ProgramData\Microscope\diafs_settings.json')
+                try:
+                    with open(abs_path) as savfile:
+                        data = json.load(savfile)
+                except FileNotFoundError:
+                    abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/diafs_settings.json')
+                    with open(abs_path) as savfile:
+                        data = json.load(savfile)  # data is load json
                 self.roa_change_f = int(data['ROA']['last'])
                 self.voa_change_f = int(data['VOA']['last'])
             except:
@@ -42,10 +53,14 @@ class diafDevice(Observable.Observable):
     def set_values(self, value, which):
         diaf_list = ['None', '50', '100', '150']
         value = diaf_list[value]
-        inst_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(inst_dir, '../aux_files/config/diafs_settings.json')
-        with open(abs_path) as savfile:
-            data = json.load(savfile)  # data is load json
+        abs_path = os.path.abspath('C:\ProgramData\Microscope\diafs_settings.json')
+        try:
+            with open(abs_path) as savfile:
+                data = json.load(savfile)
+        except FileNotFoundError:
+            abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/diafs_settings.json')
+            with open(abs_path) as savfile:
+                data = json.load(savfile)  # data is load json
         if which == 'ROA':
             self.m1_f = data[which][value]['m1']
             self.m2_f = data[which][value]['m2']
