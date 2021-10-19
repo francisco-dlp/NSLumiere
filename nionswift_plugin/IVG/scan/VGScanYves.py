@@ -335,20 +335,19 @@ class Device:
 
             #Timepix3 Spim channel
             if channel.name == 'TPX3':
-                self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(0.5)
-                data_array = self.__tpx3_data
-                data_element["data"] = data_array
-                properties = current_frame.frame_parameters.as_dict()
-                properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
-                properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
-                properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
-                properties["channel_id"] = channel.channel_id
-                properties["eels_dispersion"] = self.__tpx3_calib["dispersion"]
-                properties["eels_offset"] = self.__tpx3_calib["offset"]
-                data_element["properties"] = properties
-                if data_array is not None:
-                    data_elements.append(data_element)
-                self.__tpx3_camera.camera.camera._TimePix3__isReady.clear()
+                if self.__frame_number % 10 == 0:
+                    data_array = self.__tpx3_data
+                    data_element["data"] = data_array
+                    properties = current_frame.frame_parameters.as_dict()
+                    properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
+                    properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
+                    properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
+                    properties["channel_id"] = channel.channel_id
+                    properties["eels_dispersion"] = self.__tpx3_calib["dispersion"]
+                    properties["eels_offset"] = self.__tpx3_calib["offset"]
+                    data_element["properties"] = properties
+                    if data_array is not None:
+                        data_elements.append(data_element)
 
             else:
                 if not self.__spim:

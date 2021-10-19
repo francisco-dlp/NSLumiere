@@ -1094,9 +1094,9 @@ class TimePix3():
                         try:
                             event_list = numpy.frombuffer(packet_data, dtype=dt)
                             if len(event_list) > 0:
+                                #for val in event_list:
+                                #    self.__spimData[val] += 1
                                 self.update_spim_direct(event_list)
-                                if counter % 50 == 0:
-                                    self.__isReady.set()  # Every 50 we let the display show it.
                         except ValueError:
                             logging.info(f'***TP3***: Value error.')
                         except IndexError:
