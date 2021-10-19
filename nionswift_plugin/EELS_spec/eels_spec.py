@@ -38,11 +38,6 @@ class EELS_Spectrometer(EELS_controller.EELSController):
             except socket.timeout:
                 logging.info("***EELS SPECTROMETER***: Could not find VSM. Please check hardware. "
                              "Entering in debug mode.")
-            else:
-                logging.info("***EELS SPECTROMETER***: Unknown exception. Could not find VSM. Please check hardware. "
-                             "Entering in debug mode.")
-
-
 
         self.success = self.serial_success and self.vsm_success
 

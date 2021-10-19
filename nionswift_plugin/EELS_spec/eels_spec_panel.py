@@ -27,7 +27,27 @@ class eels_spec_handler:
 
     def init_handler(self):
         self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id('VG_Lum_controller')
-        self.instrument.init_handler()
+        vsm, ser = self.instrument.init_handler()
+        self.event_loop.create_task(self.change_vsm(vsm))
+        self.event_loop.create_task(self.change_ser(ser))
+        self.release_all()
+
+    async def change_vsm(self, type):
+        if type:
+            self.is_vsm.text = "VSM: ON"
+            self.is_vsm.text_color = "blue"
+        else:
+            self.is_vsm.text = "VSM: OFF"
+            self.is_vsm.text_color = "red"
+
+    async def change_ser(self, type):
+        if type:
+            self.is_ser.text = "SERIAL: ON"
+            self.is_ser.text_color = "blue"
+        else:
+            self.is_ser.text = "SERIAL: OFF"
+            self.is_ser.text_color = "red"
+
 
     async def do_enable(self, enabled=True, not_affected_widget_name_list=None):
         for var in self.__dict__:
@@ -57,20 +77,27 @@ class eels_spec_handler:
         with open(abs_path, 'w') as json_file:
             json.dump(json_object, json_file, indent=4)
 
-        self.full_range(widget)
+        self.release_all()
 
     def full_range(self, widget):
         self.reset_all()
 
     def slider_release(self, widget):
-        widget.maximum = widget.value + 1500
-        widget.minimum = widget.value - 1500
+        widget.maximum = widget.value + 2500
+        widget.minimum = widget.value - 2500
+        self.release_all()
 
     def reset_all(self):
         for prop in [self.fx_slider, self.fy_slider, self.sx_slider, self.sy_slider, self.dy_slider, self.q1_slider, self.q2_slider, self.q3_slider, self.q4_slider,
                      self.dx_slider, self.dmx_slider]:
             prop.maximum = 32767
             prop.minimum = -32767
+
+    def release_all(self):
+        for prop in [self.fx_slider, self.fy_slider, self.sx_slider, self.sy_slider, self.dy_slider, self.q1_slider, self.q2_slider, self.q3_slider, self.q4_slider,
+                     self.dx_slider, self.dmx_slider]:
+            prop.maximum = prop.value + 2500
+            prop.minimum = prop.value - 2500
 
 class eels_spec_View:
 
@@ -241,13 +268,18 @@ class eels_spec_View:
 
 
 
+        self.is_vsm = ui.create_label(name = "is_vsm", text="VSM: OFF")
+        self.is_ser = ui.create_label(name="is_ser", text="SERIAL: OFF")
+        self.is_on = ui.create_row(self.is_vsm, ui.create_stretch(), self.is_ser)
+
+
         # all tabs
 
         self.tabs = ui.create_tabs(self.focus_tab, self.dispersion_tab, self.vsm_tab)
 
         # create ui view
 
-        self.ui_view = ui.create_column(self.tabs)
+        self.ui_view = ui.create_column(self.tabs, self.is_on)
 
 
 def create_spectro_panel(document_controller, panel_id, properties):
