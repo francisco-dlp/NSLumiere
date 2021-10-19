@@ -774,6 +774,7 @@ def run(instrument: ivg_inst.ivgInstrument):
             with open(abs_path) as f:
                 cameras = json.load(f)
     except Exception as e:
+        logging.info(f"***CAMERA***: No file has been found. Using pre-appended setting.")
         cameras.append(
             {"manufacturer": 1, "model": "KURO: 2048B", "type": "eels", "id": "orsay_camera_kuro", "name": "EELS",
              "simulation": True})
@@ -796,7 +797,7 @@ def run(instrument: ivg_inst.ivgInstrument):
                 sn = camera["ip_address"]
             model = camera["model"]
             if (camera["manufacturer"] > 1 and camera["manufacturer"] != 4) and camera["simulation"]:
-                logging.info(f"***CAMERA***: No simulation for {manufacturer} cameras")
+                logging.info(f"***CAMERA***: No simulation for {manufacturer} camera.")
             else:
                 camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"],
                                              instrument,
