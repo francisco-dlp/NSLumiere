@@ -41,8 +41,7 @@ class gainhandler:
         self.event_loop.create_task(self.do_enable(False, []))
 
     def save_lenses(self, widget):
-        panel_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(panel_dir, '../aux_files/config/lenses_settings.json')
+        abs_path = os.path.abspath('C:\ProgramData\Microscope\lenses_settings.json')
         with open(abs_path) as savfile:
             json_object = json.load(savfile)
 

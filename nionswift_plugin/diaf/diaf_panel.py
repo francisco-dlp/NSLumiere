@@ -38,8 +38,7 @@ class diafhandler:
         self.event_loop.create_task(self.do_enable(False, []))
 
     def save_ROA(self, widget):
-        panel_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(panel_dir, '../aux_files/config/diafs_settings.json')
+        abs_path = os.path.abspath('C:\ProgramData\Microscope\diafs_settings.json')
         with open(abs_path) as savfile:
             json_object = json.load(savfile)  # data is load json
 
@@ -52,8 +51,7 @@ class diafhandler:
         self.total_range(widget)
 
     def save_SA(self, widget):
-        panel_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(panel_dir, '../aux_files/config/diafs_settings.json')
+        abs_path = os.path.abspath('C:\ProgramData\Microscope\diafs_settings.json')
         with open(abs_path) as savfile:
             json_object = json.load(savfile)  # data is load json
 
