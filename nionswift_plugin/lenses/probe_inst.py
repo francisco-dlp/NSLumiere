@@ -50,10 +50,14 @@ class probeDevice(Observable.Observable):
 
     def init_handler(self):
         try:
-            inst_dir = os.path.dirname(__file__)
-            abs_path = os.path.join(inst_dir, '../aux_files/config/lenses_settings.json')
-            with open(abs_path) as savfile:
-                data = json.load(savfile)  # data is load json
+            abs_path = os.path.abspath('C:\ProgramData\Microscope\lenses_settings.json')
+            try:
+                with open(abs_path) as savfile:
+                    data = json.load(savfile)
+            except FileNotFoundError:
+                abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/lenses_settings.json')
+                with open(abs_path) as savfile:
+                    data = json.load(savfile)  # data is load json
             self.obj_edit_f = data["3"]["obj"]
             self.c1_edit_f = data["3"]["c1"]
             self.c2_edit_f = data["3"]['c2']
