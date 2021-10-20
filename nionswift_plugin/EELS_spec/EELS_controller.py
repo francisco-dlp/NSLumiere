@@ -27,9 +27,9 @@ class EELSController(abc.ABC):
         sens = 1
         while getattr(self.wobbler_thread, "do_run", True):
             sens = sens * -1
-            if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / 2.)
+            if getattr(self.wobbler_thread, "do_run", True): time.sleep(2. / 3.)
             self.locked_set_val(current + sens * intensity, which)
-            if getattr(self.wobbler_thread, "do_run", True): time.sleep(1. / 2.)
+            if getattr(self.wobbler_thread, "do_run", True): time.sleep(2. / 3.)
             self.locked_set_val(current, which)
 
     def wobbler_on(self, current, intensity, which):
