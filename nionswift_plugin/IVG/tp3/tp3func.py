@@ -749,11 +749,12 @@ class TimePix3():
             config_bytes += struct.pack(">H", 64)
             config_bytes += struct.pack(">H", 64)
 
-        config_bytes += struct.pack(">d", self.__delay)  # BE. See https://docs.python.org/3/library/struct.html
-        config_bytes += struct.pack(">d", self.__width)  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack(">H", int(self.__delay))  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack(">H", int(self.__width))  # BE. See https://docs.python.org/3/library/struct.html
 
 
         #Number of sockets that will be opened
+        config_bytes += nbsockets.to_bytes(2, 'big')
         config_bytes += nbsockets.to_bytes(2, 'big')
         client.send(config_bytes)
 
@@ -1021,9 +1022,10 @@ class TimePix3():
         config_bytes += x_size.to_bytes(2, 'big') #scanx
         config_bytes += y_size.to_bytes(2, 'big') #scany
 
-        config_bytes += struct.pack(">d", 0.0)  # BE. See https://docs.python.org/3/library/struct.html. Delay
-        config_bytes += struct.pack(">d", 0.0)  # BE. See https://docs.python.org/3/library/struct.html. Widge
+        config_bytes += struct.pack(">H", 0)  # BE. See https://docs.python.org/3/library/struct.html. Delay
+        config_bytes += struct.pack(">H", 0)  # BE. See https://docs.python.org/3/library/struct.html. Widge
 
+        config_bytes += nbsockets.to_bytes(2, 'big')
         config_bytes += nbsockets.to_bytes(2, 'big')
         client.send(config_bytes)
 
