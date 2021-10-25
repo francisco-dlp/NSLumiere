@@ -39,7 +39,7 @@ class EELS_Spectrometer(EELS_controller.EELSController):
                 logging.info("***EELS SPECTROMETER***: Could not find VSM. Please check hardware. "
                              "Entering in debug mode.")
 
-        self.success = self.serial_success and self.vsm_success
+        self.success = self.serial_success
 
     def set_val(self, val, which):
         if which=="off":

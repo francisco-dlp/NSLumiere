@@ -63,7 +63,7 @@ class TimePix3():
                     logging.info('***TP3***: Problem initializing Timepix3. Bad status code.')
 
                 # Loading bpc and dacs
-                bpcFile = '/home/asi/load_files/tpx3-demo-masking.bpc'
+                bpcFile = '/home/asi/load_files/tpx3-demo_better_standard.bpc'
                 dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
                 self.cam_init(bpcFile, dacsFile)
                 self.acq_init(99999)
@@ -122,6 +122,23 @@ class TimePix3():
         resp = self.request_get(url=self.__serverURL + '/config/load?format=dacs&file=' + dacs_file)
         data = resp.text
         logging.info(f'***TP3***: Response of loading dacs file: ' + data)
+
+    def set_pixel_mask(self, which):
+        if which==0:
+            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard.bpc'
+        elif which==1:
+            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_64.bpc'
+        elif which==2:
+            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_256.bpc'
+        elif which==3:
+            bpcFile = '/home/asi/load_files/tpx3-stem_group.bpc'
+        else:
+            logging.info(f'***TP3***: Pixel mask profile not found.')
+            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard.bpc'
+
+        resp = self.request_get(url=self.__serverURL + '/config/load?format=pixelconfig&file=' + bpcFile)
+        data = resp.text
+        logging.info(f'***TP3***: Response of loading binary pixel configuration file (from set_pixel): ' + data)
 
     def get_config(self):
         """
@@ -209,7 +226,7 @@ class TimePix3():
         return (256, 1024)
 
     def getSpeeds(self, port):
-        return list(['Unique'])
+        return list(['Standard', '64 pix', '256 pix', 'DEMO'])
 
     def getGains(self, port):
         return list(['Unique'])
@@ -492,7 +509,7 @@ class TimePix3():
         return None
 
     def setSpeed(self, cameraport, speed):
-        pass
+        self.set_pixel_mask(speed)
 
     def getNumofGains(self, cameraport):
         pass
