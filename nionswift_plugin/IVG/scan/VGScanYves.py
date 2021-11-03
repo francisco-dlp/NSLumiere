@@ -266,7 +266,7 @@ class Device:
             self.__tpx3_calib["offset"] = self.__instrument.TryGetVal("eels_x_offset")[1]
             self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
             self.__tpx3_data = self.__tpx3_camera.camera.camera.create_spimimage_from_events()
-            time.sleep(0.25) #Timepix has already a socket connected. Wait until it is definitely reading data
+            time.sleep(0.5) #Timepix has already a socket connected. Wait until it is definitely reading data
 
     def stop_timepix3(self):
         if self.__tpx3_spim: #only stop if this was on
