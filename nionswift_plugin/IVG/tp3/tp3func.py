@@ -153,6 +153,8 @@ class TimePix3():
             dacsFile = '/home/asi/load_files/tpx3-demo.dacs' #For 60 keV
         elif which == 1:
             dacsFile = '/home/asi/load_files/tpx3-demo-100.dacs'  # For 100 keV
+        elif which == 2:
+            dacsFile = '/home/asi/load_files/tpx3-demo-low.dacs'  # For 100 keV
         else:
             logging.info(f'***TP3***: Pixel mask profile not found.')
             dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
@@ -250,7 +252,7 @@ class TimePix3():
         return list(['Standard', 'E2', 'E4', 'E6', 'E8', 'E16', 'E32', 'OnlyHotPixels'])
 
     def getGains(self, port):
-        return list(['100 keV', '60 keV'])
+        return list(['>60 keV', '>100 keV', 'Low Thrs'])
 
     def getBinning(self):
         return (1, 1)
