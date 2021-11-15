@@ -138,6 +138,8 @@ class TimePix3():
             bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_64_16.bpc'
         elif which==6:
             bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_64_32.bpc'
+        elif which==7:
+            bpcFile = '/home/asi/load_files/tpx3-demo_better.bpc'
         else:
             logging.info(f'***TP3***: Pixel mask profile not found.')
             bpcFile = '/home/asi/load_files/tpx3-demo_better_standard.bpc'
@@ -245,7 +247,7 @@ class TimePix3():
         return (256, 1024)
 
     def getSpeeds(self, port):
-        return list(['Standard', 'E2', 'E4', 'E6', 'E8', 'E16', 'E32'])
+        return list(['Standard', 'E2', 'E4', 'E6', 'E8', 'E16', 'E32', 'OnlyHotPixels'])
 
     def getGains(self, port):
         return list(['100 keV', '60 keV'])
