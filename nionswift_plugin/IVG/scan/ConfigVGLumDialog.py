@@ -9,8 +9,6 @@ class Handler:
         self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
         self.__hadf_pmt = int(self.__OrsayScanInstrument.scan_device.orsayscan.GetPMT(1))
         self.__bf_pmt = int(self.__OrsayScanInstrument.scan_device.orsayscan.GetPMT(0))
-        self.__bot_blanker=False
-        self.__spim_stop = 0
 
     @property
     def hadf_gain_pmt(self):
@@ -34,17 +32,22 @@ class Handler:
 
     @property
     def bottom_blanker(self):
-        return self.__bot_blanker
+        return self.__OrsayScanInstrument.scan_device.bottom_blanker
 
     @bottom_blanker.setter
     def bottom_blanker(self, value):
-        self.__bot_blanker = value
-        if self.__bot_blanker:
+        self.__OrsayScanInstrument.scan_device.bottom_blanker = value
+
+        if value == 2:
             self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 7)
-            #self.__OrsayScanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7) # Copy Line Start
-            #self.__OrsayScanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 13) #Copy Line 05
-        else:
+        elif value == 1:
+            self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(1, 0)
+        elif value == 0:
             self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(0, 0)
+
+        #self.__OrsayScanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7) # Copy Line Start
+        #self.__OrsayScanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 13) #Copy Line 05
+
 
     @property
     def spim_stop(self):
@@ -66,13 +69,18 @@ class View():
         self.bf_label = ui.create_label(name='BF_gain', text="BF Gain")
         self.bf_gain_slider=ui.create_slider(name='bf_gain_slider', value='@binding(bf_gain_pmt)', minimum=0,
                                              maximum=2500)
-        self.bot_blanker_check_box = ui.create_check_box(name='bot_blanker_check_box', text='Botton Blanker EELS',
-                                                         checked='@binding(bottom_blanker)')
+        self.bot_blanker_label = ui.create_label(name='bot_blanker_label', text='Bottom Blanker: ')
+        self.bot_blanker_list = ui.create_combo_box(items=['OFF', 'ON', 'Return Line'],
+                                                current_index='@binding(bottom_blanker)',
+                                                name='bot_blanker_list', width = '100')
+        self.bot_blanker_row = ui.create_row(self.bot_blanker_label, ui.create_stretch(), self.bot_blanker_list)
+        #self.bot_blanker_check_box = ui.create_check_box(name='bot_blanker_check_box', text='Botton Blanker EELS',
+        #                                                 checked='@binding(bottom_blanker)')
         self.spim_stop_label = ui.create_label(name='spim_stop_label', text='SPIM Frame Stop: ')
         self.spim_stop_line_edit = ui.create_line_edit(name='spim_stop_line_edit', text='@binding(spim_stop)', width=50)
         self.spim_row = ui.create_row(self.spim_stop_label, self.spim_stop_line_edit, ui.create_stretch())
         self.column = ui.create_column(self.hadf_label, self.hadf_gain_slider, ui.create_spacing(25), self.bf_label,
-                                       self.bf_gain_slider, self.bot_blanker_check_box, ui.create_spacing(25), self.spim_row)
+                                       self.bf_gain_slider, self.bot_blanker_row, ui.create_spacing(25), self.spim_row)
         self.dialog = ui.create_modeless_dialog(self.column, title="Scan Settings")
 
 

@@ -117,6 +117,7 @@ class Device:
         self.__frame_parameters = copy.deepcopy(self.__profiles[0])
         self.flyback_pixels = 2
         self.__buffer = list()
+        self.bottom_blanker = 0
 
         self.orsayscan = orsayScan(1, vg=True)
         self.spimscan = orsayScan(2, self.orsayscan.orsayscan, vg=True)
