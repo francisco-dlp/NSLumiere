@@ -134,6 +134,10 @@ class TimePix3():
             bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_64_6.bpc'
         elif which==4:
             bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_64_8.bpc'
+        elif which==5:
+            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_64_16.bpc'
+        elif which==6:
+            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_64_32.bpc'
         else:
             logging.info(f'***TP3***: Pixel mask profile not found.')
             bpcFile = '/home/asi/load_files/tpx3-demo_better_standard.bpc'
@@ -141,6 +145,19 @@ class TimePix3():
         resp = self.request_get(url=self.__serverURL + '/config/load?format=pixelconfig&file=' + bpcFile)
         data = resp.text
         logging.info(f'***TP3***: Response of loading binary pixel configuration file (from set_pixel): ' + data)
+
+    def set_threshold(self, which):
+        if which==0:
+            dacsFile = '/home/asi/load_files/tpx3-demo.dacs' #For 60 keV
+        elif which == 1:
+            dacsFile = '/home/asi/load_files/tpx3-demo-100.dacs'  # For 100 keV
+        else:
+            logging.info(f'***TP3***: Pixel mask profile not found.')
+            dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
+
+        resp = self.request_get(url=self.__serverURL + '/config/load?format=dacs&file=' + dacsFile)
+        data = resp.text
+        logging.info(f'***TP3***: Response of loading dacs file: ' + data)
 
     def get_config(self):
         """
@@ -228,10 +245,10 @@ class TimePix3():
         return (256, 1024)
 
     def getSpeeds(self, port):
-        return list(['Standard', 'E2', 'E4', 'E6', 'E8'])
+        return list(['Standard', 'E2', 'E4', 'E6', 'E8', 'E16', 'E32'])
 
     def getGains(self, port):
-        return list(['Unique'])
+        return list(['100 keV', '60 keV'])
 
     def getBinning(self):
         return (1, 1)
@@ -523,7 +540,7 @@ class TimePix3():
         pass
 
     def setGain(self, gain):
-        pass
+        self.set_threshold(gain-1)
 
     def getReadoutTime(self):
         return 0
