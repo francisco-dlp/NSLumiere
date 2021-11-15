@@ -40,7 +40,7 @@ class Handler:
     def bottom_blanker(self, value):
         self.__bot_blanker = value
         if self.__bot_blanker:
-            self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(1, 0)
+            self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 7)
             #self.__OrsayScanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7) # Copy Line Start
             #self.__OrsayScanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 13) #Copy Line 05
         else:
