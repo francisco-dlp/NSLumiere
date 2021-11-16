@@ -4,6 +4,7 @@ import logging
 import smtplib
 import os
 import json
+import time
 
 from nion.utils import Event
 from nion.swift.model import HardwareSource
@@ -74,6 +75,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__amb_temp = 23
         self.__stand = False
         self.__stage_moving = [False, False] #x and y stage moving
+        self.__stagecontrol = 0
 
         self.__objWarning = False
         self.__obj_temp = self.__amb_temp
@@ -117,18 +119,25 @@ class ivgInstrument(stem_controller.STEMController):
         if SLOW_PERIODIC: self.periodic()
         if FAST_PERIODIC: self.stage_periodic()
 
-    def stage_periodic(self):
+    def stop_stage_thread(self):
+        pass
+
+    def stage_periodic(self, how_long=1):
         self.property_changed_event.fire('x_stage_f')
         try:
             self.stage_event.fire(self.__y_real_pos, self.__x_real_pos)
         except:
             pass
         self.__stage_thread = threading.Timer(TIME_FAST_PERIODIC, self.stage_periodic, args=(), )
-        if not self.__stage_thread.is_alive():
+        if not self.__stage_thread.is_alive() and self.__stagecontrol < how_long / TIME_FAST_PERIODIC:
             try:
                 self.__stage_thread.start()
+                self.__stagecontrol+=1
             except:
                 pass
+        else:
+            print('off')
+            self.__stagecontrol = 0
 
     def periodic(self):
         self.property_changed_event.fire('roa_val_f')
@@ -543,6 +552,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__StageInstrument.x_pos_f += dx * 1e8
         self.__StageInstrument.y_pos_f -= dy * 1e8
         self.__StageInstrument.slider_range_f = self.__fov
+        self.stage_periodic()
 
     def TryGetVal(self, s: str) -> (bool, float):
         if s == "eels_y_offset":
