@@ -202,9 +202,9 @@ class orsayScan(object):
         self.__OrsayScanSetTopBlanking = _buildFunction(_library.OrsayScanSetTopBlanking,
                                                    [c_void_p, c_short, c_short, c_double, c_bool, c_uint, c_double], c_bool)
 
-        #	bool SCAN_EXPORT OrsayScanSetTdcLine(void *o, short index, short mode, short source, double period, double ontime, bool risingedge, unsigned int nbpulses, double delay);
+        #	bool SCAN_EXPORT OrsayScanSetTdcLine(void *o, short index, short mode, short source, double period, double ontime, bool risingedge, unsigned int nbpulses, double delay, bool filtered);
         self.__OrsayScanSetTdcLine = _buildFunction(_library.OrsayScanSetTdcLine,
-                                                    [c_void_p, c_short, c_short, c_short, c_double, c_double, c_bool, c_uint32, c_double], c_bool)
+                                                    [c_void_p, c_short, c_short, c_short, c_double, c_double, c_bool, c_uint32, c_double, c_bool], c_bool)
 
         # bool SCAN_EXPORT OrsayScanSetCameraSync(self.orsayscan, bool eels, int divider, double width, bool risingedge);
         self.__OrsayScanSetCameraSync = _buildFunction(_library.OrsayScanSetCameraSync,
@@ -614,8 +614,8 @@ class orsayScan(object):
         """
         return self.__OrsayScanSetTopBlanking(self.orsayscan,mode, source,beamontime,risingedge,nbpulses,delay)
 
-    #	bool SCAN_EXPORT OrsayScanSetTdcLine(void *o, short index, short mode, short source, double period, double ontime, bool risingedge, unsigned int nbpulses, double delay);
-    def SetTdcLine(self, line, mode, source, period=0.004, on_time=0.000005, rising_edge=False, nb_pulses=0, delay=0):
+    #	bool SCAN_EXPORT OrsayScanSetTdcLine(void *o, short index, short mode, short source, double period, double ontime, bool risingedge, unsigned int nbpulses, double delay, bool filtered);
+    def SetTdcLine(self, line, mode, source, period=0.004, on_time=0.000005, rising_edge=False, nb_pulses=0, delay=0, filtered=False):
         """defines how "Tdc" (CheeTah) works. Output Tdc are defined in scan.xml. If not does nothing.
             line : 0 ou 1
             mode : 0 => 0
@@ -636,7 +636,7 @@ class orsayScan(object):
             risingedge : edge used for mode > 2
             delay : when > 0 output is delayed
         """
-        return self.__OrsayScanSetTdcLine(self.orsayscan, line, mode, source, period, on_time, rising_edge, nb_pulses, delay)
+        return self.__OrsayScanSetTdcLine(self.orsayscan, line, mode, source, period, on_time, rising_edge, nb_pulses, delay, filtered)
 
    #bool SCAN_EXPORT OrsayScanSetCameraSync(self.orsayscan, bool eels, int divider, double width, bool risingedge);
     def SetCameraSync(self,eels,divider,width,risingedge):

@@ -40,9 +40,9 @@ class Handler:
 
         if value == 2:
             self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(2, 7)
-        elif value == 1:
-            self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(1, 0)
         elif value == 0:
+            self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(1, 0)
+        elif value == 1:
             self.__OrsayScanInstrument.scan_device.orsayscan.SetBottomBlanking(0, 0)
 
         #self.__OrsayScanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7) # Copy Line Start
