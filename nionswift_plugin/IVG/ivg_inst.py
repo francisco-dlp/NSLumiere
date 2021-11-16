@@ -136,7 +136,6 @@ class ivgInstrument(stem_controller.STEMController):
             except:
                 pass
         else:
-            print('off')
             self.__stagecontrol = 0
 
     def periodic(self):

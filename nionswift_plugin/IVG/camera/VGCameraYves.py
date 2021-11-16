@@ -230,6 +230,12 @@ class CameraDevice(camera_base.CameraDevice):
             if self.__hardware_settings.gain != frame_parameters.gain:
                 self.__hardware_settings.gain = frame_parameters.gain
                 self.camera.setGain(self.__hardware_settings.gain)
+
+        if "multiplication" in frame_parameters:
+            if self.__hardware_settings.multiplication != frame_parameters.multiplication:
+                self.__hardware_settings.multiplication = frame_parameters.multiplication
+                self.camera.setMultiplication(self.__hardware_settings.multiplication)
+
         if "spectra_count" in frame_parameters:
             self.__hardware_settings.spectra_count = frame_parameters.spectra_count
             self.camera.setAccumulationNumber(self.__hardware_settings.spectra_count)
