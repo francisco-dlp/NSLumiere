@@ -19,8 +19,7 @@
     "SLOW_PERIODIC": {
       "ACTIVE": 1,
       "PERIOD": 1.0
-    },
-    "STAGE_MATRIX_SIZE": 160
+    }
   },
   "diaf": {
     "COM": "COM99"

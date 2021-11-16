@@ -28,8 +28,6 @@ except FileNotFoundError:
     with open(abs_path) as savfile:
         settings = json.load(savfile)
 
-MAX_PTS = settings["IVG"]["MAX_PTS"]
-STAGE_MATRIX_SIZE = settings["IVG"]["STAGE_MATRIX_SIZE"]
 
 class ivgSpimhandler:
 

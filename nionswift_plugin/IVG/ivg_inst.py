@@ -75,7 +75,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__amb_temp = 23
         self.__stand = False
         self.__stage_moving = [False, False] #x and y stage moving
-        self.__stagecontrol = 0
+        self.__stage_thread = threading.Thread(target=self.stage_periodic_start, args=(),)
 
         self.__objWarning = False
         self.__obj_temp = self.__amb_temp
@@ -119,24 +119,19 @@ class ivgInstrument(stem_controller.STEMController):
         if SLOW_PERIODIC: self.periodic()
         if FAST_PERIODIC: self.stage_periodic()
 
-    def stop_stage_thread(self):
-        pass
+    def stage_periodic(self):
+        if not self.__stage_thread.is_alive():
+            self.__stage_thread.start()
 
-    def stage_periodic(self, how_long=1):
-        self.property_changed_event.fire('x_stage_f')
-        try:
+    def stage_periodic_start(self):
+        counter = 0
+        while counter < 60.0 / TIME_FAST_PERIODIC:
             self.stage_event.fire(self.__y_real_pos, self.__x_real_pos)
-        except:
-            pass
-        self.__stage_thread = threading.Timer(TIME_FAST_PERIODIC, self.stage_periodic, args=(), )
-        if not self.__stage_thread.is_alive() and self.__stagecontrol < how_long / TIME_FAST_PERIODIC:
-            try:
-                self.__stage_thread.start()
-                self.__stagecontrol+=1
-            except:
-                pass
-        else:
-            self.__stagecontrol = 0
+            self.property_changed_event.fire('x_stage_f')
+            self.property_changed_event.fire('y_stage_f')
+            time.sleep(TIME_FAST_PERIODIC)
+            counter += 1
+        self.__stage_thread = threading.Thread(target=self.stage_periodic_start, args=(),)
 
     def periodic(self):
         self.property_changed_event.fire('roa_val_f')
@@ -396,34 +391,50 @@ class ivgInstrument(stem_controller.STEMController):
     @property
     def x_stage_f(self):
         try:
-            self.__x_real_pos, self.__y_real_pos = self.__StageInstrument.GetPos()
-            #Enabling GUI control
-            """
-            Now i am disabling it. Too annoying
-            
-            self.__stage_moving[0] = False if abs(self.__x_real_pos * 1e6 - self.__StageInstrument.x_pos_f / 1e2) < 0.5 else True
-            self.__stage_moving[1] = False if abs(self.__y_real_pos * 1e6 - self.__StageInstrument.y_pos_f / 1e2) < 0.5 else True
-
-            if self.__stage_moving[1]:
-                self.__StageInstrument.busy_UI(1) #1 is to disable X
-
-            if self.__stage_moving[0]:
-                self.__StageInstrument.busy_UI(2) #2 is to disable Y
-
-            if not self.__stage_moving[0] and not self.__stage_moving[1]:
-                self.__StageInstrument.free_UI('x', 'y')
-            """
-
+            self.__x_real_pos, _ = self.__StageInstrument.GetPos()
         except:
             self.__x_real_pos = -1.e-5
-            self.__y_real_pos = -1.e-5
-
-        self.property_changed_event.fire('y_stage_f')
         return '{:.3f}'.format(self.__x_real_pos * 1e6)
+
+
+
+        #Enabling GUI control
+        """
+        Now i am disabling it. Too annoying
+        
+        self.__stage_moving[0] = False if abs(self.__x_real_pos * 1e6 - self.__StageInstrument.x_pos_f / 1e2) < 0.5 else True
+        self.__stage_moving[1] = False if abs(self.__y_real_pos * 1e6 - self.__StageInstrument.y_pos_f / 1e2) < 0.5 else True
+
+        if self.__stage_moving[1]:
+            self.__StageInstrument.busy_UI(1) #1 is to disable X
+
+        if self.__stage_moving[0]:
+            self.__StageInstrument.busy_UI(2) #2 is to disable Y
+
+        if not self.__stage_moving[0] and not self.__stage_moving[1]:
+            self.__StageInstrument.free_UI('x', 'y')
+        """
+
+    @x_stage_f.setter
+    def x_stage_f(self, value):
+        self.__StageInstrument.x_pos_f = float(value) * 100.
+        self.stage_periodic()
+        self.property_changed_event.fire('x_stage_f')
 
     @property
     def y_stage_f(self):
+        try:
+            _, self.__y_real_pos = self.__StageInstrument.GetPos()
+        except:
+            self.__y_real_pos = -1.e-5
+
         return '{:.3f}'.format(self.__y_real_pos * 1e6)
+
+    @y_stage_f.setter
+    def y_stage_f(self, value):
+        self.__StageInstrument.y_pos_f = float(value) * 100.
+        self.stage_periodic()
+        self.property_changed_event.fire('y_stage_f')
 
     ## spim_panel Properties START ##
 

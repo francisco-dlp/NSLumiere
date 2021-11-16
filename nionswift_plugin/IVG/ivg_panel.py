@@ -27,7 +27,7 @@ except FileNotFoundError:
         settings = json.load(savfile)
 
 MAX_PTS = settings["IVG"]["MAX_PTS"]
-STAGE_MATRIX_SIZE = settings["IVG"]["STAGE_MATRIX_SIZE"]
+STAGE_MATRIX_SIZE = 210
 
 class dataItemCreation():
     def __init__(self, title, array, which):
@@ -122,11 +122,11 @@ class ivghandler:
         self.event_loop.create_task(self.do_enable(False, []))
 
     def stage_data(self, stage1, stage2):
-        index1 = int(round(STAGE_MATRIX_SIZE/2-stage1*1e6/(1600/STAGE_MATRIX_SIZE)))
-        index2 = int(round(stage2*1e6/(1600/STAGE_MATRIX_SIZE)-STAGE_MATRIX_SIZE/2))
+        index1 = int(round(STAGE_MATRIX_SIZE/2-stage1*1e6/(2100/STAGE_MATRIX_SIZE)))
+        index2 = int(round(stage2*1e6/(2100/STAGE_MATRIX_SIZE)-STAGE_MATRIX_SIZE/2))
         if abs(index1)<STAGE_MATRIX_SIZE and abs(index2)<STAGE_MATRIX_SIZE:
             if self.stage_array[index1][index2]<=100:
-                self.stage_array[index1][index2] += 20
+                self.stage_array[index1][index2] += 5
 
         if self.stage_di:
             self.stage_di.update_data_only(self.stage_array)
@@ -238,15 +238,17 @@ class ivgView:
         self.aper_group=ui.create_group(title='Apertures: ', content=ui.create_column(self.voa_row, self.roa_row))
 
 
-        self.x_stage_label=ui.create_label(name='x_stage_label', text='Motor X Pos (μm): ')
+        self.x_stage_label=ui.create_label(name='x_stage_label', text='Motor X (μm): ')
         self.x_stage_real=ui.create_label(name='x_stage_real', text='@binding(instrument.x_stage_f)')
+        self.x_stage_edit = ui.create_line_edit(name='x_stage_edit', text='@binding(instrument.x_stage_f)', width='50')
         self.stage_pb=ui.create_push_button(name='stage_pb', text='Monitor', on_clicked='monitor_stage', width=100)
-        self.x_stage_row = ui.create_row(self.x_stage_label, self.x_stage_real, ui.create_stretch(), self.stage_pb)
+        self.x_stage_row = ui.create_row(self.x_stage_label, self.x_stage_real, ui.create_spacing(10), self.x_stage_edit, ui.create_stretch(), self.stage_pb)
 
-        self.y_stage_label=ui.create_label(name='y_stage_label', text='Motor Y Pos (μm): ')
+        self.y_stage_label=ui.create_label(name='y_stage_label', text='Motor Y (μm): ')
         self.y_stage_real=ui.create_label(name='y_stage_real', text='@binding(instrument.y_stage_f)')
+        self.y_stage_edit = ui.create_line_edit(name='y_stage_edit', text='@binding(instrument.y_stage_f)', width='50')
         self.stage_clear_pb=ui.create_push_button(name='stage_clear_pb', text='Clear Track', on_clicked='clear_stage', width=100)
-        self.y_stage_row = ui.create_row(self.y_stage_label, self.y_stage_real, ui.create_stretch(), self.stage_clear_pb)
+        self.y_stage_row = ui.create_row(self.y_stage_label, self.y_stage_real, ui.create_spacing(10), self.y_stage_edit, ui.create_stretch(), self.stage_clear_pb)
 
         self.stage_group=ui.create_group(title='VG Stage', content=ui.create_column(self.x_stage_row, self.y_stage_row))
         
