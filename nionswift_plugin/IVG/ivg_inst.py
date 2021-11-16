@@ -389,6 +389,10 @@ class ivgInstrument(stem_controller.STEMController):
     def x_stage_f(self):
         try:
             self.__x_real_pos, self.__y_real_pos = self.__StageInstrument.GetPos()
+            #Enabling GUI control
+            """
+            Now i am disabling it. Too annoying
+            
             self.__stage_moving[0] = False if abs(self.__x_real_pos * 1e6 - self.__StageInstrument.x_pos_f / 1e2) < 0.5 else True
             self.__stage_moving[1] = False if abs(self.__y_real_pos * 1e6 - self.__StageInstrument.y_pos_f / 1e2) < 0.5 else True
 
@@ -400,6 +404,7 @@ class ivgInstrument(stem_controller.STEMController):
 
             if not self.__stage_moving[0] and not self.__stage_moving[1]:
                 self.__StageInstrument.free_UI('x', 'y')
+            """
 
         except:
             self.__x_real_pos = -1.e-5
