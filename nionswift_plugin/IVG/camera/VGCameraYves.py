@@ -34,9 +34,6 @@ def test_update_spatial_calibrations(data_element, instrument_controller, camera
         if "spatial_calibrations" in data_element.get("hardware_source", dict()):
             data_element["spatial_calibrations"] = data_element["hardware_source"]["spatial_calibrations"]
         elif hasattr(camera, "calibration"):  # used in nionccd1010
-            #if len(data_shape) == 1:
-            #    data_element["spatial_calibrations"] = [camera.calibration[1]]
-            #elif len(data_shape) == 2:
             data_element["spatial_calibrations"] = camera.calibration
         elif instrument_controller:
             if "calibration_controls" in data_element:
