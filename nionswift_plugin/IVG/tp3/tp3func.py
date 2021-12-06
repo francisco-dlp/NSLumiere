@@ -252,7 +252,7 @@ class TimePix3():
         return list(['Standard', 'E2', 'E4', 'E6', 'E8', 'E16', 'E32', 'OnlyHotPixels'])
 
     def getGains(self, port):
-        return list(['>60 keV', '>100 keV', 'Low Thrs'])
+        return list(['>60 keV', '>100 keV', 'High Thrs'])
 
     def getBinning(self):
         return (1, 1)

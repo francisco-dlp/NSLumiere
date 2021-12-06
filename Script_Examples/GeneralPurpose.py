@@ -5,7 +5,7 @@ from nion.typeshed import UI_1_0 as UI
 
 api = api_broker.get_api(API.version, UI.version)  # type: API
 
-cam = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_timepix3")
+cam = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eire")
 scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
 
 fov = scan.scan_device.field_of_view
