@@ -215,7 +215,8 @@ class TimePix3():
         elif port == 1:
             destination = {
                 "Raw": [{
-                    "Base": "file:/home/asi/load_files/data",
+                    #"Base": "file:/home/asi/load_files/data",
+                    "Base": "file:/media/asi/Data2/TP3_Data",
                     "FilePattern": "raw",
                 }]
             }
