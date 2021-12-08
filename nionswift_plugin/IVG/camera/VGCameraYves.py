@@ -681,10 +681,14 @@ class CameraSettings:
         self.profile_changed_event = Event.Event()
         self.frame_parameters_changed_event = Event.Event()
         self.settings_changed_event = Event.Event()
+        self.__camera_device = camera_device
+
         # the list of possible modes should be defined here
         self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "SpimTP"]
+        if self.__camera_device.isTimepix:
+            self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live"]
 
-        self.__camera_device = camera_device
+
         self.settings_id = camera_device.camera_id
 
     def close(self):
