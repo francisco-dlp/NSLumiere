@@ -710,9 +710,12 @@ class TimePix3():
 
         if self.__softBinning:
             config_bytes += b'\x01'  # Soft binning
-            config_bytes += b'\x02'  # Bit depth 32
         else:
             config_bytes += b'\x00'  # No soft binning
+
+        if self.__softBinning or self.__tp3mode == 6 or self.__tp3mode == 7:
+            config_bytes += b'\x02'  # Bit depth 32
+        else:
             config_bytes += b'\x01'  # Bit depth is 16
 
         if self.__isCumul:
