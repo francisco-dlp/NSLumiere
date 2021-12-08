@@ -340,7 +340,7 @@ class TimePix3():
         else:
             logging.info('***TP3***: Check if experiment type matches mode selection.')
 
-    def startChrono(self, exposure, displaymode, accumulate):
+    def startChrono(self, exposure, displaymode, mode):
         """
         Start acquisition. Displaymode can be '1d' or '2d' and regulates the global attribute self.__softBinning.
         accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
@@ -358,11 +358,16 @@ class TimePix3():
         port = 8088
         self.__softBinning = True if displaymode == '1d' else False
         message = 3
-        self.__isCumul = bool(accumulate)
+        if mode == 0:
+            self.__tp3mode = 6
+        elif mode == 1:
+            self.__tp3mode = 7
+        else:
+            logging.info('***TP3***: No Chrono mode detected.')
+            return
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE":
-            self.__tp3mode = 6
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
             self.start_listening(port, message=message)
@@ -619,12 +624,12 @@ class TimePix3():
     --->Functions of the client listener<---
     """
 
-    def start_listening(self, port=8088, message=1, spim=1):
+    def start_listening(self, port=8088, message=1):
         """
         Starts the client Thread and sets isPlaying to True.
         """
         self.__isPlaying = True
-        self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(port, message, spim,))
+        self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(port, message,))
         self.__clientThread.start()
 
     def start_listening_from_scan(self, port=8088, message=1):
@@ -652,7 +657,7 @@ class TimePix3():
     def create_config_bytes(self):
         pass
 
-    def acquire_streamed_frame(self, port, message, spim):
+    def acquire_streamed_frame(self, port, message):
         """
         Main client function. Main loop is explained below.
 

@@ -375,7 +375,10 @@ class CameraDevice(camera_base.CameraDevice):
             self.camera.stopFocus()
             if self.isTimepix:
                 sb = "1d" if self.current_camera_settings.soft_binning else "2d"
-                acqmode = 0 #No cumul
+                if self.current_camera_settings.acquisition_mode == "1D-Chrono-Live":
+                    acqmode = 1 #Chrono Live
+                else:
+                    acqmode = 0 #Normal Chrono
                 self.__acqon = self.camera.startChrono(self.current_camera_settings.exposure_ms / 1000, sb, acqmode)
             else:
                 self.camera.startSpim(self.current_camera_settings.spectra_count, 1,
