@@ -376,8 +376,7 @@ class CameraDevice(camera_base.CameraDevice):
             if self.isTimepix:
                 sb = "1d" if self.current_camera_settings.soft_binning else "2d"
                 acqmode = 0 #No cumul
-                self.__acqon = self.camera.startChrono(self.current_camera_settings.exposure_ms / 1000, sb, acqmode,
-                                                       self.current_camera_settings.spectra_count)
+                self.__acqon = self.camera.startChrono(self.current_camera_settings.exposure_ms / 1000, sb, acqmode)
             else:
                 self.camera.startSpim(self.current_camera_settings.spectra_count, 1,
                                       self.current_camera_settings.exposure_ms / 1000.,

@@ -88,7 +88,7 @@ class OptSpecDevice(Observable.Observable):
         self.upt_calibs()
 
     def upt_calibs(self):
-        if self.__eirecamera.get_current_frame_parameters().soft_binning:
+        if self.__eirecamera.get_current_frame_parameters().soft_binning or self.__eirecamera.get_current_frame_parameters().v_binning >= 200:
             self.__eirecamera.camera.calibration = [{"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
                                                  "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
                                                  "units": "nm"}]

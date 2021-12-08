@@ -340,7 +340,7 @@ class TimePix3():
         else:
             logging.info('***TP3***: Check if experiment type matches mode selection.')
 
-    def startChrono(self, exposure, displaymode, accumulate, counter):
+    def startChrono(self, exposure, displaymode, accumulate):
         """
         Start acquisition. Displaymode can be '1d' or '2d' and regulates the global attribute self.__softBinning.
         accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
@@ -365,7 +365,7 @@ class TimePix3():
             self.__tp3mode = 6
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_listening(port, message=message, spim=counter)
+            self.start_listening(port, message=message)
             return True
         else:
             logging.info('***TP3***: Check if experiment type matches mode selection.')
