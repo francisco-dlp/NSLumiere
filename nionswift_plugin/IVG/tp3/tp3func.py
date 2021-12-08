@@ -42,6 +42,7 @@ class TimePix3():
         self.__isPlaying = False
         self.__softBinning = False
         self.__isCumul = False
+        self.__accumulation = 0.
         self.__tr = False
         self.__expTime = None
         self.__port = 0
@@ -152,9 +153,9 @@ class TimePix3():
         if which==0:
             dacsFile = '/home/asi/load_files/tpx3-demo.dacs' #For 60 keV
         elif which == 1:
-            dacsFile = '/home/asi/load_files/tpx3-demo-100.dacs'  # For 100 keV
+            dacsFile = '/home/asi/load_files/tpx3-demo-100.dacs'  # For more than 100 keV
         elif which == 2:
-            dacsFile = '/home/asi/load_files/tpx3-demo-low.dacs'  # For 100 keV
+            dacsFile = '/home/asi/load_files/tpx3-demo-low.dacs'  # Very high threshold
         else:
             logging.info(f'***TP3***: Pixel mask profile not found.')
             dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
@@ -302,7 +303,7 @@ class TimePix3():
         pass
 
     def setAccumulationNumber(self, count):
-        pass
+        self.__accumulation = count
 
     def getAccumulateNumber(self):
         pass
@@ -338,23 +339,6 @@ class TimePix3():
             return True
         else:
             logging.info('***TP3***: Check if experiment type matches mode selection.')
-
-    def stopFocus(self):
-        """
-        Stop acquisition. Finish listening put global isPlaying to False and wait client thread to finish properly using
-        .join() method. Also replaces the old Queue with a new one with no itens on it (so next one won't use old data).
-        """
-        try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
-        except AttributeError:
-            logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly turned down.")
-        status = self.getCCDStatus()
-        resp = self.request_get(url=self.__serverURL + '/measurement/stop')
-        data = resp.text
-        self.finish_listening()
 
     def startChrono(self, exposure, displaymode, accumulate, counter):
         """
@@ -437,9 +421,10 @@ class TimePix3():
             self.start_listening_from_scan(port, message=message)
             return True
 
-    def stopSpim(self, immediate):
+    def stopFocus(self):
         """
-        Identical to stopFocus. Just to be consistent with VGCameraYves.
+        Stop acquisition. Finish listening put global isPlaying to False and wait client thread to finish properly using
+        .join() method. Also replaces the old Queue with a new one with no itens on it (so next one won't use old data).
         """
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
@@ -447,11 +432,17 @@ class TimePix3():
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
         except AttributeError:
-            logging.info("***TP3***: Could not turn off TDC after spim acquisition.")
+            logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly turned down.")
         status = self.getCCDStatus()
         resp = self.request_get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
         self.finish_listening()
+
+    def stopSpim(self, immediate):
+        """
+        Identical to stopFocus. Just to be consistent with VGCameraYves.
+        """
+        self.stopFocus()
 
         if self.__tr:
             logging.info(f'***TP3***: TR is on. Cancelling Laser.')
@@ -478,6 +469,7 @@ class TimePix3():
     def setupBinning(self):
         pass
 
+    """
     def setTdc01(self, index, **kargs):
         if self.__simul: return
         if index == 0:
@@ -507,6 +499,7 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045)
+    """
 
     def setExposureTime(self, exposure):
         """
@@ -746,7 +739,7 @@ class TimePix3():
 
         config_bytes += bytes([self.__tp3mode])
         if message == 1 or message == 3: #Focus/Cumul (message=1) and Chrono (message=3)
-            size = int(spim)
+            size = int(self.__accumulation)
             config_bytes += size.to_bytes(2, 'big')
             config_bytes += size.to_bytes(2, 'big')
 
@@ -1063,8 +1056,8 @@ class TimePix3():
         config_bytes += x_size.to_bytes(2, 'big') #scanx
         config_bytes += y_size.to_bytes(2, 'big') #scany
 
-        config_bytes += struct.pack(">H", 0)  # BE. See https://docs.python.org/3/library/struct.html. Delay
-        config_bytes += struct.pack(">H", 0)  # BE. See https://docs.python.org/3/library/struct.html. Widge
+        config_bytes += struct.pack(">H", 0)  # BE. See https://docs.python.org/3/library/struct.html. Time Delay
+        config_bytes += struct.pack(">H", 0)  # BE. See https://docs.python.org/3/library/struct.html. Time Width
 
         config_bytes += nbsockets.to_bytes(2, 'big')
         config_bytes += nbsockets.to_bytes(2, 'big')
