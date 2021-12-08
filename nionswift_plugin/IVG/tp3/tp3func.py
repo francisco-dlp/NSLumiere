@@ -374,27 +374,8 @@ class TimePix3():
         """
         Similar to startFocus. Just to be consistent with VGCameraYves. Message=02 because of spim.
         """
-        try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
-        except AttributeError:
-            logging.info("***TP3***: Could not set TDC to spim acquisition.")
-        port = 8088
-        self.__softBinning = True
-        message = 2
-        self.__isCumul = False
-        if self.getCCDStatus() == "DA_RECORDING":
-            self.stopFocus()
-        if self.getCCDStatus() == "DA_IDLE" and (self.__tp3mode == 2 or self.__tp3mode == 3 or
-                                                 self.__tp3mode == 4):
-            resp = self.request_get(url=self.__serverURL + '/measurement/start')
-            data = resp.text
-            self.start_listening(port, message=message, spim=nbspectra)
-            return True
-        else:
-            logging.info('***TP3***: Check if experiment type matches mode selection.')
+        logging.info("***TPX3***: Deprecated. Spim must be started from Scan Channel.")
+        return
 
     def StartSpimFromScan(self):
         """
@@ -413,8 +394,8 @@ class TimePix3():
         message = 2
         self.__isCumul = False
         if self.getCCDStatus() == "DA_RECORDING":
-            logging.info("***TPX3***: Please turn off TPX3 from camera panel.")
-            return False
+            self.stopFocus()
+            logging.info("***TPX3***: Please turn off TPX3 from camera panel. Trying to do it for you...")
         elif self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
@@ -697,9 +678,6 @@ class TimePix3():
 
         inputs = list()
         outputs = list()
-        nbsockets = 1
-        assert (nbsockets == 1) or (nbsockets % 4 == 0)
-        nbsockets_chip = nbsockets / 4
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         """
         127.0.0.1 -> LocalHost;
@@ -738,34 +716,10 @@ class TimePix3():
             config_bytes += b'\x00'  # Cumul is OFF
 
         config_bytes += bytes([self.__tp3mode])
-        if message == 1 or message == 3: #Focus/Cumul (message=1) and Chrono (message=3)
-            size = int(self.__accumulation)
-            config_bytes += size.to_bytes(2, 'big')
-            config_bytes += size.to_bytes(2, 'big')
-
-        elif message == 2:
-            self.__spimData = numpy.zeros(spim * 1025, dtype=numpy.uint32)
-            self.__xspim = int(numpy.sqrt(spim))
-            self.__yspim = int(numpy.sqrt(spim))
-
-            if self.__tp3mode == 3:  # Time Resolved SPIM
-                if not self.__simul:
-                    scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                        "orsay_scan_device")
-                    LaserInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("sgain_controller")
-                    pixel_time = int(scanInstrument.scan_device.current_frame_parameters['pixel_time_us'])
-                    if pixel_time == 100.0 and LaserInstrument:
-                        self.__tr = True
-                        logging.info(f'***TP3***: TR is True. Setting laser controlled by pixel clock.')
-                        LaserInstrument.prepare_spim_TP3()
-                    else:
-                        logging.info(f'***TP3***: Pixel time is not 100 us || LaserInstrument was not found.')
-                else:
-                    self.__tr = True
-
-            config_bytes += self.__xspim.to_bytes(2, 'big')
-            config_bytes += self.__yspim.to_bytes(2, 'big')
-            self.sendmessage(message)
+        assert message == 1 or message == 3 #Focus/Cumul (message=1) and Chrono (message=3)
+        size = int(self.__accumulation)
+        config_bytes += size.to_bytes(2, 'big')
+        config_bytes += size.to_bytes(2, 'big')
 
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
@@ -786,18 +740,7 @@ class TimePix3():
         config_bytes += struct.pack(">H", int(self.__delay))  # BE. See https://docs.python.org/3/library/struct.html
         config_bytes += struct.pack(">H", int(self.__width))  # BE. See https://docs.python.org/3/library/struct.html
 
-
-        #Number of sockets that will be opened
-        config_bytes += nbsockets.to_bytes(2, 'big')
-        config_bytes += nbsockets.to_bytes(2, 'big')
         client.send(config_bytes)
-
-        #Opening the other sockets
-        for i in range(nbsockets-1):
-            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect(address)
-            logging.info(f'***TP3***: Connecting client {i}.')
-            inputs.append(client)
 
         def check_string_value(header, prop):
             """
@@ -876,110 +819,6 @@ class TimePix3():
                     return
                 if not self.__isPlaying:
                     return
-
-        elif message == 2:
-            byte_unique = 1
-            if byte_unique == 2:
-                dt_unique = numpy.dtype(numpy.uint16).newbyteorder('>')
-                mult_factor = 2
-            elif byte_unique == 1:
-                dt_unique = numpy.dtype(numpy.uint8).newbyteorder('>')
-                mult_factor = 4
-            dt = numpy.dtype(numpy.uint32).newbyteorder('>')
-            counter = 0
-            while True:
-                try:
-                    read, _, _ = select.select(inputs, outputs, inputs)
-                    for s in read:
-                        counter += 1
-                        packet_data = s.recv(buffer_size)
-
-                        # Method 01
-                        """
-                        index = 0
-                        while index < len(packet_data):
-                            index = packet_data.find(b'{StartUnique}', index)
-                            if index == -1: break
-                            index2 = packet_data.find(b'{StartIndexes}', index)
-                            if index2 == -1: #If there is not, do another call.
-                                packet_data += s.recv(buffer_size)
-                                index2 = packet_data.find(b'{StartIndexes}', index)
-                            #try:
-                            unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
-                            last_index = index2+14+(index2-index-13)*mult_factor
-                            if last_index > len(packet_data):
-                                packet_data += s.recv(last_index - len(packet_data))
-                            event_list = numpy.frombuffer(packet_data[index2+14:last_index], dtype=dt)
-
-                            index += 13
-                            try:
-                                self.__spimData[event_list] += unique
-                            except IndexError:
-                                logging.info(f'***TP3***: Indexing error.')
-                            except ValueError:
-                                logging.info(f'***TP3***: Value error.')
-                                logging.info(f'***TP3***: Incomplete data.')
-                        """
-
-                        # Method 02
-                        #"""
-                        #if len(event_list) > 0:
-                        #    self.__eventQueue.put(event_list)
-
-                        #if counter % 2 == 0:
-                        #    self.update_spim()
-
-                        if len(packet_data) == 0:
-                            logging.info('***TP3***: No more packets received. Finishing SPIM.')
-                            self.update_spim_all()
-                            return
-
-                        q = len(packet_data) % 32
-                        if q:
-                            packet_data += s.recv(32-q)
-
-                        try:
-                            event_list = numpy.frombuffer(packet_data, dtype=dt)
-                            if len(event_list) > 0:
-                                self.__eventQueue.put(event_list)
-                            if counter % 2 == 0:
-                                self.update_spim()
-                            #unique, counts = numpy.unique(event_list, return_counts=True)
-                            #counts = counts.astype(numpy.uint16)
-                            #self.__spimData[unique] += counts
-                        except ValueError:
-                            logging.info(f'***TP3***: Value error.')
-                        except IndexError:
-                            logging.info(f'***TP3***: Indexing error.')
-                        """"
-
-
-
-                        #Method 03
-                        """
-                        if packet_data == b'':
-                            logging.info('***TP3***: No more packets received in SPIM.')
-                            self.update_spim_all()
-                            return
-
-                        #rust2swift.update_spim(packet_data)
-
-                        dt = numpy.dtype(numpy.uint32).newbyteorder('>')
-                        event_list = numpy.frombuffer(packet_data, dtype=dt)
-                        self.__eventQueue.put(event_list)
-
-                        if len(packet_data) < buffer_size / 2:
-                            self.update_spim()
-                    #"""
-
-                except ConnectionResetError:
-                    logging.info("***TP3***: Socket reseted. Closing connection.")
-                    return
-
-                if not self.__isPlaying:
-                    logging.info('***TP3***: Finishing SPIM.')
-                    self.update_spim_all()
-                    return
         return
 
     def acquire_streamed_frame_from_scan(self, port, message):
@@ -998,9 +837,6 @@ class TimePix3():
 
         inputs = list()
         outputs = list()
-        nbsockets = 1
-        assert (nbsockets == 1) or (nbsockets % 4 == 0)
-        nbsockets_chip = nbsockets / 4
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         """
         127.0.0.1 -> LocalHost;
@@ -1059,16 +895,7 @@ class TimePix3():
         config_bytes += struct.pack(">H", 0)  # BE. See https://docs.python.org/3/library/struct.html. Time Delay
         config_bytes += struct.pack(">H", 0)  # BE. See https://docs.python.org/3/library/struct.html. Time Width
 
-        config_bytes += nbsockets.to_bytes(2, 'big')
-        config_bytes += nbsockets.to_bytes(2, 'big')
         client.send(config_bytes)
-
-        #Opening the other sockets
-        for i in range(nbsockets-1):
-            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect(address)
-            logging.info(f'***TP3***: Connecting client {i}.')
-            inputs.append(client)
 
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
         byte_unique = 1
@@ -1117,7 +944,6 @@ class TimePix3():
                         """
 
                         ### Method 02 ###
-                        #"""
                         if len(packet_data) == 0:
                             logging.info('***TP3***: No more packets received. Finishing SPIM.')
                             self.update_spim_all()
@@ -1137,7 +963,6 @@ class TimePix3():
                             logging.info(f'***TP3***: Value error.')
                         except IndexError:
                             logging.info(f'***TP3***: Indexing error.')
-                        #"""
 
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
