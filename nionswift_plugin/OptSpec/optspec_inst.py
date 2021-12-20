@@ -44,6 +44,9 @@ class OptSpecDevice(Observable.Observable):
         else:
             self.__Spec = optSpec.OptSpectrometer(self.__sendmessage)
 
+        if not self.__Spec.success:
+            return False
+
         self.__gratings = self.__Spec.gratingNames()
         self.send_gratings.fire(self.__gratings)
         self.__lpmms = self.__Spec.gratingLPMM()

@@ -18,6 +18,7 @@ class OptSpectrometer:
         self.entrance_slit = 3000
         self.exit_slit = 3000
         self.which_slit = 1
+        self.success = True
 
     def get_wavelength(self):
         return self.wavelength + self.wavelength*numpy.random.randn(1)[0]/1e5

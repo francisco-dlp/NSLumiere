@@ -166,10 +166,12 @@ class OptSpectrometer:
         #   1 Acton
         #   2 Attolight (pas encore testé)
         #  -1 Acton simulé.
+
         if sendmirrormessage is None:
             self.OrsayMonoCL=_OrsayMonoCLInit(manufacturer, portnb, sendmessage)
         else:
             self.OrsayMonoCL=_OrsayMonoCLWithMirrorInit(manufacturer, portnb, sendmessage, sendmirrormessage)
+        self.success = True
 
         self.sendmessage = sendmessage
                 
