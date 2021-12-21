@@ -85,8 +85,6 @@ class OptSpectrometer:
 
     def set_wavelength(self, value):
         self.try_open()
-        if not self.ser.is_open:
-            self.ser.open()
         if value >= 0 and value <= 1000:
             string = (format(value, '.3f') + ' <goto>\r')
 
