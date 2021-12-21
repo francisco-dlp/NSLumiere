@@ -119,10 +119,13 @@ class OptSpecDevice(Observable.Observable):
             if index == 200: index = 0
 
     def abort(self):
-        if self.__running:
-            self.__running = False
-            self.__thread.join()
-            self.warn_panel_over.fire()
+        try:
+            if self.__running:
+                self.__running = False
+                self.__thread.join()
+                self.warn_panel_over.fire()
+        except AttributeError:
+            #No measure was happening
         self.property_changed_event.fire('')
 
     def sendMessageFactory(self):

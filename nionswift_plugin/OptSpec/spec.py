@@ -73,12 +73,20 @@ class OptSpectrometer:
             logging.info(f"Princeton spectrometer: Could not initialize spectro. Please check hardware. Exception: {e}.")
         #    self.sendmessage(1)
 
+    def try_open(self):
+        if not self.ser.is_open:
+            self.ser.open()
+
     def get_wavelength(self):
+        self.try_open()
         self.ser.write(b'?NM\r')
         wav_line = self.ser.readline()
         return float(wav_line.split(b'nm')[0].decode())
 
     def set_wavelength(self, value):
+        self.try_open()
+        if not self.ser.is_open:
+            self.ser.open()
         if value >= 0 and value <= 1000:
             string = (format(value, '.3f') + ' <goto>\r')
 
@@ -94,11 +102,13 @@ class OptSpectrometer:
         self.sendmessage(3)
 
     def get_grating(self):
+        self.try_open()
         self.ser.write(b'?GRATING\r')
         grating_line = self.ser.readline()
         return int(grating_line.split(b'ok')[0].decode()) - 1
 
     def set_grating(self, value):
+        self.try_open()
         string = str(value + 1) + ' GRATING\r'
         self.ser.write(string.encode())
         msg = True
@@ -109,11 +119,13 @@ class OptSpectrometer:
         self.sendmessage(2)
 
     def get_entrance(self):
+        self.try_open()
         self.ser.write(b'SIDE-ENT-SLIT ?MICRONS\r')
         entrance_line = self.ser.readline()
         return float(entrance_line.split(b'um')[0].decode())
 
     def set_entrance(self, value):
+        self.try_open()
         if value >= 0 and value <= 5000:
             string = 'SIDE-ENT-SLIT ' + format(value, '.0f') + ' MICRONS\r'
         else:
@@ -128,11 +140,13 @@ class OptSpectrometer:
         self.sendmessage(4)
 
     def get_exit(self):
+        self.try_open()
         self.ser.write(b'SIDE-EXIT-SLIT ?MICRONS\r')
         exit_line = self.ser.readline()
         return float(exit_line.split(b'um')[0].decode())
 
     def set_exit(self, value):
+        self.try_open()
         if value >= 0 and value <= 5000:
             string = 'SIDE-EXIT-SLIT ' + format(value, '.0f') + ' MICRONS\r'
         else:
@@ -147,6 +161,7 @@ class OptSpectrometer:
         self.sendmessage(5)
 
     def get_which(self):
+        self.try_open()
         self.ser.write(b'EXIT-MIRROR ?MIRROR\r')
         mirror_line = self.ser.readline()
         if mirror_line[1:6].decode() == 'front':
@@ -155,6 +170,7 @@ class OptSpectrometer:
             return 1
 
     def set_which(self, value):
+        self.try_open()
         if value == 0:
             string = 'EXIT-MIRROR FRONT 400 MS\r'
         if value == 1:
@@ -168,6 +184,7 @@ class OptSpectrometer:
         self.sendmessage(6)
 
     def gratingNames(self):
+        self.try_open()
         gratings = list()
         self.ser.write(b'?GRATINGS\r')
         msg = True
@@ -181,6 +198,7 @@ class OptSpectrometer:
         return gratings
 
     def gratingLPMM(self):
+        self.try_open()
         self.lp_mm = list()
         self.ser.write(b'?GRATINGS\r')
         msg = True
