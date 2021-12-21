@@ -126,6 +126,7 @@ class OptSpecDevice(Observable.Observable):
                 self.warn_panel_over.fire()
         except AttributeError:
             #No measure was happening
+            pass
         self.property_changed_event.fire('')
 
     def sendMessageFactory(self):
