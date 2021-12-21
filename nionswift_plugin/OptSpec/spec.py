@@ -76,6 +76,9 @@ class OptSpectrometer:
     def try_open(self):
         if not self.ser.is_open:
             self.ser.open()
+        if not self.ser.is_open:
+            logging.info(f"Princeton spectrometer: Problem in USB port.")
+            return
 
     def get_wavelength(self):
         self.try_open()
