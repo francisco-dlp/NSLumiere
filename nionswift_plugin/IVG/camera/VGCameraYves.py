@@ -540,6 +540,7 @@ class CameraDevice(camera_base.CameraDevice):
     def readoutTime(self) -> float:
         return self.camera.getReadoutTime()
 
+    """
     def get_acquire_sequence_metrics(self, camera_frame_parameters: typing.Dict) -> typing.Dict:
         acquisition_frame_count = camera_frame_parameters.get("acquisition_frame_count")
         storage_frame_count = camera_frame_parameters.get("storage_frame_count")
@@ -554,6 +555,7 @@ class CameraDevice(camera_base.CameraDevice):
             storage_memory = self.camera.getImageSize()[0] * self.camera.getImageSize()[1] * 4 * storage_frame_count
         return {"acquisition_time": acquisition_time, "acquisition_memory": acquisition_memory,
                 "storage_memory": storage_memory}
+    """
 
     def sendMessageFactory(self):
         """
