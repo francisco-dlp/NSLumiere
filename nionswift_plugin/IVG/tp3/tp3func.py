@@ -195,7 +195,7 @@ class TimePix3():
         detector_config["Fan2PWM"] = 100 #100V
         detector_config["TriggerPeriod"] = 1.0  # 1s
         detector_config["ExposureTime"] = 1.0  # 1s
-        detector_config["Tdc"] = ['PN4', 'P4']
+        detector_config["Tdc"] = ['PN0', 'P0']
 
         resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
