@@ -1,7 +1,7 @@
-try:
-    from nion.swift.model import HardwareSource
-except NameError:
-    from nion.instrumentation import HardwareSource
+#try:""
+#    from nion.swift.model import HardwareSource
+#except NameError:
+from nion.instrumentation import HardwareSource
 
 from . import optspec_inst, optspec_panel
 import os, json
