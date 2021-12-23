@@ -33,11 +33,9 @@
   },
   "spectrometer": {
     "WHICH": [
-      "DEBUG",
-      "ATTOLIGHT",
       "PRINCETON"
     ],
-    "COM_PRINCETON": "COM4"
+    "COM_PRINCETON": "COM6"
   },
   "stage": {
     "DEBUG": 1
