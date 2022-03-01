@@ -916,8 +916,8 @@ class TimePix3():
         if message == 2:
             counter = 0
             while True:
-                dt_unique = numpy.dtype(numpy.uint8).newbyteorder('>')
-                dt = numpy.dtype(numpy.uint32).newbyteorder('>')
+                dt_unique = numpy.dtype(numpy.uint8).newbyteorder('<')
+                dt = numpy.dtype(numpy.uint32).newbyteorder('<')
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
