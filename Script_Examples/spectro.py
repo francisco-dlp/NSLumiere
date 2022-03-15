@@ -9,7 +9,7 @@ api = api_broker.get_api(API.version, UI.version)  # type: API
 spec = HardwareSource.HardwareSourceManager().get_instrument_by_id("optSpec_controller PRINCETON")
 cam_eels = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_timepix3")
 
-step = 5
+step = 10
 start = 500
 end = 600+step
 acq_time = 2
