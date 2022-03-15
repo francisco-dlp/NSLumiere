@@ -1029,13 +1029,13 @@ class TimePix3():
         """
         frame_data = numpy.array(frame_data[:-1])
         if bitDepth == 8:
-            dt = numpy.dtype(numpy.uint8).newbyteorder('>')
+            dt = numpy.dtype(numpy.uint8).newbyteorder('<')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
         elif bitDepth == 16:
-            dt = numpy.dtype(numpy.uint16).newbyteorder('>')
+            dt = numpy.dtype(numpy.uint16).newbyteorder('<')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
         elif bitDepth == 32:
-            dt = numpy.dtype(numpy.uint32).newbyteorder('>')
+            dt = numpy.dtype(numpy.uint32).newbyteorder('<')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
         frame_int = numpy.reshape(frame_int, (height, width))
         return frame_int
