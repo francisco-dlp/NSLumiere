@@ -36,9 +36,14 @@ class OptSpecDevice(Observable.Observable):
 
         self.__sendmessage = optSpec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         if self.__model == 'PRINCETON':
-            abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
-            with open(abs_path) as savfile:
-                settings = json.load(savfile)
+            abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
+            try:
+                with open(abs_path) as savfile:
+                    settings = json.load(savfile)
+            except FileNotFoundError:
+                abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
+                with open(abs_path) as savfile:
+                    settings = json.load(savfile)
             SERIAL_PORT_PRINCETON = settings["spectrometer"]["COM_PRINCETON"]
             self.__Spec = optSpec.OptSpectrometer(self.__sendmessage, SERIAL_PORT_PRINCETON)
         else:
@@ -91,6 +96,11 @@ class OptSpecDevice(Observable.Observable):
         self.upt_calibs()
 
     def upt_calibs(self):
+        self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
+                                                {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
+                                                 "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
+                                                 "units": "nm"}]
+        """
         if self.__eirecamera.get_current_frame_parameters().soft_binning or self.__eirecamera.get_current_frame_parameters().v_binning >= 200:
             self.__eirecamera.camera.calibration = [{"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
                                                  "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
@@ -100,6 +110,7 @@ class OptSpecDevice(Observable.Observable):
                                                     {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
                                                      "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
                                                      "units": "nm"}]
+        """
 
     def measure(self):
         self.__running = True
