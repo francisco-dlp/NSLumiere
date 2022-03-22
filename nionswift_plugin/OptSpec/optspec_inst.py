@@ -96,21 +96,22 @@ class OptSpecDevice(Observable.Observable):
         self.upt_calibs()
 
     def upt_calibs(self):
-        self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
+        if self.__eirecamera.camera.camera_model == 'Newton':
+            self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
                                                 {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
                                                  "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
                                                  "units": "nm"}]
-        """
-        if self.__eirecamera.get_current_frame_parameters().soft_binning or self.__eirecamera.get_current_frame_parameters().v_binning >= 200:
-            self.__eirecamera.camera.calibration = [{"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
+
+        elif self.__eirecamera.camera.camera_model == 'ProEM+: 1600xx(2)B eXcelon':
+            if self.__eirecamera.camera.sizey == 1:
+                self.__eirecamera.camera.calibration = [{"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
                                                  "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
                                                  "units": "nm"}]
-        else:
-            self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
-                                                    {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
-                                                     "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
-                                                     "units": "nm"}]
-        """
+            else:
+                self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
+                                                        {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
+                                                         "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
+                                                         "units": "nm"}]
 
     def measure(self):
         self.__running = True
