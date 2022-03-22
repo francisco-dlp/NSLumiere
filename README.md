@@ -14,13 +14,19 @@ Proceed to our module installation. Clone master branch or most up-to-date devel
 
 `git clone https://github.com/yvesauad/swift_lumiere.git`
 
-Inside your nionswift environment, if you are using anaconda/miniconda, install locally using 
+If you are using anaconda/miniconda, change directory to the cloned folder
+
+`cd swift_lumiere`
+
+and install locally using 
 
 `python setupLum.py clean --all install`
 
 or `python setupCold.py clean --all install`
 
 or `python setupChromaTEM.py clean --all install`
+
+or `python setupDebug.py clean --all install`
 
 Depending on the microscope you wish to Install. Any custom microscope can be easily built creating a new setup file.
 
