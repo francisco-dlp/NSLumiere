@@ -17,7 +17,7 @@
     },
     "SENDMAIL": 1,
     "SLOW_PERIODIC": {
-      "ACTIVE": 0,
+      "ACTIVE": 1,
       "PERIOD": 1.0
     }
   },

@@ -125,7 +125,7 @@ class ivgInstrument(stem_controller.STEMController):
 
     def stage_periodic_start(self):
         counter = 0
-        while counter < 60.0 / TIME_FAST_PERIODIC:
+        while counter < 10.0 / TIME_FAST_PERIODIC:
             self.stage_event.fire(self.__y_real_pos, self.__x_real_pos)
             self.property_changed_event.fire('x_stage_f')
             self.property_changed_event.fire('y_stage_f')
@@ -141,6 +141,8 @@ class ivgInstrument(stem_controller.STEMController):
         self.property_changed_event.fire('obj_cur_f')
         self.property_changed_event.fire('c1_cur_f')
         self.property_changed_event.fire('c2_cur_f')
+        self.property_changed_event.fire('x_stage_f')
+        self.property_changed_event.fire('y_stage_f')
         self.property_changed_event.fire('thread_cts_f')
         self.estimate_temp()
         try:
@@ -158,11 +160,10 @@ class ivgInstrument(stem_controller.STEMController):
         except:
             pass
         self.__thread = threading.Timer(TIME_SLOW_PERIODIC, self.periodic, args=(), )
-        if not self.__thread.is_alive():
-            try:
-                self.__thread.start()
-            except:
-                pass
+        check = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "orsay_scan_device")
+        if not self.__thread.is_alive() and check is not None:
+            self.__thread.start()
 
     def estimate_temp(self):
         self.__obj_temp = self.__amb_temp + ((self.__obj_res - self.__obj_res_ref) / self.__obj_res_ref) / TEMP_COEF
@@ -185,10 +186,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__fov = float(FOV * 1e6)  # in microns
         self.property_changed_event.fire('spim_sampling_f')
         self.property_changed_event.fire('spim_time_f')
-        try:
-            self.__StageInstrument.slider_range_f = self.__fov
-        except:
-            pass
 
     def warn_Scan_instrument_spim(self, value, x_pixels=0, y_pixels=0):
         # only set scan pixels if you going to start spim.
@@ -198,7 +195,6 @@ class ivgInstrument(stem_controller.STEMController):
             self.__OrsayScanInstrument.start_playing()
         else:
             self.__OrsayScanInstrument.stop_playing()
-
 
     def warn_Scan_instrument_spim_over(self, det_data, spim_pixels, detector):
         self.spim_over.fire(det_data, spim_pixels, detector, self.__spim_sampling)
@@ -391,29 +387,13 @@ class ivgInstrument(stem_controller.STEMController):
     @property
     def x_stage_f(self):
         try:
-            self.__x_real_pos, _ = self.__StageInstrument.GetPos()
+            tempx, _ = self.__StageInstrument.GetPos()
+            if abs(tempx - self.__x_real_pos)>0.0:
+                self.stage_periodic()
+            self.__x_real_pos = tempx
         except:
             self.__x_real_pos = -1.e-5
         return '{:.3f}'.format(self.__x_real_pos * 1e6)
-
-
-
-        #Enabling GUI control
-        """
-        Now i am disabling it. Too annoying
-        
-        self.__stage_moving[0] = False if abs(self.__x_real_pos * 1e6 - self.__StageInstrument.x_pos_f / 1e2) < 0.5 else True
-        self.__stage_moving[1] = False if abs(self.__y_real_pos * 1e6 - self.__StageInstrument.y_pos_f / 1e2) < 0.5 else True
-
-        if self.__stage_moving[1]:
-            self.__StageInstrument.busy_UI(1) #1 is to disable X
-
-        if self.__stage_moving[0]:
-            self.__StageInstrument.busy_UI(2) #2 is to disable Y
-
-        if not self.__stage_moving[0] and not self.__stage_moving[1]:
-            self.__StageInstrument.free_UI('x', 'y')
-        """
 
     @x_stage_f.setter
     def x_stage_f(self, value):
@@ -424,10 +404,12 @@ class ivgInstrument(stem_controller.STEMController):
     @property
     def y_stage_f(self):
         try:
-            _, self.__y_real_pos = self.__StageInstrument.GetPos()
+            _, tempy = self.__StageInstrument.GetPos()
+            if abs(tempy - self.__y_real_pos) > 0.0:
+                self.stage_periodic()
+            self.__y_real_pos = tempy
         except:
             self.__y_real_pos = -1.e-5
-
         return '{:.3f}'.format(self.__y_real_pos * 1e6)
 
     @y_stage_f.setter
@@ -561,7 +543,6 @@ class ivgInstrument(stem_controller.STEMController):
     def change_stage_position(self, *, dy: int = None, dx: int = None):
         self.__StageInstrument.x_pos_f += dx * 1e8
         self.__StageInstrument.y_pos_f -= dy * 1e8
-        self.__StageInstrument.slider_range_f = self.__fov
         self.stage_periodic()
 
     def TryGetVal(self, s: str) -> (bool, float):
