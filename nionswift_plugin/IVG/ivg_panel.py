@@ -286,6 +286,6 @@ def create_spectro_panel(document_controller, panel_id, properties):
 
 def run(instrument: ivg_inst.ivgInstrument) -> None:
     panel_id = "IVG"#make sure it is unique, otherwise only one of the panel will be displayed
-    name = _("VG Lumiere - Status")
+    name = _("VG - Status")
     Workspace.WorkspaceManager().register_panel(create_spectro_panel, panel_id, name, ["left", "right"], "left",
                                                 {"instrument": instrument})

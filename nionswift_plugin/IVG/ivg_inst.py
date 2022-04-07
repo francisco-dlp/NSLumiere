@@ -5,6 +5,7 @@ import smtplib
 import os
 import json
 import time
+import numpy
 
 from nion.utils import Event
 from nion.swift.model import HardwareSource
@@ -541,6 +542,10 @@ class ivgInstrument(stem_controller.STEMController):
             scan.scan_device.orsayscan.SetPMT(-pmt_type + 1, self.__haadf_gain)
 
     def change_stage_position(self, *, dy: int = None, dx: int = None):
+        angle = self.__OrsayScanInstrument.scan_device.scan_rotation
+        angle = angle - 22.5
+        new_dx = dx*numpy.cos(numpy.radians(angle)) - dy*numpy.sin(numpy.radians(angle))
+        new_dy = dx*numpy.sin(numpy.radians(angle)) + dy*numpy.cos(numpy.radians(angle))
         self.__StageInstrument.x_pos_f += dx * 1e8
         self.__StageInstrument.y_pos_f -= dy * 1e8
         self.stage_periodic()
@@ -556,6 +561,7 @@ class ivgInstrument(stem_controller.STEMController):
             return True, self.__EELSInstrument.range_f
         else:
             return False, 0
+
 
     @property
     def is_blanked(self) -> bool:
