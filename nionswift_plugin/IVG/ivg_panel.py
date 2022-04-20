@@ -265,8 +265,6 @@ class ivgView:
         self.ui_view=ui.create_column(self.EHT_row, self.vac_group, self.obj_group, self.cond_group, self.aper_group, self.stage_group, spacing=5)
 
 
-
-        
 def create_spectro_panel(document_controller, panel_id, properties):
         instrument = properties["instrument"]
         ui_handler =ivghandler(instrument, document_controller)

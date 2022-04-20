@@ -541,6 +541,22 @@ class ivgInstrument(stem_controller.STEMController):
                 if self.__bf_gain > 2500: self.__bf_gain = 2500
             scan.scan_device.orsayscan.SetPMT(-pmt_type + 1, self.__haadf_gain)
 
+    def get_autostem_properties(self):
+        """Return a new autostem properties (dict) to be recorded with an acquisition.
+           * use property names that are lower case and separated by underscores
+           * use property names that include the unit attached to the end
+           * avoid using abbreviations
+           * avoid adding None entries
+           * dict must be serializable using json.dumps(dict)
+           Be aware that these properties may be used far into the future so take care when designing additions and
+           discuss/review with team members.
+        """
+        return {
+            "high_tension": 100,
+            "defocus": 60,
+        }
+
+
     def change_stage_position(self, *, dy: int = None, dx: int = None):
         angle = self.__OrsayScanInstrument.scan_device.scan_rotation
         angle = angle - 22.5
@@ -571,20 +587,3 @@ class ivgInstrument(stem_controller.STEMController):
     def is_blanked(self, value: bool) -> None:
         self.__blanked = value
         self.property_changed_event.fire("is_blanked")
-
-    def get_autostem_properties(self):
-        """Return a new autostem properties (dict) to be recorded with an acquisition.
-
-           * use property names that are lower case and separated by underscores
-           * use property names that include the unit attached to the end
-           * avoid using abbreviations
-           * avoid adding None entries
-           * dict must be serializable using json.dumps(dict)
-
-           Be aware that these properties may be used far into the future so take care when designing additions and
-           discuss/review with team members.
-        """
-        return {
-            "high_tension_v": self.voltage,
-            "defocus_m": self.defocus_m,
-        }
