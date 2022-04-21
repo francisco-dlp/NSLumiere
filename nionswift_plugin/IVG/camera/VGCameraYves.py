@@ -18,9 +18,6 @@ from nion.swift.model import HardwareSource
 from nion.utils import Registry
 
 from nion.instrumentation import camera_base
-from nion.instrumentation.camera_base import build_calibration_dict
-
-#from nionswift_plugin.IVG.camera import orsaycamera
 from nionswift_plugin.IVG.tp3 import tp3func
 
 from nionswift_plugin.IVG import ivg_inst
@@ -483,6 +480,7 @@ class CameraDevice(camera_base.CameraDevice):
         properties = dict()
         properties["frame_number"] = self.frame_number
         properties["acquisition_mode"] = acquisition_mode
+        properties["frame_parameters"] = dict(self.current_camera_settings)
         calibration_controls = copy.deepcopy(self.calibration_controls)
 
         # if self.frame_number>=self.current_camera_settings.spectra_count and acquisition_mode=='Cumul':

@@ -556,7 +556,6 @@ class ivgInstrument(stem_controller.STEMController):
             "defocus": 60,
         }
 
-
     def change_stage_position(self, *, dy: int = None, dx: int = None):
         angle = self.__OrsayScanInstrument.scan_device.scan_rotation
         angle = angle - 22.5
