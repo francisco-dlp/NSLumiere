@@ -9,18 +9,8 @@ from nion.utils import Observable
 from ..aux_files.config import read_data
 
 set_file = read_data.FileManager('global_settings')
-
-abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
-try:
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
-    SERIAL_PORT = settings["EELS"]["COM"]
-except FileNotFoundError:
-    logging.info('***EELS SPEC***: No file found in Microscope main folder. Searching locally...')
-    abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
-    SERIAL_PORT = settings["EELS"]["COM"]
+SERIAL_PORT = set_file.settings["EELS"]["COM"]
+LAST_HT = set_file.settings["global_settings"]["last_HT"]
 
 from . import eels_spec as spec
 
@@ -49,22 +39,11 @@ class EELS_SPEC_Device(Observable.Observable):
         self.__dispersion_wobbler_index = 0
         self.__vsm_wobbler = False
 
-        self.__EHT = '3'
+        self.__EHT = LAST_HT
 
-        try:
-            abs_path = os.path.abspath('C:\ProgramData\Microscope\eels_settings.json')
-            try:
-                with open(abs_path) as savfile:
-                    data = json.load(savfile)
-            except FileNotFoundError:
-                abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/eels_settings.json')
-                with open(abs_path) as savfile:
-                    data = json.load(savfile)
-            self.__dispIndex = int(data["3"]["last"])
-            self.disp_change_f = self.__dispIndex  # put last index
-
-        except:
-            logging.info('***EELS SPEC***: No saved values.')
+        self.__eels_file = read_data.FileManager("eels_settings")
+        self.__dispIndex = self.__eels_file.settings[self.__EHT]["last"]
+        self.disp_change_f = self.__dispIndex  # put last index
 
     def init_handler(self):
         self.focus_wobbler_f=0
@@ -75,32 +54,22 @@ class EELS_SPEC_Device(Observable.Observable):
 
 
     def set_spec_values(self, value):
-        abs_path = os.path.abspath('C:\ProgramData\Microscope\eels_settings.json')
-        try:
-            with open(abs_path) as savfile:
-                data = json.load(savfile)
-        except FileNotFoundError:
-            abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/eels_settings.json')
-            with open(abs_path) as savfile:
-                data = json.load(savfile)
-
-        self.range_f = data[self.__EHT][value]['range']
-        self.note_f = data[self.__EHT][value]['note']
-        self.fx_slider_f = int(data[self.__EHT][value]['fx'])
-        self.fy_slider_f = int(data[self.__EHT][value]['fy'])
-        self.sx_slider_f = int(data[self.__EHT][value]['sx'])
-        self.sy_slider_f = int(data[self.__EHT][value]['sy'])
-        self.dy_slider_f = int(data[self.__EHT][value]['dy'])
-        self.q1_slider_f = int(data[self.__EHT][value]['q1'])
-        self.q2_slider_f = int(data[self.__EHT][value]['q2'])
-        self.q3_slider_f = int(data[self.__EHT][value]['q3'])
-        self.q4_slider_f = int(data[self.__EHT][value]['q4'])
-        self.dx_slider_f = int(data[self.__EHT][value]['dx'])
-        self.dmx_slider_f = int(data[self.__EHT][value]['dmx'])
+        self.range_f = self.__eels_file.settings[self.__EHT][value]['range']
+        self.note_f = self.__eels_file.settings[self.__EHT][value]['note']
+        self.fx_slider_f = int(self.__eels_file.settings[self.__EHT][value]['fx'])
+        self.fy_slider_f = int(self.__eels_file.settings[self.__EHT][value]['fy'])
+        self.sx_slider_f = int(self.__eels_file.settings[self.__EHT][value]['sx'])
+        self.sy_slider_f = int(self.__eels_file.settings[self.__EHT][value]['sy'])
+        self.dy_slider_f = int(self.__eels_file.settings[self.__EHT][value]['dy'])
+        self.q1_slider_f = int(self.__eels_file.settings[self.__EHT][value]['q1'])
+        self.q2_slider_f = int(self.__eels_file.settings[self.__EHT][value]['q2'])
+        self.q3_slider_f = int(self.__eels_file.settings[self.__EHT][value]['q3'])
+        self.q4_slider_f = int(self.__eels_file.settings[self.__EHT][value]['q4'])
+        self.dx_slider_f = int(self.__eels_file.settings[self.__EHT][value]['dx'])
+        self.dmx_slider_f = int(self.__eels_file.settings[self.__EHT][value]['dmx'])
 
     def EHT_change(self, value):
-        self.__EHT = str(
-            value)  # next set at disp_change_f will going to be with the new self__EHT. Nice way of doing it
+        self.__EHT = value  # next set at disp_change_f will going to be with the new self__EHT. Nice way of doing it
         self.disp_change_f = self.__dispIndex
 
     """

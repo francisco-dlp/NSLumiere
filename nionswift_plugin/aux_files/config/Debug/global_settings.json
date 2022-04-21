@@ -43,5 +43,8 @@
   },
   "mirror": {
     "DEBUG": 1
+  },
+  "global_settings": {
+    "last_HT": "100"
   }
 }

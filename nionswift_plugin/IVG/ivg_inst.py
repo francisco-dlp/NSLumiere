@@ -2,8 +2,6 @@
 import threading
 import logging
 import smtplib
-import os
-import json
 import time
 import numpy
 
@@ -11,6 +9,8 @@ from nion.utils import Event
 from nion.swift.model import HardwareSource
 from nion.instrumentation import stem_controller
 from nion.utils import Geometry
+
+from ..aux_files.config import read_data
 
 sender_email = "vg.lumiere@gmail.com"
 receiver_email = "yvesauad@gmail.com"
@@ -20,26 +20,21 @@ Subject: Objective Lens @ VG Lumiere
 
 This message was automatically sent and means objective lens @ VG Lum. was shutdown because of its high temperature"""
 
-abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
-try:
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
-except FileNotFoundError:
-    abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
 
-SERIAL_PORT_GUN = settings["IVG"]["COM_GUN"]
-SERIAL_PORT_AIRLOCK = settings["IVG"]["COM_AIRLOCK"]
-SENDMAIL = settings["IVG"]["SENDMAIL"]
-FAST_PERIODIC = settings["IVG"]["FAST_PERIODIC"]["ACTIVE"]
-TIME_FAST_PERIODIC = settings["IVG"]["FAST_PERIODIC"]["PERIOD"]
-SLOW_PERIODIC = settings["IVG"]["SLOW_PERIODIC"]["ACTIVE"]
-TIME_SLOW_PERIODIC = settings["IVG"]["SLOW_PERIODIC"]["PERIOD"]
-OBJECTIVE_MAX_TEMPERATURE = settings["IVG"]["OBJECTIVE"]["MAX_TEMP"]
-OBJECTIVE_RESISTANCE = settings["IVG"]["OBJECTIVE"]["RESISTANCE"]
-TEMP_COEF = settings["IVG"]["OBJECTIVE"]["TEMP_COEF"]
-MAX_PTS = settings["IVG"]["MAX_PTS"]
+
+set_file = read_data.FileManager('global_settings')
+
+SERIAL_PORT_GUN = set_file.settings["IVG"]["COM_GUN"]
+SERIAL_PORT_AIRLOCK = set_file.settings["IVG"]["COM_AIRLOCK"]
+SENDMAIL = set_file.settings["IVG"]["SENDMAIL"]
+FAST_PERIODIC = set_file.settings["IVG"]["FAST_PERIODIC"]["ACTIVE"]
+TIME_FAST_PERIODIC = set_file.settings["IVG"]["FAST_PERIODIC"]["PERIOD"]
+SLOW_PERIODIC = set_file.settings["IVG"]["SLOW_PERIODIC"]["ACTIVE"]
+TIME_SLOW_PERIODIC = set_file.settings["IVG"]["SLOW_PERIODIC"]["PERIOD"]
+OBJECTIVE_MAX_TEMPERATURE = set_file.settings["IVG"]["OBJECTIVE"]["MAX_TEMP"]
+OBJECTIVE_RESISTANCE = set_file.settings["IVG"]["OBJECTIVE"]["RESISTANCE"]
+TEMP_COEF = set_file.settings["IVG"]["OBJECTIVE"]["TEMP_COEF"]
+MAX_PTS = set_file.settings["IVG"]["MAX_PTS"]
 
 from . import gun as gun
 from . import airlock as al
@@ -59,6 +54,8 @@ class ivgInstrument(stem_controller.STEMController):
         self.cam_spim_over = Event.Event()
         self.spim_over = Event.Event()
 
+        self.__set_file = read_data.FileManager('global_settings')
+
         self.__blanked = False
         self.__scan_context = stem_controller.ScanContext()
         self.__probe_position = None
@@ -71,7 +68,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__haadf_gain = 250
         self.__bf_gain = 250
 
-        self.__EHT = 3
+        self.__EHT = self.__set_file.settings["global_settings"]["last_HT"]
         self.__obj_res_ref = OBJECTIVE_RESISTANCE
         self.__amb_temp = 23
         self.__stand = False
@@ -82,6 +79,8 @@ class ivgInstrument(stem_controller.STEMController):
         self.__obj_temp = self.__amb_temp
         self.__obj_res = self.__obj_res_ref
         self.__c1_vol = self.__c1_res = self.__c2_vol = self.__c2_res = 0.0
+
+
 
         self.__x_real_pos = self.__y_real_pos = 0.0
 
@@ -247,14 +246,32 @@ class ivgInstrument(stem_controller.STEMController):
 
     @property
     def EHT_f(self):
-        return self.__EHT
+        if self.__EHT == "40":
+            new_value = 0
+        elif self.__EHT == "60":
+            new_value = 1
+        elif self.__EHT == "80":
+            new_value = 2
+        elif self.__EHT == "100":
+            new_value = 3
+        return new_value
 
     @EHT_f.setter
     def EHT_f(self, value):
-        self.__EHT = value
+        if value == 0:
+            new_value = "40"
+        elif value == 1:
+            new_value = "60"
+        elif value == 2:
+            new_value = "80"
+        elif value == 3:
+            new_value = "100"
+        self.__EHT = new_value
+        self.__set_file.settings["global_settings"]["last_HT"] = new_value
+        self.__set_file.save_locally()
         try:
             self.__lensInstrument.EHT_change(value)
-            self.__EELSInstrument.EHT_change(value)
+            self.__EELSInstrument.EHT_change(new_value)
         except:
             logging.info('***IVG***: A problem happened in Lens or EELS Controller during HT change.')
         self.property_changed_event.fire('EHT_f')
