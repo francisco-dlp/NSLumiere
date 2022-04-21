@@ -18,6 +18,7 @@ setup(
         'nionswift_plugin/aux_files/config/Debug/eels_settings.json',
         'nionswift_plugin/aux_files/config/Debug/lenses_settings.json',
         'nionswift_plugin/aux_files/config/Debug/Orsay_cameras_list.json',
+        'nionswift_plugin/aux_files/read_data.py'
 
     ]), ('nionswift_plugin/aux_files/DLLs', [
         'nionswift_plugin/aux_files/DLLs/Cameras.dll',
