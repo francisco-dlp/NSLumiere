@@ -1,4 +1,5 @@
-from nion.swift.model import HardwareSource
+#from nion.swift.model import HardwareSource
+from nion.instrumentation import HardwareSource
 
 from . import eels_spec_inst
 from . import eels_spec_panel

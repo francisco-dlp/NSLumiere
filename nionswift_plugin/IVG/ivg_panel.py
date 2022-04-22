@@ -73,12 +73,15 @@ class dataItemCreation():
         
         self.data_item=DataItem.DataItem()
         self.data_item.set_xdata(self.xdata)
-        self.data_item.define_property("title", title)
+        self.data_item.title = title
         self.data_item._enter_live_state()
 
-    def update_data_only(self, array: numpy.array):
+    async def update_data_only(self, array: numpy.array):
         self.xdata=DataAndMetadata.new_data_and_metadata(array, self.calibration, self.dimensional_calibrations, timezone=self.timezone, timezone_offset=self.timezone_offset)
         self.data_item.set_xdata(self.xdata)
+
+    def fast_update_data_only(self, array: numpy.array):
+        self.data_item.set_data(array)
 
 
 class ivghandler:
@@ -129,35 +132,42 @@ class ivghandler:
                 self.stage_array[index1][index2] += 5
 
         if self.stage_di:
-            self.stage_di.update_data_only(self.stage_array)
+            self.event_loop.create_task(self.stage_di.update_data_only(self.stage_array))
 
     def append_data(self, value, index):
         self.ll_array[index], self.gun_array[index], self.obj_array[index] = value
 
         if self.ll_di:
-            self.ll_di.update_data_only(self.ll_array)
+            self.event_loop.create_task(self.ll_di.update_data_only(self.ll_array))
         if self.gun_di:
-            self.gun_di.update_data_only(self.gun_array)
+            self.event_loop.create_task(self.gun_di.update_data_only(self.gun_array))
         if self.obj_di:
-            self.obj_di.update_data_only(self.obj_array)
+            self.event_loop.create_task(self.obj_di.update_data_only(self.obj_array))
 
+    async def data_item_show(self, DI):
+        self.document_controller.document_model.append_data_item(DI)
 
+    async def data_item_remove(self, DI):
+        self.document_controller.document_model.remove_data_item(DI)
+
+    async def data_item_exit_live(self, DI):
+        DI._exit_live_state()
 
     def monitor_air_lock(self, widget):
         self.ll_di = dataItemCreation("AirLock Vacuum", self.ll_array, 'LL')
-        self.document_controller.document_model.append_data_item(self.ll_di.data_item)
+        self.event_loop.create_task(self.data_item_show(self.ll_di.data_item))
 
     def monitor_gun(self, widget):
         self.gun_di = dataItemCreation("Gun Vacuum", self.gun_array, 'GUN')
-        self.document_controller.document_model.append_data_item(self.gun_di.data_item)
+        self.event_loop.create_task(self.data_item_show(self.gun_di.data_item))
 
     def monitor_obj_temp(self, widget):
         self.obj_di = dataItemCreation("Objective Temperature", self.obj_array, 'OBJ')
-        self.document_controller.document_model.append_data_item(self.obj_di.data_item)
+        self.event_loop.create_task(self.data_item_show(self.obj_di.data_item))
 
     def monitor_stage(self, widget):
         self.stage_di = dataItemCreation("Stage Position", self.stage_array, 'STA')
-        self.document_controller.document_model.append_data_item(self.stage_di.data_item)
+        self.event_loop.create_task(self.data_item_show(self.stage_di.data_item))
 
     def clear_stage(self, widget):
         self.stage_array = numpy.zeros((STAGE_MATRIX_SIZE, STAGE_MATRIX_SIZE))
@@ -255,8 +265,6 @@ class ivgView:
         self.ui_view=ui.create_column(self.EHT_row, self.vac_group, self.obj_group, self.cond_group, self.aper_group, self.stage_group, spacing=5)
 
 
-
-        
 def create_spectro_panel(document_controller, panel_id, properties):
         instrument = properties["instrument"]
         ui_handler =ivghandler(instrument, document_controller)
@@ -276,6 +284,6 @@ def create_spectro_panel(document_controller, panel_id, properties):
 
 def run(instrument: ivg_inst.ivgInstrument) -> None:
     panel_id = "IVG"#make sure it is unique, otherwise only one of the panel will be displayed
-    name = _("VG Lumiere - Status")
+    name = _("VG - Status")
     Workspace.WorkspaceManager().register_panel(create_spectro_panel, panel_id, name, ["left", "right"], "left",
                                                 {"instrument": instrument})

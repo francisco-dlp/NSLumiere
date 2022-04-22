@@ -2,14 +2,15 @@
 import threading
 import logging
 import smtplib
-import os
-import json
 import time
+import numpy
 
 from nion.utils import Event
 from nion.swift.model import HardwareSource
 from nion.instrumentation import stem_controller
 from nion.utils import Geometry
+
+from ..aux_files.config import read_data
 
 sender_email = "vg.lumiere@gmail.com"
 receiver_email = "yvesauad@gmail.com"
@@ -19,26 +20,21 @@ Subject: Objective Lens @ VG Lumiere
 
 This message was automatically sent and means objective lens @ VG Lum. was shutdown because of its high temperature"""
 
-abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
-try:
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
-except FileNotFoundError:
-    abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
 
-SERIAL_PORT_GUN = settings["IVG"]["COM_GUN"]
-SERIAL_PORT_AIRLOCK = settings["IVG"]["COM_AIRLOCK"]
-SENDMAIL = settings["IVG"]["SENDMAIL"]
-FAST_PERIODIC = settings["IVG"]["FAST_PERIODIC"]["ACTIVE"]
-TIME_FAST_PERIODIC = settings["IVG"]["FAST_PERIODIC"]["PERIOD"]
-SLOW_PERIODIC = settings["IVG"]["SLOW_PERIODIC"]["ACTIVE"]
-TIME_SLOW_PERIODIC = settings["IVG"]["SLOW_PERIODIC"]["PERIOD"]
-OBJECTIVE_MAX_TEMPERATURE = settings["IVG"]["OBJECTIVE"]["MAX_TEMP"]
-OBJECTIVE_RESISTANCE = settings["IVG"]["OBJECTIVE"]["RESISTANCE"]
-TEMP_COEF = settings["IVG"]["OBJECTIVE"]["TEMP_COEF"]
-MAX_PTS = settings["IVG"]["MAX_PTS"]
+
+set_file = read_data.FileManager('global_settings')
+
+SERIAL_PORT_GUN = set_file.settings["IVG"]["COM_GUN"]
+SERIAL_PORT_AIRLOCK = set_file.settings["IVG"]["COM_AIRLOCK"]
+SENDMAIL = set_file.settings["IVG"]["SENDMAIL"]
+FAST_PERIODIC = set_file.settings["IVG"]["FAST_PERIODIC"]["ACTIVE"]
+TIME_FAST_PERIODIC = set_file.settings["IVG"]["FAST_PERIODIC"]["PERIOD"]
+SLOW_PERIODIC = set_file.settings["IVG"]["SLOW_PERIODIC"]["ACTIVE"]
+TIME_SLOW_PERIODIC = set_file.settings["IVG"]["SLOW_PERIODIC"]["PERIOD"]
+OBJECTIVE_MAX_TEMPERATURE = set_file.settings["IVG"]["OBJECTIVE"]["MAX_TEMP"]
+OBJECTIVE_RESISTANCE = set_file.settings["IVG"]["OBJECTIVE"]["RESISTANCE"]
+TEMP_COEF = set_file.settings["IVG"]["OBJECTIVE"]["TEMP_COEF"]
+MAX_PTS = set_file.settings["IVG"]["MAX_PTS"]
 
 from . import gun as gun
 from . import airlock as al
@@ -58,6 +54,8 @@ class ivgInstrument(stem_controller.STEMController):
         self.cam_spim_over = Event.Event()
         self.spim_over = Event.Event()
 
+        self.__set_file = read_data.FileManager('global_settings')
+
         self.__blanked = False
         self.__scan_context = stem_controller.ScanContext()
         self.__probe_position = None
@@ -70,7 +68,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__haadf_gain = 250
         self.__bf_gain = 250
 
-        self.__EHT = 3
+        self.__EHT = self.__set_file.settings["global_settings"]["last_HT"]
         self.__obj_res_ref = OBJECTIVE_RESISTANCE
         self.__amb_temp = 23
         self.__stand = False
@@ -81,6 +79,8 @@ class ivgInstrument(stem_controller.STEMController):
         self.__obj_temp = self.__amb_temp
         self.__obj_res = self.__obj_res_ref
         self.__c1_vol = self.__c1_res = self.__c2_vol = self.__c2_res = 0.0
+
+
 
         self.__x_real_pos = self.__y_real_pos = 0.0
 
@@ -125,7 +125,7 @@ class ivgInstrument(stem_controller.STEMController):
 
     def stage_periodic_start(self):
         counter = 0
-        while counter < 60.0 / TIME_FAST_PERIODIC:
+        while counter < 10.0 / TIME_FAST_PERIODIC:
             self.stage_event.fire(self.__y_real_pos, self.__x_real_pos)
             self.property_changed_event.fire('x_stage_f')
             self.property_changed_event.fire('y_stage_f')
@@ -141,6 +141,8 @@ class ivgInstrument(stem_controller.STEMController):
         self.property_changed_event.fire('obj_cur_f')
         self.property_changed_event.fire('c1_cur_f')
         self.property_changed_event.fire('c2_cur_f')
+        self.property_changed_event.fire('x_stage_f')
+        self.property_changed_event.fire('y_stage_f')
         self.property_changed_event.fire('thread_cts_f')
         self.estimate_temp()
         try:
@@ -158,11 +160,10 @@ class ivgInstrument(stem_controller.STEMController):
         except:
             pass
         self.__thread = threading.Timer(TIME_SLOW_PERIODIC, self.periodic, args=(), )
-        if not self.__thread.is_alive():
-            try:
-                self.__thread.start()
-            except:
-                pass
+        check = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "orsay_scan_device")
+        if not self.__thread.is_alive() and check is not None:
+            self.__thread.start()
 
     def estimate_temp(self):
         self.__obj_temp = self.__amb_temp + ((self.__obj_res - self.__obj_res_ref) / self.__obj_res_ref) / TEMP_COEF
@@ -185,10 +186,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__fov = float(FOV * 1e6)  # in microns
         self.property_changed_event.fire('spim_sampling_f')
         self.property_changed_event.fire('spim_time_f')
-        try:
-            self.__StageInstrument.slider_range_f = self.__fov
-        except:
-            pass
 
     def warn_Scan_instrument_spim(self, value, x_pixels=0, y_pixels=0):
         # only set scan pixels if you going to start spim.
@@ -198,7 +195,6 @@ class ivgInstrument(stem_controller.STEMController):
             self.__OrsayScanInstrument.start_playing()
         else:
             self.__OrsayScanInstrument.stop_playing()
-
 
     def warn_Scan_instrument_spim_over(self, det_data, spim_pixels, detector):
         self.spim_over.fire(det_data, spim_pixels, detector, self.__spim_sampling)
@@ -250,14 +246,31 @@ class ivgInstrument(stem_controller.STEMController):
 
     @property
     def EHT_f(self):
-        return self.__EHT
+        if self.__EHT == "40":
+            new_value = 0
+        elif self.__EHT == "60":
+            new_value = 1
+        elif self.__EHT == "80":
+            new_value = 2
+        elif self.__EHT == "100":
+            new_value = 3
+        return new_value
 
     @EHT_f.setter
     def EHT_f(self, value):
-        self.__EHT = value
+        if value == 0:
+            self.__EHT = "40"
+        elif value == 1:
+            self.__EHT = "60"
+        elif value == 2:
+            self.__EHT = "80"
+        elif value == 3:
+            self.__EHT = "100"
+        self.__set_file.settings["global_settings"]["last_HT"] = self.__EHT
+        self.__set_file.save_locally()
         try:
             self.__lensInstrument.EHT_change(value)
-            self.__EELSInstrument.EHT_change(value)
+            self.__EELSInstrument.EHT_change(self.__EHT)
         except:
             logging.info('***IVG***: A problem happened in Lens or EELS Controller during HT change.')
         self.property_changed_event.fire('EHT_f')
@@ -391,29 +404,13 @@ class ivgInstrument(stem_controller.STEMController):
     @property
     def x_stage_f(self):
         try:
-            self.__x_real_pos, _ = self.__StageInstrument.GetPos()
+            tempx, _ = self.__StageInstrument.GetPos()
+            if abs(tempx - self.__x_real_pos)>0.0:
+                self.stage_periodic()
+            self.__x_real_pos = tempx
         except:
             self.__x_real_pos = -1.e-5
         return '{:.3f}'.format(self.__x_real_pos * 1e6)
-
-
-
-        #Enabling GUI control
-        """
-        Now i am disabling it. Too annoying
-        
-        self.__stage_moving[0] = False if abs(self.__x_real_pos * 1e6 - self.__StageInstrument.x_pos_f / 1e2) < 0.5 else True
-        self.__stage_moving[1] = False if abs(self.__y_real_pos * 1e6 - self.__StageInstrument.y_pos_f / 1e2) < 0.5 else True
-
-        if self.__stage_moving[1]:
-            self.__StageInstrument.busy_UI(1) #1 is to disable X
-
-        if self.__stage_moving[0]:
-            self.__StageInstrument.busy_UI(2) #2 is to disable Y
-
-        if not self.__stage_moving[0] and not self.__stage_moving[1]:
-            self.__StageInstrument.free_UI('x', 'y')
-        """
 
     @x_stage_f.setter
     def x_stage_f(self, value):
@@ -424,10 +421,12 @@ class ivgInstrument(stem_controller.STEMController):
     @property
     def y_stage_f(self):
         try:
-            _, self.__y_real_pos = self.__StageInstrument.GetPos()
+            _, tempy = self.__StageInstrument.GetPos()
+            if abs(tempy - self.__y_real_pos) > 0.0:
+                self.stage_periodic()
+            self.__y_real_pos = tempy
         except:
             self.__y_real_pos = -1.e-5
-
         return '{:.3f}'.format(self.__y_real_pos * 1e6)
 
     @y_stage_f.setter
@@ -558,10 +557,28 @@ class ivgInstrument(stem_controller.STEMController):
                 if self.__bf_gain > 2500: self.__bf_gain = 2500
             scan.scan_device.orsayscan.SetPMT(-pmt_type + 1, self.__haadf_gain)
 
+    def get_autostem_properties(self):
+        """Return a new autostem properties (dict) to be recorded with an acquisition.
+           * use property names that are lower case and separated by underscores
+           * use property names that include the unit attached to the end
+           * avoid using abbreviations
+           * avoid adding None entries
+           * dict must be serializable using json.dumps(dict)
+           Be aware that these properties may be used far into the future so take care when designing additions and
+           discuss/review with team members.
+        """
+        return {
+            "high_tension": 100,
+            "defocus": 60,
+        }
+
     def change_stage_position(self, *, dy: int = None, dx: int = None):
+        angle = self.__OrsayScanInstrument.scan_device.scan_rotation
+        angle = angle - 22.5
+        new_dx = dx*numpy.cos(numpy.radians(angle)) - dy*numpy.sin(numpy.radians(angle))
+        new_dy = dx*numpy.sin(numpy.radians(angle)) + dy*numpy.cos(numpy.radians(angle))
         self.__StageInstrument.x_pos_f += dx * 1e8
         self.__StageInstrument.y_pos_f -= dy * 1e8
-        self.__StageInstrument.slider_range_f = self.__fov
         self.stage_periodic()
 
     def TryGetVal(self, s: str) -> (bool, float):
@@ -576,6 +593,7 @@ class ivgInstrument(stem_controller.STEMController):
         else:
             return False, 0
 
+
     @property
     def is_blanked(self) -> bool:
         return self.__blanked
@@ -584,20 +602,3 @@ class ivgInstrument(stem_controller.STEMController):
     def is_blanked(self, value: bool) -> None:
         self.__blanked = value
         self.property_changed_event.fire("is_blanked")
-
-    def get_autostem_properties(self):
-        """Return a new autostem properties (dict) to be recorded with an acquisition.
-
-           * use property names that are lower case and separated by underscores
-           * use property names that include the unit attached to the end
-           * avoid using abbreviations
-           * avoid adding None entries
-           * dict must be serializable using json.dumps(dict)
-
-           Be aware that these properties may be used far into the future so take care when designing additions and
-           discuss/review with team members.
-        """
-        return {
-            "high_tension_v": self.voltage,
-            "defocus_m": self.defocus_m,
-        }

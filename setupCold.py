@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="OrsayCold",
-    version="LumiereBranch",
+    version="6.0.1",
     author="Yves Auad",
     description="Set of tools to run VG Cold Microscope in Nionswift",
     url="https://github.com/yvesauad/swift_lumiere",
@@ -32,5 +32,7 @@ setup(
     ]
 
     )],
-    install_requires=["pyserial>=3.5", "requests>=2.25.1", "nionswift-usim>=0.3.0"]
+    install_requires=["pyserial>=3.5", "requests>=2.25.1",
+                      "nionswift-instrumentation>=0.20.3",
+                      "nionswift-eels-analysis>=0.6.0"]
 )

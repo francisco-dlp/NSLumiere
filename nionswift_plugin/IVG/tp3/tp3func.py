@@ -195,7 +195,7 @@ class TimePix3():
         detector_config["Fan2PWM"] = 100 #100V
         detector_config["TriggerPeriod"] = 1.0  # 1s
         detector_config["ExposureTime"] = 1.0  # 1s
-        detector_config["Tdc"] = ['PN4', 'P4']
+        detector_config["Tdc"] = ['PN0', 'P0']
 
         resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
@@ -916,8 +916,8 @@ class TimePix3():
         if message == 2:
             counter = 0
             while True:
-                dt_unique = numpy.dtype(numpy.uint8).newbyteorder('>')
-                dt = numpy.dtype(numpy.uint32).newbyteorder('>')
+                dt_unique = numpy.dtype(numpy.uint8).newbyteorder('<')
+                dt = numpy.dtype(numpy.uint32).newbyteorder('<')
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
@@ -1029,13 +1029,13 @@ class TimePix3():
         """
         frame_data = numpy.array(frame_data[:-1])
         if bitDepth == 8:
-            dt = numpy.dtype(numpy.uint8).newbyteorder('>')
+            dt = numpy.dtype(numpy.uint8).newbyteorder('<')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
         elif bitDepth == 16:
-            dt = numpy.dtype(numpy.uint16).newbyteorder('>')
+            dt = numpy.dtype(numpy.uint16).newbyteorder('<')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
         elif bitDepth == 32:
-            dt = numpy.dtype(numpy.uint32).newbyteorder('>')
+            dt = numpy.dtype(numpy.uint32).newbyteorder('<')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
         frame_int = numpy.reshape(frame_int, (height, width))
         return frame_int

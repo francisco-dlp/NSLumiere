@@ -6,7 +6,7 @@
     "COM_AIRLOCK": "COM99",
     "COM_GUN": "COM99",
     "FAST_PERIODIC": {
-      "ACTIVE": 1,
+      "ACTIVE": 0,
       "PERIOD": 0.1
     },
     "MAX_PTS": 5000,
@@ -43,5 +43,8 @@
   },
   "mirror": {
     "DEBUG": 1
+  },
+  "global_settings": {
+    "last_HT": "100"
   }
 }
