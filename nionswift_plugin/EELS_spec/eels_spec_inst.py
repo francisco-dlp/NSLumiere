@@ -68,6 +68,24 @@ class EELS_SPEC_Device(Observable.Observable):
         self.dx_slider_f = int(self.__eels_file.settings[self.__EHT][value]['dx'])
         self.dmx_slider_f = int(self.__eels_file.settings[self.__EHT][value]['dmx'])
 
+    def save_spec_values(self):
+        value = str(self.__dispIndex)
+        self.__eels_file.settings[self.__EHT][value]['range'] = self.range_f
+        self.__eels_file.settings[self.__EHT][value]['note'] = self.note_f
+        self.__eels_file.settings[self.__EHT][value]['fx'] = str(self.fx_slider_f)
+        self.__eels_file.settings[self.__EHT][value]['fy'] = str(self.fy_slider_f)
+        self.__eels_file.settings[self.__EHT][value]['sx'] = str(self.sx_slider_f)
+        self.__eels_file.settings[self.__EHT][value]['sy'] = str(self.sy_slider_f)
+        self.__eels_file.settings[self.__EHT][value]['dy'] = str(self.dy_slider_f)
+        self.__eels_file.settings[self.__EHT][value]['q1'] = str(self.q1_slider_f)
+        self.__eels_file.settings[self.__EHT][value]['q2'] = str(self.q2_slider_f)
+        self.__eels_file.settings[self.__EHT][value]['q3'] = str(self.q3_slider_f)
+        self.__eels_file.settings[self.__EHT][value]['q4'] = str(self.q4_slider_f)
+        self.__eels_file.settings[self.__EHT][value]['dx'] = str(self.dx_slider_f)
+        self.__eels_file.settings[self.__EHT][value]['dmx'] = str(self.dmx_slider_f)
+
+        self.__eels_file.save_locally()
+
     def EHT_change(self, value):
         self.__EHT = value  # next set at disp_change_f will going to be with the new self__EHT. Nice way of doing it
         self.disp_change_f = self.__dispIndex

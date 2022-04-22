@@ -259,19 +259,18 @@ class ivgInstrument(stem_controller.STEMController):
     @EHT_f.setter
     def EHT_f(self, value):
         if value == 0:
-            new_value = "40"
+            self.__EHT = "40"
         elif value == 1:
-            new_value = "60"
+            self.__EHT = "60"
         elif value == 2:
-            new_value = "80"
+            self.__EHT = "80"
         elif value == 3:
-            new_value = "100"
-        self.__EHT = new_value
-        self.__set_file.settings["global_settings"]["last_HT"] = new_value
+            self.__EHT = "100"
+        self.__set_file.settings["global_settings"]["last_HT"] = self.__EHT
         self.__set_file.save_locally()
         try:
             self.__lensInstrument.EHT_change(value)
-            self.__EELSInstrument.EHT_change(new_value)
+            self.__EELSInstrument.EHT_change(self.__EHT)
         except:
             logging.info('***IVG***: A problem happened in Lens or EELS Controller during HT change.')
         self.property_changed_event.fire('EHT_f')

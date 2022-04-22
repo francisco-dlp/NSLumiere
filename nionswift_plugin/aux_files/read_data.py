@@ -21,5 +21,5 @@ class FileManager:
 
     def save_locally(self):
         abs_path = os.path.abspath('C:\\ProgramData\\Microscope\\' + self.filename + '.json')
-        with open(abs_path, 'w') as json_file:
+        with open(abs_path, 'w+') as json_file:
             json.dump(self.settings, json_file, indent=4)
