@@ -27,7 +27,6 @@ set_file = read_data.FileManager('global_settings')
 SERIAL_PORT_GUN = set_file.settings["IVG"]["COM_GUN"]
 SERIAL_PORT_AIRLOCK = set_file.settings["IVG"]["COM_AIRLOCK"]
 SENDMAIL = set_file.settings["IVG"]["SENDMAIL"]
-FAST_PERIODIC = set_file.settings["IVG"]["FAST_PERIODIC"]["ACTIVE"]
 TIME_FAST_PERIODIC = set_file.settings["IVG"]["FAST_PERIODIC"]["PERIOD"]
 SLOW_PERIODIC = set_file.settings["IVG"]["SLOW_PERIODIC"]["ACTIVE"]
 TIME_SLOW_PERIODIC = set_file.settings["IVG"]["SLOW_PERIODIC"]["PERIOD"]
@@ -116,7 +115,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__EELS = "orsay_camera_eels"
 
         if SLOW_PERIODIC: self.periodic()
-        if FAST_PERIODIC: self.stage_periodic()
 
     def stage_periodic(self):
         if not self.__stage_thread.is_alive():

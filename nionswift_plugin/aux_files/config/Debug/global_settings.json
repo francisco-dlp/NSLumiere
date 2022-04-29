@@ -6,7 +6,6 @@
     "COM_AIRLOCK": "COM99",
     "COM_GUN": "COM99",
     "FAST_PERIODIC": {
-      "ACTIVE": 0,
       "PERIOD": 0.1
     },
     "MAX_PTS": 5000,

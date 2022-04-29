@@ -2,11 +2,11 @@
 import threading
 import numpy
 import queue
-import os, json
 
 from nion.utils import Event
 from nion.utils import Observable
 from nion.swift.model import HardwareSource
+from ..aux_files.config import read_data
 
 
 class OptSpecDevice(Observable.Observable):
@@ -36,15 +36,8 @@ class OptSpecDevice(Observable.Observable):
 
         self.__sendmessage = optSpec.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         if self.__model == 'PRINCETON':
-            abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
-            try:
-                with open(abs_path) as savfile:
-                    settings = json.load(savfile)
-            except FileNotFoundError:
-                abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
-                with open(abs_path) as savfile:
-                    settings = json.load(savfile)
-            SERIAL_PORT_PRINCETON = settings["spectrometer"]["COM_PRINCETON"]
+            set_file = read_data.FileManager('global_settings')
+            SERIAL_PORT_PRINCETON = set_file.settings["spectrometer"]["COM_PRINCETON"]
             self.__Spec = optSpec.OptSpectrometer(self.__sendmessage, SERIAL_PORT_PRINCETON)
         else:
             self.__Spec = optSpec.OptSpectrometer(self.__sendmessage)

@@ -1,5 +1,6 @@
 import serial
 import logging
+from ..aux_files.config import read_data
 
 __author__ = "Yves Auad"
 
@@ -47,31 +48,12 @@ class OptSpectrometer:
                 self.exit_slit = float(exit_line.split(b'um')[0].decode())
                 self.success = True
 
-                '''gratings = list()
-                self.lp_mm = list()
-                self.ser.write(b'?GRATINGS\r')
-                msg = True
-                while msg:
-                    line = self.ser.readline()
-                    if line:
-                        if b'g/mm' in line:
-                            gratings.append(line[4:-3].decode())
-                            self.lp_mm.append(float(line[4:8].decode()))
-                    if line[-4:-2] == b'ok':
-                        msg = False
-    
-                abs_path = os.path.abspath(os.path.join((__file__ + "/../../"), 'global_settings.json'))
-                with open(abs_path) as savfile:
-                    json_object = json.load(savfile)
-    
-                json_object["SPECTROMETER"]["GRATINGS"]["COMPLET"] = gratings
-                json_object["SPECTROMETER"]["GRATINGS"]["LP_MM"] = self.lp_mm
-    
-                with open(abs_path, 'w') as json_file:
-                    json.dump(json_object, json_file, indent=4)'''
         except Exception as e:
-            logging.info(f"Princeton spectrometer: Could not initialize spectro. Please check hardware. Exception: {e}.")
-        #    self.sendmessage(1)
+            set_file = read_data.FileManager('global_settings')
+            com_port = set_file.settings["spectrometer"]["COM_PRINCETON"]
+            path = set_file.abs_path
+            logging.info(f"Princeton spectrometer: Could not initialize spectro. Current COM port is {com_port}. " \
+                        f"Go to file {path} to change. Exception: {e}.")
 
     def try_open(self):
         if not self.ser.is_open:
