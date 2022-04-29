@@ -2,6 +2,7 @@
 import threading
 import numpy
 import queue
+import logging
 
 from nion.utils import Event
 from nion.utils import Observable
@@ -89,24 +90,24 @@ class OptSpecDevice(Observable.Observable):
         self.upt_calibs()
 
     def upt_calibs(self):
-        print(self.__eirecamera.camera.camera_model)
-        print(self.__eirecamera.camera.sizey)
-        if self.__eirecamera.camera.camera_model == 'Newton':
+        if self.__eirecamera.camera.camera_model == 'Newton' or self.__eirecamera.camera.camera_model == 'ProEM+: 1600xx(2)B eXcelon':
             self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
                                                 {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
                                                  "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
                                                  "units": "nm"}]
+        else:
+            logging.info('***OPT SPECT***: Camera not configured in upt_calibs.')
 
-        elif self.__eirecamera.camera.camera_model == 'ProEM+: 1600xx(2)B eXcelon':
-            if self.__eirecamera.camera.sizey == 1:
-                self.__eirecamera.camera.calibration = [{"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
-                                                 "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
-                                                 "units": "nm"}]
-            else:
-                self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
-                                                        {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
-                                                         "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
-                                                         "units": "nm"}]
+        # elif self.__eirecamera.camera.camera_model == 'ProEM+: 1600xx(2)B eXcelon':
+        #     if self.__eirecamera.camera.sizey == 1:
+        #         self.__eirecamera.camera.calibration = [{"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
+        #                                          "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
+        #                                          "units": "nm"}]
+        #     else:
+        #         self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
+        #                                                 {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
+        #                                                  "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
+        #                                                  "units": "nm"}]
 
     def measure(self):
         self.__running = True

@@ -21,6 +21,7 @@ from nion.instrumentation import camera_base
 from nionswift_plugin.IVG.tp3 import tp3func
 
 from nionswift_plugin.IVG import ivg_inst
+from ...aux_files.config import read_data
 
 _ = gettext.gettext
 
@@ -771,27 +772,9 @@ def periodic_logger():
 
 
 def run(instrument: ivg_inst.ivgInstrument):
-    cameras = list()
-    try:
-        # config_file = os.environ['ALLUSERSPROFILE'] + "\\Nion\\Nion Swift\\Orsay_cameras_list.json"
-        abs_path = os.path.abspath('C:\ProgramData\Microscope\Orsay_cameras_list.json')
-        try:
-            with open(abs_path) as savfile:
-                cameras = json.load(savfile)
-        except FileNotFoundError:
-            abs_path = os.path.join(os.path.dirname(__file__), '../../aux_files/config/Orsay_cameras_list.json')
-            with open(abs_path) as f:
-                cameras = json.load(f)
-    except Exception as e:
-        logging.info(f"***CAMERA***: No file has been found. Using pre-appended setting.")
-        cameras.append(
-            {"manufacturer": 1, "model": "KURO: 2048B", "type": "eels", "id": "orsay_camera_kuro", "name": "EELS",
-             "simulation": True})
-        cameras.append(
-            {"manufacturer": 1, "model": "ProEM+: 1600xx(2)B eXcelon", "type": "eire", "id": "orsay_camera_eire",
-             "name": "EIRE", "simulation": True})
+    set_file = read_data.FileManager('Orsay_cameras_list')
 
-    for camera in cameras:
+    for camera in set_file.settings:
         try:
             sn = ""
             if camera["manufacturer"] == 1:
@@ -813,16 +796,8 @@ def run(instrument: ivg_inst.ivgInstrument):
                                              camera["id"], camera["name"], camera["type"])
 
                 camera_settings = CameraSettings(camera_device)
-
-                Registry.register_component(CameraModule("VG_Lum_controller", camera_device, camera_settings),
+                Registry.register_component(CameraModule("VG_controller", camera_device, camera_settings),
                                             {"camera_module"})
-                # frame_parameters = camera_settings.get_current_frame_parameters()
-                # frame_parameters["simulated"] = camera["simulation"]
-                # camera_settings.set_current_frame_parameters(frame_parameters)
+            set_file.save_locally()
         except Exception as e:
             logging.info(f"Failed to start camera: {manufacturer}.  model: {model}. Exception: {e}")
-        # finally:
-        #    pass
-        # camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"], instrument, camera["id"], camera["name"], camera["type"])
-        # camera_settings = CameraSettings(camera_device)
-        # Registry.register_component(CameraModule("VG_Lum_controller", camera_device, camera_settings), {"camera_module"})
