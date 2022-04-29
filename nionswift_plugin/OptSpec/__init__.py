@@ -1,21 +1,10 @@
-#try:""
-#    from nion.swift.model import HardwareSource
-#except NameError:
 from nion.instrumentation import HardwareSource
 
 from . import optspec_inst, optspec_panel
-import os, json
+from ..aux_files.config import read_data
 
-abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
-try:
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
-except FileNotFoundError:
-    abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
-
-MANUFACTURER = settings["spectrometer"]["WHICH"]
+set_file = read_data.FileManager('global_settings')
+MANUFACTURER = set_file.settings["spectrometer"]["WHICH"]
 
 def run():
     for MAN in MANUFACTURER:

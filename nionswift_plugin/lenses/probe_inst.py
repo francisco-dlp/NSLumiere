@@ -1,23 +1,15 @@
 # standard libraries
-import json
-import os
 import logging
 import time
 
 from nion.utils import Event
 from nion.utils import Observable
 from nion.swift.model import HardwareSource
+from ..aux_files.config import read_data
 
-abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
-try:
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
-except FileNotFoundError:
-    abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
-
-SERIAL_PORT = settings["lenses"]["COM"]
+set_file = read_data.FileManager('global_settings')
+SERIAL_PORT = set_file.settings["lenses"]["COM"]
+LAST_HT = set_file.settings["global_settings"]["last_HT"]
 from . import lens_ps as lens_ps
 
 class probeDevice(Observable.Observable):
@@ -33,7 +25,8 @@ class probeDevice(Observable.Observable):
             from . import lens_ps_vi
             self.__lenses_ps = lens_ps_vi.Lenses()
 
-
+        self.__data = read_data.FileManager('lenses_settings')
+        self.__EHT = LAST_HT
         self.__obj = 0.
         self.__c1 = 0.
         self.__c2 = 0.
@@ -50,21 +43,13 @@ class probeDevice(Observable.Observable):
 
     def init_handler(self):
         try:
-            abs_path = os.path.abspath('C:\ProgramData\Microscope\lenses_settings.json')
-            try:
-                with open(abs_path) as savfile:
-                    data = json.load(savfile)
-            except FileNotFoundError:
-                abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/lenses_settings.json')
-                with open(abs_path) as savfile:
-                    data = json.load(savfile)  # data is load json
-            self.obj_edit_f = data["3"]["obj"]
-            self.c1_edit_f = data["3"]["c1"]
-            self.c2_edit_f = data["3"]['c2']
-            self.obj_stigmateur0_f=data["3"]["obj_stig_00"]
-            self.obj_stigmateur1_f=data["3"]["obj_stig_01"]
-            self.gun_stimateur0_f=data["3"]["gun_stig_02"]
-            self.gun_stigmateur1_f=data["3"]["gun_stig_03"]
+            self.obj_edit_f = self.__data.settings[self.__EHT]["obj"]
+            self.c1_edit_f = self.__data.settings[self.__EHT]["c1"]
+            self.c2_edit_f = self.__data.settings[self.__EHT]['c2']
+            self.obj_stigmateur0_f = self.__data.settings[self.__EHT]["obj_stig_00"]
+            self.obj_stigmateur1_f = self.__data.settings[self.__EHT]["obj_stig_01"]
+            self.gun_stimateur0_f = self.__data.settings[self.__EHT]["gun_stig_02"]
+            self.gun_stigmateur1_f = self.__data.settings[self.__EHT]["gun_stig_03"]
         except:
             logging.info('***LENSES***: No saved values.')
 
@@ -73,13 +58,21 @@ class probeDevice(Observable.Observable):
         self.c2_global_f = True
 
     def EHT_change(self, value):
-        inst_dir = os.path.dirname(__file__)
-        abs_path = os.path.join(inst_dir, '../aux_files/config/lenses_settings.json')
-        with open(abs_path) as savfile:
-            data = json.load(savfile)  # data is load json
-        self.obj_edit_f = data[str(value)]['obj']
-        self.c1_edit_f = data[str(value)]['c1']
-        self.c2_edit_f = data[str(value)]['c2']
+        self.__EHT = value
+        self.obj_edit_f = self.__data.settings[str(value)]['obj']
+        self.c1_edit_f = self.__data.settings[str(value)]['c1']
+        self.c2_edit_f = self.__data.settings[str(value)]['c2']
+
+    def save_values(self):
+        self.__data.settings[self.__EHT]["obj"] = self.obj_edit_f
+        self.__data.settings[self.__EHT]["c1"] = self.c1_edit_f
+        self.__data.settings[self.__EHT]['c2'] = self.c2_edit_f
+        self.__data.settings[self.__EHT]["obj_stig_00"] = self.obj_stigmateur0_f
+        self.__data.settings[self.__EHT]["obj_stig_01"] = self.obj_stigmateur1_f
+        self.__data.settings[self.__EHT]["gun_stig_02"] = self.gun_stimateur0_f
+        self.__data.settings[self.__EHT]["gun_stig_03"] = self.gun_stigmateur1_f
+
+        self.__data.save_locally()
 
     def get_values(self, which):
         cur, vol = self.__lenses_ps.locked_query(which)
