@@ -89,6 +89,8 @@ class OptSpecDevice(Observable.Observable):
         self.upt_calibs()
 
     def upt_calibs(self):
+        print(self.__eirecamera.camera.camera_model)
+        print(self.__eirecamera.camera.sizey)
         if self.__eirecamera.camera.camera_model == 'Newton':
             self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
                                                 {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,

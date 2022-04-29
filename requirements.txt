@@ -1,0 +1,4 @@
+nionswift-instrumentation==0.20.3
+pyserial==3.5
+requests==2.27.1
+

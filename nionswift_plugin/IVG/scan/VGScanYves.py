@@ -73,9 +73,6 @@ def test_update_scan_data_element(data_element, scan_frame_parameters, data_shap
 scan_base.update_scan_data_element = test_update_scan_data_element
 
 
-
-
-
 class Channel:
     def __init__(self, channel_id: int, name: str, enabled: bool):
         self.channel_id = channel_id
@@ -101,8 +98,8 @@ class Device:
 
     def __init__(self, instrument: ivg_inst.ivgInstrument):
         self.scan_device_id = "orsay_scan_device"
-        self.scan_device_name = _("VG Lumiere")
-        self.stem_controller_id = "VG_Lum_controller"
+        self.scan_device_name = _("VG")
+        self.stem_controller_id = "VG_controller"
         self.__channels = self.__get_channels()
         self.__frame = None
         self.__frame_number = 0
