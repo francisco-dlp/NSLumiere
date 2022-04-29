@@ -38,28 +38,13 @@ class diafhandler:
         self.event_loop.create_task(self.do_enable(False, []))
 
     def save_ROA(self, widget):
-        abs_path = os.path.abspath('C:\ProgramData\Microscope\diafs_settings.json')
-        with open(abs_path) as savfile:
-            json_object = json.load(savfile)  # data is load json
-
-        json_object['ROA'][self.obj_combo_box.current_item] = {"m1": self.m1_slider.value, "m2": self.m2_slider.value}
-        json_object['ROA']['last'] = self.obj_combo_box.current_index
-
-        with open(abs_path, 'w') as json_file:
-            json.dump(json_object, json_file, indent=4)
+        self.instrument.save_values(self.obj_combo_box.current_item, 'ROA')
 
         self.total_range(widget)
 
     def save_SA(self, widget):
-        abs_path = os.path.abspath('C:\ProgramData\Microscope\diafs_settings.json')
-        with open(abs_path) as savfile:
-            json_object = json.load(savfile)  # data is load json
-
-        json_object['VOA'][self.sa_combo_box.current_item] = {"m3": self.m3_slider.value, "m4": self.m4_slider.value}
-        json_object['VOA']['last'] = self.sa_combo_box.current_index
-
-        with open(abs_path, 'w') as json_file:
-            json.dump(json_object, json_file, indent=4)
+        self.instrument.save_values(self.sa_combo_box.current_item, 'ROA')
+        #json_object['VOA']['last'] = self.sa_combo_box.current_index
 
         self.total_range(widget)
 

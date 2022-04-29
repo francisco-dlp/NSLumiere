@@ -266,7 +266,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__set_file.settings["global_settings"]["last_HT"] = self.__EHT
         self.__set_file.save_locally()
         try:
-            self.__lensInstrument.EHT_change(value)
+            self.__lensInstrument.EHT_change(self.__EHT)
             self.__EELSInstrument.EHT_change(self.__EHT)
         except:
             logging.info('***IVG***: A problem happened in Lens or EELS Controller during HT change.')

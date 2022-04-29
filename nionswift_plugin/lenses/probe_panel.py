@@ -41,18 +41,7 @@ class gainhandler:
         self.event_loop.create_task(self.do_enable(False, []))
 
     def save_lenses(self, widget):
-        abs_path = os.path.abspath('C:\ProgramData\Microscope\lenses_settings.json')
-        with open(abs_path) as savfile:
-            json_object = json.load(savfile)
-
-
-        json_object[self.ivg.EHT_f] = {"obj": self.obj_value.text, "c1": self.c1_value.text, "c2": self.c2_value.text, \
-                                       "obj_stig_00": self.astig0_slider.value, "obj_stig_01": self.astig1_slider.value, \
-                                       "gun_stig_02": self.astig2_slider.value, "gun_stig_03": self.astig3_slider.value}
-
-
-        with open(abs_path, 'w') as json_file:
-            json.dump(json_object, json_file, indent=4)
+        self.instrument.save_values()
 
     def adj_values(self, widget):
         if widget == self.obj_slider:

@@ -1,22 +1,12 @@
 # standard libraries
-import json
-import os
 import logging
 
 from nion.utils import Event
 from nion.utils import Observable
+from ..aux_files.config import read_data
 
-
-abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
-try:
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
-except FileNotFoundError:
-    abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
-
-SERIAL_PORT = settings["diaf"]["COM"]
+set_file = read_data.FileManager('global_settings')
+SERIAL_PORT = set_file.settings["diaf"]["COM"]
 START_DIAF = True
 
 from . import diaf as diaf
@@ -29,6 +19,7 @@ class diafDevice(Observable.Observable):
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
         self.set_full_range = Event.Event()
+        self.__data = read_data.FileManager('diafs_settings')
 
         self.__apert = diaf.Diafs(SERIAL_PORT)
         if not self.__apert.succesfull:
@@ -37,36 +28,30 @@ class diafDevice(Observable.Observable):
 
         if START_DIAF:
             try:
-                abs_path = os.path.abspath('C:\ProgramData\Microscope\diafs_settings.json')
-                try:
-                    with open(abs_path) as savfile:
-                        data = json.load(savfile)
-                except FileNotFoundError:
-                    abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/diafs_settings.json')
-                    with open(abs_path) as savfile:
-                        data = json.load(savfile)  # data is load json
-                self.roa_change_f = int(data['ROA']['last'])
-                self.voa_change_f = int(data['VOA']['last'])
+                self.roa_change_f = int(self.__data.settings['ROA']['last'])
+                self.voa_change_f = int(self.__data.settings['VOA']['last'])
             except:
                 logging.info('***APERTURES***: No saved values. Check your json file.')
 
     def set_values(self, value, which):
         diaf_list = ['None', '50', '100', '150']
         value = diaf_list[value]
-        abs_path = os.path.abspath('C:\ProgramData\Microscope\diafs_settings.json')
-        try:
-            with open(abs_path) as savfile:
-                data = json.load(savfile)
-        except FileNotFoundError:
-            abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/diafs_settings.json')
-            with open(abs_path) as savfile:
-                data = json.load(savfile)  # data is load json
         if which == 'ROA':
-            self.m1_f = data[which][value]['m1']
-            self.m2_f = data[which][value]['m2']
+            self.m1_f = self.__data.settings[which][value]['m1']
+            self.m2_f = self.__data.settings[which][value]['m2']
         elif which == 'VOA':
-            self.m3_f = data[which][value]['m3']
-            self.m4_f = data[which][value]['m4']
+            self.m3_f = self.__data.settings[which][value]['m3']
+            self.m4_f = self.__data.settings[which][value]['m4']
+
+    def save_values(self, value, which):
+        if which == 'ROA':
+            self.__data.settings[which][value]['m1'] = self.m1_f
+            self.__data.settings[which][value]['m2'] = self.m2_f
+        elif which == 'VOA':
+            self.__data.settings[which][value]['m3'] = self.m3_f
+            self.__data.settings[which][value]['m4'] = self.m4_f
+
+        self.__data.save_locally()
 
     @property
     def voa_change_f(self):
