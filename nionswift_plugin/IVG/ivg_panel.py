@@ -105,7 +105,10 @@ class ivghandler:
             if var not in not_affected_widget_name_list:
                 if isinstance(getattr(self,var),UserInterface.Widget):
                     widg=getattr(self,var)
-                    setattr(widg, "enabled", enabled)
+                    try:
+                        setattr(widg, "enabled", enabled)
+                    except AttributeError:
+                        pass
 
     def prepare_widget_enable(self, value):
         self.event_loop.create_task(self.do_enable(True, []))

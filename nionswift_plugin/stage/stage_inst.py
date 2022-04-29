@@ -18,9 +18,7 @@ if DEBUG:
 else:
     from . import VGStage as stage
 
-
 class stageDevice(Observable.Observable):
-
     def __init__(self):
         logging.info(f'***VG STAGE***: Placing Stepper.dll in {sys.executable}.')
         dll_path = os.path.join(os.path.dirname(__file__), '../aux_files/DLLs/Stepper.dll')
@@ -36,18 +34,25 @@ class stageDevice(Observable.Observable):
         self.property_changed_power_event = Event.Event()
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
-        
+
+        self.__data = read_data.FileManager("stage_settings")
         self.__sendmessage = stage.SENDMYMESSAGEFUNC(self.sendMessageFactory())
         self.__vgStage=stage.VGStage(self.__sendmessage)
 
         self.__x, self.__y = self.__vgStage.stageGetPosition()
+        self.__text = self.__data.settings['text']
+
+    def save_values(self, string):
+        self.__data.settings['text'] = string
+        self.__data.settings['pos']['x'] = self.__x
+        self.__data.settings['pos']['x'] = self.__y
+        self.__data.save_locally()
 
     def GetPos(self):
         return self.__vgStage.stageGetPosition()
 
     def set_origin(self):
-        #self.__vgStage.stageInit(True, True, True)
-        logging.info('***VG STAGE***: Disabled for now. X switch seems to be malfunctioning.')
+        self.__vgStage.stageInit(True, True, True)
 
 
     def free_UI(self, *args):
@@ -116,3 +121,12 @@ class stageDevice(Observable.Observable):
         self.__vgStage.stageGoTo_y(self.__y)
         self.property_changed_event.fire('y_pos_f')
         self.property_changed_event.fire('y_pos_edit_f')
+
+    @property
+    def text_f(self):
+        return self.__text
+
+    @text_f.setter
+    def text_f(self, value):
+        self.__text = value
+        self.save_values(value)

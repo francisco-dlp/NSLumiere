@@ -66,7 +66,7 @@ class stageView:
         self.set_origin_pb=ui.create_push_button(name='set_origin_pb', text='Set Origin', on_clicked='set_origin')
         self.request = ui.create_push_button(name='request', text='Request', on_clicked='request_pb')
         self.reset_ui = ui.create_push_button(name='reset_ui', text='goTo Origin', on_clicked='reset_ui_pb')
-        self.list_positions=ui.create_text_edit(name='list_positions')
+        self.list_positions=ui.create_text_edit(name='list_positions', text='@binding(instrument.text_f)')
         self.button_row=ui.create_row(ui.create_stretch(), self.request, self.reset_ui, self.add_pb, self.set_origin_pb)
 
         ### SLIDERS ###
