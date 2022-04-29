@@ -81,7 +81,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__c1_vol = self.__c1_res = self.__c2_vol = self.__c2_res = 0.0
 
 
-
         self.__x_real_pos = self.__y_real_pos = 0.0
 
         self.__loop_index = 0

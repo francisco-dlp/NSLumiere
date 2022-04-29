@@ -42,7 +42,7 @@ class EELS_SPEC_Device(Observable.Observable):
         self.__EHT = LAST_HT
 
         self.__eels_file = read_data.FileManager("eels_settings")
-        self.__dispIndex = self.__eels_file.settings[self.__EHT]["last"]
+        self.__dispIndex = self.__eels_file.settings["last"]
         self.disp_change_f = self.__dispIndex  # put last index
 
     def init_handler(self):
@@ -68,8 +68,12 @@ class EELS_SPEC_Device(Observable.Observable):
         self.dx_slider_f = int(self.__eels_file.settings[self.__EHT][value]['dx'])
         self.dmx_slider_f = int(self.__eels_file.settings[self.__EHT][value]['dmx'])
 
+        self.__eels_file.settings['last'] = self.__dispIndex
+        self.__eels_file.save_locally()
+
     def save_spec_values(self):
         value = str(self.__dispIndex)
+        self.__eels_file.settings['last'] = self.__dispIndex
         self.__eels_file.settings[self.__EHT][value]['range'] = self.range_f
         self.__eels_file.settings[self.__EHT][value]['note'] = self.note_f
         self.__eels_file.settings[self.__EHT][value]['fx'] = str(self.fx_slider_f)

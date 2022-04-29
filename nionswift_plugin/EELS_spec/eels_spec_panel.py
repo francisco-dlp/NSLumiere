@@ -61,6 +61,22 @@ class eels_spec_handler:
 
     def save_spec(self, widget):
         self.instrument.save_spec_values()
+        # abs_path = os.path.abspath('C:\ProgramData\Microscope\eels_settings.json')
+        # with open(abs_path) as savfile:
+        #     json_object = json.load(savfile)
+        #
+        # json_object[str(self.ivg.EHT_f)][self.dispersion_value.current_index] = { \
+        #     'range': self.range_value.text, 'note': self.note_text.text, 'fx': self.fx_value.text, 'fy': self.fy_value.text,
+        #     'sx': self.sx_value.text,
+        #     'sy': self.sy_value.text, 'dy': self.dy_value.text, 'q1': self.q1_value.text, \
+        #     'q2': self.q2_value.text, 'q3': self.q3_value.text, 'q4': self.q4_value.text, \
+        #     'dx': self.dx_value.text, 'dmx': self.dmx_value.text, }
+        #
+        # json_object[str(self.ivg.EHT_f)]['last'] = self.dispersion_value.current_index
+        #
+        # with open(abs_path, 'w') as json_file:
+        #     json.dump(json_object, json_file, indent=4)
+
         self.release_all()
 
     def full_range(self, widget):
