@@ -3,13 +3,11 @@ import threading
 import logging
 
 from nion.swift.model import HardwareSource
-from ..aux_files.config import read_data
 from . import Lens_controller
 
-set_file = read_data.FileManager('global_settings')
-MAX_OBJ = set_file.settings["lenses"]["MAX_OBJ"]
-MAX_C1 = set_file.settings["lenses"]["MAX_C1"]
-MAX_C2 = set_file.settings["lenses"]["MAX_C2"]
+MAX_OBJ = 9.5
+MAX_C1 = 1.5
+MAX_C2 = 1.5
 
 __author__ = "Yves Auad"
 

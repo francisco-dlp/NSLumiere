@@ -5,6 +5,7 @@ import logging
 
 from nion.utils import Event
 from nion.utils import Observable
+from nion.instrumentation.HardwareSource import Instrument
 
 from ..aux_files.config import read_data
 
@@ -14,7 +15,7 @@ LAST_HT = set_file.settings["global_settings"]["last_HT"]
 
 from . import eels_spec as spec
 
-class EELS_SPEC_Device(Observable.Observable):
+class EELS_SPEC_Device(Instrument):
 
     def __init__(self, nElem, ElemNames):
         self.property_changed_event = Event.Event()

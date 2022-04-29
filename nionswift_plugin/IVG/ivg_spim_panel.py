@@ -47,7 +47,10 @@ class ivgSpimhandler:
             if var not in not_affected_widget_name_list:
                 if isinstance(getattr(self, var), UserInterface.Widget):
                     widg=getattr(self, var)
-                    setattr(widg, "enabled", enabled)
+                    try:
+                        setattr(widg, "enabled", enabled)
+                    except AttributeError:
+                        pass
 
     async def data_item_show(self, DI):
         self.document_controller.document_model.append_data_item(DI)

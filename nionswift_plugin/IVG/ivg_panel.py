@@ -1,7 +1,5 @@
 # standard libraries
 import gettext
-import os
-import json
 import numpy
 
 from nion.swift import Panel
@@ -17,16 +15,8 @@ from . import ivg_inst
 
 _ = gettext.gettext
 
-abs_path = os.path.abspath('C:\ProgramData\Microscope\global_settings.json')
-try:
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
-except FileNotFoundError:
-    abs_path = os.path.join(os.path.dirname(__file__), '../aux_files/config/global_settings.json')
-    with open(abs_path) as savfile:
-        settings = json.load(savfile)
 
-MAX_PTS = settings["IVG"]["MAX_PTS"]
+MAX_PTS = 5000
 STAGE_MATRIX_SIZE = 210
 
 class dataItemCreation():
@@ -85,7 +75,6 @@ class dataItemCreation():
 
 
 class ivghandler:
-
 
     def __init__(self,instrument:ivg_inst.ivgInstrument, document_controller):
 

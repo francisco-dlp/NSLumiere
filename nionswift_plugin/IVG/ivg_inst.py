@@ -26,14 +26,14 @@ set_file = read_data.FileManager('global_settings')
 
 SERIAL_PORT_GUN = set_file.settings["IVG"]["COM_GUN"]
 SERIAL_PORT_AIRLOCK = set_file.settings["IVG"]["COM_AIRLOCK"]
-SENDMAIL = set_file.settings["IVG"]["SENDMAIL"]
-TIME_FAST_PERIODIC = set_file.settings["IVG"]["FAST_PERIODIC"]["PERIOD"]
-SLOW_PERIODIC = set_file.settings["IVG"]["SLOW_PERIODIC"]["ACTIVE"]
-TIME_SLOW_PERIODIC = set_file.settings["IVG"]["SLOW_PERIODIC"]["PERIOD"]
-OBJECTIVE_MAX_TEMPERATURE = set_file.settings["IVG"]["OBJECTIVE"]["MAX_TEMP"]
-OBJECTIVE_RESISTANCE = set_file.settings["IVG"]["OBJECTIVE"]["RESISTANCE"]
-TEMP_COEF = set_file.settings["IVG"]["OBJECTIVE"]["TEMP_COEF"]
-MAX_PTS = set_file.settings["IVG"]["MAX_PTS"]
+SENDMAIL = 0
+SLOW_PERIODIC = 1
+TIME_SLOW_PERIODIC = 1.0
+OBJECTIVE_MAX_TEMPERATURE = 60.0
+OBJECTIVE_RESISTANCE = 5.18
+TEMP_COEF = 0.004041
+MAX_PTS = 5000
+TIME_FAST_PERIODIC = 0.1
 
 from . import gun as gun
 from . import airlock as al
