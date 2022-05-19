@@ -7,9 +7,10 @@ from nion.utils import Event
 from nion.utils import Observable
 from nion.instrumentation.HardwareSource import Instrument
 
-from ..aux_files.config import read_data
+from ..aux_files import read_data
 
 set_file = read_data.FileManager('global_settings')
+print(set_file.settings.keys())
 SERIAL_PORT = set_file.settings["EELS"]["COM"]
 LAST_HT = set_file.settings["global_settings"]["last_HT"]
 
