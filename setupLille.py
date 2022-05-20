@@ -13,6 +13,7 @@ setup(
         'nionswift_plugin/aux_files/config/Lille/global_settings.json',
         'nionswift_plugin/aux_files/config/Lille/eels_settings.json',
         'nionswift_plugin/aux_files/config/Lille/Orsay_cameras_list.json',
+        'nionswift_plugin/aux_files/read_data.py'
 
     ]), ('nionswift_plugin/aux_files/DLLs', [
         'nionswift_plugin/aux_files/DLLs/Cameras.dll',
@@ -28,5 +29,5 @@ setup(
     ]
 
     )],
-    install_requires=["pyserial>=3.5", "requests>=2.25.1", "nionswift-usim>=0.3.0"]
+    zip_safe = False
 )

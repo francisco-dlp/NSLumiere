@@ -16,6 +16,7 @@ from nion.swift.model import HardwareSource
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
+SPIM_SIZE = 1025 + 16
 
 class Response():
     def __init__(self):
@@ -885,11 +886,11 @@ class TimePix3():
 
         max_val = max(x_size, y_size)
         if max_val <= 64:
-            self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint32)
+            self.__spimData = numpy.zeros(x_size * y_size * SPIM_SIZE, dtype=numpy.uint32)
         elif max_val <= 512:
-            self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint16)
+            self.__spimData = numpy.zeros(x_size * y_size * SPIM_SIZE, dtype=numpy.uint16)
         else:
-            self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint8)
+            self.__spimData = numpy.zeros(x_size * y_size * SPIM_SIZE, dtype=numpy.uint8)
 
         #Scan and Spim are equal here
         #self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint8)
@@ -1062,4 +1063,4 @@ class TimePix3():
         return frame_int
 
     def create_spimimage_from_events(self):
-        return self.__spimData.reshape((self.__yspim, self.__xspim, 1025))
+        return self.__spimData.reshape((self.__yspim, self.__xspim, SPIM_SIZE))
