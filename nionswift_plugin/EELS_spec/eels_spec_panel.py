@@ -61,22 +61,6 @@ class eels_spec_handler:
 
     def save_spec(self, widget):
         self.instrument.save_spec_values()
-        # abs_path = os.path.abspath('C:\ProgramData\Microscope\eels_settings.json')
-        # with open(abs_path) as savfile:
-        #     json_object = json.load(savfile)
-        #
-        # json_object[str(self.ivg.EHT_f)][self.dispersion_value.current_index] = { \
-        #     'range': self.range_value.text, 'note': self.note_text.text, 'fx': self.fx_value.text, 'fy': self.fy_value.text,
-        #     'sx': self.sx_value.text,
-        #     'sy': self.sy_value.text, 'dy': self.dy_value.text, 'q1': self.q1_value.text, \
-        #     'q2': self.q2_value.text, 'q3': self.q3_value.text, 'q4': self.q4_value.text, \
-        #     'dx': self.dx_value.text, 'dmx': self.dmx_value.text, }
-        #
-        # json_object[str(self.ivg.EHT_f)]['last'] = self.dispersion_value.current_index
-        #
-        # with open(abs_path, 'w') as json_file:
-        #     json.dump(json_object, json_file, indent=4)
-
         self.release_all()
 
     def full_range(self, widget):
@@ -98,6 +82,12 @@ class eels_spec_handler:
                      self.dx_slider, self.dmx_slider]:
             prop.maximum = prop.value + 2500
             prop.minimum = prop.value - 2500
+
+    def select_save_file(self, widget):
+        self.instrument.set_eels_file(self.save_pick.text)
+
+    def clone_save_file(self, widget):
+        self.instrument.clone_eels_file(self.save_pick.text)
 
 class eels_spec_View:
 
@@ -178,9 +168,16 @@ class eels_spec_View:
         self.wobbler_group = ui.create_group(title='Wobbler', content=self.wobbler_row)
 
         # save button
-
         self.save_pb = ui.create_push_button(text='Save Settings', name='save_pb', on_clicked='save_spec', width='100')
         self.pb_row = ui.create_row(self.full_range_pb, ui.create_stretch(), self.save_pb)
+
+        # File pick
+
+        self.save_label = ui.create_label(name='save_label', text='EELS file: ')
+        self.save_pick = ui.create_line_edit(name='save_pick', width=100, text='@binding(instrument.eels_filename_f)')
+        self.save_pick_pb = ui.create_push_button(text='Grab', name='save_pick_pb', on_clicked='select_save_file', width=50)
+        self.clone_save_pick_pb = ui.create_push_button(text='Clone', name='save_pick_pb', on_clicked='clone_save_file', width=50)
+        self.save_row = ui.create_row(self.save_label, self.save_pick, ui.create_stretch(), self.save_pick_pb, self.clone_save_pick_pb)
 
         # first tab
 
@@ -192,7 +189,8 @@ class eels_spec_View:
             self.second_order_group, \
             self.tare_column, \
             self.wobbler_group, \
-            self.pb_row))
+            self.pb_row, \
+            self.save_row))
 
         # begin second tab
 

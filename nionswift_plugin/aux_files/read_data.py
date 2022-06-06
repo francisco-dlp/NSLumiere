@@ -23,3 +23,8 @@ class FileManager:
         abs_path = os.path.abspath('C:\\ProgramData\\Microscope\\' + self.filename + '.json')
         with open(abs_path, 'w+') as json_file:
             json.dump(self.settings, json_file, indent=4)
+
+    def save_clone(self, new_path):
+        abs_path = os.path.abspath('C:\\ProgramData\\Microscope\\' + new_path + '.json')
+        with open(abs_path, 'w+') as json_file:
+            json.dump(self.settings, json_file, indent=4)

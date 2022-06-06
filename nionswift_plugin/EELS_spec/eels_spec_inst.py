@@ -42,7 +42,8 @@ class EELS_SPEC_Device(Instrument):
 
         self.__EHT = LAST_HT
 
-        self.__eels_file = read_data.FileManager("eels_settings")
+        self.__eels_file_name = "eels_settings"
+        self.__eels_file = read_data.FileManager(self.__eels_file_name)
         self.__dispIndex = self.__eels_file.settings["last"]
         self.disp_change_f = self.__dispIndex  # put last index
 
@@ -53,6 +54,18 @@ class EELS_SPEC_Device(Instrument):
         self.ene_offset_f = 0 #putting VSM back to zero
         return  (self.is_vsm, self.is_spec)
 
+    def set_eels_file(self, filename):
+        try:
+            self.__eels_file_name = filename
+            self.__eels_file = read_data.FileManager(self.__eels_file_name) #Use new file
+            self.disp_change_f = self.__dispIndex #Update the values
+            logging.info(f"EELS reference filename changed to {self.__eels_file_name}.")
+        except FileNotFoundError:
+            logging.info(f"EELS reference filename {self.__eels_file_name} was not found.")
+
+    def clone_eels_file(self, filename):
+        self.__eels_file.save_clone(filename)
+        self.set_eels_file(filename)
 
     def set_spec_values(self, value):
         self.range_f = self.__eels_file.settings[self.__EHT][value]['range']
@@ -513,3 +526,11 @@ class EELS_SPEC_Device(Instrument):
         else:
             self.__eels_spec.wobbler_off()
             self.ene_offset_edit_f = self.__elem[11]
+
+    @property
+    def eels_filename_f(self):
+        return self.__eels_file_name
+
+    @eels_filename_f.setter
+    def eels_filename_f(self, value):
+        self.__eels_file_name = value

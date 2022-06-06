@@ -1,4 +1,3 @@
 nionswift-instrumentation==0.20.4
 pyserial==3.5
 requests==2.27.1
-
