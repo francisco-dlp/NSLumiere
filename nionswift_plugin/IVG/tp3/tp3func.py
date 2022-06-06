@@ -214,7 +214,7 @@ class TimePix3():
                     "Base": "tcp://connect@127.0.0.1:8098",
                 }]
             }
-        elif port == 1:
+        elif port == 1 or port == 2:
             destination = {
                 "Raw": [{
                     #"Base": "file:/home/asi/load_files/data",
@@ -246,7 +246,7 @@ class TimePix3():
         logging.info(f'***TP3***: Selected port is {port} and corresponds to: ' + options[port])
 
     def getPortNames(self):
-        return ['TCP Stream', 'Save Locally']
+        return ['TCP Stream', 'Save Locally', 'Save IsiBox Locally']
 
     def getCCDSize(self):
         return (256, 1024)
@@ -333,7 +333,7 @@ class TimePix3():
         self.__isCumul = bool(accumulate)
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
-        if self.getCCDStatus() == "DA_IDLE" and (self.__tp3mode == 0 or self.__tp3mode == 1):
+        if self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
             self.start_listening(port, message=message)
@@ -655,8 +655,16 @@ class TimePix3():
             self.__dataQueue = queue.LifoQueue()
             self.__eventQueue = queue.Queue()
 
-    def create_config_bytes(self):
-        pass
+    def save_locally_routine(self):
+        logging.info(
+            '***TP3***: Save locally is activated. No socket will be open. Line start and line 05 is sent to TDC.')
+        try:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
+        except AttributeError:
+            logging.info("***TP3***: Could not set TDC to spim acquisition.")
 
     def acquire_streamed_frame(self, port, message):
         """
@@ -671,16 +679,12 @@ class TimePix3():
         check string value is a convenient function to detect the values using the header standard format for jsonimage.
         """
 
+        mode = self.__tp3mode
         if self.__port==1:
-            logging.info('***TP3***: Save locally is activated. No socket will be open. Line start and line 05 is sent to TDC.')
-            try:
-                scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                    "orsay_scan_device")
-                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-                scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
-            except AttributeError:
-                logging.info("***TP3***: Could not set TDC to spim acquisition.")
+            self.save_locally_routine()
             return
+        elif self.__port == 2:
+            mode = 8
 
         inputs = list()
         outputs = list()
@@ -724,7 +728,7 @@ class TimePix3():
         else:
             config_bytes += b'\x00'  # Cumul is OFF
 
-        config_bytes += bytes([self.__tp3mode])
+        config_bytes += bytes([mode])
         assert message == 1 or message == 3 #Focus/Cumul (message=1) and Chrono (message=3)
         size = int(self.__accumulation)
         config_bytes += size.to_bytes(2, 'big')
@@ -750,6 +754,7 @@ class TimePix3():
         config_bytes += struct.pack(">H", int(self.__width))  # BE. See https://docs.python.org/3/library/struct.html
 
         client.send(config_bytes)
+
 
         def check_string_value(header, prop):
             """

@@ -54,7 +54,6 @@ class stageDevice(Observable.Observable):
     def set_origin(self):
         self.__vgStage.stageInit(True, True, True)
 
-
     def free_UI(self, *args):
         for arg in args:
             if arg=='x':
@@ -76,7 +75,6 @@ class stageDevice(Observable.Observable):
                 logging.info("***VG STAGE***: Attempt to input a value out of boundary. Please if the value makes sense check VG Stage origin.")
 
         return sendMessage
-
 
     @property
     def x_pos_f(self):

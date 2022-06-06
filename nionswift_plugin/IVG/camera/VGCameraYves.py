@@ -179,97 +179,100 @@ class CameraDevice(camera_base.CameraDevice):
         return self.current_camera_settings
 
     def set_frame_parameters(self, frame_parameters: dict) -> None:
-        if self.__hardware_settings.exposure_ms != frame_parameters.exposure_ms:
-            self.__hardware_settings.exposure_ms = frame_parameters.exposure_ms
-            self.camera.setExposureTime(frame_parameters.exposure_ms / 1000.)
+        frame_parameters = frame_parameters.as_dict()
+        print(frame_parameters)
+
+        if self.__hardware_settings.exposure_ms != frame_parameters['exposure_ms']:
+            self.__hardware_settings.exposure_ms = frame_parameters['exposure_ms']
+            self.camera.setExposureTime(frame_parameters['exposure_ms'] / 1000.)
             if self.frame_parameter_changed_event is not None:
                 self.frame_parameter_changed_event.fire("exposure_ms")
 
-        #if "acquisition_mode" in frame_parameters:
-        if hasattr(frame_parameters, "acquisition_mode"):
+        if "acquisition_mode" in frame_parameters:
+        #if hasattr(frame_parameters, "acquisition_mode"):
             if self.frame_parameter_changed_event is not None:
                 self.frame_parameter_changed_event.fire("acquisition_mode")
 
-        #if "soft_binning" in frame_parameters:
-        if hasattr(frame_parameters, "soft_binning"):
-            self.__hardware_settings.soft_binning = frame_parameters.soft_binning
-            if self.__hardware_settings.acquisition_mode != frame_parameters.acquisition_mode:
-                self.__hardware_settings.acquisition_mode = frame_parameters.acquisition_mode
+        if "soft_binning" in frame_parameters:
+        #if hasattr(frame_parameters, "soft_binning"):
+            self.__hardware_settings.soft_binning = frame_parameters['soft_binning']
+            if self.__hardware_settings.acquisition_mode != frame_parameters['acquisition_mode']:
+                self.__hardware_settings.acquisition_mode = frame_parameters['acquisition_mode']
             print(f"***CAMERA***: acquisition mode[camera]: {self.__hardware_settings.acquisition_mode}")
-            self.__hardware_settings.spectra_count = frame_parameters.spectra_count
+            self.__hardware_settings.spectra_count = frame_parameters['spectra_count']
 
-        #if "port" in frame_parameters:
-        if hasattr(frame_parameters, "port"):
-            if self.__hardware_settings.port != frame_parameters.port:
-                self.__hardware_settings.port = frame_parameters.port
-                self.camera.setCurrentPort(frame_parameters.port)
+        if "port" in frame_parameters:
+        #if hasattr(frame_parameters, "port"):
+            if self.__hardware_settings.port != frame_parameters['port']:
+                self.__hardware_settings.port = frame_parameters['port']
+                self.camera.setCurrentPort(frame_parameters['port'])
 
-        #if "speed" in frame_parameters:
-        if hasattr(frame_parameters, "speed"):
-            if self.__hardware_settings.speed != frame_parameters.speed:
-                self.__hardware_settings.speed = frame_parameters.speed
-                self.camera.setSpeed(self.__hardware_settings.port, frame_parameters.speed)
+        if "speed" in frame_parameters:
+        #if hasattr(frame_parameters, "speed"):
+            if self.__hardware_settings.speed != frame_parameters['speed']:
+                self.__hardware_settings.speed = frame_parameters['speed']
+                self.camera.setSpeed(self.__hardware_settings.port, frame_parameters['speed'])
 
-        #if "area" in frame_parameters:
-        if hasattr(frame_parameters, "area"):
-            if any(i != j for i, j in zip(self.__hardware_settings.area, frame_parameters.area)):
+        if "area" in frame_parameters:
+        #if hasattr(frame_parameters, "area"):
+            if any(i != j for i, j in zip(self.__hardware_settings.area, frame_parameters['area'])):
                 # if change area, put back binning to 1,1 temporarily in order to avoid conflicts, binnig will then be setup later
                 self.__hardware_settings.h_binning = 1
                 self.__hardware_settings.v_binning = 1
-                self.camera.setBinning(self.__hardware_settings.h_binning, self.__hardware_settings.v_binning)
-                self.__hardware_settings.area = frame_parameters.area
-                self.camera.setArea(self.__hardware_settings.area)
+                self.camera.setBinning(self.__hardware_settings.h_binning, self.__hardware_settings['v_binning'])
+                self.__hardware_settings.area = frame_parameters['area']
+                self.camera.setArea(self.__hardware_settings['area'])
 
-        #if ("h_binning" in frame_parameters) and ("v_binning" in frame_parameters):
-        if hasattr(frame_parameters, "h_binning") and hasattr(frame_parameters, "v_binning"):
-            if (self.__hardware_settings.h_binning != frame_parameters.h_binning) \
-                    or (self.__hardware_settings.v_binning != frame_parameters.v_binning):
-                self.camera.setBinning(frame_parameters.h_binning, frame_parameters.v_binning)
+        if ("h_binning" in frame_parameters) and ("v_binning" in frame_parameters):
+        #if hasattr(frame_parameters, "h_binning") and hasattr(frame_parameters, "v_binning"):
+            if (self.__hardware_settings.h_binning != frame_parameters['h_binning']) \
+                    or (self.__hardware_settings.v_binning != frame_parameters['v_binning']):
+                self.camera.setBinning(frame_parameters['h_binning'], frame_parameters['v_binning'])
                 self.__hardware_settings.h_binning, self.__hardware_settings.v_binning = self.camera.getBinning()
 
-        #if "gain" in frame_parameters:
-        if hasattr(frame_parameters, "gain"):
-            if self.__hardware_settings.gain != frame_parameters.gain:
-                self.__hardware_settings.gain = frame_parameters.gain
+        if "gain" in frame_parameters:
+        #if hasattr(frame_parameters, "gain"):
+            if self.__hardware_settings.gain != frame_parameters['gain']:
+                self.__hardware_settings.gain = frame_parameters['gain']
                 self.camera.setGain(self.__hardware_settings.gain)
 
-        #if "multiplication" in frame_parameters:
-        if hasattr(frame_parameters, "multiplication"):
-            if self.__hardware_settings.multiplication != frame_parameters.multiplication:
-                self.__hardware_settings.multiplication = frame_parameters.multiplication
+        if "multiplication" in frame_parameters:
+        #if hasattr(frame_parameters, "multiplication"):
+            if self.__hardware_settings.multiplication != frame_parameters['multiplication']:
+                self.__hardware_settings.multiplication = frame_parameters['multiplication']
                 self.camera.setMultiplication(self.__hardware_settings.multiplication)
 
-        #if "spectra_count" in frame_parameters:
-        if hasattr(frame_parameters, "spectra_count"):
-            self.__hardware_settings.spectra_count = frame_parameters.spectra_count
+        if "spectra_count" in frame_parameters:
+        #if hasattr(frame_parameters, "spectra_count"):
+            self.__hardware_settings.spectra_count = frame_parameters['spectra_count']
             self.camera.setAccumulationNumber(self.__hardware_settings.spectra_count)
-        #if "video_threshold" in frame_parameters:
-        if hasattr(frame_parameters, "video_threshold"):
-            self.__hardware_settings.video_threshold = frame_parameters.video_threshold
+        if "video_threshold" in frame_parameters:
+        #if hasattr(frame_parameters, "video_threshold"):
+            self.__hardware_settings.video_threshold = frame_parameters['video_threshold']
             self.camera.setVideoThreshold(self.__hardware_settings.video_threshold)
-        #if "fan_enabled" in frame_parameters:
-        if hasattr(frame_parameters, "fan_enabled"):
-            self.__hardware_settings.fan_enabled = frame_parameters.fan_enabled
+        if "fan_enabled" in frame_parameters:
+        #if hasattr(frame_parameters, "fan_enabled"):
+            self.__hardware_settings.fan_enabled = frame_parameters['fan_enabled']
             self.camera.setFan(self.__hardware_settings.fan_enabled)
 
-        #if "processing" in frame_parameters:
-        if hasattr(frame_parameters, "processing"):
-            self.__hardware_settings.processing = frame_parameters.processing
+        if "processing" in frame_parameters:
+        #if hasattr(frame_parameters, "processing"):
+            self.__hardware_settings.processing = frame_parameters['processing']
 
-        #if self.isTimepix and "timeDelay" in frame_parameters:
-        if hasattr(frame_parameters, "timeDelay") and self.isTimepix:
-            self.__hardware_settings.timeDelay = frame_parameters.timeDelay
-            self.camera.setDelayTime(frame_parameters.timeDelay)
+        if self.isTimepix and "timeDelay" in frame_parameters:
+        #if hasattr(frame_parameters, "timeDelay") and self.isTimepix:
+            self.__hardware_settings.timeDelay = frame_parameters['timeDelay']
+            self.camera.setDelayTime(frame_parameters['timeDelay'])
 
-        #if self.isTimepix and "timeWidth" in frame_parameters:
-        if hasattr(frame_parameters, "timeWidth") and self.isTimepix:
-            self.__hardware_settings.timeWidth = frame_parameters.timeWidth
-            self.camera.setWidthTime(frame_parameters.timeWidth)
+        if self.isTimepix and "timeWidth" in frame_parameters:
+        #if hasattr(frame_parameters, "timeWidth") and self.isTimepix:
+            self.__hardware_settings.timeWidth = frame_parameters['timeWidth']
+            self.camera.setWidthTime(frame_parameters['timeWidth'])
 
-        #if self.isTimepix and "tp3mode" in frame_parameters:
-        if hasattr(frame_parameters, "tp3mode") and self.isTimepix:
-            self.__hardware_settings.tp3mode = frame_parameters.tp3mode
-            self.camera.setTp3Mode(frame_parameters.tp3mode)
+        if self.isTimepix and "tp3mode" in frame_parameters:
+        #if hasattr(frame_parameters, "tp3mode") and self.isTimepix:
+            self.__hardware_settings.tp3mode = frame_parameters['tp3mode']
+            self.camera.setTp3Mode(frame_parameters['tp3mode'])
 
     def __numpy_to_orsay_type(self, array: numpy.array):
         orsay_type = Orsay_Data.float
