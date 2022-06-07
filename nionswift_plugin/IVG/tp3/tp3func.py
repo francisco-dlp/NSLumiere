@@ -666,6 +666,58 @@ class TimePix3():
         except AttributeError:
             logging.info("***TP3***: Could not set TDC to spim acquisition.")
 
+    def get_scan_size(self):
+        try:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            if scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size']:
+                x_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][0])
+                y_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][1])
+            else:
+                x_size = int(scanInstrument.scan_device.current_frame_parameters['size'][0])
+                y_size = int(scanInstrument.scan_device.current_frame_parameters['size'][1])
+        except AttributeError:
+            logging.info("***TP3***: Could not grab scan parameters. Sending (64, 64) to TP3.")
+            x_size = 64
+            y_size = 64
+        return x_size, y_size
+
+
+    def create_configuration_bytes(self, soft_binning, bitdepth, is_cumul, mode, sizex, sizey, scansizex, scansizey,
+                                   tdelay, twidth):
+        config_bytes = b''
+
+        if soft_binning:
+            config_bytes += b'\x01'  # Soft binning
+        else:
+            config_bytes += b'\x00'  # No soft binning
+
+        if bitdepth == 32:
+            config_bytes += b'\x02'
+        elif bitdepth == 16:
+            config_bytes += b'\x01'
+        elif bitdepth == 8:
+            config_bytes += b'\x00'
+
+        if is_cumul:
+            config_bytes += b'\x01'
+        else:
+            config_bytes += b'\x00'
+
+        config_bytes += bytes([mode])
+
+        config_bytes += sizex.to_bytes(2, 'big')
+        config_bytes += sizey.to_bytes(2, 'big')
+
+        config_bytes += scansizex.to_bytes(2, 'big')
+        config_bytes += scansizey.to_bytes(2, 'big')
+
+        config_bytes += struct.pack(">H", tdelay)  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack(">H", twidth)  # BE. See https://docs.python.org/3/library/struct.html
+
+        return config_bytes
+
+
     def acquire_streamed_frame(self, port, message):
         """
         Main client function. Main loop is explained below.
@@ -679,6 +731,7 @@ class TimePix3():
         check string value is a convenient function to detect the values using the header standard format for jsonimage.
         """
 
+        #Important parameters to configure Timepix3.
         mode = self.__tp3mode
         if self.__port==1:
             self.save_locally_routine()
@@ -686,6 +739,18 @@ class TimePix3():
         elif self.__port == 2:
             mode = 8
 
+        if self.__softBinning or mode == 6 or mode == 7:
+            bitdepth = 32
+        else:
+            bitdepth = 16
+
+        x = y = int(self.__accumulation)
+        xscan, yscan = self.get_scan_size()
+
+        config_bytes = self.create_configuration_bytes(self.__softBinning, bitdepth, self.__isCumul, mode,
+                                                       x, y, xscan, yscan, int(self.__delay), int(self.__width))
+
+        #Connecting the socket.
         inputs = list()
         outputs = list()
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -706,53 +771,10 @@ class TimePix3():
         except ConnectionRefusedError:
             return False
 
+        #Setting few properties and sending the configuration bytes to the detector
         cam_properties = dict()
         buffer_size = 2*64000
-
-        config_bytes = b''
-
         self.__tr = False  # Start always with false and will be updated if otherwise
-
-        if self.__softBinning:
-            config_bytes += b'\x01'  # Soft binning
-        else:
-            config_bytes += b'\x00'  # No soft binning
-
-        if self.__softBinning or self.__tp3mode == 6 or self.__tp3mode == 7:
-            config_bytes += b'\x02'  # Bit depth 32
-        else:
-            config_bytes += b'\x01'  # Bit depth is 16
-
-        if self.__isCumul:
-            config_bytes += b'\x01'  # Cumul is ON
-        else:
-            config_bytes += b'\x00'  # Cumul is OFF
-
-        config_bytes += bytes([mode])
-        assert message == 1 or message == 3 #Focus/Cumul (message=1) and Chrono (message=3)
-        size = int(self.__accumulation)
-        config_bytes += size.to_bytes(2, 'big')
-        config_bytes += size.to_bytes(2, 'big')
-
-        try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            if scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size']:
-                x_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][0])
-                y_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][1])
-            else:
-                x_size = int(scanInstrument.scan_device.current_frame_parameters['size'][0])
-                y_size = int(scanInstrument.scan_device.current_frame_parameters['size'][1])
-            config_bytes += x_size.to_bytes(2, 'big')
-            config_bytes += y_size.to_bytes(2, 'big')
-        except AttributeError:
-            logging.info("***TP3***: Could not grab scan parameters. Sending (64, 64) to TP3.")
-            config_bytes += struct.pack(">H", 64)
-            config_bytes += struct.pack(">H", 64)
-
-        config_bytes += struct.pack(">H", int(self.__delay))  # BE. See https://docs.python.org/3/library/struct.html
-        config_bytes += struct.pack(">H", int(self.__width))  # BE. See https://docs.python.org/3/library/struct.html
-
         client.send(config_bytes)
 
 
@@ -869,60 +891,26 @@ class TimePix3():
         except ConnectionRefusedError:
             return False
 
-        cam_properties = dict()
-        buffer_size = 2*64000
-
-        config_bytes = b''
-
+        buffer_size = 4*64000
+        self.__xspim, self.__yspim = self.get_scan_size()
+        config_bytes = self.create_configuration_bytes(True, 32, False, 2,
+                                                       self.__xspim, self.__yspim, self.__xspim, self.__yspim, 0, 0)
         self.__tr = False  # Start always with false and will be updated if otherwise
 
-        config_bytes += b'\x01'  # Soft binning
-        config_bytes += b'\x02'  # Bit depth 32 otherwise
-        config_bytes += b'\x00'  # Cumul is OFF
-        config_bytes += bytes([2]) #Mode 02 (SPIM)
-        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            "orsay_scan_device")
-        if scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size']:
-            x_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][1])
-            y_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][0])
-        else:
-            x_size = int(scanInstrument.scan_device.current_frame_parameters['size'][1])
-            y_size = int(scanInstrument.scan_device.current_frame_parameters['size'][0])
-
-        max_val = max(x_size, y_size)
+        max_val = max(self.__xspim, self.__yspim)
         if max_val <= 64:
-            self.__spimData = numpy.zeros(x_size * y_size * SPIM_SIZE, dtype=numpy.uint32)
-        elif max_val <= 512:
-            self.__spimData = numpy.zeros(x_size * y_size * SPIM_SIZE, dtype=numpy.uint16)
+            self.__spimData = numpy.zeros(self.__xspim * self.__yspim * SPIM_SIZE, dtype=numpy.uint32)
+        elif max_val <= 1024:
+            self.__spimData = numpy.zeros(self.__xspim * self.__yspim * SPIM_SIZE, dtype=numpy.uint16)
         else:
-            self.__spimData = numpy.zeros(x_size * y_size * SPIM_SIZE, dtype=numpy.uint8)
-
-        #Scan and Spim are equal here
-        #self.__spimData = numpy.zeros(x_size * y_size * 1025, dtype=numpy.uint8)
-        self.__xspim = x_size
-        self.__yspim = y_size
-        config_bytes += x_size.to_bytes(2, 'big') #spimx
-        config_bytes += y_size.to_bytes(2, 'big') #spimy
-        config_bytes += x_size.to_bytes(2, 'big') #scanx
-        config_bytes += y_size.to_bytes(2, 'big') #scany
-
-        config_bytes += struct.pack(">H", 0)  # BE. See https://docs.python.org/3/library/struct.html. Time Delay
-        config_bytes += struct.pack(">H", 0)  # BE. See https://docs.python.org/3/library/struct.html. Time Width
+            self.__spimData = numpy.zeros(self.__xspim * self.__yspim * SPIM_SIZE, dtype=numpy.uint8)
 
         client.send(config_bytes)
 
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
-        byte_unique = 1
-        if byte_unique == 2:
-            dt_unique = numpy.dtype(numpy.uint16).newbyteorder('>')
-            mult_factor = 2
-        elif byte_unique == 1:
-            dt_unique = numpy.dtype(numpy.uint8).newbyteorder('>')
-            mult_factor = 4
         if message == 2:
             counter = 0
             while True:
-                dt_unique = numpy.dtype(numpy.uint8).newbyteorder('<')
                 dt = numpy.dtype(numpy.uint32).newbyteorder('<')
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
@@ -960,7 +948,7 @@ class TimePix3():
                         ### Method 02 ###
                         if len(packet_data) == 0:
                             logging.info('***TP3***: No more packets received. Finishing SPIM.')
-                            self.update_spim_all()
+                            #self.update_spim_all()
                             return
 
                         q = len(packet_data) % 32
@@ -969,10 +957,11 @@ class TimePix3():
 
                         try:
                             event_list = numpy.frombuffer(packet_data, dtype=dt)
-                            if len(event_list) > 0:
+                            self.update_spim_direct(event_list)
+                            #if len(event_list) > 0:
                                 #for val in event_list:
                                 #    self.__spimData[val] += 1
-                                self.update_spim_direct(event_list)
+                                #self.update_spim_direct(event_list)
                         except ValueError:
                             logging.info(f'***TP3***: Value error.')
                         except IndexError:
@@ -984,7 +973,7 @@ class TimePix3():
 
                 if not self.__isPlaying:
                     logging.info('***TP3***: Finishing SPIM.')
-                    self.update_spim_all()
+                    #self.update_spim_all()
                     return
         return
 
