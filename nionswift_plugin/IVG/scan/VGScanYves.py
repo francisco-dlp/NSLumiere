@@ -356,7 +356,7 @@ class Device:
                 #if not self.__spim and self.__isplaying:
                     data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):(channel.channel_id + 1) * (
                     self.__scan_area[1]),
-                                 0+1: (self.__scan_area[0]-1)].astype(numpy.uint16)
+                                 0+1: (self.__scan_area[0]-1)]
                     if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
                         data_array = data_array[self.p4:self.p5, self.p2:self.p3]
                     data_element["data"] = data_array
@@ -550,7 +550,7 @@ class Device:
         sx[0] = self.__scan_area[0]
         sy[0] = self.__scan_area[1]
         sz[0] = self.__sizez
-        datatype[0] = self.__sizez
+        datatype[0] = 2
         return self.imagedata_ptr.value
 
     def __data_unlocker(self, gene, newdata):
