@@ -17,6 +17,8 @@ setup(
         'nionswift_plugin/aux_files/config/Cold/eels_settings.json',
         'nionswift_plugin/aux_files/config/Cold/lenses_settings.json',
         'nionswift_plugin/aux_files/config/Cold/Orsay_cameras_list.json',
+        'nionswift_plugin/aux_files/config/Debug/stage_settings.json',
+        'nionswift_plugin/aux_files/read_data.py'
 
     ]), ('nionswift_plugin/aux_files/DLLs', [
         'nionswift_plugin/aux_files/DLLs/Cameras.dll',
@@ -32,7 +34,4 @@ setup(
     ]
 
     )],
-    install_requires=["pyserial>=3.5", "requests>=2.25.1",
-                      "nionswift-instrumentation>=0.20.3",
-                      "nionswift-eels-analysis>=0.6.0"]
 )

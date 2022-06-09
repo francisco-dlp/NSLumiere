@@ -4,31 +4,13 @@
   },
   "IVG": {
     "COM_AIRLOCK": "COM99",
-    "COM_GUN": "COM5",
-    "FAST_PERIODIC": {
-      "ACTIVE": 0,
-      "PERIOD": 0.1
-    },
-    "MAX_PTS": 5000,
-    "OBJECTIVE": {
-      "MAX_TEMP": 200.0,
-      "RESISTANCE": 5.18,
-      "TEMP_COEF": 0.004041
-    },
-    "SENDMAIL": 1,
-    "SLOW_PERIODIC": {
-      "ACTIVE": 0,
-      "PERIOD": 1.0
-    }
+    "COM_GUN": "COM4"
   },
-    "diaf": {
+  "diaf": {
     "COM": "COM99"
   },
   "lenses": {
-    "COM": "COM99",
-    "MAX_OBJ": 9.5,
-    "MAX_C1": 1.5,
-    "MAX_C2": 1.5
+    "COM": "COM99"
   },
   "spectrometer": {
     "WHICH": [
@@ -43,5 +25,8 @@
   },
   "mirror": {
     "DEBUG": 1
+  },
+    "global_settings": {
+    "last_HT": "100"
   }
 }

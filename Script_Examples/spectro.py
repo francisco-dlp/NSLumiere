@@ -13,7 +13,7 @@ cam_eire = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardwa
 step = 10
 start = 500
 end = 700 + step
-acq_time = 2
+acq_time = 3
 
 
 def set_wav(spec, wl, step):

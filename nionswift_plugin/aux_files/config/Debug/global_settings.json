@@ -4,7 +4,7 @@
   },
   "IVG": {
     "COM_AIRLOCK": "COM99",
-    "COM_GUN": "COM99",
+    "COM_GUN": "COM99"
   },
   "diaf": {
     "COM": "COM99"
