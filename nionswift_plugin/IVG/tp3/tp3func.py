@@ -323,7 +323,8 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy Line 05
+            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy Line 05
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
             # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
         except AttributeError:
             logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
@@ -352,7 +353,8 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy Line 05
+            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy Line 05
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
             # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
         except AttributeError:
             logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
@@ -392,7 +394,8 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
+            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
         except AttributeError:
             logging.info("***TP3***: Could not set TDC to spim acquisition.")
         port = 8088
@@ -413,13 +416,13 @@ class TimePix3():
         Stop acquisition. Finish listening put global isPlaying to False and wait client thread to finish properly using
         .join() method. Also replaces the old Queue with a new one with no itens on it (so next one won't use old data).
         """
-        try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
-        except AttributeError:
-            logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly turned down.")
+        #try:
+        #    scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+        #        "orsay_scan_device")
+        #    scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
+        #    scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
+        #except AttributeError:
+        #    logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly turned down.")
         status = self.getCCDStatus()
         resp = self.request_get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
@@ -662,7 +665,8 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
+            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
         except AttributeError:
             logging.info("***TP3***: Could not set TDC to spim acquisition.")
 
@@ -737,6 +741,7 @@ class TimePix3():
             self.save_locally_routine()
             return
         elif self.__port == 2:
+            self.save_locally_routine()
             mode = 8
 
         if self.__softBinning or mode == 6 or mode == 7:
