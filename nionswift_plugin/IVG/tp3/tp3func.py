@@ -323,8 +323,9 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period = 0.001, on_time=0.000001)  # 1 ms internal generator
             #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy Line 05
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
+            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
             # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
         except AttributeError:
             logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
