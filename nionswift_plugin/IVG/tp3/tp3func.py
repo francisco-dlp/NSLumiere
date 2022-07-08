@@ -722,6 +722,25 @@ class TimePix3():
 
         return config_bytes
 
+    def connect_isi_box(self):
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        ip = socket.gethostbyname("192.168.198.10")
+        address = (ip, 9592)
+        client.connect(address)
+        logging.info(f'***TP3***: IsiBox connected over {ip}:{port}.')
+
+        #Scan parameters. Does not matter here.
+        config_bytes = b''
+        config_bytes += (0).to_bytes(4, "big")
+        config_bytes += (0).to_bytes(4, "big")
+        config_bytes += (0).to_bytes(4, "big")
+        client.send(config_bytes)
+
+        #Measurement type. Must be two to config the bytes
+        config_bytes = b''
+        config_bytes += (2).to_bytes(4, "big")
+        client.send(config_bytes)
+        return None
 
     def acquire_streamed_frame(self, port, message):
         """
