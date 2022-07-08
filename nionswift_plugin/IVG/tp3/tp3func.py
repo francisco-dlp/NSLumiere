@@ -152,10 +152,14 @@ class TimePix3():
 
     def set_threshold(self, which):
         if which==0:
+            dacsFile = '/home/asi/load_files/tpx3-demo-th6.dacs' #very low
+        elif which==1:
+            dacsFile = '/home/asi/load_files/tpx3-demo-th5.dacs' #low
+        elif which==2:
             dacsFile = '/home/asi/load_files/tpx3-demo.dacs' #For 60 keV
-        elif which == 1:
+        elif which == 3:
             dacsFile = '/home/asi/load_files/tpx3-demo-100.dacs'  # For more than 100 keV
-        elif which == 2:
+        elif which == 4:
             dacsFile = '/home/asi/load_files/tpx3-demo-low.dacs'  # Very high threshold
         else:
             logging.info(f'***TP3***: Pixel mask profile not found.')
@@ -255,7 +259,7 @@ class TimePix3():
         return list(['Standard', 'E2', 'E4', 'E6', 'E8', 'E16', 'E32', 'OnlyHotPixels'])
 
     def getGains(self, port):
-        return list(['>60 keV', '>100 keV', 'High Thrs'])
+        return list(['Very low', 'Low', '>60 keV (Medium)', '>100 keV (High)', 'Very high'])
 
     def getBinning(self):
         return (1, 1)
