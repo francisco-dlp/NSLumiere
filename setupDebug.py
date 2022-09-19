@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="OrsayDebug",
-    version="5.16.2",
+    version="6.0.0",
     author="Yves Auad",
     description="Set of tools to run a VG Microscope in Nionswift",
     url="https://github.com/yvesauad/swift_lumiere",
