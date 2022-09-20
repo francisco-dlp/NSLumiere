@@ -10,6 +10,7 @@ import json
 import os
 from enum import Enum
 import logging
+from ctypes import c_uint64, c_int32
 
 # local libraries
 
@@ -18,6 +19,7 @@ from nion.swift.model import HardwareSource
 from nion.utils import Registry
 
 from nion.instrumentation import camera_base
+from nion.data import DataAndMetadata
 from nion.instrumentation.camera_base import CameraFrameParameters
 from nionswift_plugin.IVG.tp3 import tp3func
 
@@ -68,6 +70,120 @@ class Orsay_Data(Enum):
     real = 12
 
 
+class CameraTask:
+    def __init__(self, camera_device: "Camera", camera_frame_parameters, scan_shape: typing.Tuple[int, ...]):
+        self.__camera_device = camera_device
+        self.__camera_frame_parameters = camera_frame_parameters
+        self.__scan_shape = scan_shape
+        self.__scan_count = int(numpy.product(self.__scan_shape))
+        self.__aborted = False
+        self.__xdata: typing.Optional[DataAndMetadata.DataAndMetadata] = None
+        self.__start = 0
+        self.__start_time = 0
+        self.__last_rows = 0
+        self.__headers = False
+        self.__orsay_task = "orsay" in camera_frame_parameters.as_dict().keys() and camera_frame_parameters.as_dict()["orsay"]
+        #
+        # look for camera data channel to display live spectra during synchronized acquisition.
+        #
+        hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            camera_device.camera_id)
+        self.__data_channel = hardware_source.data_channels[0]
+
+    @property
+    def xdata(self) -> typing.Optional[DataAndMetadata.DataAndMetadata]:
+        return self.__xdata
+
+    def prepare(self) -> None:
+        # returns the full scan readout, including flyback pixels
+        scan_size = int(numpy.product(self.__scan_shape))
+        # now this works as before
+        self.__last_rows = 0
+        self.__headers = False
+        self.__camera_device.frame_number = 0
+        print(f"preparing spim acquisition")
+        self.sizex, self.sizey = self.__camera_device.camera.getImageSize()
+        settings = self.__camera_device.current_camera_settings.as_dict()
+        # twoD = self.__camera_device.current_camera_settings.processing != "sum_project" \
+        #               and not self.__camera_device.current_camera_settings.soft_binning
+        self.__twoD = (self.sizey > 1) and not settings['soft_binning']
+        self.__camera_device.current_camera_settings.processing = "None"
+        datatype = numpy.float32
+        # if "orsay" in settings.keys() and settings["orsay"]:
+        if hasattr(self.__camera_device, "isMedipix") and self.__camera_device.isMedipix:
+            pixel_depth = self.__camera_device.pixeldepth
+            if pixel_depth == 1:
+                datatype = numpy.uint8
+            elif pixel_depth == 6:
+                if self.__twoD:
+                    datatype = numpy.uint8
+                else:
+                    datatype = numpy.uint16
+            elif pixel_depth == 12:
+                if self.__twoD:
+                    datatype = numpy.uint16
+                else:
+                    datatype = numpy.uint32
+        if self.__twoD:
+            self.sizez = scan_size
+            self.__camera_device.spimimagedata = numpy.zeros(
+                (self.__scan_shape[0], self.__scan_shape[1], self.sizey, self.sizex), dtype=datatype)
+            camera_readout_shape = (self.sizey, self.sizex)
+        else:
+            self.sizey = scan_size
+            self.sizez = 1
+            self.__camera_device.spimimagedata = numpy.zeros((self.__scan_shape[0], self.__scan_shape[1], self.sizex),
+                                                             dtype=datatype)
+            camera_readout_shape = (self.sizex,)
+        print(f"Spim dimensions {self.sizex} {self.sizey} {self.sizez}")
+        self.__data_descriptor = DataAndMetadata.DataDescriptor(False, len(self.__scan_shape),
+                                                                len(camera_readout_shape))
+        if settings['flipped']:
+            spim_array = numpy.flip(self.__camera_device.spimimagedata, axis=2)
+        else:
+            spim_array = self.__camera_device.spimimagedata
+        self.__xdata = DataAndMetadata.new_data_and_metadata(spim_array, data_descriptor=self.__data_descriptor)
+        self.__xdata.metadata.setdefault("hardware_source", dict())["valid_rows"] = 0
+        self.__camera_device.camera.startSpim(scan_size, 1,
+                                              self.__camera_device.current_camera_settings.exposure_ms / 1000,
+                                              self.__twoD)
+
+    def start(self) -> typing.Optional[DataAndMetadata.DataAndMetadata]:
+        self.__camera_device.camera.resumeSpim(4)  # stop eof
+        self.__start_time = time.time_ns()
+        return self.__xdata
+
+    def grab_partial(self, *, update_period: float = 1.0) -> typing.Tuple[bool, bool, int]:
+        # updates the full scan readout data, returns a tuple of is complete, is canceled, and
+        # the number of valid rows.
+        elapsed_time = time.time_ns() - self.__start_time
+        wait_time = update_period - elapsed_time * 1e-9
+        if wait_time > 0.001:
+            print(f"waiting for {wait_time}")
+            time.sleep(wait_time)
+        self.__start_time = time.time_ns()
+        if not self.__aborted:
+            rows = self.__camera_device.frame_number // self.__scan_shape[1]
+            is_complete = self.__camera_device.frame_number >= self.__scan_count
+            # if self.__last_rows != rows or self.__last_rows == self.__scan_shape[0]:
+            self.__last_rows = rows
+            print(f"valid rows {rows},  frame number {self.__camera_device.frame_number}/{self.__scan_count}")
+            self.__xdata.metadata["hardware_source"]["valid_rows"] = rows
+            self.__xdata.metadata["hardware_source"]["frame_number"] = self.__camera_device.frame_number
+            self.__xdata.metadata["hardware_source"]["integration_count"] = 1
+            if self.__headers == False:
+                #self.__xdata.metadata["hardware_source"]["acquisition_header"] = self.__camera_device.acquisition_header
+                #self.__xdata.metadata["hardware_source"]["image_header"] = self.__camera_device.image_header
+                if self.__camera_device.isMedipix:
+                    self.__xdata.metadata["hardware_source"]["merlin"] = dict()
+                    self.__xdata.metadata["hardware_source"]["merlin"][
+                        "acquisition"] = self.__camera_device.acquisition_header
+                    self.__xdata.metadata["hardware_source"]["merlin"]["image"] = self.__camera_device.image_header
+                self.__headers = True
+            return is_complete, False, rows
+        return True, True, 0
+
+
 class CameraDevice(camera_base.CameraDevice3):
 
     def __init__(self, manufacturer, model, sn, simul, instrument: ivg_inst.ivgInstrument, id, name, type):
@@ -95,6 +211,8 @@ class CameraDevice(camera_base.CameraDevice3):
         self.stop_acquitisition_event = Event.Event()
         self.current_event = Event.Event()
 
+
+
         # register data locker for focus acquisition
         if manufacturer != 4:
             self.fnlock = orsaycamera.DATALOCKFUNC(self.__data_locker)
@@ -106,11 +224,12 @@ class CameraDevice(camera_base.CameraDevice3):
         self.acquire_data = None
         self.has_data_event = threading.Event()
 
-    # register data locker for SPIM acquisition
-        if manufacturer !=4:
+        # register data locker for SPIM acquisition
+        if manufacturer != 4:
             self.fnspimlock = orsaycamera.SPIMLOCKFUNC(self.__spim_data_locker)
             self.camera.registerSpimDataLocker(self.fnspimlock)
             self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
+            #self.fnspimunlockA = orsaycamera.SPIMUNLOCKFUNCA(self.__spim_data_unlockerA)
             self.camera.registerSpimDataUnlocker(self.fnspimunlock)
             self.fnspectrumlock = orsaycamera.SPECTLOCKFUNC(self.__spectrum_data_locker)
             self.camera.registerSpectrumDataLocker(self.fnspectrumlock)
@@ -120,6 +239,7 @@ class CameraDevice(camera_base.CameraDevice3):
         self.spimimagedata_ptr = None
         self.has_spim_data_event = threading.Event()
 
+        self.__cumul_on = False
         bx, by = self.camera.getBinning()
         port = self.camera.getCurrentPort()
 
@@ -191,12 +311,12 @@ class CameraDevice(camera_base.CameraDevice3):
                 self.frame_parameter_changed_event.fire("exposure_ms")
 
         if "acquisition_mode" in dict_frame_parameters:
-        #if hasattr(frame_parameters, "acquisition_mode"):
+            # if hasattr(frame_parameters, "acquisition_mode"):
             if self.frame_parameter_changed_event is not None:
                 self.frame_parameter_changed_event.fire("acquisition_mode")
 
         if "soft_binning" in dict_frame_parameters:
-        #if hasattr(frame_parameters, "soft_binning"):
+            # if hasattr(frame_parameters, "soft_binning"):
             self.__hardware_settings['soft_binning'] = dict_frame_parameters['soft_binning']
             if self.__hardware_settings['acquisition_mode'] != dict_frame_parameters['acquisition_mode']:
                 self.__hardware_settings['acquisition_mode'] = dict_frame_parameters['acquisition_mode']
@@ -204,19 +324,19 @@ class CameraDevice(camera_base.CameraDevice3):
             self.__hardware_settings['spectra_count'] = dict_frame_parameters['spectra_count']
         #
         if "port" in dict_frame_parameters:
-        #if hasattr(frame_parameters, "port"):
+            # if hasattr(frame_parameters, "port"):
             if self.__hardware_settings['port'] != dict_frame_parameters['port']:
                 self.__hardware_settings['port'] = dict_frame_parameters['port']
                 self.camera.setCurrentPort(dict_frame_parameters['port'])
 
         if "speed" in dict_frame_parameters:
-        #if hasattr(frame_parameters, "speed"):
+            # if hasattr(frame_parameters, "speed"):
             if self.__hardware_settings['speed'] != dict_frame_parameters['speed']:
                 self.__hardware_settings['speed'] = dict_frame_parameters['speed']
                 self.camera.setSpeed(self.__hardware_settings['port'], dict_frame_parameters['speed'])
 
         if "area" in dict_frame_parameters:
-        #if hasattr(frame_parameters, "area"):
+            # if hasattr(frame_parameters, "area"):
             if any(i != j for i, j in zip(self.__hardware_settings['area'], dict_frame_parameters['area'])):
                 # if change area, put back binning to 1,1 temporarily in order to avoid conflicts, binnig will then be setup later
                 self.__hardware_settings['h_binning'] = 1
@@ -226,7 +346,7 @@ class CameraDevice(camera_base.CameraDevice3):
                 self.camera.setArea(self.__hardware_settings['area'])
 
         if ("h_binning" in dict_frame_parameters) and ("v_binning" in dict_frame_parameters):
-        #if hasattr(frame_parameters, "h_binning") and hasattr(frame_parameters, "v_binning"):
+            # if hasattr(frame_parameters, "h_binning") and hasattr(frame_parameters, "v_binning"):
             if (self.__hardware_settings['h_binning'] != dict_frame_parameters['h_binning']) \
                     or (self.__hardware_settings['v_binning'] != dict_frame_parameters['v_binning']):
                 self.camera.setBinning(dict_frame_parameters['h_binning'], dict_frame_parameters['v_binning'])
@@ -301,19 +421,33 @@ class CameraDevice(camera_base.CameraDevice3):
         sy[0] = self.sizey
         sz[0] = 1
         data_type[0] = self.__numpy_to_orsay_type(self.imagedata)
-        return self.imagedata_ptr.value
+        if self.imagedata_ptr is None:
+            return None
+        else:
+            return self.imagedata_ptr.value
 
     def __data_unlocker(self, gene, new_data):
         self.frame_number += 1
         status = self.camera.getCCDStatus()
         if new_data:
-            self.has_data_event.set()
+            t = time.time()
+            if t - self._last_time > 0.1:
+                self._last_time = t
+        self.has_data_event.set()
         if status["mode"] == "Cumul":
             self.frame_number = status["accumulation_count"]
-        if status["mode"] == "idle":
+        if self.__cumul_on and status["mode"] == "idle":
             hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 self.camera_id)
             hardware_source.stop_playing()
+
+    def __spim_data_locker(self, gene, data_type, sx, sy, sz):
+        sx[0] = self.__x_pix_spim
+        sy[0] = self.__y_pix_spim
+        sz[0] = self.sizez
+        #data_type >= 100 force spectrum data on first axis.
+        data_type[0] = 100 + self.__numpy_to_orsay_type(self.spimimagedata)
+        return self.spimimagedata_ptr.value
 
     def __spim_data_locker(self, gene, data_type, sx, sy, sz):
         sx[0] = self.sizex
@@ -322,18 +456,41 @@ class CameraDevice(camera_base.CameraDevice3):
         data_type[0] = 100 + self.__numpy_to_orsay_type(self.spimimagedata)
         return self.spimimagedata_ptr.value
 
-    def __spim_data_unlocker(self, gene: int, new_data: bool, running: bool):
+    def __spim_data_unlocker(self, gene :int, new_data : bool, running : bool):
         status = self.camera.getCCDStatus()
-        if new_data:
-            self.has_spim_data_event.set()
+        # if status["mode"] == "Spectrum imaging":
+        self.frame_number = status["current spectrum"]
+        if "Chrono" in status["mode"]:
+            if new_data:
+                self.has_data_event.set()
+        else:
+            if not running:
+                # just stopped, send last data anyway.
+                self.has_spim_data_event.set()
+                print(f"spim done => frames {self.frame_number}")
         if not running:
-            self.has_spim_data_event.set()
+            hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                self.camera_id)
+            hardware_source.stop_playing()
+
+    def __spim_data_unlockerA(self, gene : int, new_data : bool, current_spectrum: c_uint64, current_spim : c_int32, running : bool):
+        self.frame_number = current_spectrum
+        status = self.camera.getCCDStatus()
+        if "Chrono" in self.current_camera_settings.as_dict()['acquisition_mode']:
+            if new_data:
+                self.has_data_event.set()
+        else:
+            if not running:
+                # just stopped, send last data anyway.
+                self.has_spim_data_event.set()
+                print(f"spim done => frames {self.frame_number}")
+        if not running:
             hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 self.camera_id)
             hardware_source.stop_playing()
 
     def __spectrum_data_locker(self, gene, data_type, sx) -> None:
-        if self.__acqon and self.__acqspimon and (self.current_camera_settings.as_dict()['exposure_ms'] >= 10):
+        if self.__acqon and self.__acqspimon and (self.current_camera_settings.exposure_ms >= 10):
             sx[0] = self.sizex
             data_type[0] = self.__numpy_to_orsay_type(self.imagedata)
             return self.imagedata_ptr.value
@@ -365,11 +522,8 @@ class CameraDevice(camera_base.CameraDevice3):
         pass
 
     def start_live(self) -> None:
-        api_broker = PlugInManager.APIBroker()
-        api = api_broker.get_api(version='~1.0', ui_version='~1.0')
-        self.__data_item_display = api.library.get_data_item_for_reference_key(self.camera_id)
-
         self.frame_number = 0
+        self.__cumul_on = False
         self.sizex, self.sizey = self.camera.getImageSize()
         if self.current_camera_settings.as_dict()['soft_binning']:
             self.sizey = 1
@@ -394,10 +548,11 @@ class CameraDevice(camera_base.CameraDevice3):
             if self.isTimepix:
                 sb = "1d" if self.current_camera_settings.as_dict()['soft_binning'] else "2d"
                 if self.current_camera_settings.as_dict()['acquisition_mode'] == "1D-Chrono-Live":
-                    acqmode = 1 #Chrono Live
+                    acqmode = 1  # Chrono Live
                 else:
-                    acqmode = 0 #Normal Chrono
-                self.__acqon = self.camera.startChrono(self.current_camera_settings.as_dict()['exposure_ms'] / 1000, sb, acqmode)
+                    acqmode = 0  # Normal Chrono
+                self.__acqon = self.camera.startChrono(self.current_camera_settings.as_dict()['exposure_ms'] / 1000, sb,
+                                                       acqmode)
             else:
                 self.camera.startSpim(self.current_camera_settings.as_dict()['spectra_count'], 1,
                                       self.current_camera_settings.as_dict()['exposure_ms'] / 1000.,
@@ -436,9 +591,11 @@ class CameraDevice(camera_base.CameraDevice3):
             sb = "1d" if self.current_camera_settings.as_dict()['soft_binning'] else "2d"
             if self.current_camera_settings.as_dict()['acquisition_mode'] == "Cumul":
                 acqmode = 1
+                self.__cumul_on = True
             self.imagedata = numpy.zeros((self.sizey, self.sizex), dtype=numpy.float32)
             self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
-            self.__acqon = self.camera.startFocus(self.current_camera_settings.as_dict()['exposure_ms'] / 1000, sb, acqmode)
+            self.__acqon = self.camera.startFocus(self.current_camera_settings.as_dict()['exposure_ms'] / 1000, sb,
+                                                  acqmode)
 
         self._last_time = time.time()
 
@@ -512,6 +669,35 @@ class CameraDevice(camera_base.CameraDevice3):
         return {"data": self.acquire_data, "collection_dimension_count": collection_dimensions,
                 "datum_dimension_count": datum_dimensions, "calibration_controls": calibration_controls,
                 "properties": properties}
+
+    def acquire_synchronized_begin(self, camera_frame_parameters: camera_base.CameraFrameParameters,
+                                   scan_shape: DataAndMetadata.ShapeType,
+                                   **kwargs: typing.Any) -> camera_base.PartialData:
+        self.__camera_task = CameraTask(self, camera_frame_parameters, scan_shape)
+        self.__camera_task.prepare()
+        self.__x_pix_spim = scan_shape[1]
+        self.__y_pix_spim = scan_shape[0]
+        self.sizez = self.spimimagedata.shape[2]
+        self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
+        self.__camera_task.start()
+        return camera_base.PartialData(self.__camera_task.xdata, False, False, None, 0)
+
+    def acquire_synchronized_continue(self, *, update_period: float = 1.0,
+                                      **kwargs: typing.Any) -> camera_base.PartialData:
+        # assert self.__camera_task
+        is_complete, is_canceled, valid_count = self.__camera_task.grab_partial(update_period=update_period)
+        return camera_base.PartialData(self.__camera_task.xdata, is_complete, is_canceled, None, valid_count)
+
+    def acquire_synchronized_end(self, **kwargs: typing.Any) -> None:
+        self.__camera_task = None
+        # self.__scan_device = None
+
+    def acquire_synchronized_cancel(self) -> None:
+        self.__cancel_sequence_event.set()
+
+    @property
+    def _is_acquire_synchronized_running(self) -> bool:
+        return self.__camera_task is not None
 
     @property
     def calibration_controls(self) -> dict:
@@ -624,7 +810,8 @@ class CameraDevice(camera_base.CameraDevice3):
                 prop, last_bytes_data = self.camera.get_last_data()
                 self.frame_number = int(prop['frameNumber'])
                 self.spimimagedata = self.camera.create_image_from_bytes(last_bytes_data,
-                                                                     prop['bitDepth'], prop['width'], prop['height'])
+                                                                         prop['bitDepth'], prop['width'],
+                                                                         prop['height'])
                 self.has_data_event.set()
 
         return sendMessage
@@ -714,7 +901,6 @@ class CameraSettings():
         if self.__camera_device.isTimepix:
             self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live"]
 
-
         self.settings_id = camera_device.camera_id
 
     def close(self):
@@ -741,7 +927,7 @@ class CameraSettings():
         self.__camera_device.current_camera_settings = frame_parameters
         self.settings_changed_event.fire(frame_parameters.as_dict())
         self.current_frame_parameters_changed_event.fire(frame_parameters)
-        #self.record_frame_parameters_changed_event.fire(frame_parameters)
+        # self.record_frame_parameters_changed_event.fire(frame_parameters)
 
     def get_current_frame_parameters(self) -> CameraFrameParameters:
         return self.__camera_device.current_camera_settings

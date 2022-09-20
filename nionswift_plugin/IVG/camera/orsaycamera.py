@@ -67,6 +67,7 @@ DATALOCKFUNC = WINFUNCTYPE(c_void_p, c_int, POINTER(c_int), POINTER(c_int), POIN
 DATAUNLOCKFUNC = WINFUNCTYPE(None, c_int, c_bool)
 SPIMLOCKFUNC = WINFUNCTYPE(c_void_p, c_int, POINTER(c_int), POINTER(c_int), POINTER(c_int), POINTER(c_int))
 SPIMUNLOCKFUNC = WINFUNCTYPE(None, c_int, c_bool, c_bool)
+SPIMUNLOCKFUNCA = WINFUNCTYPE(None, c_int, c_bool, c_uint64, c_int, c_bool)
 SPECTLOCKFUNC = WINFUNCTYPE(c_void_p, c_int, POINTER(c_int), POINTER(c_int))
 SPECTUNLOCKFUNC = WINFUNCTYPE(None, c_int, c_bool)
 SPIMUPDATEFUNC = WINFUNCTYPE(None, c_int, c_bool)
@@ -104,6 +105,9 @@ class orsayCamera(object):
         # void CAMERAS_EXPORT RegisterSpimDataUnlocker(void *o, void *(*UnLockSpimDataPointer)(int cam, bool newdata, bool running));
         self.__OrsayCameraRegisterSpimDataUnlocker = _buildFunction(_library.RegisterSpimDataUnlocker,
                                                                [c_void_p, SPIMUNLOCKFUNC], None)
+        # void CAMERAS_EXPORT RegisterSpimDataUnlocker(void *o, void *(*UnLockSpimDataPointer)(int cam, bool newdata, bool running));
+        #self.__OrsayCameraRegisterSpimDataUnlockerA = _buildFunction(_library.RegisterSpimDataUnlockerA,
+        #                                                             [c_void_p, SPIMUNLOCKFUNCA], None)
         # //void ** (*LockOnlineSpimDataPointer)(void *o, short cam, short *datatype, short *sx, short *sy, short *sz);
         # //void(*UnLockOnlineSpimDataPointer)(void *o, int cam, bool newdata, bool running);
         # void CAMERAS_EXPORT RegisterSpectrumDataLocker(void *o, void *(*LockSpectrumDataPointer)(int cam, int *datatype, int *sx));
@@ -340,6 +344,12 @@ class orsayCamera(object):
         Function called when data process is done for a spectrum image readout
         """
         self.__OrsayCameraRegisterSpimDataUnlocker(self.orsaycamera, fn)
+
+    # def registerSpimDataUnlockerA(self, fn: SPIMUNLOCKFUNCA) -> None:
+    #     """
+    #     Function called when data process is done for a spectrum image readout
+    #     """
+    #     self.__OrsayCameraRegisterSpimDataUnlockerA(self.orsaycamera, fn)
 
     def registerSpectrumDataLocker(self, fn):
        """
