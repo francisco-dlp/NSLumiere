@@ -68,7 +68,7 @@ class Orsay_Data(Enum):
     real = 12
 
 
-class CameraDevice(camera_base.CameraDevice):
+class CameraDevice(camera_base.CameraDevice3):
 
     def __init__(self, manufacturer, model, sn, simul, instrument: ivg_inst.ivgInstrument, id, name, type):
         self.camera_id = id
@@ -698,7 +698,7 @@ class CameraDevice(camera_base.CameraDevice):
 from nion.utils import Event
 
 
-class CameraSettings(camera_base.CameraSettings):
+class CameraSettings():
 
     def __init__(self, camera_device: CameraDevice):
         # these events must be defined
@@ -737,11 +737,11 @@ class CameraSettings(camera_base.CameraSettings):
     def get_frame_parameters_from_dict(self, d):
         return CameraFrameParameters(d)
 
-    # def set_current_frame_parameters(self, frame_parameters: CameraFrameParameters) -> None:
-    #     self.__camera_device.current_camera_settings = frame_parameters
-    #     self.settings_changed_event.fire(frame_parameters)
-    #     self.current_frame_parameters_changed_event.fire(frame_parameters)
-    #     self.record_frame_parameters_changed_event.fire(frame_parameters)
+    def set_current_frame_parameters(self, frame_parameters: CameraFrameParameters) -> None:
+        self.__camera_device.current_camera_settings = frame_parameters
+        self.settings_changed_event.fire(frame_parameters.as_dict())
+        self.current_frame_parameters_changed_event.fire(frame_parameters)
+        #self.record_frame_parameters_changed_event.fire(frame_parameters)
 
     def get_current_frame_parameters(self) -> CameraFrameParameters:
         return self.__camera_device.current_camera_settings
