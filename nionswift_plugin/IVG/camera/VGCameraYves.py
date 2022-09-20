@@ -564,6 +564,11 @@ class CameraDevice(camera_base.CameraDevice3):
         elif "Focus" in self.current_camera_settings.as_dict()['acquisition_mode'] and self.__acqspimon:
             pass
 
+        elif "Spim" in self.current_camera_settings.as_dict()['acquisition_mode']:
+            self.camera.resumeSpim(4)  # stop eof
+            self.__acqspimon = True
+            print(f"resumed")
+
             # self.sizey = self.__x_pix_spim
             # self.sizez = self.__y_pix_spim
             # self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype=numpy.float32)

@@ -153,6 +153,7 @@ class Device:
         self.p4 = 0
         self.p5 = 512
         self.Image_area = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
+        self.set_spim_pixels = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
         self.orsayscan.setScanRotation(22.5)
 
         #Set HADF and BF initial gain values
@@ -168,6 +169,7 @@ class Device:
 
     def stop(self) -> None:
         """Stop acquiring."""
+        self.__spim = False
         if self.__is_scanning:
             self.orsayscan.stopImaging(True)
             self.stop_timepix3()
@@ -179,6 +181,7 @@ class Device:
 
     def cancel(self) -> None:
         """Cancel acquisition (immediate)."""
+        self.__spim = False
         if self.__is_scanning:
             self.orsayscan.stopImaging(False)
             self.stop_timepix3()
@@ -283,9 +286,22 @@ class Device:
             self.__start_next_frame()
 
             logging.info(f"***SCAN***: Starting acquisition. Spim is {self.__spim}")
+
+            #Picking between scans
+            if self.__spim:
+                scan = self.spimscan
+            else:
+                scan = self.orsayscan
+
+            #Selecting the proper imagedata
+            self.__scan_size = scan.getImageSize()
+            self.__sizez = scan.GetInputs()[0]
+            if self.__sizez % 2:
+                self.__sizez += 1
+            self.imagedata = numpy.empty((self.__sizez * self.__scan_size[1], self.__scan_size[0]), dtype=numpy.int16)
+            self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
+
             if not self.__spim:
-                #self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
-                #self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
                 for channel in self.__channels:
                     if channel.name == 'TPX3':
                         if channel.enabled:
@@ -330,6 +346,16 @@ class Device:
 
         current_frame = self.__frame  # this is from Frame Class defined above
         assert current_frame is not None
+        frame_parameters = current_frame.frame_parameters
+        is_synchronized_scan = frame_parameters.external_clock_mode != 0
+        scan_area = self.set_spim_pixels if is_synchronized_scan else self.Image_area
+
+        if self.__line_number == scan_area[5]:
+            current_frame.complete = True
+            pixels_to_skip = 0
+        else:
+            pixels_to_skip = self.__line_number * self.__scan_size[1]
+
         data_elements = list()
 
         for channel in current_frame.channels:
@@ -352,40 +378,55 @@ class Device:
                         data_elements.append(data_element)
 
             else:
-                if not self.__spim:
-                #if not self.__spim and self.__isplaying:
-                    data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):(channel.channel_id + 1) * (
-                    self.__scan_area[1]),
-                                 0+1: (self.__scan_area[0]-1)]
-                    if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
-                        data_array = data_array[self.p4:self.p5, self.p2:self.p3]
-                    data_element["data"] = data_array
-                    properties = current_frame.frame_parameters.as_dict()
-                    properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
-                    properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
-                    properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
-                    properties["channel_id"] = channel.channel_id
-                    data_element["properties"] = properties
-                    if data_array is not None:
-                        data_elements.append(data_element)
+                data_array = self.imagedata[channel.channel_id * (scan_area[1]):(channel.channel_id + 1) * (
+                    scan_area[1]), 0: (scan_area[0])].astype(numpy.float32)
+                data_element["data"] = data_array
+                properties = current_frame.frame_parameters.as_dict()
+                sub_area = ((0, 0), data_array.shape)
+                properties['sub_area'] = ((0, 0), data_array.shape)
+                properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
+                properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
+                properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
+                properties["channel_id"] = channel.channel_id
+                data_element["properties"] = properties
+                if data_array is not None:
+                    data_elements.append(data_element)
 
-                elif self.__spim:
-                    data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):channel.channel_id * (
-                        self.__scan_area[1]) + self.__spim_pixels[1],
-                                 0: (self.__spim_pixels[0])].astype(numpy.float32)
-                    #data_array = self.imagedata.astype(numpy.float32)
-                    #if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
-                    #    data_array = data_array[self.p4:self.p5, self.p2:self.p3]
-                    data_element["data"] = data_array
-                    properties = current_frame.frame_parameters.as_dict()
-                    properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
-                    properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
-                    properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
-                    properties["channel_id"] = channel.channel_id
-                    data_element["properties"] = properties
-                    if data_array is not None:
-                        data_elements.append(data_element)
+                # if not self.__spim:
+                # #if not self.__spim and self.__isplaying:
+                #     data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):(channel.channel_id + 1) * (
+                #     self.__scan_area[1]),
+                #                  0+1: (self.__scan_area[0]-1)]
+                #     if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
+                #         data_array = data_array[self.p4:self.p5, self.p2:self.p3]
+                #     data_element["data"] = data_array
+                #     properties = current_frame.frame_parameters.as_dict()
+                #     properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
+                #     properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
+                #     properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
+                #     properties["channel_id"] = channel.channel_id
+                #     data_element["properties"] = properties
+                #     if data_array is not None:
+                #         data_elements.append(data_element)
+                #
+                # elif self.__spim:
+                #     data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):channel.channel_id * (
+                #         self.__scan_area[1]) + self.__spim_pixels[1],
+                #                  0: (self.__spim_pixels[0])].astype(numpy.float32)
+                #     #data_array = self.imagedata.astype(numpy.float32)
+                #     #if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
+                #     #    data_array = data_array[self.p4:self.p5, self.p2:self.p3]
+                #     data_element["data"] = data_array
+                #     properties = current_frame.frame_parameters.as_dict()
+                #     properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
+                #     properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
+                #     properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
+                #     properties["channel_id"] = channel.channel_id
+                #     data_element["properties"] = properties
+                #     if data_array is not None:
+                #         data_elements.append(data_element)
 
+        bad_frame = False
         self.has_data_event.clear()
 
         current_frame.complete = True
@@ -402,14 +443,17 @@ class Device:
 
 
         # return data_elements, complete, bad_frame, sub_area, frame_number, pixels_to_skip
-        return data_elements, current_frame.complete, False, ((0, 0), data_array.shape), None, 0
+        return data_elements, current_frame.complete, bad_frame, sub_area, self.__frame_number, pixels_to_skip
 
     #This one is called in scan_base
     def prepare_synchronized_scan(self, scan_frame_parameters: scan_base.ScanFrameParameters, *, camera_exposure_ms, **kwargs) -> None:
-        #scan_frame_parameters["pixel_time_us"] = min(5120000, int(1000 * camera_exposure_ms * 0.75))
-        #scan_frame_parameters["external_clock_wait_time_ms"] = 20000 # int(camera_frame_parameters["exposure_ms"] * 1.5)
-        #scan_frame_parameters["external_clock_mode"] = 1
-        pass
+        scan_frame_parameters["pixel_time_us"] = min(5120000, int(1000 * camera_exposure_ms * 0.75))
+        scan_frame_parameters["external_clock_wait_time_ms"] = 20000 # int(camera_frame_parameters["exposure_ms"] * 1.5)
+        scan_frame_parameters["external_clock_mode"] = 1
+        size = scan_frame_parameters["size"]
+
+        self.set_spim_pixels = [size[0], size[1], 0, size[0], 0, size[1]]
+        self.__spim = True
 
 
     def set_channel_enabled(self, channel_index: int, enabled: bool) -> bool:
@@ -462,8 +506,8 @@ class Device:
         self.__scan_area = value
         self.orsayscan.setImageArea(self.__scan_area[0], self.__scan_area[1], self.__scan_area[2], self.__scan_area[3],
                                     self.__scan_area[4], self.__scan_area[5])
-        self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
-        self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
+        #self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
+        #self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
 
     @property
     def probe_pos(self):
@@ -547,19 +591,24 @@ class Device:
                                    self.__scan_area[5])
 
     def __data_locker(self, gene, datatype, sx, sy, sz):
-        sx[0] = self.__scan_area[0]
-        sy[0] = self.__scan_area[1]
+        if gene == 1:
+            sx[0] = self.Image_area[0]
+            sy[0] = self.Image_area[1]
+        else:
+            sx[0] = self.set_spim_pixels[0]
+            sy[0] = self.set_spim_pixels[1]
         sz[0] = self.__sizez
         datatype[0] = 2
         return self.imagedata_ptr.value
 
-    def __data_unlocker(self, gene, newdata):
-        self.has_data_event.set()
+    #def __data_unlocker(self, gene, newdata):
+    #    self.has_data_event.set()
 
     def __data_unlockerA(self, gene, newdata, imagenb, rect):
         if newdata:
             self.__frame_number = imagenb
             self.has_data_event.set()
+            self.__line_number = rect[1] + rect[3]
 
     def show_configuration_dialog(self, api_broker) -> None:
         """Open settings dialog, if any."""
