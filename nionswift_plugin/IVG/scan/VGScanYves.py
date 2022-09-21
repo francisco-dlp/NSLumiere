@@ -287,19 +287,20 @@ class Device:
 
             logging.info(f"***SCAN***: Starting acquisition. Spim is {self.__spim}")
 
-            #Picking between scans
+            # Picking between scans
             if self.__spim:
                 scan = self.spimscan
             else:
                 scan = self.orsayscan
 
-            #Selecting the proper imagedata
+            # Selecting the proper imagedata
             self.__scan_size = scan.getImageSize()
             self.__sizez = scan.GetInputs()[0]
             if self.__sizez % 2:
                 self.__sizez += 1
             self.imagedata = numpy.empty((self.__sizez * self.__scan_size[1], self.__scan_size[0]), dtype=numpy.int16)
             self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
+            print(self.__scan_size)
 
             if not self.__spim:
                 for channel in self.__channels:
@@ -322,7 +323,7 @@ class Device:
             frame_parameters.subscan_pixel_size if frame_parameters.subscan_pixel_size else frame_parameters.size)
         for channel in channels:
             channel.data = numpy.zeros(tuple(size), numpy.float32)
-        #self.__frame_number += 1 #This is updated in the self.__frame_number
+        self.__frame_number += 1 #This is updated in the self.__frame_number
         self.__frame = Frame(self.__frame_number, channels, frame_parameters)
 
     def read_partial(self, frame_number, pixels_to_skip) -> (typing.Sequence[dict], bool, bool, tuple, int, int):
@@ -506,8 +507,8 @@ class Device:
         self.__scan_area = value
         self.orsayscan.setImageArea(self.__scan_area[0], self.__scan_area[1], self.__scan_area[2], self.__scan_area[3],
                                     self.__scan_area[4], self.__scan_area[5])
-        #self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
-        #self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
+        self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
+        self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
 
     @property
     def probe_pos(self):
@@ -589,6 +590,9 @@ class Device:
             self.__spim_pixels = value
             self.spimscan.setImageArea(self.__spim_pixels[0], self.__spim_pixels[1], self.__scan_area[2], self.__scan_area[3], self.__scan_area[4],
                                    self.__scan_area[5])
+            self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])),
+                                         dtype=numpy.int16)
+            self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
 
     def __data_locker(self, gene, datatype, sx, sy, sz):
         if gene == 1:

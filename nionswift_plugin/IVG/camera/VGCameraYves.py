@@ -459,7 +459,7 @@ class CameraDevice(camera_base.CameraDevice3):
     def __spim_data_unlocker(self, gene :int, new_data : bool, running : bool):
         status = self.camera.getCCDStatus()
         # if status["mode"] == "Spectrum imaging":
-        self.frame_number = status["current spectrum"]
+        self.frame_number = int(status["current spectrum"])
         if "Chrono" in status["mode"]:
             if new_data:
                 self.has_data_event.set()
@@ -678,6 +678,7 @@ class CameraDevice(camera_base.CameraDevice3):
     def acquire_synchronized_begin(self, camera_frame_parameters: camera_base.CameraFrameParameters,
                                    scan_shape: DataAndMetadata.ShapeType,
                                    **kwargs: typing.Any) -> camera_base.PartialData:
+        print(scan_shape)
         self.__camera_task = CameraTask(self, camera_frame_parameters, scan_shape)
         self.__camera_task.prepare()
         self.__x_pix_spim = scan_shape[1]
