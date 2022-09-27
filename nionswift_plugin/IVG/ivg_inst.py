@@ -598,7 +598,7 @@ class ivgInstrument(stem_controller.STEMController):
         elif s == "eels_x_scale":
             return True, self.__EELSInstrument.range_f
         else:
-            return False, 0
+            return True, 1
 
 
     @property

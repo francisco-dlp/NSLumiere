@@ -449,13 +449,6 @@ class CameraDevice(camera_base.CameraDevice3):
         data_type[0] = 100 + self.__numpy_to_orsay_type(self.spimimagedata)
         return self.spimimagedata_ptr.value
 
-    def __spim_data_locker(self, gene, data_type, sx, sy, sz):
-        sx[0] = self.sizex
-        sy[0] = self.sizey
-        sz[0] = self.sizez
-        data_type[0] = 100 + self.__numpy_to_orsay_type(self.spimimagedata)
-        return self.spimimagedata_ptr.value
-
     def __spim_data_unlocker(self, gene :int, new_data : bool, running : bool):
         status = self.camera.getCCDStatus()
         # if status["mode"] == "Spectrum imaging":
@@ -678,7 +671,7 @@ class CameraDevice(camera_base.CameraDevice3):
     def acquire_synchronized_begin(self, camera_frame_parameters: camera_base.CameraFrameParameters,
                                    scan_shape: DataAndMetadata.ShapeType,
                                    **kwargs: typing.Any) -> camera_base.PartialData:
-        print(scan_shape)
+
         self.__camera_task = CameraTask(self, camera_frame_parameters, scan_shape)
         self.__camera_task.prepare()
         self.__x_pix_spim = scan_shape[1]
@@ -728,7 +721,8 @@ class CameraDevice(camera_base.CameraDevice3):
         self.__processing = value
 
     def get_expected_dimensions(self, binning: int) -> (int, int):
-        return self.__sensor_dimensions
+        sx, sy = self.camera.getImageSize()
+        return sy, sx
 
     def start_monitor(self) -> None:
         pass
@@ -983,7 +977,6 @@ def periodic_logger():
     messages = list()
     data_elements = list()
     return messages, data_elements
-
 
 def run(instrument: ivg_inst.ivgInstrument):
     set_file = read_data.FileManager('Orsay_cameras_list')
