@@ -132,17 +132,17 @@ class CameraTask:
         else:
             self.sizey = scan_size
             self.sizez = 1
-            self.__camera_device.spimimagedata = numpy.zeros((self.__scan_shape[0], self.__scan_shape[1], self.sizex),
+            self.__camera_device.spimimagedata = numpy.ones((self.__scan_shape[0], self.__scan_shape[1], self.sizex),
                                                              dtype=datatype)
             camera_readout_shape = (self.sizex,)
         print(f"Spim dimensions {self.sizex} {self.sizey} {self.sizez}")
         self.__data_descriptor = DataAndMetadata.DataDescriptor(False, len(self.__scan_shape),
                                                                 len(camera_readout_shape))
         if settings['flipped']:
-            spim_array = numpy.flip(self.__camera_device.spimimagedata, axis=2)
+            self.__data = numpy.flip(self.__camera_device.spimimagedata, axis=2)
         else:
-            spim_array = self.__camera_device.spimimagedata
-        self.__xdata = DataAndMetadata.new_data_and_metadata(spim_array, data_descriptor=self.__data_descriptor)
+            self.__data = self.__camera_device.spimimagedata
+        self.__xdata = DataAndMetadata.new_data_and_metadata(self.__data, data_descriptor=self.__data_descriptor)
         self.__xdata.metadata.setdefault("hardware_source", dict())["valid_rows"] = 0
         self.__camera_device.camera.startSpim(scan_size, 1,
                                               self.__camera_device.current_camera_settings.exposure_ms / 1000,
@@ -184,7 +184,7 @@ class CameraTask:
         return True, True, 0
 
 
-class CameraDevice(camera_base.CameraDevice3):
+class CameraDevice(camera_base.CameraDevice):
 
     def __init__(self, manufacturer, model, sn, simul, instrument: ivg_inst.ivgInstrument, id, name, type):
         self.camera_id = id
@@ -466,21 +466,21 @@ class CameraDevice(camera_base.CameraDevice3):
                 self.camera_id)
             hardware_source.stop_playing()
 
-    def __spim_data_unlockerA(self, gene : int, new_data : bool, current_spectrum: c_uint64, current_spim : c_int32, running : bool):
-        self.frame_number = current_spectrum
-        status = self.camera.getCCDStatus()
-        if "Chrono" in self.current_camera_settings.as_dict()['acquisition_mode']:
-            if new_data:
-                self.has_data_event.set()
-        else:
-            if not running:
-                # just stopped, send last data anyway.
-                self.has_spim_data_event.set()
-                print(f"spim done => frames {self.frame_number}")
-        if not running:
-            hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                self.camera_id)
-            hardware_source.stop_playing()
+    # def __spim_data_unlockerA(self, gene : int, new_data : bool, current_spectrum: c_uint64, current_spim : c_int32, running : bool):
+    #     self.frame_number = current_spectrum
+    #     status = self.camera.getCCDStatus()
+    #     if "Chrono" in self.current_camera_settings.as_dict()['acquisition_mode']:
+    #         if new_data:
+    #             self.has_data_event.set()
+    #     else:
+    #         if not running:
+    #             # just stopped, send last data anyway.
+    #             self.has_spim_data_event.set()
+    #             print(f"spim done => frames {self.frame_number}")
+    #     if not running:
+    #         hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+    #             self.camera_id)
+    #         hardware_source.stop_playing()
 
     def __spectrum_data_locker(self, gene, data_type, sx) -> None:
         if self.__acqon and self.__acqspimon and (self.current_camera_settings.exposure_ms >= 10):
@@ -679,16 +679,17 @@ class CameraDevice(camera_base.CameraDevice3):
         self.sizez = self.spimimagedata.shape[2]
         self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
         self.__camera_task.start()
-        return camera_base.PartialData(self.__camera_task.xdata, False, False, None, 0)
+        return camera_base.PartialData(self.__camera_task.xdata, False, False, 0)
 
     def acquire_synchronized_continue(self, *, update_period: float = 1.0,
                                       **kwargs: typing.Any) -> camera_base.PartialData:
         # assert self.__camera_task
         is_complete, is_canceled, valid_count = self.__camera_task.grab_partial(update_period=update_period)
-        return camera_base.PartialData(self.__camera_task.xdata, is_complete, is_canceled, None, valid_count)
+        return camera_base.PartialData(self.__camera_task.xdata, is_complete, is_canceled, valid_count)
 
     def acquire_synchronized_end(self, **kwargs: typing.Any) -> None:
-        self.__camera_task = None
+        pass
+        #self.__camera_task = None
         # self.__scan_device = None
 
     def acquire_synchronized_cancel(self) -> None:
