@@ -43,6 +43,7 @@ if (sys.maxsize > 2**32):
     #first copy the extra dll to python folder
     libpath = os.path.dirname(__file__)
     python_folder = sys.executable
+    print(python_folder)
     pos = python_folder.find("python.exe")
     if pos>0:
         python_folder=python_folder.replace("python.exe","")
@@ -135,8 +136,8 @@ class orsayCamera(object):
                                               c_bool)
         # bool CAMERAS_EXPORT GetCameraArea(void *o, short *top, short *left, short *bottom, short *right);#void CAMERAS_EXPORT SetCCDOverscan(void *o, int x, int y);
         self.__OrsayCameraGetArea = _buildFunction(_library.GetCameraArea,
-                                              [c_void_p, POINTER(c_short), POINTER(c_short), POINTER(c_short),
-                                               POINTER(c_short)], c_bool)
+                                                   [c_void_p, POINTER(c_short), POINTER(c_short), POINTER(c_short),
+                                                    POINTER(c_short), POINTER(c_short)], c_bool)
         # void CAMERAS_EXPORT SetCCDOverscan(void *o, int x, int y);
         self.__OrsayCameraSetCCDOverscan = _buildFunction(_library.SetCCDOverscan, [c_void_p, c_int, c_int], None)
         # void CAMERAS_EXPORT DisplayOverscan(void *o, bool on);
@@ -243,6 +244,16 @@ class orsayCamera(object):
         self.__OrsayCameraSetVideoThreshold = _buildFunction(_library.SetVideoThreshold, [c_void_p, c_ushort], None)
         #	unsigned short CAMERAS_EXPORT GetVideoThreshold(void *o);
         self.__OrsayCameraGetVideoThreshold = _buildFunction(_library.GetVideoThreshold, [c_void_p], c_ushort)
+
+        # #	const char CAMERAS_EXPORT *JsonAcquisitionHeader(void *o);
+        # self.__OrsayCameraAcquisitionHeader = _buildFunction(_library.JsonAcquisitionHeader, [c_void_p], c_char_p)
+        # #	const char CAMERAS_EXPORT *JsonImageHeader(void *o);
+        # self.__OrsayCameraImageHeader = _buildFunction(_library.JsonImageHeader, [c_void_p], c_char_p)
+        #
+        # #	int CAMERAS_EXPORT GetChipsConfig(void *o);
+        # self.__OrsayCameraSetChipsConfig = _buildFunction(_library.SetChipsConfig, [c_void_p, c_int], c_bool)
+        # #	bool CAMERAS_EXPORT SetChipsConfig(void *o, int value);
+        # self.__OrsayCameraGetChipsConfig = _buildFunction(_library.GetChipsConfig, [c_void_p], c_int)
 
     def close(self):
         self.__OrsayCameraClose(self.orsaycamera)
@@ -767,8 +778,9 @@ class orsayCamera(object):
         bottom = c_short()
         left = c_short()
         right = c_short()
-        self.__OrsayCameraGetArea(self.orsaycamera, top, left, bottom, right)
-        return top.value, left.value, bottom.value, right.value
+        nbrows= c_short()
+        self.__OrsayCameraGetArea(self.orsaycamera, top, left, bottom, right, nbrows)
+        return top.value, left.value, bottom.value, right.value, nbrows.value
 
     def setVideoThreshold(self, threshold):
         """
@@ -785,4 +797,3 @@ class orsayCamera(object):
 
     def setCCDOverscan(self, sx, sy):
         self.__OrsayCameraSetCCDOverscan(self.orsaycamera, sx, sy)
-        

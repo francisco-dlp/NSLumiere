@@ -243,7 +243,13 @@ class CameraDevice(camera_base.CameraDevice):
         bx, by = self.camera.getBinning()
         port = self.camera.getCurrentPort()
 
-        d = {
+        self.isKURO = model.find("KURO") >= 0
+        self.isProEM = model.find("ProEM") >= 0
+        self.isMedipix = model.find("Merlin") >= 0
+        self.isTimepix = model.find("CheeTah") >= 0
+
+        d = dict()
+        d.update({
             "exposure_ms": 15,
             "h_binning": bx,
             "v_binning": by,
@@ -263,7 +269,10 @@ class CameraDevice(camera_base.CameraDevice):
             "timeDelay": 0,
             "timeWidth": 0,
             "tp3mode": 1,
-        }
+        })
+        if self.isMedipix:
+            d["chips_config"] = 15
+            d["gaps_mode"] = 0
 
         self.current_camera_settings = CameraFrameParameters(d)
         self.__hardware_settings = self.current_camera_settings.as_dict()
@@ -278,11 +287,6 @@ class CameraDevice(camera_base.CameraDevice):
         self.__acqspimon = False
         self.__x_pix_spim = 30
         self.__y_pix_spim = 30
-
-        self.isKURO = model.find("KURO") >= 0
-        self.isProEM = model.find("ProEM") >= 0
-        self.isMedipix = model.find("Merlin") >= 0
-        self.isTimepix = model.find("CheeTah") >= 0
 
         if manufacturer == 2:
             self.camera.setCCDOverscan(128, 0)
@@ -318,7 +322,7 @@ class CameraDevice(camera_base.CameraDevice):
             self.__hardware_settings['soft_binning'] = dict_frame_parameters['soft_binning']
             if self.__hardware_settings['acquisition_mode'] != dict_frame_parameters['acquisition_mode']:
                 self.__hardware_settings['acquisition_mode'] = dict_frame_parameters['acquisition_mode']
-            print(f"***CAMERA***: acquisition mode[camera]: {self.__hardware_settings['acquisition_mode']}")
+            #print(f"***CAMERA***: acquisition mode[camera]: {self.__hardware_settings['acquisition_mode']}")
             self.__hardware_settings['spectra_count'] = dict_frame_parameters['spectra_count']
 
         if "port" in dict_frame_parameters:
@@ -335,9 +339,36 @@ class CameraDevice(camera_base.CameraDevice):
             # if hasattr(frame_parameters, "area"):
             if any(i != j for i, j in zip(self.__hardware_settings['area'], dict_frame_parameters['area'])):
                 # if change area, put back binning to 1,1 temporarily in order to avoid conflicts, binnig will then be setup later
+                v_binned = self.__hardware_settings['v_binning'] > 1
                 self.__hardware_settings['h_binning'] = 1
                 self.__hardware_settings['v_binning'] = 1
                 self.camera.setBinning(self.__hardware_settings['h_binning'], self.__hardware_settings['v_binning'])
+                if self.isMedipix:
+                    self.__hardware_settings['area'] = dict_frame_parameters['area']
+                    top = dict_frame_parameters['area'][0]
+                    left = dict_frame_parameters['area'][1]
+                    bottom = dict_frame_parameters['area'][2]
+                    right = dict_frame_parameters['area'][3]
+                    sx, sy = self.camera.getCCDSize()
+                    szy = sy
+                    sizey = sy - top
+                    if sizey <= 4:
+                        szy = 4
+                    elif sizey <= 8:
+                        szy = 8
+                    elif sizey <= 16:
+                        szy = 16
+                    elif sizey <= 32:
+                        szy = 32
+                    elif sizey <= 64:
+                        szy = 64
+                    elif sizey <= 128:
+                        szy = 128
+                    self.__hardware_settings.area = [top - (sy - szy), left, bottom - (sy - szy), right, szy]
+                    self.camera.setArea(self.__hardware_settings['area'])
+                    if v_binned:
+                        self.__hardware_settings.binning = int(bottom - top)
+                        self.camera.setBinning(self.__hardware_settings['h_binning'], self.__hardware_settings['binning'])
                 self.__hardware_settings.area = dict_frame_parameters['area']
                 self.camera.setArea(self.__hardware_settings['area'])
 
@@ -353,7 +384,7 @@ class CameraDevice(camera_base.CameraDevice):
                  self.__hardware_settings['gain'] = dict_frame_parameters['gain']
                  self.camera.setGain(self.__hardware_settings['gain'])
 
-        if "multiplication" in dict_frame_parameters:
+        if (not self.isKURO) and "multiplication" in dict_frame_parameters:
             if self.__hardware_settings['multiplication'] != dict_frame_parameters['multiplication']:
                 self.__hardware_settings['multiplication'] = dict_frame_parameters['multiplication']
                 self.camera.setMultiplication(self.__hardware_settings['multiplication'])
@@ -373,6 +404,7 @@ class CameraDevice(camera_base.CameraDevice):
         if "processing" in dict_frame_parameters:
             self.__hardware_settings['processing'] = dict_frame_parameters['processing']
 
+        #Timepix3 camera values
         if self.isTimepix and "timeDelay" in dict_frame_parameters:
             self.__hardware_settings['timeDelay'] = dict_frame_parameters['timeDelay']
             self.camera.setDelayTime(dict_frame_parameters['timeDelay'])
@@ -384,6 +416,17 @@ class CameraDevice(camera_base.CameraDevice):
         if self.isTimepix and "tp3mode" in dict_frame_parameters:
             self.__hardware_settings['tp3mode'] = dict_frame_parameters['tp3mode']
             self.camera.setTp3Mode(dict_frame_parameters['tp3mode'])
+
+        #Medipix3 camera values
+        if self.isMedipix and "chips_config" in dict_frame_parameters:
+            if self.__hardware_settings['chips_config'] != frame_parameters['chips_config']:
+                self.__hardware_settings['chips_config'] = frame_parameters['chips_config']
+                self.camera.chips_config = self.__hardware_settings['chips_config']
+
+        if self.isMedipix and "gaps_mode" in dict_frame_parameters:
+            if self.__hardware_settings['gaps_mode'] != frame_parameters['gaps_mode']:
+                self.__hardware_settings['gaps_mode'] = frame_parameters['gaps_mode']
+                self.camera.gaps_mode = self.__hardware_settings['gaps_mode']
 
     def __numpy_to_orsay_type(self, array: numpy.array):
         orsay_type = Orsay_Data.float
@@ -602,53 +645,74 @@ class CameraDevice(camera_base.CameraDevice):
         #         self.instrument.warn_Scan_instrument_spim(False)
 
     def acquire_image(self) -> dict:
+        self.has_data_event.wait(1)
+        self.has_data_event.clear()
         acquisition_mode = self.current_camera_settings.as_dict()['acquisition_mode']
+
         if "Chrono" in acquisition_mode:
-            self.has_spim_data_event.wait(1.0)
-            self.has_spim_data_event.clear()
             self.acquire_data = self.spimimagedata
             if "2D" in acquisition_mode:
                 collection_dimensions = 1
                 datum_dimensions = 2
             else:
-                collection_dimensions = 1
-                datum_dimensions = 2
-
-        elif "Focus" in acquisition_mode and self.__acqspimon:
-            self.has_spim_data_event.wait(1.0)
-            self.has_spim_data_event.clear()
-            spnb = self.frame_number
-            y0 = int(spnb / 10)
-            x0 = int(spnb - y0 * 10)
-            self.acquire_data = self.spimimagedata
-            collection_dimensions = 2
-            datum_dimensions = 1
-
-        elif "SpimTP" in acquisition_mode:
-            self.has_spim_data_event.wait(1.0)
-            self.acquire_data = self.spimimagedata
-            collection_dimensions = 2
-            datum_dimensions = 1
-            self.has_spim_data_event.clear()
-
-        else:  # Cumul and Focus
-            self.has_data_event.wait(1.0)  # wait until True
-            self.has_data_event.clear()  # Puts back false
-            self.acquire_data = self.imagedata
-            if self.acquire_data.shape[0] == 1:  # fully binned
-                collection_dimensions = 1
-                datum_dimensions = 1
-                if self.current_camera_settings.as_dict()['flipped']:
-                    self.acquire_data = numpy.flip(self.acquire_data[0], 0)
-            else:  # not binned
                 collection_dimensions = 0
                 datum_dimensions = 2
+        else:
+            self.acquire_data = self.imagedata
+            if self.acquire_data.shape[0] == 1: #fully binned
+                self.acquire_data = self.acquire_data.reshape(self.acquire_data.shape[1])
+                datum_dimensions = 1
+                collection_dimensions = 1
+            else:
+                datum_dimensions = 2
+                collection_dimensions = 0
 
         properties = dict()
         properties["frame_number"] = self.frame_number
         properties["acquisition_mode"] = acquisition_mode
         properties["frame_parameters"] = dict(self.current_camera_settings.as_dict())
         calibration_controls = copy.deepcopy(self.calibration_controls)
+
+        if self.isMedipix:
+            properties["merlin"] = dict()
+            properties["merlin"]["acquisition"] = self.acquisition_header
+            properties["merlin"]["acquisition"] = self.image_header
+
+        # elif "Focus" in acquisition_mode and self.__acqspimon:
+        #     self.has_spim_data_event.wait(1.0)
+        #     self.has_spim_data_event.clear()
+        #     spnb = self.frame_number
+        #     y0 = int(spnb / 10)
+        #     x0 = int(spnb - y0 * 10)
+        #     self.acquire_data = self.spimimagedata
+        #     collection_dimensions = 2
+        #     datum_dimensions = 1
+        #
+        # elif "SpimTP" in acquisition_mode:
+        #     self.has_spim_data_event.wait(1.0)
+        #     self.acquire_data = self.spimimagedata
+        #     collection_dimensions = 2
+        #     datum_dimensions = 1
+        #     self.has_spim_data_event.clear()
+        #
+        # else:  # Cumul and Focus
+        #     self.has_data_event.wait(1.0)  # wait until True
+        #     self.has_data_event.clear()  # Puts back false
+        #     self.acquire_data = self.imagedata
+        #     if self.acquire_data.shape[0] == 1:  # fully binned
+        #         collection_dimensions = 1
+        #         datum_dimensions = 1
+        #         if self.current_camera_settings.as_dict()['flipped']:
+        #             self.acquire_data = numpy.flip(self.acquire_data[0], 0)
+        #     else:  # not binned
+        #         collection_dimensions = 0
+        #         datum_dimensions = 2
+        #
+        # properties = dict()
+        # properties["frame_number"] = self.frame_number
+        # properties["acquisition_mode"] = acquisition_mode
+        # properties["frame_parameters"] = dict(self.current_camera_settings.as_dict())
+        # calibration_controls = copy.deepcopy(self.calibration_controls)
 
         # if self.frame_number>=self.current_camera_settings.spectra_count and acquisition_mode=='Cumul':
         #    self.stop_acquitisition_event.fire("")
@@ -716,6 +780,9 @@ class CameraDevice(camera_base.CameraDevice):
     def start_monitor(self) -> None:
         pass
 
+    #def acquisition_header(self):
+    #    return json.loa
+
     @property
     def fan_enabled(self) -> bool:
         return self.camera.getFan()
@@ -723,6 +790,14 @@ class CameraDevice(camera_base.CameraDevice):
     @fan_enabled.setter
     def fan_enabled(self, value: bool) -> None:
         self.camera.setFan(bool(value))
+
+    @property
+    def acquisition_header(self) -> dict:
+        return json.loads(self.camera.acquisition_header)
+
+    @property
+    def image_header(self) -> dict:
+        return json.loads(self.camera.image_header)
 
     def isCameraAcquiring(self):
         return self.__acqon
