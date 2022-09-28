@@ -159,7 +159,7 @@ class CameraTask:
         elapsed_time = time.time_ns() - self.__start_time
         wait_time = update_period - elapsed_time * 1e-9
         if wait_time > 0.001:
-            print(f"waiting for {wait_time}")
+            #print(f"waiting for {wait_time}")
             time.sleep(wait_time)
         self.__start_time = time.time_ns()
         if not self.__aborted:
@@ -273,6 +273,7 @@ class CameraDevice(camera_base.CameraDevice):
 
         self.__processing = None
 
+
         self.__acqon = False
         self.__acqspimon = False
         self.__x_pix_spim = 30
@@ -282,8 +283,6 @@ class CameraDevice(camera_base.CameraDevice):
         self.isProEM = model.find("ProEM") >= 0
         self.isMedipix = model.find("Merlin") >= 0
         self.isTimepix = model.find("CheeTah") >= 0
-
-        self.__calibration_controls = {}
 
         if manufacturer == 2:
             self.camera.setCCDOverscan(128, 0)
@@ -299,10 +298,10 @@ class CameraDevice(camera_base.CameraDevice):
     def create_frame_parameters(self, d: dict) -> dict:
         return self.current_camera_settings
 
-    def set_frame_parameters(self, frame_parameters: dict) -> None:
+    def set_frame_parameters(self, frame_parameters) -> None:
         dict_frame_parameters = frame_parameters.as_dict()
-        print(frame_parameters.as_dict())
-        print(self.__hardware_settings)
+        if self.__acqon:
+            self.stop_live()
 
         if self.__hardware_settings['exposure_ms'] != dict_frame_parameters['exposure_ms']:
             self.__hardware_settings['exposure_ms'] = dict_frame_parameters['exposure_ms']
@@ -316,21 +315,18 @@ class CameraDevice(camera_base.CameraDevice):
                 self.frame_parameter_changed_event.fire("acquisition_mode")
 
         if "soft_binning" in dict_frame_parameters:
-            # if hasattr(frame_parameters, "soft_binning"):
             self.__hardware_settings['soft_binning'] = dict_frame_parameters['soft_binning']
             if self.__hardware_settings['acquisition_mode'] != dict_frame_parameters['acquisition_mode']:
                 self.__hardware_settings['acquisition_mode'] = dict_frame_parameters['acquisition_mode']
             print(f"***CAMERA***: acquisition mode[camera]: {self.__hardware_settings['acquisition_mode']}")
             self.__hardware_settings['spectra_count'] = dict_frame_parameters['spectra_count']
-        #
+
         if "port" in dict_frame_parameters:
-            # if hasattr(frame_parameters, "port"):
             if self.__hardware_settings['port'] != dict_frame_parameters['port']:
                 self.__hardware_settings['port'] = dict_frame_parameters['port']
                 self.camera.setCurrentPort(dict_frame_parameters['port'])
 
         if "speed" in dict_frame_parameters:
-            # if hasattr(frame_parameters, "speed"):
             if self.__hardware_settings['speed'] != dict_frame_parameters['speed']:
                 self.__hardware_settings['speed'] = dict_frame_parameters['speed']
                 self.camera.setSpeed(self.__hardware_settings['port'], dict_frame_parameters['speed'])
@@ -352,49 +348,42 @@ class CameraDevice(camera_base.CameraDevice):
                 self.camera.setBinning(dict_frame_parameters['h_binning'], dict_frame_parameters['v_binning'])
                 self.__hardware_settings['h_binning'], self.__hardware_settings['v_binning'] = self.camera.getBinning()
 
-        # if "gain" in dict_frame_parameters:
-        # #if hasattr(frame_parameters, "gain"):
-        #     if self.__hardware_settings.gain != dict_frame_parameters['gain']:
-        #         self.__hardware_settings.gain = dict_frame_parameters['gain']
-        #         self.camera.setGain(self.__hardware_settings.gain)
-        #
-        # if "multiplication" in dict_frame_parameters:
-        # #if hasattr(frame_parameters, "multiplication"):
-        #     if self.__hardware_settings.multiplication != dict_frame_parameters['multiplication']:
-        #         self.__hardware_settings.multiplication = dict_frame_parameters['multiplication']
-        #         self.camera.setMultiplication(self.__hardware_settings.multiplication)
-        #
-        # if "spectra_count" in dict_frame_parameters:
-        # #if hasattr(frame_parameters, "spectra_count"):
-        #     self.__hardware_settings.spectra_count = dict_frame_parameters['spectra_count']
-        #     self.camera.setAccumulationNumber(self.__hardware_settings.spectra_count)
-        # if "video_threshold" in dict_frame_parameters:
-        # #if hasattr(frame_parameters, "video_threshold"):
-        #     self.__hardware_settings.video_threshold = dict_frame_parameters['video_threshold']
-        #     self.camera.setVideoThreshold(self.__hardware_settings.video_threshold)
-        # if "fan_enabled" in dict_frame_parameters:
-        # #if hasattr(frame_parameters, "fan_enabled"):
-        #     self.__hardware_settings.fan_enabled = dict_frame_parameters['fan_enabled']
-        #     self.camera.setFan(self.__hardware_settings.fan_enabled)
-        #
-        # if "processing" in dict_frame_parameters:
-        # #if hasattr(frame_parameters, "processing"):
-        #     self.__hardware_settings.processing = dict_frame_parameters['processing']
-        #
-        # if self.isTimepix and "timeDelay" in frame_parameters:
-        # #if hasattr(frame_parameters, "timeDelay") and self.isTimepix:
-        #     self.__hardware_settings.timeDelay = frame_parameters['timeDelay']
-        #     self.camera.setDelayTime(frame_parameters['timeDelay'])
-        #
-        # if self.isTimepix and "timeWidth" in frame_parameters:
-        # #if hasattr(frame_parameters, "timeWidth") and self.isTimepix:
-        #     self.__hardware_settings.timeWidth = frame_parameters['timeWidth']
-        #     self.camera.setWidthTime(frame_parameters['timeWidth'])
-        #
-        # if self.isTimepix and "tp3mode" in frame_parameters:
-        # #if hasattr(frame_parameters, "tp3mode") and self.isTimepix:
-        #     self.__hardware_settings.tp3mode = frame_parameters['tp3mode']
-        #     self.camera.setTp3Mode(frame_parameters['tp3mode'])
+        if "gain" in dict_frame_parameters:
+            if self.__hardware_settings['gain'] != dict_frame_parameters['gain']:
+                 self.__hardware_settings['gain'] = dict_frame_parameters['gain']
+                 self.camera.setGain(self.__hardware_settings['gain'])
+
+        if "multiplication" in dict_frame_parameters:
+            if self.__hardware_settings['multiplication'] != dict_frame_parameters['multiplication']:
+                self.__hardware_settings['multiplication'] = dict_frame_parameters['multiplication']
+                self.camera.setMultiplication(self.__hardware_settings['multiplication'])
+
+        if "spectra_count" in dict_frame_parameters:
+            self.__hardware_settings['spectra_count'] = dict_frame_parameters['spectra_count']
+            self.camera.setAccumulationNumber(self.__hardware_settings['spectra_count'])
+
+        if "video_threshold" in dict_frame_parameters:
+            self.__hardware_settings['video_threshold'] = dict_frame_parameters['video_threshold']
+            self.camera.setVideoThreshold(self.__hardware_settings['video_threshold'])
+
+        if "fan_enabled" in dict_frame_parameters:
+            self.__hardware_settings['fan_enabled'] = dict_frame_parameters['fan_enabled']
+            self.camera.setFan(self.__hardware_settings['fan_enabled'])
+
+        if "processing" in dict_frame_parameters:
+            self.__hardware_settings['processing'] = dict_frame_parameters['processing']
+
+        if self.isTimepix and "timeDelay" in dict_frame_parameters:
+            self.__hardware_settings['timeDelay'] = dict_frame_parameters['timeDelay']
+            self.camera.setDelayTime(dict_frame_parameters['timeDelay'])
+
+        if self.isTimepix and "timeWidth" in dict_frame_parameters:
+            self.__hardware_settings['timeWidth'] = dict_frame_parameters['timeWidth']
+            self.camera.setWidthTime(dict_frame_parameters['timeWidth'])
+
+        if self.isTimepix and "tp3mode" in dict_frame_parameters:
+            self.__hardware_settings['tp3mode'] = dict_frame_parameters['tp3mode']
+            self.camera.setTp3Mode(dict_frame_parameters['tp3mode'])
 
     def __numpy_to_orsay_type(self, array: numpy.array):
         orsay_type = Orsay_Data.float
@@ -701,7 +690,6 @@ class CameraDevice(camera_base.CameraDevice):
 
     @property
     def calibration_controls(self) -> dict:
-
         return {
             "x_scale_control": self.camera_type + "_x_scale",
             "x_offset_control": self.camera_type + "_x_offset",
@@ -898,10 +886,7 @@ class CameraSettings():
         self.__camera_device = camera_device
 
         # the list of possible modes should be defined here
-        self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "SpimTP"]
-        if self.__camera_device.isTimepix:
-            self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live"]
-
+        self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "2D-Chrono"]
         self.settings_id = camera_device.camera_id
 
     def close(self):
@@ -928,7 +913,7 @@ class CameraSettings():
         self.__camera_device.current_camera_settings = frame_parameters
         self.settings_changed_event.fire(frame_parameters.as_dict())
         self.current_frame_parameters_changed_event.fire(frame_parameters)
-        # self.record_frame_parameters_changed_event.fire(frame_parameters)
+        self.record_frame_parameters_changed_event.fire(frame_parameters)
 
     def get_current_frame_parameters(self) -> CameraFrameParameters:
         return self.__camera_device.current_camera_settings
