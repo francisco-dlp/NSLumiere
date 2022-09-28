@@ -167,7 +167,7 @@ class CameraTask:
             is_complete = self.__camera_device.frame_number >= self.__scan_count
             # if self.__last_rows != rows or self.__last_rows == self.__scan_shape[0]:
             self.__last_rows = rows
-            print(f"valid rows {rows},  frame number {self.__camera_device.frame_number}/{self.__scan_count}")
+            #print(f"valid rows {rows},  frame number {self.__camera_device.frame_number}/{self.__scan_count}")
             self.__xdata.metadata["hardware_source"]["valid_rows"] = rows
             self.__xdata.metadata["hardware_source"]["frame_number"] = self.__camera_device.frame_number
             self.__xdata.metadata["hardware_source"]["integration_count"] = 1
@@ -688,9 +688,9 @@ class CameraDevice(camera_base.CameraDevice):
         return camera_base.PartialData(self.__camera_task.xdata, is_complete, is_canceled, valid_count)
 
     def acquire_synchronized_end(self, **kwargs: typing.Any) -> None:
-        pass
-        #self.__camera_task = None
-        # self.__scan_device = None
+        #print("synchronous acquisition terminated")
+        self.camera.stopSpim(True)
+        self.__camera_task = None
 
     def acquire_synchronized_cancel(self) -> None:
         self.__cancel_sequence_event.set()
