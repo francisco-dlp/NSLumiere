@@ -9,11 +9,12 @@
         "simulation": true
     },
     {
-        "manufacturer": 1,
-        "model": "ProEM+: 1600xx(2)B eXcelon",
-        "type": "eire",
-        "id": "orsay_camera_eire",
-        "name": "EIRE",
+        "manufacturer": 3,
+        "model": "Merlin",
+		"ip_address": "127.0.0.1",
+        "type": "eels",
+        "id": "orsay_camera_medipix3",
+        "name": "EELS",
         "simulation": true
     }
 ]

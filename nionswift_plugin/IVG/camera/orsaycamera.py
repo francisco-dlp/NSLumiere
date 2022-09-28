@@ -245,15 +245,15 @@ class orsayCamera(object):
         #	unsigned short CAMERAS_EXPORT GetVideoThreshold(void *o);
         self.__OrsayCameraGetVideoThreshold = _buildFunction(_library.GetVideoThreshold, [c_void_p], c_ushort)
 
-        # #	const char CAMERAS_EXPORT *JsonAcquisitionHeader(void *o);
-        # self.__OrsayCameraAcquisitionHeader = _buildFunction(_library.JsonAcquisitionHeader, [c_void_p], c_char_p)
-        # #	const char CAMERAS_EXPORT *JsonImageHeader(void *o);
-        # self.__OrsayCameraImageHeader = _buildFunction(_library.JsonImageHeader, [c_void_p], c_char_p)
-        #
-        # #	int CAMERAS_EXPORT GetChipsConfig(void *o);
-        # self.__OrsayCameraSetChipsConfig = _buildFunction(_library.SetChipsConfig, [c_void_p, c_int], c_bool)
-        # #	bool CAMERAS_EXPORT SetChipsConfig(void *o, int value);
-        # self.__OrsayCameraGetChipsConfig = _buildFunction(_library.GetChipsConfig, [c_void_p], c_int)
+        #	const char CAMERAS_EXPORT *JsonAcquisitionHeader(void *o);
+        self.__OrsayCameraAcquisitionHeader = _buildFunction(_library.JsonAcquisitionHeader, [c_void_p], c_char_p)
+        #	const char CAMERAS_EXPORT *JsonImageHeader(void *o);
+        self.__OrsayCameraImageHeader = _buildFunction(_library.JsonImageHeader, [c_void_p], c_char_p)
+
+        #	int CAMERAS_EXPORT GetChipsConfig(void *o);
+        self.__OrsayCameraSetChipsConfig = _buildFunction(_library.SetChipsConfig, [c_void_p, c_int], c_bool)
+        #	bool CAMERAS_EXPORT SetChipsConfig(void *o, int value);
+        self.__OrsayCameraGetChipsConfig = _buildFunction(_library.GetChipsConfig, [c_void_p], c_int)
 
     def close(self):
         self.__OrsayCameraClose(self.orsaycamera)
@@ -797,3 +797,19 @@ class orsayCamera(object):
 
     def setCCDOverscan(self, sx, sy):
         self.__OrsayCameraSetCCDOverscan(self.orsaycamera, sx, sy)
+
+    @property
+    def acquisition_header(self) -> str:
+        return self.__OrsayCameraAcquisitionHeader(self.orsaycamera);
+
+    @property
+    def image_header(self) -> str:
+        return self.__OrsayCameraImageHeader(self.orsaycamera);
+
+    @property
+    def chips_config(self)-> int:
+        return  self.__OrsayCameraGetChipsConfig()
+
+    @chips_config.setter
+    def chips_config(self, value: int):
+        self.__OrsayCameraSetChipsConfig(self.orsaycamera, value)
