@@ -364,12 +364,12 @@ class CameraDevice(camera_base.CameraDevice):
                         szy = 64
                     elif sizey <= 128:
                         szy = 128
-                    self.__hardware_settings.area = [top - (sy - szy), left, bottom - (sy - szy), right, szy]
+                    self.__hardware_settings['area'] = [top - (sy - szy), left, bottom - (sy - szy), right, szy]
                     self.camera.setArea(self.__hardware_settings['area'])
                     if v_binned:
                         self.__hardware_settings.binning = int(bottom - top)
-                        self.camera.setBinning(self.__hardware_settings['h_binning'], self.__hardware_settings['binning'])
-                self.__hardware_settings.area = dict_frame_parameters['area']
+                        self.camera.setBinning(self.__hardware_settings['h_binning'], self.__hardware_settings['v_binning'])
+                self.__hardware_settings['area'] = dict_frame_parameters['area']
                 self.camera.setArea(self.__hardware_settings['area'])
 
         if ("h_binning" in dict_frame_parameters) and ("v_binning" in dict_frame_parameters):
@@ -1043,7 +1043,7 @@ def run(instrument: ivg_inst.ivgInstrument):
     set_file = read_data.FileManager('Orsay_cameras_list')
 
     for camera in set_file.settings:
-        try:
+        #try:
             sn = ""
             if camera["manufacturer"] == 1:
                 manufacturer = "Roperscientific"
@@ -1067,5 +1067,5 @@ def run(instrument: ivg_inst.ivgInstrument):
                 Registry.register_component(CameraModule("VG_controller", camera_device, camera_settings),
                                             {"camera_module"})
             set_file.save_locally()
-        except Exception as e:
-            logging.info(f"Failed to start camera: {manufacturer}.  model: {model}. Exception: {e}")
+        #except Exception as e:
+        #    logging.info(f"Failed to start camera: {manufacturer}.  model: {model}. Exception: {e}")
