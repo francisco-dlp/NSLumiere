@@ -228,9 +228,9 @@ class CameraDevice(camera_base.CameraDevice):
         if manufacturer != 4:
             self.fnspimlock = orsaycamera.SPIMLOCKFUNC(self.__spim_data_locker)
             self.camera.registerSpimDataLocker(self.fnspimlock)
-            self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
-            #self.fnspimunlockA = orsaycamera.SPIMUNLOCKFUNCA(self.__spim_data_unlockerA)
-            self.camera.registerSpimDataUnlocker(self.fnspimunlock)
+            #self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
+            self.fnspimunlockA = orsaycamera.SPIMUNLOCKFUNCA(self.__spim_data_unlockerA)
+            self.camera.registerSpimDataUnlockerA(self.fnspimunlockA)
             self.fnspectrumlock = orsaycamera.SPECTLOCKFUNC(self.__spectrum_data_locker)
             self.camera.registerSpectrumDataLocker(self.fnspectrumlock)
             self.fnspectrumunlock = orsaycamera.SPECTUNLOCKFUNC(self.__spectrum_data_unlocker)
@@ -498,21 +498,21 @@ class CameraDevice(camera_base.CameraDevice):
                 self.camera_id)
             hardware_source.stop_playing()
 
-    # def __spim_data_unlockerA(self, gene : int, new_data : bool, current_spectrum: c_uint64, current_spim : c_int32, running : bool):
-    #     self.frame_number = current_spectrum
-    #     status = self.camera.getCCDStatus()
-    #     if "Chrono" in self.current_camera_settings.as_dict()['acquisition_mode']:
-    #         if new_data:
-    #             self.has_data_event.set()
-    #     else:
-    #         if not running:
-    #             # just stopped, send last data anyway.
-    #             self.has_spim_data_event.set()
-    #             print(f"spim done => frames {self.frame_number}")
-    #     if not running:
-    #         hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-    #             self.camera_id)
-    #         hardware_source.stop_playing()
+    def __spim_data_unlockerA(self, gene : int, new_data : bool, current_spectrum: c_uint64, current_spim : c_int32, running : bool):
+        self.frame_number = current_spectrum
+        status = self.camera.getCCDStatus()
+        if "Chrono" in self.current_camera_settings.as_dict()['acquisition_mode']:
+            if new_data:
+                self.has_data_event.set()
+        else:
+            if not running:
+                # just stopped, send last data anyway.
+                self.has_spim_data_event.set()
+                print(f"spim done => frames {self.frame_number}")
+        if not running:
+            hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                self.camera_id)
+            hardware_source.stop_playing()
 
     def __spectrum_data_locker(self, gene, data_type, sx) -> None:
         if self.__acqon and self.__acqspimon and (self.current_camera_settings.exposure_ms >= 10):
@@ -792,6 +792,10 @@ class CameraDevice(camera_base.CameraDevice):
         self.camera.setFan(bool(value))
 
     @property
+    def pixeldepth(self) -> int:
+        return self.camera.pixeldepth
+
+    @property
     def acquisition_header(self) -> dict:
         return json.loads(self.camera.acquisition_header)
 
@@ -1043,7 +1047,7 @@ def run(instrument: ivg_inst.ivgInstrument):
     set_file = read_data.FileManager('Orsay_cameras_list')
 
     for camera in set_file.settings:
-        #try:
+        try:
             sn = ""
             if camera["manufacturer"] == 1:
                 manufacturer = "Roperscientific"
@@ -1067,5 +1071,5 @@ def run(instrument: ivg_inst.ivgInstrument):
                 Registry.register_component(CameraModule("VG_controller", camera_device, camera_settings),
                                             {"camera_module"})
             set_file.save_locally()
-        #except Exception as e:
-        #    logging.info(f"Failed to start camera: {manufacturer}.  model: {model}. Exception: {e}")
+        except Exception as e:
+            logging.info(f"Failed to start camera: {manufacturer}.  model: {model}. Exception: {e}")

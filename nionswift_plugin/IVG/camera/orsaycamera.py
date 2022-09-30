@@ -343,6 +343,13 @@ class orsayCamera(object):
         """
         return self.__OrsayCameraSimulation(self.orsaycamera)
 
+    @property
+    def pixeldepth(self) -> int:
+        """
+        Get number of bit in pixel
+        """
+        return self.__OrsayCameraGetPixelDepth(self.orsaycamera)
+
     def getImageSize(self) -> int:
         """
         Read size of image given by the current setting
@@ -385,11 +392,11 @@ class orsayCamera(object):
         """
         self.__OrsayCameraRegisterSpimDataUnlocker(self.orsaycamera, fn)
 
-    # def registerSpimDataUnlockerA(self, fn: SPIMUNLOCKFUNCA) -> None:
-    #     """
-    #     Function called when data process is done for a spectrum image readout
-    #     """
-    #     self.__OrsayCameraRegisterSpimDataUnlockerA(self.orsaycamera, fn)
+    def registerSpimDataUnlockerA(self, fn: SPIMUNLOCKFUNCA) -> None:
+        """
+        Function called when data process is done for a spectrum image readout
+        """
+        self.__OrsayCameraRegisterSpimDataUnlockerA(self.orsaycamera, fn)
 
     def registerSpectrumDataLocker(self, fn):
        """
