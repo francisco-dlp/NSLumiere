@@ -15,13 +15,15 @@ all = HardwareSource.HardwareSourceManager().get_all_instrument_ids()
 
 
 
-print(eels)
-print(eels2)
-print(all)
-print(usim)
+#print(eels)
+#print(eels2)
+#print(all)
+#print(usim)
 
 #scan.scan_device.orsayscan.SetBottomBlanking(0, 14, beamontime=1e-6, delay=500e-9)
 #scan.scan_device.orsayscan.SetBottomBlanking(3, 14, risingedge=True, beamontime=10e-6, delay=500e-9)
+
+#scan.scan_device.orsayscan.AlObjective(0.1, 0, 0, 0)
 
 #fov = scan.scan_device.field_of_view
 #time_us = scan.scan_device.current_frame_parameters['pixel_time_us']

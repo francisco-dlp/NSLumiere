@@ -588,6 +588,20 @@ class ivgInstrument(stem_controller.STEMController):
         self.__StageInstrument.y_pos_f -= fac * dy * 1e8
         self.stage_periodic()
 
+    def SetVal(self, s, val):
+        #print('set val')
+        #print(s)
+        #print(val)
+        return True
+
+    def SetValAndConfirm(self, s, val, tolfactor, timeout_ms):
+        #print('set val and confirm')
+        #print(s)
+        #print(val)
+        #print(tolfactor)
+        #print(timeout_ms)
+        return True
+
     def TryGetVal(self, s: str) -> (bool, float):
         if s == "eels_y_offset":
             return True, 0

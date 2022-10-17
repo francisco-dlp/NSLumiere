@@ -311,6 +311,8 @@ class Device:
                             self.no_prepare_timepix3()
                 #Scan must be started after timepix3 so we are ready for receiving TDC's
                 self.__is_scanning = self.orsayscan.startImaging(0, 1)
+            else:
+                self.__is_scanning = scan.startSpim(0, 1)
 
             logging.info(f'**SCAN***: Acquisition Started is {self.__is_scanning}.')
         return self.__frame_number
@@ -350,6 +352,7 @@ class Device:
         frame_parameters = current_frame.frame_parameters
         is_synchronized_scan = frame_parameters.external_clock_mode != 0
         scan_area = self.set_spim_pixels if is_synchronized_scan else self.Image_area
+        print(scan_area)
 
         if self.__line_number == scan_area[5]:
             current_frame.complete = True
