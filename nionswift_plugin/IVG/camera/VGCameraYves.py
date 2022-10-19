@@ -148,7 +148,7 @@ class CameraTask:
                                               self.__twoD)
 
     def start(self) -> typing.Optional[DataAndMetadata.DataAndMetadata]:
-        #self.__camera_device.camera.resumeSpim(4)  # stop eof
+        self.__camera_device.camera.resumeSpim(4)  # stop eof
         self.__start_time = time.time_ns()
         return self.__xdata
 

@@ -232,8 +232,6 @@ class Device:
         if self.scan_rotation != frame_parameters['rotation_rad']:
             self.scan_rotation = frame_parameters['rotation_rad']
 
-
-
         if not self.__spim:
             if frame_parameters['subscan_pixel_size']:
                 self.subscan_status = True
@@ -305,7 +303,7 @@ class Device:
             if self.__sizez % 2:
                 self.__sizez += 1
 
-            self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
+            self.imagedata = numpy.empty((self.__sizez * (self.__scan_size[0]), (self.__scan_size[1])), dtype=numpy.int16)
             self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
 
             print(f'{self.__sizez} and {self.__scan_size} and {self.__scan_area} amd {self.Spim_image_area} and '
@@ -323,8 +321,6 @@ class Device:
                 self.__is_scanning = self.orsayscan.startImaging(0, 1)
             else:
                 self.__is_scanning = self.spimscan.startSpim(0, 1)
-                now_cam = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eire")
-                now_cam.camera.camera.resumeSpim(4)
 
             logging.info(f'**SCAN***: Acquisition Started is {self.__is_scanning}.')
         return self.__frame_number
@@ -393,35 +389,19 @@ class Device:
                         data_elements.append(data_element)
 
             else:
-                if not self.__spim:
-                    data_array = self.imagedata[channel.channel_id * (scan_area[1]):(channel.channel_id + 1) * (
-                        scan_area[1]), 0: (scan_area[0])].astype(numpy.float32)
-                    data_element["data"] = data_array
-                    properties = current_frame.frame_parameters.as_dict()
-                    sub_area = ((0, 0), data_array.shape)
-                    properties['sub_area'] = ((0, 0), data_array.shape)
-                    properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
-                    properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
-                    properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
-                    properties["channel_id"] = channel.channel_id
-                    data_element["properties"] = properties
-                    if data_array is not None:
-                        data_elements.append(data_element)
-                else:
-                    data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):channel.channel_id * (
-                        self.__scan_area[1]) + self.__spim_pixels[1],
-                                 0: (self.__spim_pixels[0])].astype(numpy.float32)
-                    data_element["data"] = data_array
-                    properties = current_frame.frame_parameters.as_dict()
-                    sub_area = ((0, 0), data_array.shape)
-                    properties['sub_area'] = ((0, 0), data_array.shape)
-                    properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
-                    properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
-                    properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
-                    properties["channel_id"] = channel.channel_id
-                    data_element["properties"] = properties
-                    if data_array is not None:
-                        data_elements.append(data_element)
+                data_array = self.imagedata[channel.channel_id * (scan_area[1]):(channel.channel_id + 1) * (
+                    scan_area[1]), 0: (scan_area[0])].astype(numpy.float32)
+                data_element["data"] = data_array
+                properties = current_frame.frame_parameters.as_dict()
+                sub_area = ((0, 0), data_array.shape)
+                properties['sub_area'] = ((0, 0), data_array.shape)
+                properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
+                properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
+                properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
+                properties["channel_id"] = channel.channel_id
+                data_element["properties"] = properties
+                if data_array is not None:
+                    data_elements.append(data_element)
 
 
                 # if not self.__spim:
@@ -475,7 +455,7 @@ class Device:
 
 
         # return data_elements, complete, bad_frame, sub_area, frame_number, pixels_to_skip
-        return data_elements, current_frame.complete, False, ((0, 0), data_array.shape), None, 0
+        return data_elements, current_frame.complete, False, ((0, 0), data_array.shape), None, pixels_to_skip
         #return data_elements, current_frame.complete, bad_frame, sub_area, self.__frame_number, pixels_to_skip*
 
     #This one is called in scan_base
@@ -483,7 +463,11 @@ class Device:
         scan_frame_parameters["pixel_time_us"] = min(5120000, int(1000 * camera_exposure_ms * 0.75))
         scan_frame_parameters["external_clock_wait_time_ms"] = 20000 # int(camera_frame_parameters["exposure_ms"] * 1.5)
         scan_frame_parameters["external_clock_mode"] = 1
-        size = scan_frame_parameters["size"]
+
+        if scan_frame_parameters['subscan_pixel_size']:
+            size = size = scan_frame_parameters['subscan_pixel_size']
+        else:
+            size = scan_frame_parameters["size"]
 
         self.Spim_image_area = [size[0], size[1]]
         self.__spim = True
@@ -645,14 +629,14 @@ class Device:
             #print(f'set spim pixels imagedatashape {self.imagedata.shape}')
 
     def __data_locker(self, gene, datatype, sx, sy, sz):
-        sx[0] = self.__scan_area[0]
-        sy[0] = self.__scan_area[1]
-        #if gene == 1:
-        #    sx[0] = self.Image_area[0]
-        #    sy[0] = self.Image_area[1]
-        #else:
-        #    sx[0] = self.Spim_image_area[0]
-        #    sy[0] = self.Spim_image_area[1]
+        #sx[0] = self.__scan_area[0]
+        #sy[0] = self.__scan_area[1]
+        if gene == 1:
+            sx[0] = self.Image_area[0]
+            sy[0] = self.Image_area[1]
+        else:
+            sx[0] = self.Spim_image_area[0]
+            sy[0] = self.Spim_image_area[1]
         sz[0] = self.__sizez
         datatype[0] = 2
         return self.imagedata_ptr.value
