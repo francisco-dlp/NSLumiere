@@ -486,6 +486,7 @@ class orsayScan(object):
         lineaveraging: nombre de lignes à faire avant de passer à la ligne suivante.
         retourne vrai si l'acquisition a eu lieu.
         """
+        print('startspim scan')
         return self.__OrsayScanStartSpim(self.orsayscan, self.gene, mode, linesaveraging,Nspectra,save2D)
 
     def setScanClock(self,trigger_input=0) -> bool:
@@ -497,8 +498,8 @@ class orsayScan(object):
 
         Returns
         -------
-
         """
+        print(f'setscanclock {trigger_input}')
         return self.__OrsayScanSetScanClock(self.orsayscan, self.gene, trigger_input)
 
     def startImaging(self, mode : int, linesaveraging : int) -> bool:

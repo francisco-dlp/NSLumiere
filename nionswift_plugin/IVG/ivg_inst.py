@@ -186,7 +186,7 @@ class ivgInstrument(stem_controller.STEMController):
 
     def warn_Scan_instrument_spim(self, value, x_pixels=0, y_pixels=0):
         # only set scan pixels if you going to start spim.
-        if value: self.__OrsayScanInstrument.scan_device.set_spim_pixels = (x_pixels, y_pixels)
+        if value: self.__OrsayScanInstrument.scan_device.Spim_image_area = [x_pixels, y_pixels]
         self.__OrsayScanInstrument.scan_device.set_spim = value
         if value:
             self.__OrsayScanInstrument.start_playing()
@@ -203,7 +203,6 @@ class ivgInstrument(stem_controller.STEMController):
         elif self.__spim_trigger == 1:
             now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             self.__EIRE)]
-            print(now_cam)
         elif self.__spim_trigger == 2:
             now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             self.__EELS), HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(

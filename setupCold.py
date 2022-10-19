@@ -26,6 +26,8 @@ setup(
         'nionswift_plugin/aux_files/DLLs/Scan.dll',
         'nionswift_plugin/aux_files/DLLs/udk3-1.4-x86_64.dll',
         'nionswift_plugin/aux_files/DLLs/udk3mod-1.4-winusb-x86_64.dll',
+        'nionswift_plugin/aux_files/DLLs/Connection.dll',
+        'nionswift_plugin/aux_files/DLLs/Connection.dll.config',
         'nionswift_plugin/aux_files/DLLs/STEMSerial.dll',
         'nionswift_plugin/aux_files/DLLs/Stepper.dll',
         'nionswift_plugin/aux_files/DLLs/delib64.dll',

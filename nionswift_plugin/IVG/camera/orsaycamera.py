@@ -121,8 +121,8 @@ class orsayCamera(object):
         self.__OrsayCameraRegisterSpimDataUnlocker = _buildFunction(_library.RegisterSpimDataUnlocker,
                                                                     [c_void_p, SPIMUNLOCKFUNC], None)
         # void CAMERAS_EXPORT RegisterSpimDataUnlocker(void *o, void *(*UnLockSpimDataPointer)(int cam, bool newdata, bool running));
-        self.__OrsayCameraRegisterSpimDataUnlockerA = _buildFunction(_library.RegisterSpimDataUnlockerA,
-                                                                     [c_void_p, SPIMUNLOCKFUNCA], None)
+        #self.__OrsayCameraRegisterSpimDataUnlockerA = _buildFunction(_library.RegisterSpimDataUnlockerA,
+        #                                                             [c_void_p, SPIMUNLOCKFUNCA], None)
         # //void ** (*LockOnlineSpimDataPointer)(void *o, short cam, short *datatype, short *sx, short *sy, short *sz);
         # //void(*UnLockOnlineSpimDataPointer)(void *o, int cam, bool newdata, bool running);
         # void CAMERAS_EXPORT RegisterSpectrumDataLocker(void *o, void *(*LockSpectrumDataPointer)(int cam, int *datatype, int *sx));
@@ -271,14 +271,14 @@ class orsayCamera(object):
         self.__OrsayCameraGetVideoThreshold = _buildFunction(_library.GetVideoThreshold, [c_void_p], c_ushort)
 
         #	const char CAMERAS_EXPORT *JsonAcquisitionHeader(void *o);
-        self.__OrsayCameraAcquisitionHeader = _buildFunction(_library.JsonAcquisitionHeader, [c_void_p], c_char_p)
+        #self.__OrsayCameraAcquisitionHeader = _buildFunction(_library.JsonAcquisitionHeader, [c_void_p], c_char_p)
         #	const char CAMERAS_EXPORT *JsonImageHeader(void *o);
-        self.__OrsayCameraImageHeader = _buildFunction(_library.JsonImageHeader, [c_void_p], c_char_p)
+        #self.__OrsayCameraImageHeader = _buildFunction(_library.JsonImageHeader, [c_void_p], c_char_p)
 
         #	int CAMERAS_EXPORT GetChipsConfig(void *o);
-        self.__OrsayCameraSetChipsConfig = _buildFunction(_library.SetChipsConfig, [c_void_p, c_int], c_bool)
+        #self.__OrsayCameraSetChipsConfig = _buildFunction(_library.SetChipsConfig, [c_void_p, c_int], c_bool)
         #	bool CAMERAS_EXPORT SetChipsConfig(void *o, int value);
-        self.__OrsayCameraGetChipsConfig = _buildFunction(_library.GetChipsConfig, [c_void_p], c_int)
+        #self.__OrsayCameraGetChipsConfig = _buildFunction(_library.GetChipsConfig, [c_void_p], c_int)
 
     def close(self):
         self.__OrsayCameraClose(self.orsaycamera)
@@ -392,11 +392,11 @@ class orsayCamera(object):
         """
         self.__OrsayCameraRegisterSpimDataUnlocker(self.orsaycamera, fn)
 
-    def registerSpimDataUnlockerA(self, fn: SPIMUNLOCKFUNCA) -> None:
-        """
-        Function called when data process is done for a spectrum image readout
-        """
-        self.__OrsayCameraRegisterSpimDataUnlockerA(self.orsaycamera, fn)
+    #def registerSpimDataUnlockerA(self, fn: SPIMUNLOCKFUNCA) -> None:
+    #    """
+    #    Function called when data process is done for a spectrum image readout
+    #    """
+    #    self.__OrsayCameraRegisterSpimDataUnlockerA(self.orsaycamera, fn)
 
     def registerSpectrumDataLocker(self, fn):
        """
@@ -465,6 +465,7 @@ class orsayCamera(object):
         """
         Start spectrum imaging acquisition
         """
+        print('startspim camera')
         self.__OrsayCameraStartSpim(self.orsaycamera, nbspectra, nbspectraperpixel, dwelltime, c_bool(is2D))
 
     def pauseSpim(self):
@@ -477,6 +478,7 @@ class orsayCamera(object):
         """
         Resume spectrum imaging acquisition with mode: 0:SPIMSTOPPED, 1:SPIMRUNNING, 2:SPIMPAUSED, 3:SPIMSTOPEOL, 4:SPIMSTOPEOF, 5:SPIMONLINE
         """
+        print('resume spim camera')
         self.__OrsayCameraResumeSpim(self.orsaycamera, mode)
 
     def stopSpim(self, immediate):

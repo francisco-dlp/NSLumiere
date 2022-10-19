@@ -101,7 +101,6 @@ class CameraTask:
         self.__last_rows = 0
         self.__headers = False
         self.__camera_device.frame_number = 0
-        print(f"preparing spim acquisition")
         self.sizex, self.sizey = self.__camera_device.camera.getImageSize()
         settings = self.__camera_device.current_camera_settings.as_dict()
         # twoD = self.__camera_device.current_camera_settings.processing != "sum_project" \
@@ -149,7 +148,7 @@ class CameraTask:
                                               self.__twoD)
 
     def start(self) -> typing.Optional[DataAndMetadata.DataAndMetadata]:
-        self.__camera_device.camera.resumeSpim(4)  # stop eof
+        #self.__camera_device.camera.resumeSpim(4)  # stop eof
         self.__start_time = time.time_ns()
         return self.__xdata
 
@@ -228,9 +227,9 @@ class CameraDevice(camera_base.CameraDevice):
         if manufacturer != 4:
             self.fnspimlock = orsaycamera.SPIMLOCKFUNC(self.__spim_data_locker)
             self.camera.registerSpimDataLocker(self.fnspimlock)
-            #self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
-            self.fnspimunlockA = orsaycamera.SPIMUNLOCKFUNCA(self.__spim_data_unlockerA)
-            self.camera.registerSpimDataUnlockerA(self.fnspimunlockA)
+            self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
+            #self.fnspimunlockA = orsaycamera.SPIMUNLOCKFUNCA(self.__spim_data_unlockerA)
+            self.camera.registerSpimDataUnlocker(self.fnspimunlock)
             self.fnspectrumlock = orsaycamera.SPECTLOCKFUNC(self.__spectrum_data_locker)
             self.camera.registerSpectrumDataLocker(self.fnspectrumlock)
             self.fnspectrumunlock = orsaycamera.SPECTUNLOCKFUNC(self.__spectrum_data_unlocker)
@@ -587,7 +586,17 @@ class CameraDevice(camera_base.CameraDevice):
                 self.camera.setSpimMode(1)
 
         elif "Focus" in self.current_camera_settings.as_dict()['acquisition_mode'] and self.__acqspimon:
-            pass
+            self.sizey = self.__x_pix_spim
+            self.sizez = self.__y_pix_spim
+            self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype=numpy.float32)
+            self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
+            self.camera.stopFocus()
+            self.camera.startSpim(self.__x_pix_spim * self.__y_pix_spim, 1,
+                                  self.current_camera_settings.as_dict()['exposure_ms'] / 1000.,
+                                  self.current_camera_settings.as_dict()['acquisition_mode'] == "2D-Chrono")
+            self.instrument.warn_Scan_instrument_spim(True, self.__x_pix_spim,
+                                                      self.__y_pix_spim)  # This must finish before calling the rest
+            #self.camera.resumeSpim(4)
 
         elif "Spim" in self.current_camera_settings.as_dict()['acquisition_mode']:
             self.camera.resumeSpim(4)  # stop eof
@@ -633,16 +642,16 @@ class CameraDevice(camera_base.CameraDevice):
         if self.__acqon:
             self.camera.stopFocus()
             self.__acqon = False
-        # if "Chrono" in self.current_camera_settings.acquisition_mode \
-        #         or ("Focus" in self.current_camera_settings.acquisition_mode and self.__acqspimon) \
-        #         or "SpimTP" in self.current_camera_settings.acquisition_mode:
-        #     self.camera.stopSpim(True)
-        #     self.__acqon = False
-        #     self.__acqspimon = False
-        #     logging.info('***CAMERA***: Spim stopped. Handling...')
-        #     if not "Chrono" in self.current_camera_settings.acquisition_mode \
-        #             and not "SpimTP" in self.current_camera_settings.acquisition_mode:
-        #         self.instrument.warn_Scan_instrument_spim(False)
+        if "Chrono" in self.current_camera_settings.as_dict()['acquisition_mode'] \
+                or ("Focus" in self.current_camera_settings.as_dict()['acquisition_mode'] and self.__acqspimon) \
+                or "SpimTP" in self.current_camera_settings.as_dict()['acquisition_mode']:
+            self.camera.stopSpim(True)
+            self.__acqon = False
+            self.__acqspimon = False
+            logging.info('***CAMERA***: Spim stopped. Handling...')
+            if not "Chrono" in self.current_camera_settings.as_dict()['acquisition_mode'] \
+                    and not "SpimTP" in self.current_camera_settings.as_dict()['acquisition_mode']:
+                self.instrument.warn_Scan_instrument_spim(False)
 
     def acquire_image(self) -> dict:
         self.has_data_event.wait(1)
@@ -657,6 +666,17 @@ class CameraDevice(camera_base.CameraDevice):
             else:
                 collection_dimensions = 0
                 datum_dimensions = 2
+
+        elif "Focus" in acquisition_mode and self.__acqspimon:
+            self.has_spim_data_event.wait(1.0)
+            self.has_spim_data_event.clear()
+            spnb = self.frame_number
+            y0 = int(spnb / 10)
+            x0 = int(spnb - y0 * 10)
+            self.acquire_data = self.spimimagedata
+            collection_dimensions = 2
+            datum_dimensions = 1
+
         else:
             self.acquire_data = self.imagedata
             if self.acquire_data.shape[0] == 1: #fully binned
