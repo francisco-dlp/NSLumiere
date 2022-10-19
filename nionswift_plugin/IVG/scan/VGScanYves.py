@@ -303,7 +303,7 @@ class Device:
             if self.__sizez % 2:
                 self.__sizez += 1
 
-            self.imagedata = numpy.empty((self.__sizez * (self.__scan_size[0]), (self.__scan_size[1])), dtype=numpy.int16)
+            self.imagedata = numpy.zeros((self.__sizez * (self.__scan_size[0]), (self.__scan_size[1])), dtype=numpy.int16)
             self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
 
             print(f'{self.__sizez} and {self.__scan_size} and {self.__scan_area} amd {self.Spim_image_area} and '
@@ -524,8 +524,8 @@ class Device:
         print(f'setting normal {self.__spim_pixels} and {self.__scan_area}')
         self.orsayscan.setImageArea(self.__scan_area[0], self.__scan_area[1], self.__scan_area[2], self.__scan_area[3],
                                     self.__scan_area[4], self.__scan_area[5])
-        #self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
-        #self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
+        self.imagedata = numpy.zeros((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
+        self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
 
     @property
     def Spim_image_area(self):
@@ -631,13 +631,14 @@ class Device:
     def __data_locker(self, gene, datatype, sx, sy, sz):
         #sx[0] = self.__scan_area[0]
         #sy[0] = self.__scan_area[1]
+        sz[0] = self.__sizez
         if gene == 1:
             sx[0] = self.Image_area[0]
             sy[0] = self.Image_area[1]
         else:
             sx[0] = self.Spim_image_area[0]
             sy[0] = self.Spim_image_area[1]
-        sz[0] = self.__sizez
+
         datatype[0] = 2
         return self.imagedata_ptr.value
 

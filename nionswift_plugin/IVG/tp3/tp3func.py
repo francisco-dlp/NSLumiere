@@ -11,12 +11,11 @@ import os
 import select
 
 from nion.swift.model import HardwareSource
-#from swift_rust.target.release import rust2swift
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
-SPIM_SIZE = 1025 + 16
+SPIM_SIZE = 1025 + 200
 
 class Response():
     def __init__(self):
@@ -168,6 +167,7 @@ class TimePix3():
         resp = self.request_get(url=self.__serverURL + '/config/load?format=dacs&file=' + dacsFile)
         data = resp.text
         logging.info(f'***TP3***: Response of loading dacs file: ' + data)
+        logging.info(f'***TP3***: Threshold is {which}.')
 
     def get_config(self):
         """
@@ -691,9 +691,13 @@ class TimePix3():
             y_size = 64
         return x_size, y_size
 
+    def get_scan_pixel_time(self):
+        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "orsay_scan_device")
+        return scanInstrument.scan_device.current_frame_parameters['pixel_time_us']
 
     def create_configuration_bytes(self, soft_binning, bitdepth, is_cumul, mode, sizex, sizey, scansizex, scansizey,
-                                   tdelay, twidth):
+                                   pixel_time, tdelay, twidth):
         config_bytes = b''
 
         if soft_binning:
@@ -721,31 +725,13 @@ class TimePix3():
         config_bytes += scansizex.to_bytes(2, 'big')
         config_bytes += scansizey.to_bytes(2, 'big')
 
+        config_bytes += (int(pixel_time * 1000 / 1.5625)).to_bytes(2, 'big') #In units of 1.5625 ns already
+
         config_bytes += struct.pack(">H", tdelay)  # BE. See https://docs.python.org/3/library/struct.html
         config_bytes += struct.pack(">H", twidth)  # BE. See https://docs.python.org/3/library/struct.html
 
         return config_bytes
-
-    def connect_isi_box(self):
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        ip = socket.gethostbyname("192.168.198.10")
-        address = (ip, 9592)
-        client.connect(address)
-        logging.info(f'***TP3***: IsiBox connected over {ip}:{port}.')
-
-        #Scan parameters. Does not matter here.
-        config_bytes = b''
-        config_bytes += (0).to_bytes(4, "big")
-        config_bytes += (0).to_bytes(4, "big")
-        config_bytes += (0).to_bytes(4, "big")
-        client.send(config_bytes)
-
-        #Measurement type. Must be two to config the bytes
-        config_bytes = b''
-        config_bytes += (2).to_bytes(4, "big")
-        client.send(config_bytes)
-        return None
-
+    
     def acquire_streamed_frame(self, port, message):
         """
         Main client function. Main loop is explained below.
@@ -775,9 +761,10 @@ class TimePix3():
 
         x = y = int(self.__accumulation)
         xscan, yscan = self.get_scan_size()
+        pixel_time = self.get_scan_pixel_time()
 
         config_bytes = self.create_configuration_bytes(self.__softBinning, bitdepth, self.__isCumul, mode,
-                                                       x, y, xscan, yscan, int(self.__delay), int(self.__width))
+                                                       x, y, xscan, yscan, pixel_time, int(self.__delay), int(self.__width))
 
         #Connecting the socket.
         inputs = list()
@@ -922,8 +909,9 @@ class TimePix3():
 
         buffer_size = 4*64000
         self.__xspim, self.__yspim = self.get_scan_size()
+        self.__pixel_time = self.get_scan_pixel_time()
         config_bytes = self.create_configuration_bytes(True, 32, False, 2,
-                                                       self.__xspim, self.__yspim, self.__xspim, self.__yspim, 0, 0)
+                                                       self.__xspim, self.__yspim, self.__xspim, self.__yspim, self.__pixel_time, 0, 0)
         self.__tr = False  # Start always with false and will be updated if otherwise
 
         max_val = max(self.__xspim, self.__yspim)
