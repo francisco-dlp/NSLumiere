@@ -66,6 +66,11 @@ class diafDevice(Observable.Observable):
             self.__data.settings['VOA']['last'] = self.__lastVOA
         self.__data.save_locally()
 
+    def save_last(self):
+        self.__data.settings['ROA']['last'] = self.__lastROA
+        self.__data.settings['VOA']['last'] = self.__lastVOA
+        self.__data.save_locally()
+
     @property
     def voa_change_f(self):
         return self.__lastVOA
@@ -74,6 +79,7 @@ class diafDevice(Observable.Observable):
     def voa_change_f(self, value):
         self.set_full_range.fire()  # before change you need to let slider go anywhere so you can set the value
         self.set_values(value, 'VOA')
+        self.save_last()
         self.property_changed_event.fire('voa_change_f')
 
     @property
@@ -84,6 +90,7 @@ class diafDevice(Observable.Observable):
     def roa_change_f(self, value):
         self.set_full_range.fire()  # before change you need to let slider go anywhere so you can set the value
         self.set_values(value, 'ROA')
+        self.save_last()
         self.property_changed_event.fire('roa_change_f')
 
     @property

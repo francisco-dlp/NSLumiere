@@ -46,17 +46,17 @@ class diafhandler:
         self.total_range(widget)
 
     def total_range_2(self):
-        self.m1_slider.maximum = 2000000
-        self.m1_slider.minimum = 40000
+        self.m1_slider.maximum = 1300000
+        self.m1_slider.minimum = 50000
 
-        self.m2_slider.maximum = 200000
-        self.m2_slider.minimum = 65000
+        self.m2_slider.maximum = 95000
+        self.m2_slider.minimum = 80000
 
-        self.m3_slider.maximum = 200000
-        self.m3_slider.minimum = 00000
+        self.m3_slider.maximum = 130000
+        self.m3_slider.minimum = 50000
 
-        self.m4_slider.maximum = 200000
-        self.m4_slider.minimum = 00000
+        self.m4_slider.maximum = 50000
+        self.m4_slider.minimum = 65000
 
         self.m1_range.text = '(Coarse)'
         self.m2_range.text = '(Coarse)'
@@ -64,23 +64,7 @@ class diafhandler:
         self.m4_range.text = '(Coarse)'
 
     def total_range(self, widget):
-        self.m1_slider.maximum = 200000
-        self.m1_slider.minimum = 0
-
-        self.m2_slider.maximum = 200000
-        self.m2_slider.minimum = 0000
-
-        self.m3_slider.maximum = 200000
-        self.m3_slider.minimum = 50000
-
-        self.m4_slider.maximum = 200000
-        self.m4_slider.minimum = 00000
-
-        self.m1_range.text = '(Coarse)'
-        self.m2_range.text = '(Coarse)'
-        self.m3_range.text = '(Coarse)'
-        self.m4_range.text = '(Coarse)'
-
+        self.total_range_2()
 
     def slider_release(self, widget):
         widget.maximum = widget.value + 2000
