@@ -7,9 +7,12 @@ from ..aux_files.config import read_data
 
 set_file = read_data.FileManager('global_settings')
 SERIAL_PORT = set_file.settings["diaf"]["COM"]
-START_DIAF = True
+START_DIAF = False
 
 from . import diaf as diaf
+
+diaf_list_sa = ['None', '150', '100', '50']
+diaf_list_obj = ['None', '50', '100', '150']
 
 class diafDevice(Observable.Observable):
 
@@ -21,6 +24,13 @@ class diafDevice(Observable.Observable):
         self.set_full_range = Event.Event()
         self.__data = read_data.FileManager('diafs_settings')
 
+        self.__lastROA = self.__data.settings['ROA']['last']
+        self.__lastVOA = self.__data.settings['VOA']['last']
+        self.__m1 = self.__data.settings['ROA'][diaf_list_obj[self.__lastROA]]['m1']
+        self.__m2 = self.__data.settings['ROA'][diaf_list_obj[self.__lastROA]]['m2']
+        self.__m3 = self.__data.settings['VOA'][diaf_list_sa[self.__lastVOA]]['m3']
+        self.__m4 = self.__data.settings['VOA'][diaf_list_sa[self.__lastVOA]]['m4']
+
         self.__apert = diaf.Diafs(SERIAL_PORT)
         if not self.__apert.succesfull:
             from . import diaf_vi
@@ -28,50 +38,51 @@ class diafDevice(Observable.Observable):
 
         if START_DIAF:
             try:
-                self.roa_change_f = int(self.__data.settings['ROA']['last'])
-                self.voa_change_f = int(self.__data.settings['VOA']['last'])
+                self.roa_change_f = int(self.__lastROA)
+                self.voa_change_f = int(self.__lastVOA)
             except:
                 logging.info('***APERTURES***: No saved values. Check your json file.')
 
     def set_values(self, value, which):
-        diaf_list = ['None', '50', '100', '150']
-        value = diaf_list[value]
         if which == 'ROA':
-            self.m1_f = self.__data.settings[which][value]['m1']
-            self.m2_f = self.__data.settings[which][value]['m2']
+            aperture_value = diaf_list_obj[value]
+            self.m1_f = self.__data.settings[which][aperture_value]['m1']
+            self.m2_f = self.__data.settings[which][aperture_value]['m2']
+            self.__lastROA = value
         elif which == 'VOA':
-            self.m3_f = self.__data.settings[which][value]['m3']
-            self.m4_f = self.__data.settings[which][value]['m4']
+            aperture_value = diaf_list_sa[value]
+            self.m3_f = self.__data.settings[which][aperture_value]['m3']
+            self.m4_f = self.__data.settings[which][aperture_value]['m4']
+            self.__lastVOA = value
 
     def save_values(self, value, which):
         if which == 'ROA':
             self.__data.settings[which][value]['m1'] = self.m1_f
             self.__data.settings[which][value]['m2'] = self.m2_f
+            self.__data.settings['ROA']['last'] = self.__lastROA
         elif which == 'VOA':
             self.__data.settings[which][value]['m3'] = self.m3_f
             self.__data.settings[which][value]['m4'] = self.m4_f
-
+            self.__data.settings['VOA']['last'] = self.__lastVOA
         self.__data.save_locally()
 
     @property
     def voa_change_f(self):
-        return self.__voa
+        return self.__lastVOA
 
     @voa_change_f.setter
     def voa_change_f(self, value):
         self.set_full_range.fire()  # before change you need to let slider go anywhere so you can set the value
-        self.__voa = value
         self.set_values(value, 'VOA')
         self.property_changed_event.fire('voa_change_f')
 
     @property
     def roa_change_f(self):
-        return self.__roa
+        return self.__lastROA
 
     @roa_change_f.setter
     def roa_change_f(self, value):
         self.set_full_range.fire()  # before change you need to let slider go anywhere so you can set the value
-        self.__roa = value
         self.set_values(value, 'ROA')
         self.property_changed_event.fire('roa_change_f')
 

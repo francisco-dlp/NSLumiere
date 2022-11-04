@@ -39,27 +39,24 @@ class diafhandler:
 
     def save_ROA(self, widget):
         self.instrument.save_values(self.obj_combo_box.current_item, 'ROA')
-
         self.total_range(widget)
 
     def save_SA(self, widget):
-        self.instrument.save_values(self.sa_combo_box.current_item, 'ROA')
-        #json_object['VOA']['last'] = self.sa_combo_box.current_index
-
+        self.instrument.save_values(self.sa_combo_box.current_item, 'VOA')
         self.total_range(widget)
 
     def total_range_2(self):
-        self.m1_slider.maximum = 130000
+        self.m1_slider.maximum = 2000000
         self.m1_slider.minimum = 40000
 
-        self.m2_slider.maximum = 95000
+        self.m2_slider.maximum = 200000
         self.m2_slider.minimum = 65000
 
-        self.m3_slider.maximum = 140000
-        self.m3_slider.minimum = 50000
+        self.m3_slider.maximum = 200000
+        self.m3_slider.minimum = 00000
 
-        self.m4_slider.maximum = 70000
-        self.m4_slider.minimum = 40000
+        self.m4_slider.maximum = 200000
+        self.m4_slider.minimum = 00000
 
         self.m1_range.text = '(Coarse)'
         self.m2_range.text = '(Coarse)'
@@ -67,17 +64,17 @@ class diafhandler:
         self.m4_range.text = '(Coarse)'
 
     def total_range(self, widget):
-        self.m1_slider.maximum = 130000
-        self.m1_slider.minimum = 40000
+        self.m1_slider.maximum = 200000
+        self.m1_slider.minimum = 0
 
-        self.m2_slider.maximum = 95000
-        self.m2_slider.minimum = 65000
+        self.m2_slider.maximum = 200000
+        self.m2_slider.minimum = 0000
 
-        self.m3_slider.maximum = 140000
+        self.m3_slider.maximum = 200000
         self.m3_slider.minimum = 50000
 
-        self.m4_slider.maximum = 70000
-        self.m4_slider.minimum = 40000
+        self.m4_slider.maximum = 200000
+        self.m4_slider.minimum = 00000
 
         self.m1_range.text = '(Coarse)'
         self.m2_range.text = '(Coarse)'
@@ -128,7 +125,7 @@ class diafView:
                                                                                                   ui.create_stretch(),
                                                                                                   self.save_obj_pb)))
 
-        self.sa_combo_box = ui.create_combo_box(name='sa_combo_box', items=['None', '50', '100', '150'],
+        self.sa_combo_box = ui.create_combo_box(name='sa_combo_box', items=['None', '150', '100', '50'],
                                                 current_index='@binding(instrument.voa_change_f)')
         self.m3_slider_label = ui.create_label(name='m3_slider_label', text='@binding(instrument.m3_f)')
         self.m3_slider_labels = ui.create_row(self.m3_slider_label, self.m3_range, ui.create_stretch(), spacing=12)
