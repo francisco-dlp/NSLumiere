@@ -31,6 +31,7 @@ class Lenses(Lens_controller.LensesController):
                 self.ser.open()
             self.success = True
         except:
+            #1;11;255;1
             logging.info("***LENSES***: Could not find Lenses PS. Entering in debug mode.")
 
     def query(self, which):
