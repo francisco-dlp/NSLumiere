@@ -583,8 +583,8 @@ class ivgInstrument(stem_controller.STEMController):
             fac = 2.0
         else:
             fac = 1.0
-        self.__StageInstrument.x_pos_f += fac * dx * 1e8
-        self.__StageInstrument.y_pos_f -= fac * dy * 1e8
+        self.__StageInstrument.x_pos_f += fac * new_dx * 1e8
+        self.__StageInstrument.y_pos_f -= fac * new_dy * 1e8
         self.stage_periodic()
 
     def SetVal(self, s, val):
