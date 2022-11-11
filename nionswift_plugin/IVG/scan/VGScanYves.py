@@ -393,8 +393,8 @@ class Device:
                         data_elements.append(data_element)
 
             else:
-                data_array = self.imagedata[channel.channel_id * (scan_area[1]):(channel.channel_id + 1) * (
-                    scan_area[1]), 0: (scan_area[0])].astype(numpy.float32)
+                data_array = self.imagedata[channel.channel_id * (scan_area[1]) + scan_offset[1]:(channel.channel_id + 1) * (
+                    scan_area[1]) + scan_offset[1], scan_offset[0]: (scan_area[0]) + scan_offset[0]].astype(numpy.float32)
                 data_element["data"] = data_array
                 properties = current_frame.frame_parameters.as_dict()
                 sub_area = ((0, 0), data_array.shape)
