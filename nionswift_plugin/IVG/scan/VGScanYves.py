@@ -235,7 +235,7 @@ class Device:
         if not self.__spim:
             if frame_parameters['subscan_pixel_size']:
                 self.subscan_status = True
-                self.__instrument.is_subscan_f=[True, frame_parameters['subscan_pixel_size'][1]/self.p0, frame_parameters['subscan_pixel_size'][0]/self.p1]
+                #self.__instrument.is_subscan_f=[True, frame_parameters['subscan_pixel_size'][1]/self.p0, frame_parameters['subscan_pixel_size'][0]/self.p1]
                 self.p0, self.p1 = frame_parameters['size']
                 self.p2 = int(
                     frame_parameters['subscan_fractional_center'][1] * self.p0 - frame_parameters['subscan_pixel_size'][
@@ -245,17 +245,18 @@ class Device:
                         0] / 2)
                 self.p3 = self.p2 + frame_parameters['subscan_pixel_size'][1]
                 self.p5 = self.p4 + frame_parameters['subscan_pixel_size'][0]
-                subscan = frame_parameters['subscan_pixel_size']
-                logging.info(f'***SCAN***: Setting subscan to {subscan}.')
+                #subscan = frame_parameters['subscan_pixel_size']
+                #logging.info(f'***SCAN***: Setting subscan to {subscan}.')
                 self.Image_area = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
             else:
-                if self.subscan_status or (self.Image_area[0], self.Image_area[1]) != frame_parameters['size']:
-                    self.p0, self.p1 = frame_parameters['size']
-                    self.p2, self.p4 = 0, 0
-                    self.p3, self.p5 = self.p0, self.p1
-                    self.Image_area = [self.p0, self.p1, 0, self.p3, 0, self.p5]
-                    self.subscan_status = False
-                    self.__instrument.is_subscan_f=[False, 1, 1]
+                self.subscan_status = False
+                #if self.subscan_status or (self.Image_area[0], self.Image_area[1]) != frame_parameters['size']:
+                self.p0, self.p1 = frame_parameters['size']
+                self.p2, self.p4 = 0, 0
+                self.p3, self.p5 = self.p0, self.p1
+                self.Image_area = [self.p0, self.p1, 0, self.p3, 0, self.p5]
+
+                #self.__instrument.is_subscan_f=[False, 1, 1]
 
     def save_frame_parameters(self) -> None:
         """Called when shutting down. Save frame parameters to persistent storage."""
@@ -359,7 +360,10 @@ class Device:
         assert current_frame is not None
         frame_parameters = current_frame.frame_parameters
         is_synchronized_scan = frame_parameters.external_clock_mode != 0
-        scan_area = self.Spim_image_area if is_synchronized_scan else self.Image_area
+        scan_area = [self.Spim_image_area[0], self.Spim_image_area[1]] if is_synchronized_scan else\
+            [self.Image_area[3]-self.Image_area[2], self.Image_area[5]-self.Image_area[4]]
+        scan_offset = [0, 0] if is_synchronized_scan else [self.Image_area[2], self.Image_area[4]]
+        #scan_area = self.Spim_image_area if is_synchronized_scan else self.Image_area
 
         if self.__line_number == scan_area[1]:
             current_frame.complete = True
@@ -651,7 +655,7 @@ class Device:
             self.has_data_event.set()
             self.__line_number = rect[1] + rect[3]
 
-    def show_configuration_ädialog(self, api_broker) -> None:
+    def show_configuration_dialog(self, api_broker) -> None:
         """Open settings dialog, if any."""
         api = api_broker.get_api(version="1", ui_version="1")
         document_controller = api.application.document_controllers[0]._document_controller

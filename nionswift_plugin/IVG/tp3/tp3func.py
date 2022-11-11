@@ -907,6 +907,8 @@ class TimePix3():
         except ConnectionRefusedError:
             return False
 
+        if self.__port != 0: #This ensures we are streaming data and not saving locally
+            self.setCurrentPort(0)
         buffer_size = 4*64000
         self.__xspim, self.__yspim = self.get_scan_size()
         self.__pixel_time = self.get_scan_pixel_time()
