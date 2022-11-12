@@ -124,12 +124,17 @@ class gainView:
         self.obj_wobbler_row = ui.create_row(self.obj_wobbler_cb, self.wobbler_value)
 
         self.astig0_label=ui.create_label(name='astig0_label', text='Astig 00: ')
+        self.astig0_label_value = ui.create_label(name='astig0_label_value', text='@binding(instrument.obj_stigmateur0_f)')
+        self.astig0_row = ui.create_row(self.astig0_label, self.astig0_label_value, ui.create_stretch())
         self.astig0_slider=ui.create_slider(name='astig0_slider', value='@binding(instrument.obj_stigmateur0_f)', minimum=-1000, maximum=1000)
 
         self.astig1_label=ui.create_label(name='astig1_label', text='Astig 01: ')
+        self.astig1_label_value = ui.create_label(name='astig1_label_value',
+                                                  text='@binding(instrument.obj_stigmateur1_f)')
+        self.astig1_row = ui.create_row(self.astig1_label, self.astig1_label_value, ui.create_stretch())
         self.astig1_slider=ui.create_slider(name='astig1_slider', value='@binding(instrument.obj_stigmateur1_f)', minimum=-1000, maximum=1000)
 
-        self.astig_column=ui.create_column(self.astig0_label, self.astig0_slider, self.astig1_label, self.astig1_slider)
+        self.astig_column=ui.create_column(self.astig0_row, self.astig0_slider, self.astig1_row, self.astig1_slider)
 
         self.astig_group=ui.create_group(title='Objective Astigmators', content=self.astig_column)
 
@@ -170,12 +175,18 @@ class gainView:
 
 
         self.astig2_label=ui.create_label(name='astig1_labe2', text='Astig 02: ')
+        self.astig2_label_value = ui.create_label(name='astig2_label_value',
+                                                  text='@binding(instrument.gun_stigmateur0_f)')
+        self.astig2_row = ui.create_row(self.astig2_label, self.astig2_label_value, ui.create_stretch())
         self.astig2_slider=ui.create_slider(name='astig2_slider', value='@binding(instrument.gun_stigmateur0_f)', minimum=-1000, maximum=1000)
 
         self.astig3_label=ui.create_label(name='astig3_label', text='Astig 03: ')
+        self.astig3_label_value = ui.create_label(name='astig3_label_value',
+                                                  text='@binding(instrument.gun_stigmateur1_f)')
+        self.astig3_row = ui.create_row(self.astig3_label, self.astig3_label_value, ui.create_stretch())
         self.astig3_slider=ui.create_slider(name='astig3_slider', value='@binding(instrument.gun_stigmateur1_f)', minimum=-1000, maximum=1000)
 
-        self.cond_astig_column=ui.create_column(self.astig2_label, self.astig2_slider, self.astig3_label, self.astig3_slider)
+        self.cond_astig_column=ui.create_column(self.astig2_row, self.astig2_slider, self.astig3_row, self.astig3_slider)
 
         self.cond_astig_group=ui.create_group(title='Condenser Astigmators', content=self.cond_astig_column)
 

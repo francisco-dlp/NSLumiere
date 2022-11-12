@@ -67,7 +67,7 @@ class TimePix3():
                 bpcFile = '/home/asi/load_files/tpx3-demo_better_standard.bpc'
                 dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
                 self.cam_init(bpcFile, dacsFile)
-                self.acq_init(99999)
+                self.acq_init()
                 self.set_destination(self.__port)
                 logging.info(f'***TP3***: Current detector configuration is {self.get_config()}.')
                 self.success = True
@@ -193,7 +193,7 @@ class TimePix3():
         detector_config = self.get_config()
         detector_config["nTriggers"] = ntrig
         detector_config["TriggerMode"] = "CONTINUOUS"
-        # detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
+        #detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
         detector_config["BiasEnabled"] = True
         detector_config["BiasVoltage"] = 100 #100V
         detector_config["Fan1PWM"] = 100 #100V
