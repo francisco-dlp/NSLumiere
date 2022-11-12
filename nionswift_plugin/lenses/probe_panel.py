@@ -43,6 +43,12 @@ class gainhandler:
     def save_lenses(self, widget):
         self.instrument.save_values()
 
+    def probe_offset_reset_pb(self, widget):
+        self.instrument.probe_offset0_f = 0
+        self.instrument.probe_offset1_f = 0
+        self.instrument.probe_offset2_f = 0
+        self.instrument.probe_offset3_f = 0
+
     def adj_values(self, widget):
         if widget == self.obj_slider:
             self.obj_slider.maximum = self.obj_slider.value + 25000
@@ -167,13 +173,15 @@ class gainView:
         self.probe_offset3_slider = ui.create_slider(name='probe_offset3_slider',
                                                      value='@binding(instrument.probe_offset3_f)',
                                                      minimum=-100000, maximum=100000)
+        self.probe_offset_reset = ui.create_push_button(text='Reset', name='probe_offset_reset', width = 100, on_clicked="probe_offset_reset_pb")
 
 
 
         self.probe_offset_column = ui.create_column(self.probe_offset0_row, self.probe_offset0_slider,
                                                     self.probe_offset1_row, self.probe_offset1_slider,
                                                     self.probe_offset2_row, self.probe_offset2_slider,
-                                                    self.probe_offset3_row, self.probe_offset3_slider)
+                                                    self.probe_offset3_row, self.probe_offset3_slider,
+                                                    self.probe_offset_reset)
 
         self.probe_offset_group = ui.create_group(title='Probe Offset', content=self.probe_offset_column)
 
@@ -184,7 +192,7 @@ class gainView:
                                                                     self.wobbler_freq_row,
                                                                     self.wobbler_slider_frequency,
                                                                     self.astig_group,
-                                                                    self.probe_offset_column,
+                                                                    self.probe_offset_group,
                                                                     self.pb_row))
 
         ## condensers ##
