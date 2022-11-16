@@ -145,7 +145,7 @@ class gainView:
         self.probe_offset0_value_label = ui.create_label(name='probe_offset0_value_label', text='@binding(instrument.probe_offset0_f)')
         self.probe_offset0_row = ui.create_row(self.probe_offset0_label, self.probe_offset0_value_label, ui.create_stretch())
         self.probe_offset0_slider = ui.create_slider(name='probe_offset0_slider', value='@binding(instrument.probe_offset0_f)',
-                                              minimum=-100000, maximum=100000)
+                                              minimum=-280000, maximum=280000)
 
         self.probe_offset1_label = ui.create_label(name='probe_offset1_label', text='Probe offset 1: ')
         self.probe_offset1_value_label = ui.create_label(name='probe_offset1_value_label',
@@ -154,7 +154,7 @@ class gainView:
                                                ui.create_stretch())
         self.probe_offset1_slider = ui.create_slider(name='probe_offset1_slider',
                                                      value='@binding(instrument.probe_offset1_f)',
-                                                     minimum=-100000, maximum=100000)
+                                                     minimum=-280000, maximum=280000)
 
         self.probe_offset2_label = ui.create_label(name='probe_offset2_label', text='Probe offset 2: ')
         self.probe_offset2_value_label = ui.create_label(name='probe_offset2_value_label',
@@ -163,7 +163,7 @@ class gainView:
                                                ui.create_stretch())
         self.probe_offset2_slider = ui.create_slider(name='probe_offset2_slider',
                                                      value='@binding(instrument.probe_offset2_f)',
-                                                     minimum=-100000, maximum=100000)
+                                                     minimum=-280000, maximum=280000)
 
         self.probe_offset3_label = ui.create_label(name='probe_offset3_label', text='Probe offset 3: ')
         self.probe_offset3_value_label = ui.create_label(name='probe_offset3_value_label',
@@ -172,7 +172,7 @@ class gainView:
                                                ui.create_stretch())
         self.probe_offset3_slider = ui.create_slider(name='probe_offset3_slider',
                                                      value='@binding(instrument.probe_offset3_f)',
-                                                     minimum=-100000, maximum=100000)
+                                                     minimum=-280000, maximum=280000)
         self.probe_offset_reset = ui.create_push_button(text='Reset', name='probe_offset_reset', width = 100, on_clicked="probe_offset_reset_pb")
 
 

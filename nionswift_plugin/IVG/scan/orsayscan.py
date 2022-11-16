@@ -676,7 +676,7 @@ class orsayScan(object):
    #void SCAN_EXPORT OrsayScanAlObjective(self.orsayscan, double x1, double x2, double y1, double y2);
     def AlObjective(self,x1,x2,y1,y2):
         """ Aligne l'objectif """
-        self.__OrsayScanAlObjective(self.orsayscan,x1,x2,y1,y2)
+        self.__OrsayScanAlObjective(self.orsayscan,x1+0.15,x2+0.15,y1+0.15,y2+0.15)
 
    #void SCAN_EXPORT OrsayScanAlGun(self.orsayscan, double x1, double x2, double y1, double y2);
     def AlGun(self,x1,x2,y1,y2):

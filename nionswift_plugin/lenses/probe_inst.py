@@ -42,6 +42,11 @@ class probeDevice(Observable.Observable):
         self.wobbler_frequency_f = 2
         self.__wobbler_intensity = 0.02
 
+        self.probe_offset0_f = 0
+        self.probe_offset1_f = 0
+        self.probe_offset2_f = 0
+        self.probe_offset3_f = 0
+
     def init_handler(self):
         try:
             self.obj_edit_f = self.__data.settings[self.__EHT]["obj"]

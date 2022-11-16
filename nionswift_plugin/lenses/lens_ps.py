@@ -64,7 +64,8 @@ class Lenses(Lens_controller.LensesController):
             scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             if scan is not None:
-                scan.scan_device.orsayscan.AlObjective(val[0] / 100000., val[1] / 100000., val[2] / 100000., val[3] / 100000.)
+                scan.scan_device.orsayscan.AlObjective(val[0] / 1000000., val[1] / 1000000., val[2] / 1000000.,
+                                                       val[3] / 1000000.)
             else:
                 logging.info('***LENSES***: Could not align objetive lens.')
             return
