@@ -114,7 +114,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__driftRate = [0, 0]
         self.__driftCompensation = [1e-9, 1e-9]
         #self.__calib = [25002.0 / 2461.5, 25002.0/2332.0] #DAC/nm
-        self.__calib = [0.00207, -0.00427, -0.00427, -0.00157]  # DAC/nm
+        self.__calib = [0.0019320, -0.0044940, -0.0043035, -0.0016495]  # DAC/nm
         self.__csh = [0., 0.]
 
         self.__gun_gauge = gun.GunVacuum(SERIAL_PORT_GUN)
