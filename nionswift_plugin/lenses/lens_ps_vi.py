@@ -2,7 +2,7 @@ import logging
 import threading
 import numpy
 
-from nion.swift.model import HardwareSource
+from nion.instrumentation import HardwareSource
 
 from . import Lens_controller
 

@@ -476,6 +476,8 @@ class Device:
         self.Spim_image_area = [size[0], size[1]]
         self.__spim = True
 
+    def calculate_flyback_pixels(self, frame_parameters: scan_base.ScanFrameParameters) -> int:
+        return 0
 
     def set_channel_enabled(self, channel_index: int, enabled: bool) -> bool:
         assert 0 <= channel_index < self.channel_count
