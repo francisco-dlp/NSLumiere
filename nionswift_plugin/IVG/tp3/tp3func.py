@@ -357,7 +357,7 @@ class TimePix3():
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure, on_time=0.0000001)
             #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy Line 05
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
             # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
@@ -970,9 +970,9 @@ class TimePix3():
                             #self.update_spim_all()
                             return
 
-                        q = len(packet_data) % 32
-                        if q:
-                            packet_data += s.recv(32 - q)
+                        #q = len(packet_data) % 32
+                        #if q:
+                        #    packet_data += s.recv(32 - q)
 
                         try:
                             event_list = numpy.frombuffer(packet_data, dtype=dt)
