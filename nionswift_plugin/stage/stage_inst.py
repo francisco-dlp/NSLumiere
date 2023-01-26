@@ -20,15 +20,18 @@ else:
 
 class stageDevice(Observable.Observable):
     def __init__(self):
-        logging.info(f'***VG STAGE***: Placing Stepper.dll in {sys.executable}.')
-        dll_path = os.path.join(os.path.dirname(__file__), '../aux_files/DLLs/Stepper.dll')
-        parent_exec = os.path.join(Path(sys.executable).parent.absolute(), 'Stepper.dll')
-        shutil.copyfile(dll_path, parent_exec)
+        try:
+            logging.info(f'***VG STAGE***: Placing Stepper.dll in {sys.executable}.')
+            dll_path = os.path.join(os.path.dirname(__file__), '../aux_files/DLLs/Stepper.dll')
+            parent_exec = os.path.join(Path(sys.executable).parent.absolute(), 'Stepper.dll')
+            shutil.copyfile(dll_path, parent_exec)
 
-        logging.info(f'***VG STAGE***: Placing delib64.dll in {sys.executable}.')
-        dll_path = os.path.join(os.path.dirname(__file__), '../aux_files/DLLs/delib64.dll')
-        parent_exec = os.path.join(Path(sys.executable).parent.absolute(), 'delib64.dll')
-        shutil.copyfile(dll_path, parent_exec)
+            logging.info(f'***VG STAGE***: Placing delib64.dll in {sys.executable}.')
+            dll_path = os.path.join(os.path.dirname(__file__), '../aux_files/DLLs/delib64.dll')
+            parent_exec = os.path.join(Path(sys.executable).parent.absolute(), 'delib64.dll')
+            shutil.copyfile(dll_path, parent_exec)
+        except PermissionError:
+            logging.info(f'***VG STAGE***: Error in installing DLLs. Please make sure they are in the correct path before running.')
 
         self.property_changed_event = Event.Event()
         self.property_changed_power_event = Event.Event()

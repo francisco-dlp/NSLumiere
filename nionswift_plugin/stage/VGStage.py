@@ -1,6 +1,7 @@
 """
 # -*- coding:utf-8 -*-
 Class wrapping the Marcel Tencé dll for controlling a stage.
+The required IP is 192.168.1.20 and the subnet mask is 255.255.255.0
 """
 import sys
 from ctypes import cdll, create_string_buffer, POINTER, byref

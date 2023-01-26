@@ -18,7 +18,7 @@ def run():
     Registry.register_component(instrument, {"instrument_controller", "stem_controller"})
 
     ivg_panel.run(instrument)
-    ivg_spim_panel.run(instrument)
+    #ivg_spim_panel.run(instrument)
     try:
         VGScanYves.run(instrument)
     except NameError:

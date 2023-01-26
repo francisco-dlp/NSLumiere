@@ -2,7 +2,7 @@ import logging
 import threading
 import numpy
 
-from nion.swift.model import HardwareSource
+from nion.instrumentation import HardwareSource
 
 from . import Lens_controller
 
@@ -35,7 +35,15 @@ class Lenses(Lens_controller.LensesController):
             else:
                 logging.info('***LENSES***: Could not find objetive stigmator.')
             return
-        if which == 'GUN_STIG':
+        elif which == 'OBJ_ALIG':
+            scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            if scan is not None:
+                scan.scan_device.orsayscan.AlObjective(val[0] / 1000000., val[1] / 1000000., val[2] / 1000000., val[3] / 1000000.)
+            else:
+                logging.info('***LENSES***: Could not align objetive lens.')
+            return
+        elif which == 'GUN_STIG':
             logging.info(f'Gun. Stig value is {val}.')
             scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
@@ -44,11 +52,11 @@ class Lenses(Lens_controller.LensesController):
             else:
                 logging.info('***LENSES***: Could not find gun stigmator.')
             return
-        if which == 'OBJ':
+        elif which == 'OBJ':
             string_init = '>1,1,1,'
-        if which == 'C1':
+        elif which == 'C1':
             string_init = '>1,1,2,'
-        if which == 'C2':
+        elif which == 'C2':
             string_init = '>1,1,3,'
         string = string_init + str(val) + ',0.5\r'
         logging.info(string)

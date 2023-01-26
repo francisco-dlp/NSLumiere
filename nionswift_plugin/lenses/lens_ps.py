@@ -31,6 +31,7 @@ class Lenses(Lens_controller.LensesController):
                 self.ser.open()
             self.success = True
         except:
+            #1;11;255;1
             logging.info("***LENSES***: Could not find Lenses PS. Entering in debug mode.")
 
     def query(self, which):
@@ -59,7 +60,16 @@ class Lenses(Lens_controller.LensesController):
             else:
                 logging.info('***LENSES***: Could not find objetive stigmator.')
             return
-        if which == 'GUN_STIG':
+        elif which == 'OBJ_ALIG':
+            scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            if scan is not None:
+                scan.scan_device.orsayscan.AlObjective(val[0] / 1000000., val[1] / 1000000., val[2] / 1000000.,
+                                                       val[3] / 1000000.)
+            else:
+                logging.info('***LENSES***: Could not align objetive lens.')
+            return
+        elif which == 'GUN_STIG':
             scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             if scan is not None:
@@ -67,7 +77,7 @@ class Lenses(Lens_controller.LensesController):
             else:
                 logging.info('***LENSES***: Could not find gun stigmator.')
             return
-        if which == 'OBJ' and val<=MAX_OBJ and val>=0:
+        elif which == 'OBJ' and val<=MAX_OBJ and val>=0:
             string_init = '>1,1,1,'
         elif which == 'C1' and val<=MAX_C1 and val>=0:
             string_init = '>1,1,2,'

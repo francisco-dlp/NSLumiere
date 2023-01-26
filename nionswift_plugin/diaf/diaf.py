@@ -24,6 +24,7 @@ class Diafs:
             if not self.ser.is_open:
                 self.ser.open()
             self.succesfull = True
+            #self.set_home()
         except:
             logging.info("***APERTURES***: Could not find apertures hardware. Entering in debug mode.")
 
@@ -35,6 +36,20 @@ class Diafs:
             rem = rem - val[j]
             rem = rem / 256
         return val
+
+    def set_maximum_pos(self, motor):
+        pass
+
+    def set_home(self):
+        for motor in range(4):
+            try:
+                message = [motor, 1, 0, 0, 0, 0]
+                byt_array = bytearray(message)
+                self.ser.write(byt_array)
+                self.ser.read(6)
+            except:
+                logging.info(
+                    "***APERTURES***: Communication problem over serial port. Easy check using Serial Port Monitor.")
 
     def set_val(self, motor, value):
         try:
