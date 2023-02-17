@@ -1,0 +1,4 @@
+----- v7.0.0 (17-02-2023) -----
+- Stage maximum values updated;
+- Installed drift correction (Window - Drift Correction);
+- Implemented fine probe adjustement. Two buttons '<<' and '>>' are now available;

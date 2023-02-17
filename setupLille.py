@@ -5,7 +5,7 @@ setup(
     
     
     name="OrsayLille",
-    version="LumiereBranch",
+    version="XX",
     author="Yves Auad",
     description="Set of tools to run VG Cold Microscope in Nionswift",
     url="https://github.com/yvesauad/swift_lumiere",

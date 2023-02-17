@@ -11,6 +11,7 @@ from nion.swift.model import HardwareSource
 
 from . import probe_inst
 
+INCREMENT_PROBE = 250
 _ = gettext.gettext
 
 class gainhandler:
@@ -85,6 +86,30 @@ class gainhandler:
                 self.c2_slider.minimum = max(value - 500000, 0)
                 self.full_range_c2.text = '(Coarse)'
 
+    def probe0_minus_pb(self, widget):
+        self.instrument.probe_offset0_f -= INCREMENT_PROBE
+
+    def probe0_plus_pb(self, widget):
+        self.instrument.probe_offset0_f += INCREMENT_PROBE
+
+    def probe1_minus_pb(self, widget):
+        self.instrument.probe_offset1_f -= INCREMENT_PROBE
+
+    def probe1_plus_pb(self, widget):
+        self.instrument.probe_offset1_f += INCREMENT_PROBE
+
+    def probe2_minus_pb(self, widget):
+        self.instrument.probe_offset2_f -= INCREMENT_PROBE
+
+    def probe2_plus_pb(self, widget):
+        self.instrument.probe_offset2_f += INCREMENT_PROBE
+
+    def probe3_minus_pb(self, widget):
+        self.instrument.probe_offset3_f -= INCREMENT_PROBE
+
+    def probe3_plus_pb(self, widget):
+        self.instrument.probe_offset3_f += INCREMENT_PROBE
+
 
 class gainView:
 
@@ -143,15 +168,21 @@ class gainView:
 
         self.probe_offset0_label = ui.create_label(name='probe_offset0_label', text='Probe offset 0: ')
         self.probe_offset0_value_label = ui.create_label(name='probe_offset0_value_label', text='@binding(instrument.probe_offset0_f)')
-        self.probe_offset0_row = ui.create_row(self.probe_offset0_label, self.probe_offset0_value_label, ui.create_stretch())
+        self.probe_offset_0_minus_button = ui.create_push_button(name='probe_offset_0_minus_button', text='<<',
+                                                                 width=25, on_clicked='probe0_minus_pb')
+        self.probe_offset_0_plus_button = ui.create_push_button(name='probe_offset_0_plus_button', text='>>', width=25, on_clicked='probe0_plus_pb')
+        self.probe_offset0_row = ui.create_row(self.probe_offset0_label, self.probe_offset0_value_label, ui.create_stretch(),
+                                               self.probe_offset_0_minus_button, self.probe_offset_0_plus_button)
         self.probe_offset0_slider = ui.create_slider(name='probe_offset0_slider', value='@binding(instrument.probe_offset0_f)',
                                               minimum=-280000, maximum=280000)
 
         self.probe_offset1_label = ui.create_label(name='probe_offset1_label', text='Probe offset 1: ')
         self.probe_offset1_value_label = ui.create_label(name='probe_offset1_value_label',
                                                          text='@binding(instrument.probe_offset1_f)')
-        self.probe_offset1_row = ui.create_row(self.probe_offset1_label, self.probe_offset1_value_label,
-                                               ui.create_stretch())
+        self.probe_offset_1_minus_button = ui.create_push_button(name='probe_offset_1_minus_button', text='<<', width = 25, on_clicked='probe1_minus_pb')
+        self.probe_offset_1_plus_button = ui.create_push_button(name='probe_offset_1_plus_button', text='>>', width = 25, on_clicked='probe1_plus_pb')
+        self.probe_offset1_row = ui.create_row(self.probe_offset1_label, self.probe_offset1_value_label, ui.create_stretch(),
+                                               self.probe_offset_1_minus_button, self.probe_offset_1_plus_button)
         self.probe_offset1_slider = ui.create_slider(name='probe_offset1_slider',
                                                      value='@binding(instrument.probe_offset1_f)',
                                                      minimum=-280000, maximum=280000)
@@ -159,8 +190,12 @@ class gainView:
         self.probe_offset2_label = ui.create_label(name='probe_offset2_label', text='Probe offset 2: ')
         self.probe_offset2_value_label = ui.create_label(name='probe_offset2_value_label',
                                                          text='@binding(instrument.probe_offset2_f)')
-        self.probe_offset2_row = ui.create_row(self.probe_offset2_label, self.probe_offset2_value_label,
-                                               ui.create_stretch())
+        self.probe_offset_2_minus_button = ui.create_push_button(name='probe_offset_2_minus_button', text='<<',
+                                                                 width=25, on_clicked='probe2_minus_pb')
+        self.probe_offset_2_plus_button = ui.create_push_button(name='probe_offset_2_plus_button', text='>>', width=25, on_clicked='probe2_plus_pb')
+        self.probe_offset2_row = ui.create_row(self.probe_offset2_label, self.probe_offset2_value_label, ui.create_stretch(),
+                                               self.probe_offset_2_minus_button, self.probe_offset_2_plus_button
+                                               )
         self.probe_offset2_slider = ui.create_slider(name='probe_offset2_slider',
                                                      value='@binding(instrument.probe_offset2_f)',
                                                      minimum=-280000, maximum=280000)
@@ -168,8 +203,11 @@ class gainView:
         self.probe_offset3_label = ui.create_label(name='probe_offset3_label', text='Probe offset 3: ')
         self.probe_offset3_value_label = ui.create_label(name='probe_offset3_value_label',
                                                          text='@binding(instrument.probe_offset3_f)')
-        self.probe_offset3_row = ui.create_row(self.probe_offset3_label, self.probe_offset3_value_label,
-                                               ui.create_stretch())
+        self.probe_offset_3_minus_button = ui.create_push_button(name='probe_offset_3_minus_button', text='<<',
+                                                                 width=25, on_clicked='probe3_minus_pb')
+        self.probe_offset_3_plus_button = ui.create_push_button(name='probe_offset_3_plus_button', text='>>', width=25, on_clicked='probe3_plus_pb')
+        self.probe_offset3_row = ui.create_row(self.probe_offset3_label, self.probe_offset3_value_label, ui.create_stretch(),
+                                               self.probe_offset_3_minus_button, self.probe_offset_3_plus_button)
         self.probe_offset3_slider = ui.create_slider(name='probe_offset3_slider',
                                                      value='@binding(instrument.probe_offset3_f)',
                                                      minimum=-280000, maximum=280000)
