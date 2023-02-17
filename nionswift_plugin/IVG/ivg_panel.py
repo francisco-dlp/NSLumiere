@@ -49,11 +49,11 @@ class dataItemCreation():
             self.dim_calib02 = Calibration.Calibration()
 
             self.dim_calib01.units='µm'
-            self.dim_calib01.scale=-1600/STAGE_MATRIX_SIZE
-            self.dim_calib01.offset=800
+            self.dim_calib01.scale=-3000/STAGE_MATRIX_SIZE
+            self.dim_calib01.offset=1500
             self.dim_calib02.units='µm'
-            self.dim_calib02.scale=1600/STAGE_MATRIX_SIZE
-            self.dim_calib02.offset=-800
+            self.dim_calib02.scale=3000/STAGE_MATRIX_SIZE
+            self.dim_calib02.offset=-1500
             
             self.dimensional_calibrations=[self.dim_calib01, self.dim_calib02]
             
@@ -117,8 +117,8 @@ class ivghandler:
         self.event_loop.create_task(self.do_enable(False, []))
 
     def stage_data(self, stage1, stage2):
-        index1 = int(round(STAGE_MATRIX_SIZE/2-stage1*1e6/(2100/STAGE_MATRIX_SIZE)))
-        index2 = int(round(stage2*1e6/(2100/STAGE_MATRIX_SIZE)-STAGE_MATRIX_SIZE/2))
+        index1 = int(round(STAGE_MATRIX_SIZE/2-stage1*1e6/(3000/STAGE_MATRIX_SIZE)))
+        index2 = int(round(stage2*1e6/(3000/STAGE_MATRIX_SIZE)-STAGE_MATRIX_SIZE/2))
         if abs(index1)<STAGE_MATRIX_SIZE and abs(index2)<STAGE_MATRIX_SIZE:
             if self.stage_array[index1][index2]<=100:
                 self.stage_array[index1][index2] += 5

@@ -122,7 +122,7 @@ class ivgInstrument(stem_controller.STEMController):
 
     def stage_periodic_start(self):
         counter = 0
-        while counter < 10.0 / TIME_FAST_PERIODIC:
+        while counter < 30.0 / TIME_FAST_PERIODIC:
             self.stage_event.fire(self.__y_real_pos, self.__x_real_pos)
             self.property_changed_event.fire('x_stage_f')
             self.property_changed_event.fire('y_stage_f')

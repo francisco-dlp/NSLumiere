@@ -7,8 +7,12 @@ from ctypes import cdll, create_string_buffer, POINTER, byref
 from ctypes import c_uint, c_int, c_char, c_char_p, c_void_p, c_short, c_int, c_long, c_bool, c_double, c_uint64, \
     c_uint32, Array, CFUNCTYPE, WINFUNCTYPE
 import os
+from ..aux_files.config import read_data
 
 from nion.utils import Event
+
+set_file = read_data.FileManager("stage_settings")
+LIM_POS = float(set_file.settings["limit_pos"])
 
 __author__ = "Marcel Tence & Mathieu Kociak & Yves Auad"
 
@@ -150,20 +154,20 @@ class VGStage(object):
 
     def stageGoTo(self, x: float, y: float):
         """ Va à la position demandée [x, y] """
-        if abs(x)<1e-3 and abs(y)<1e-3:
+        if abs(x)<LIM_POS and abs(y)<LIM_POS:
             _OrsayStageMotorGoToCalPosition(self._stage, 0, x)
             _OrsayStageMotorGoToCalPosition(self._stage, 1, y)
         else:
             self.sendmessage(2)
 
     def stageGoTo_x(self, x):
-        if abs(x)<1e-3:
+        if abs(x)<LIM_POS:
             _OrsayStageMotorGoToCalPosition(self._stage, 0, x)
         else:
             self.sendmessage(2)
 
     def stageGoTo_y(self, y):
-        if abs(y)<1e-3:
+        if abs(y)<LIM_POS:
             _OrsayStageMotorGoToCalPosition(self._stage, 1, y)
         else:
             self.sendmessage(2)

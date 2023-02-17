@@ -41,12 +41,12 @@ class stagehandler:
 
     def reset_ui_pb(self, widget):
         self.event_loop.create_task(self.do_enable(True, []))
-        self.instrument.x_pos_f = 0.0
-        self.instrument.y_pos_f = 0.0
+        self.instrument.x_pos_edit_f = "0"
+        self.instrument.y_pos_edit_f = "0"
 
     def request_pb(self, widget):
-        self.instrument.x_pos_f+=0.
-        self.instrument.y_pos_f+=0.
+        self.instrument.x_pos_edit_f+="0"
+        self.instrument.y_pos_edit_f+="0"
 
     def add_value(self, widget):
         self.list_positions.text+='(' + self.x_value_edit.text +', ' + self.y_value_edit.text + "): \n"
@@ -69,7 +69,7 @@ class stageView:
         self.list_positions=ui.create_text_edit(name='list_positions', text='@binding(instrument.text_f)')
         self.button_row=ui.create_row(ui.create_stretch(), self.request, self.reset_ui, self.add_pb, self.set_origin_pb)
 
-        ### SLIDERS ###
+        ### POSITION VALUES ###
 
         self.x_label = ui.create_label(name='x_label', text='X Pos: ')
         self.x_value_edit = ui.create_line_edit(name='x_value_edit', text='@binding(instrument.x_pos_edit_f)')
