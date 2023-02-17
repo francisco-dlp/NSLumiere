@@ -38,6 +38,18 @@ TIME_FAST_PERIODIC = 0.1
 from . import gun as gun
 from . import airlock as al
 
+class Control():
+    def __init__(self):
+        pass
+
+class Control2D():
+    def __init__(self):
+        pass
+
+    def __getattr__(self, name):
+        return self[name]
+
+
 class ivgInstrument(stem_controller.STEMController):
     def __init__(self, instrument_id: str):
         super().__init__()
@@ -93,6 +105,18 @@ class ivgInstrument(stem_controller.STEMController):
 
         ## spim properties attributes END
 
+        self.__driftCorrectionUpdateInterval = 1
+        self.__driftMeasureTime = 10
+        self.__driftTimeConstant = 2400
+        self.__maxShifterRange = 100
+        self.__diftAutoStopThreshold = 2
+        self.__resetShiftersToOpposite = False
+        self.__driftRate = [0, 0]
+        self.__driftCompensation = [1e-9, 1e-9]
+        #self.__calib = [25002.0 / 2461.5, 25002.0/2332.0] #DAC/nm
+        self.__calib = [0.0019320, -0.0044940, -0.0043035, -0.0016495]  # DAC/nm
+        self.__csh = [0., 0.]
+
         self.__gun_gauge = gun.GunVacuum(SERIAL_PORT_GUN)
         if not self.__gun_gauge.success:
             from .virtual_instruments import gun_vi
@@ -102,7 +126,6 @@ class ivgInstrument(stem_controller.STEMController):
         if not self.__ll_gauge.success:
             from .virtual_instruments import airlock_vi
             self.__ll_gauge = airlock_vi.AirLockVacuum()
-
     def init_handler(self):
         self.__lensInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("lenses_controller")
         self.__EELSInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_controller")
@@ -186,7 +209,7 @@ class ivgInstrument(stem_controller.STEMController):
 
     def warn_Scan_instrument_spim(self, value, x_pixels=0, y_pixels=0):
         # only set scan pixels if you going to start spim.
-        if value: self.__OrsayScanInstrument.scan_device.set_spim_pixels = (x_pixels, y_pixels)
+        if value: self.__OrsayScanInstrument.scan_device.Spim_image_area = [x_pixels, y_pixels]
         self.__OrsayScanInstrument.scan_device.set_spim = value
         if value:
             self.__OrsayScanInstrument.start_playing()
@@ -203,7 +226,6 @@ class ivgInstrument(stem_controller.STEMController):
         elif self.__spim_trigger == 1:
             now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             self.__EIRE)]
-            print(now_cam)
         elif self.__spim_trigger == 2:
             now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             self.__EELS), HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
@@ -584,9 +606,60 @@ class ivgInstrument(stem_controller.STEMController):
             fac = 2.0
         else:
             fac = 1.0
-        self.__StageInstrument.x_pos_f += fac * dx * 1e8
-        self.__StageInstrument.y_pos_f -= fac * dy * 1e8
+        self.__StageInstrument.x_pos_f += fac * new_dx * 1e8
+        self.__StageInstrument.y_pos_f -= fac * new_dy * 1e8
         self.stage_periodic()
+
+    def SetVal(self, s, val):
+        if s == 'DriftRate.u':
+            self.__driftRate[0] = val
+        elif s == 'DriftRate.v':
+            self.__driftRate[1] = val
+        elif s == "CSH.u":
+            self.__csh[0] = val
+        elif s == "CSH.v":
+            pass
+        elif s == "DriftCorrectionUpdateInterval":
+            self.__driftCorrectionUpdateInterval = val
+        elif s == "DriftMeasureTime":
+            self.__driftMeasureTime = val
+        elif s == "DriftTimeConstant":
+            self.__driftTimeConstant = val
+        elif s == "MaxShifterRange":
+            self.__maxShifterRange = val
+        elif s == "DiftAutoStopThreshold":
+            self.__diftAutoStopThreshold = val
+        elif s == "ResetShiftersToOpposite":
+            self.__resetShiftersToOpposite = val
+        return True
+
+    def InformControl(self, s, val):
+        if s=='DriftRate.u':
+            self.__driftRate[0] = val
+            self.__driftCompensation[0] = val
+        elif s == 'DriftRate.v':
+            self.__driftRate[1] = val
+            self.__driftCompensation[1] = val
+        return True
+
+    def SetValAndConfirm(self, s, val, tolfactor, timeout_ms):
+        if s == "CSH.u":
+            pass
+            #self.__lensInstrument.probe_offset0_f += int(self.__calib[0] * (1-val)*1e9)
+        elif s == "CSH.v":
+            self.__csh[1] = val
+
+            #Setting up X
+            num = self.__calib[3] * (1 - self.__csh[0]) * 1e9 - self.__calib[1] * (1 - self.__csh[1]) * 1e9
+            den = self.__calib[0] * self.__calib[3] - self.__calib[2] * self.__calib[1]
+            self.__lensInstrument.probe_offset0_f += int(num/den)
+
+            # Setting up Y
+            num = self.__calib[2] * (1 - self.__csh[0]) * 1e9 - self.__calib[0] * (1 - self.__csh[1]) * 1e9
+            den = self.__calib[1] * self.__calib[2] - self.__calib[0] * self.__calib[3]
+            self.__lensInstrument.probe_offset2_f += int(num / den)
+            #self.__lensInstrument.probe_offset1_f += int(self.__calib[1] * (1-val)*1e9)
+        return True
 
     def TryGetVal(self, s: str) -> (bool, float):
         if s == "eels_y_offset":
@@ -597,9 +670,26 @@ class ivgInstrument(stem_controller.STEMController):
             return True, 1
         elif s == "eels_x_scale":
             return True, self.__EELSInstrument.range_f
+        elif s == "DriftCompensation.u":
+            return True, self.__driftCompensation[0]
+        elif s == "DriftCompensation.v":
+            return True, self.__driftCompensation[1]
+        elif s == "DriftCorrectionUpdateInterval":
+            return True, self.__driftCorrectionUpdateInterval
+        elif s == "DriftMeasureTime":
+            return True, self.__driftMeasureTime
+        elif s == "DriftCcorrThreshold":
+            return True, 0.1
+        elif s == "DriftTimeConstant":
+            return True, self.__driftTimeConstant
+        elif s == "MaxShifterRange":
+            return True, self.__maxShifterRange
+        elif s == "DiftAutoStopThreshold":
+            return True, self.__diftAutoStopThreshold
+        elif s == "ResetShiftersToOpposite":
+            return True, self.__resetShiftersToOpposite
         else:
-            return False, 0
-
+            return True, 1
 
     @property
     def is_blanked(self) -> bool:

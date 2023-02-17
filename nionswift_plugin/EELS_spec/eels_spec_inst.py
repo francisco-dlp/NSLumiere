@@ -359,7 +359,7 @@ class EELS_SPEC_Device(Instrument):
 
     @q1_edit_f.setter
     def q1_edit_f(self, value):
-        sself.__elem[5] = int(value)
+        self.__elem[5] = int(value)
         self.__eels_spec.locked_set_val(self.__elem[5], self.__names[5])
         self.property_changed_event.fire("q1_slider_f")
         self.property_changed_event.fire("q1_edit_f")

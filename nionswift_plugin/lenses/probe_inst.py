@@ -32,6 +32,7 @@ class probeDevice(Observable.Observable):
         self.__c2 = 0.
         self.__objStig = [0, 0]
         self.__gunStig = [0, 0]
+        self.__probeOffset = [0, 0, 0, 0]
         self.__obj_global = True
         self.__c1_global = True
         self.__c2_global = True
@@ -40,6 +41,11 @@ class probeDevice(Observable.Observable):
         self.__c2_wobbler = False
         self.wobbler_frequency_f = 2
         self.__wobbler_intensity = 0.02
+
+        self.probe_offset0_f = 0
+        self.probe_offset1_f = 0
+        self.probe_offset2_f = 0
+        self.probe_offset3_f = 0
 
     def init_handler(self):
         try:
@@ -134,6 +140,46 @@ class probeDevice(Observable.Observable):
         self.__objStig[1] = value
         self.__lenses_ps.locked_set_val(self.__objStig, 'OBJ_STIG')
         self.property_changed_event.fire('obj_stigmateur1_f')
+
+    @property
+    def probe_offset0_f(self):
+        return self.__probeOffset[0]
+
+    @probe_offset0_f.setter
+    def probe_offset0_f(self, value):
+        self.__probeOffset[0] = value
+        self.__lenses_ps.locked_set_val(self.__probeOffset, 'OBJ_ALIG')
+        self.property_changed_event.fire('probe_offset0_f')
+
+    @property
+    def probe_offset1_f(self):
+        return self.__probeOffset[1]
+
+    @probe_offset1_f.setter
+    def probe_offset1_f(self, value):
+        self.__probeOffset[1] = value
+        self.__lenses_ps.locked_set_val(self.__probeOffset, 'OBJ_ALIG')
+        self.property_changed_event.fire('probe_offset1_f')
+
+    @property
+    def probe_offset2_f(self):
+        return self.__probeOffset[2]
+
+    @probe_offset2_f.setter
+    def probe_offset2_f(self, value):
+        self.__probeOffset[2] = value
+        self.__lenses_ps.locked_set_val(self.__probeOffset, 'OBJ_ALIG')
+        self.property_changed_event.fire('probe_offset2_f')
+
+    @property
+    def probe_offset3_f(self):
+        return self.__probeOffset[3]
+
+    @probe_offset3_f.setter
+    def probe_offset3_f(self, value):
+        self.__probeOffset[3] = value
+        self.__lenses_ps.locked_set_val(self.__probeOffset, 'OBJ_ALIG')
+        self.property_changed_event.fire('probe_offset3_f')
 
     @property
     def obj_global_f(self):
