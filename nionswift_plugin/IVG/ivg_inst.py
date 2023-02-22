@@ -437,12 +437,6 @@ class ivgInstrument(stem_controller.STEMController):
             self.__x_real_pos = -1.e-5
         return '{:.3f}'.format(self.__x_real_pos * 1e6)
 
-    @x_stage_f.setter
-    def x_stage_f(self, value):
-        self.__StageInstrument.x_pos_f = float(value) * 100.
-        self.stage_periodic()
-        self.property_changed_event.fire('x_stage_f')
-
     @property
     def y_stage_f(self):
         try:
@@ -453,12 +447,6 @@ class ivgInstrument(stem_controller.STEMController):
         except:
             self.__y_real_pos = -1.e-5
         return '{:.3f}'.format(self.__y_real_pos * 1e6)
-
-    @y_stage_f.setter
-    def y_stage_f(self, value):
-        self.__StageInstrument.y_pos_f = float(value) * 100.
-        self.stage_periodic()
-        self.property_changed_event.fire('y_stage_f')
 
     ## spim_panel Properties START ##
 
@@ -606,8 +594,8 @@ class ivgInstrument(stem_controller.STEMController):
             fac = 2.0
         else:
             fac = 1.0
-        self.__StageInstrument.x_pos_f += fac * new_dx * 1e8
-        self.__StageInstrument.y_pos_f -= fac * new_dy * 1e8
+        self.__StageInstrument.x_pos_edit_f = float(self.__StageInstrument.x_pos_edit_f) + fac * new_dx * 1e6
+        self.__StageInstrument.y_pos_edit_f = float(self.__StageInstrument.y_pos_edit_f) - fac * new_dy * 1e6
         self.stage_periodic()
 
     def SetVal(self, s, val):

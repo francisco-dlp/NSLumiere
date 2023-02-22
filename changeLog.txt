@@ -2,3 +2,6 @@
 - Stage maximum values updated;
 - Installed drift correction (Window - Drift Correction);
 - Implemented fine probe adjustement. Two buttons '<<' and '>>' are now available;
+
+----- v7.0.1 (22-02-2023) -----
+- Stage bug fix during on-click displacement;

@@ -242,15 +242,13 @@ class ivgView:
 
         self.x_stage_label=ui.create_label(name='x_stage_label', text='Motor X (μm): ')
         self.x_stage_real=ui.create_label(name='x_stage_real', text='@binding(instrument.x_stage_f)')
-        self.x_stage_edit = ui.create_line_edit(name='x_stage_edit', text='@binding(instrument.x_stage_f)', width='50')
         self.stage_pb=ui.create_push_button(name='stage_pb', text='Monitor', on_clicked='monitor_stage', width=100)
-        self.x_stage_row = ui.create_row(self.x_stage_label, self.x_stage_real, ui.create_spacing(10), self.x_stage_edit, ui.create_stretch(), self.stage_pb)
+        self.x_stage_row = ui.create_row(self.x_stage_label, self.x_stage_real, ui.create_spacing(10), ui.create_stretch(), self.stage_pb)
 
         self.y_stage_label=ui.create_label(name='y_stage_label', text='Motor Y (μm): ')
         self.y_stage_real=ui.create_label(name='y_stage_real', text='@binding(instrument.y_stage_f)')
-        self.y_stage_edit = ui.create_line_edit(name='y_stage_edit', text='@binding(instrument.y_stage_f)', width='50')
         self.stage_clear_pb=ui.create_push_button(name='stage_clear_pb', text='Clear Track', on_clicked='clear_stage', width=100)
-        self.y_stage_row = ui.create_row(self.y_stage_label, self.y_stage_real, ui.create_spacing(10), self.y_stage_edit, ui.create_stretch(), self.stage_clear_pb)
+        self.y_stage_row = ui.create_row(self.y_stage_label, self.y_stage_real, ui.create_spacing(10), ui.create_stretch(), self.stage_clear_pb)
 
         self.stage_group=ui.create_group(title='VG Stage', content=ui.create_column(self.x_stage_row, self.y_stage_row))
         
