@@ -34,22 +34,30 @@ class EELS_Spectrometer(EELS_controller.EELSController):
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.sock.settimeout(0.1)
                 self.sock.connect(("129.175.82.70", 80))
+                plus = ('HV+ ' + str(0) + '\n').encode()
+                self.sock.sendall(plus)
                 self.vsm_success = True
             except socket.timeout:
                 logging.info("***EELS SPECTROMETER***: Could not find VSM. Please check hardware. "
-                             "Entering in debug mode.")
+                             "Entering in debug mode (socket timeout).")
+            except ConnectionResetError:
+                logging.info("***EELS SPECTROMETER***: Could not find VSM. Please check hardware. "
+                             "Entering in debug mode (ConnectionResetError).")
 
         self.success = self.serial_success
 
     def set_val(self, val, which):
         if which=="off":
             if not self.vsm_success: return
-            if val<=1000 and val>=0:
-                veff = int(val * 4.095)
-                plus = ('HV+ ' + str(veff) + '\n').encode()
-                self.sock.sendall(plus)
-            else:
-                logging.info('***EELS***: VSM value too high or negative. Current maximum value is 1000 V.')
+            try:
+                if val<=1000 and val>=0:
+                    veff = int(val * 4.095)
+                    plus = ('HV+ ' + str(veff) + '\n').encode()
+                    self.sock.sendall(plus)
+                else:
+                    logging.info('***EELS***: VSM value too high or negative. Current maximum value is 1000 V.')
+            except ConnectionResetError:
+                logging.info('***EELS***: VSM could not be set. Please check if VSM is properly plugged.')
             #scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
             #if scan is not None:
             #    scan.scan_device.orsayscan.drift_tube = float(val)

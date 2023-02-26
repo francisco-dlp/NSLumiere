@@ -5,3 +5,6 @@
 
 ----- v7.0.1 (22-02-2023) -----
 - Stage bug fix during on-click displacement;
+
+----- v7.0.2 (26-02-2023) -----
+- VSM issue solved. Unconnected hardware is correctly detected;
