@@ -17,28 +17,28 @@ _ = gettext.gettext
 
 GRATINGS = list()
 
-class OptSpechandler:
 
+class OptSpechandler:
 
     def __init__(self, instrument: optspec_inst.OptSpecDevice, document_controller):
 
         self.event_loop = document_controller.event_loop
         self.document_controller = document_controller
-        self.instrument=instrument
+        self.instrument = instrument
         self.enabled = False
-        self.property_changed_event_listener=self.instrument.property_changed_event.listen(self.prepare_widget_enable)
-        self.busy_event_listener=self.instrument.busy_event.listen(self.prepare_widget_disable)
+        self.property_changed_event_listener = self.instrument.property_changed_event.listen(self.prepare_widget_enable)
+        self.busy_event_listener = self.instrument.busy_event.listen(self.prepare_widget_disable)
         self.send_gratings_listener = self.instrument.send_gratings.listen(self.receive_gratings)
         self.warn_panel_listener = self.instrument.warn_panel.listen(self.prepare_data)
         self.send_data_listener = self.instrument.send_data.listen(self.receive_data)
         self.warn_panel_over_listener = self.instrument.warn_panel_over.listen(self.finish_data)
 
-    async def do_enable(self,enabled=True,not_affected_widget_name_list=None):
+    async def do_enable(self, enabled=True, not_affected_widget_name_list=None):
 
         for var in self.__dict__:
             if var not in not_affected_widget_name_list:
-                if isinstance(getattr(self,var),UserInterface.Widget):
-                    widg=getattr(self,var)
+                if isinstance(getattr(self, var), UserInterface.Widget):
+                    widg = getattr(self, var)
                     setattr(widg, "enabled", enabled)
 
     async def data_item_show(self, DI):
@@ -53,13 +53,17 @@ class OptSpechandler:
     def prepare_widget_enable(self, value):
         self.event_loop.create_task(self.do_enable(True, ['init_pb']))
 
-    def prepare_widget_disable(self,value):
+    def prepare_widget_disable(self, value):
         self.event_loop.create_task(self.do_enable(False, ['init_pb', 'abort_pb']))
 
     def init_handler(self):
         self.event_loop.create_task(self.do_enable(False, ['init_pb']))
+        self.init_hardware()
 
     def init(self, widget):
+        self.init_hardware()
+
+    def init_hardware(self):
         if self.instrument.init():
             self.init_pb.enabled = False
             self.event_loop.create_task(self.do_enable(True, ['init_pb']))
@@ -88,7 +92,8 @@ class OptSpechandler:
 
         self.timezone = Utility.get_local_timezone()
         self.timezone_offset = Utility.TimezoneMinutesToStringConverter().convert(Utility.local_utcoffset_minutes())
-        self.xdata = DataAndMetadata.new_data_and_metadata(self.array, timezone=self.timezone, timezone_offset=self.timezone_offset)
+        self.xdata = DataAndMetadata.new_data_and_metadata(self.array, timezone=self.timezone,
+                                                           timezone_offset=self.timezone_offset)
         self.data_item = DataItem.DataItem()
         self.data_item.set_xdata(self.xdata)
         self.data_item.define_property("title", "EIRE total intensity")
@@ -96,16 +101,16 @@ class OptSpechandler:
 
         self.event_loop.create_task(self.data_item_show(self.data_item))
 
-
     def receive_data(self, value, index):
-            if index == 0:
-                self.array = numpy.zeros(200)
-            self.array[index] = value
-            self.data_item.set_data(self.array)
+        if index == 0:
+            self.array = numpy.zeros(200)
+        self.array[index] = value
+        self.data_item.set_data(self.array)
 
     def finish_data(self):
         if self.data_item:
             self.event_loop.create_task(self.data_item_exit_live(self.data_item))
+
 
 class OptSpecView:
 
@@ -118,24 +123,23 @@ class OptSpecView:
 
         self.wl_label = ui.create_label(text='Wavelength (nm): ', name='wl_label')
         self.wl_value = ui.create_line_edit(name='wl_value', text='@binding(instrument.wav_f)')
-        self.wl_row=ui.create_row(self.wl_label, self.wl_value, ui.create_stretch())
+        self.wl_row = ui.create_row(self.wl_label, self.wl_value, ui.create_stretch())
 
-        self.gratings_label=ui.create_label(name='gratings_label', text='Grating: ')
-        self.gratings_combo_box=ui.create_combo_box(name='gratings_combo_box', items=GRATINGS, width=150,
-                                                    current_index='@binding(instrument.grating_f)')
-        self.gratings_row=ui.create_row(self.gratings_label, self.gratings_combo_box, ui.create_stretch())
+        self.gratings_label = ui.create_label(name='gratings_label', text='Grating: ')
+        self.gratings_combo_box = ui.create_combo_box(name='gratings_combo_box', items=GRATINGS, width=150,
+                                                      current_index='@binding(instrument.grating_f)')
+        self.gratings_row = ui.create_row(self.gratings_label, self.gratings_combo_box, ui.create_stretch())
 
-        self.entrance_slit_label=ui.create_label(name='entrance_slit_label', text='Entrance Slit: ')
+        self.entrance_slit_label = ui.create_label(name='entrance_slit_label', text='Entrance Slit: ')
         self.entrance_slit_value = ui.create_line_edit(name='entrance_slit_value',
                                                        text='@binding(instrument.entrance_slit_f)')
         self.exit_slit_label = ui.create_label(name='exit_slit_label', text='Exit Slit: ')
         self.exit_slit_value = ui.create_line_edit(name='exit_slit_value',
-                                                       text='@binding(instrument.exit_slit_f)')
+                                                   text='@binding(instrument.exit_slit_f)')
 
         self.slit_row = ui.create_row(self.entrance_slit_label, self.entrance_slit_value,
-                      ui.create_spacing(15),
-                      self.exit_slit_label, self.exit_slit_value)
-
+                                      ui.create_spacing(15),
+                                      self.exit_slit_label, self.exit_slit_value)
 
         self.slit_choice = ui.create_combo_box(text='Exit: ', name='slit_choice',
                                                items=['Axial', 'Lateral'],
@@ -188,14 +192,13 @@ class OptSpecView:
 
         self.camsize_label = ui.create_label(name='camsize_label', text='Hor. Camera Size (mm): ')
         self.camsize_value = ui.create_line_edit(name='camsize_value',
-                                                      text='@binding(instrument.camera_size_f)', width=50)
+                                                 text='@binding(instrument.camera_size_f)', width=50)
         self.camsize_row = ui.create_row(self.camsize_label, self.camsize_value, ui.create_stretch())
 
         self.campixels_label = ui.create_label(name='campixels_label', text='Hor. Camera Pixels: ')
         self.campixels_value = ui.create_line_edit(name='campixels_value',
-                                                      text='@binding(instrument.camera_pixels_f)', width=50)
+                                                   text='@binding(instrument.camera_pixels_f)', width=50)
         self.campixels_row = ui.create_row(self.campixels_label, self.campixels_value, ui.create_stretch())
-
 
         self.settings_group = ui.create_group(title='Settings', content=ui.create_column(
             self.focal_length_row, self.camsize_row, self.campixels_row))
@@ -212,23 +215,20 @@ class OptSpecView:
         self.ui_view = ui.create_column(self.main_group, self.info_group, self.settings_group, self.meas_group)
 
 
-
-        
 def create_spectro_panel(document_controller, panel_id, properties):
-        instrument = properties["instrument"]
-        ui_handler =OptSpechandler(instrument, document_controller)
-        ui_view=OptSpecView(instrument)
-        panel = Panel.Panel(document_controller, panel_id, properties)
+    instrument = properties["instrument"]
+    ui_handler = OptSpechandler(instrument, document_controller)
+    ui_view = OptSpecView(instrument)
+    panel = Panel.Panel(document_controller, panel_id, properties)
 
-        finishes = list()
-        panel.widget = Declarative.construct(document_controller.ui, None, ui_view.ui_view, ui_handler, finishes)
+    finishes = list()
+    panel.widget = Declarative.construct(document_controller.ui, None, ui_view.ui_view, ui_handler, finishes)
 
-
-        for finish in finishes:
-            finish()
-        if ui_handler and hasattr(ui_handler, "init_handler"):
-            ui_handler.init_handler()
-        return panel
+    for finish in finishes:
+        finish()
+    if ui_handler and hasattr(ui_handler, "init_handler"):
+        ui_handler.init_handler()
+    return panel
 
 
 def run(instrument: optspec_inst.OptSpecDevice, name='Optical Spectrometer') -> None:

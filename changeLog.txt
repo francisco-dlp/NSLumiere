@@ -8,3 +8,6 @@
 
 ----- v7.0.2 (26-02-2023) -----
 - VSM issue solved. Unconnected hardware is correctly detected;
+
+----- v7.0.3 (26-02-2023) -----
+- Updating CL spectrometer to be automatically compatible between machines and AUTOSTEM [NOT FINISHED].

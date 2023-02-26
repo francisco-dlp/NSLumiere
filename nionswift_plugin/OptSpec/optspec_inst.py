@@ -25,7 +25,9 @@ class OptSpecDevice(Observable.Observable):
         self.__running = False
         self.__successful = False
         self.__model = MANUFACTURER
+        self.__has_auto_stem = False
         self.__thread = None
+        self.__instrument = None
 
     def init(self):
         if self.__model == 'DEBUG':
@@ -46,17 +48,40 @@ class OptSpecDevice(Observable.Observable):
         if not self.__Spec.success:
             return False
 
+        self.__cameraSize = 25.6
         self.__gratings = self.__Spec.gratingNames()
         self.send_gratings.fire(self.__gratings)
         self.__lpmms = self.__Spec.gratingLPMM()
         self.__fl = self.__Spec.get_specFL()
-        self.__cameraSize = 25.6
         self.__cameraPixels = self.__Spec.camera_pixels()
         self.__cameraName = self.__Spec.which_camera()
         self.__devAngle = self.__Spec.deviation_angle()
 
+        self.__calibration_controls = {
+            "x_scale_control": "Princeton_CL_nmperpixel",
+            "x_offset_control": "Princeton_CL_nmOffset",
+            "x_units_value": "nm",
+            "y_scale_control": "Princeton_CL_radsperpixel",
+            "y_units_value": "rad",
+            "intensity_units_value": "Counts",
+            "counts_per_electron_control": "Princeton_CL_CountsPerElectron"
+        }
+
+        #Checking if AUTOSTEM exists or not
+        AUTOSTEM_CONTROLLER_ID = "autostem_controller"
+        autostem = HardwareSource.HardwareSourceManager().get_instrument_by_id(AUTOSTEM_CONTROLLER_ID)
+        if autostem != None:
+            self.__has_auto_stem = True
+            tuning_manager = autostem.tuning_manager
+            self.__instrument = tuning_manager.instrument_controller
+
         self.__eirecamera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             self.__cameraName)
+
+        print(self.__eirecamera.camera.calibration_controls)
+        print(self.__cameraName)
+
+        #self.__eirecamera.camera.calibration_controls = self.__calibration_controls
 
         return (True and self.__eirecamera is not None)
 
@@ -90,6 +115,8 @@ class OptSpecDevice(Observable.Observable):
         self.upt_calibs()
 
     def upt_calibs(self):
+        pass
+        """
         if self.__eirecamera.camera.camera_model == 'Newton' or self.__eirecamera.camera.camera_model == 'ProEM+: 1600xx(2)B eXcelon':
             self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
                                                 {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
@@ -97,17 +124,7 @@ class OptSpecDevice(Observable.Observable):
                                                  "units": "nm"}]
         else:
             logging.info('***OPT SPECT***: Camera not configured in upt_calibs.')
-
-        # elif self.__eirecamera.camera.camera_model == 'ProEM+: 1600xx(2)B eXcelon':
-        #     if self.__eirecamera.camera.sizey == 1:
-        #         self.__eirecamera.camera.calibration = [{"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
-        #                                          "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
-        #                                          "units": "nm"}]
-        #     else:
-        #         self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
-        #                                                 {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
-        #                                                  "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
-        #                                                  "units": "nm"}]
+        """
 
     def measure(self):
         self.__running = True
@@ -139,11 +156,14 @@ class OptSpecDevice(Observable.Observable):
 
     def sendMessageFactory(self):
         def sendMessage(message):
-            if message:
-                self.__running = False
-                self.upt_values()
-                self.property_changed_event.fire('wav_f')
-                if self.__successful: self.upt_calibs()
+            try:
+                if message:
+                    self.__running = False
+                    self.upt_values()
+                    self.property_changed_event.fire('wav_f')
+                    if self.__successful: self.upt_calibs()
+            except:
+                logging.info('***OPT SPECT***: Callback function issue.')
 
         return sendMessage
 
@@ -152,7 +172,7 @@ class OptSpecDevice(Observable.Observable):
         try:
             self.__wl = self.__Spec.get_wavelength()
             return format(self.__wl, '.3f')
-        except AttributeError:
+        except:
             return 'None'
 
     @wav_f.setter
@@ -168,7 +188,7 @@ class OptSpecDevice(Observable.Observable):
         try:
             self.__grating = self.__Spec.get_grating()
             return self.__grating
-        except AttributeError:
+        except:
             return 0
 
     @grating_f.setter
@@ -183,14 +203,14 @@ class OptSpecDevice(Observable.Observable):
     def lpmm_f(self):
         try:
             return self.__lpmms[self.__grating]
-        except AttributeError:
+        except:
             return 'None'
 
     @property
     def inc_angle_f(self):
         try:
             return self.dif_angle_f - self.__devAngle
-        except AttributeError:
+        except:
             return 'None'
 
     @property
@@ -205,7 +225,7 @@ class OptSpecDevice(Observable.Observable):
         try:
             ab2 = numpy.arcsin((1 / 2. * 1e-6 * self.__wl * self.lpmm_f) / numpy.cos(self.__devAngle / 2.))
             return (2 * ab2 + self.__devAngle) / 2.
-        except AttributeError:
+        except:
             return 'None'
 
     @property
@@ -218,7 +238,7 @@ class OptSpecDevice(Observable.Observable):
         '''
         try:
             return 1e6 / self.__lpmms[self.__grating] * numpy.cos(self.dif_angle_f) / self.__fl
-        except AttributeError:
+        except:
             return 'None'
 
     @property
@@ -226,7 +246,7 @@ class OptSpecDevice(Observable.Observable):
         try:
             self.__entrance_slit = self.__Spec.get_entrance()
             return self.__entrance_slit
-        except AttributeError:
+        except:
             return 'None'
 
     @entrance_slit_f.setter
@@ -243,7 +263,7 @@ class OptSpecDevice(Observable.Observable):
         try:
             self.__exit_slit = self.__Spec.get_exit()
             return self.__exit_slit
-        except AttributeError:
+        except:
             return 'None'
 
     @exit_slit_f.setter
@@ -259,7 +279,7 @@ class OptSpecDevice(Observable.Observable):
         try:
             self.__slit_choice = self.__Spec.get_which()
             return self.__slit_choice
-        except AttributeError:
+        except:
             return -1
 
     @which_slit_f.setter
@@ -274,7 +294,7 @@ class OptSpecDevice(Observable.Observable):
     def camera_size_f(self):
         try:
             return format(self.__cameraSize, '.1f')
-        except AttributeError:
+        except:
             return 'None'
 
     @camera_size_f.setter
@@ -286,7 +306,7 @@ class OptSpecDevice(Observable.Observable):
     def camera_pixels_f(self):
         try:
             return format(self.__cameraPixels, '.0f')
-        except AttributeError:
+        except:
             return 'None'
 
     @camera_pixels_f.setter
@@ -298,7 +318,7 @@ class OptSpecDevice(Observable.Observable):
     def focalLength_f(self):
         try:
             return format(self.__fl, '.0f')
-        except AttributeError:
+        except:
             return 'None'
 
     @focalLength_f.setter
@@ -310,28 +330,26 @@ class OptSpecDevice(Observable.Observable):
     def pixel_size_f(self):
         try:
             return self.__cameraSize / self.__cameraPixels * 1e3
-        except AttributeError:
+        except:
             return 'None'
 
     @property
     def dispersion_nmmm_f(self):
         try:
             return format(self.dispersion_f, '.3f')
-        except ValueError:
-            return 'None'
-        except AttributeError:
+        except:
             return 'None'
 
     @property
     def dispersion_pixels_f(self):
         try:
             return format(self.dispersion_f * self.__cameraSize / self.__cameraPixels, '.3f')
-        except AttributeError:
+        except:
             return 'None'
 
     @property
     def fov_f(self):
         try:
             return format(self.dispersion_f * self.__cameraSize, '.3f')
-        except AttributeError:
+        except:
             return 'None'
