@@ -14,3 +14,6 @@
 
 ----- v7.0.4 (27-02-2023) -----
 - Updating CL spectrometer [FINISHED].
+
+----- v7.0.5 (27-02-2023) -----
+- Added the spectra flip. They are consistent between focus and spectral image acquisitions.

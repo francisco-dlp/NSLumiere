@@ -403,6 +403,11 @@ class CameraDevice(camera_base.CameraDevice):
         if "processing" in dict_frame_parameters:
             self.__hardware_settings['processing'] = dict_frame_parameters['processing']
 
+        if "flipped" in dict_frame_parameters:
+            if self.__hardware_settings['flipped'] != dict_frame_parameters['flipped']:
+                self.__hardware_settings['flipped'] = dict_frame_parameters['flipped']
+
+
         #Timepix3 camera values
         if self.isTimepix and "timeDelay" in dict_frame_parameters:
             self.__hardware_settings['timeDelay'] = dict_frame_parameters['timeDelay']
@@ -683,9 +688,14 @@ class CameraDevice(camera_base.CameraDevice):
                 self.acquire_data = self.acquire_data.reshape(self.acquire_data.shape[1])
                 datum_dimensions = 1
                 collection_dimensions = 1
+                if self.current_camera_settings.as_dict()['flipped']:
+                    self.acquire_data = numpy.flip(self.acquire_data, axis=0)
             else:
                 datum_dimensions = 2
                 collection_dimensions = 0
+                if self.current_camera_settings.as_dict()['flipped']:
+                    self.acquire_data = numpy.flip(self.acquire_data, axis=1)
+
 
         properties = dict()
         properties["frame_number"] = self.frame_number
