@@ -25,7 +25,6 @@ class OptSpecDevice(Observable.Observable):
         self.__running = False
         self.__successful = False
         self.__model = MANUFACTURER
-        self.__has_auto_stem = False
         self.__thread = None
         self.__instrument = None
 
@@ -70,16 +69,14 @@ class OptSpecDevice(Observable.Observable):
         #Checking if AUTOSTEM exists or not
         AUTOSTEM_CONTROLLER_ID = "autostem_controller"
         autostem = HardwareSource.HardwareSourceManager().get_instrument_by_id(AUTOSTEM_CONTROLLER_ID)
-        if autostem != None:
-            self.__has_auto_stem = True
+        if autostem == None:
+            self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id('VG_controller')
+        else:
             tuning_manager = autostem.tuning_manager
             self.__instrument = tuning_manager.instrument_controller
 
         self.__eirecamera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             self.__cameraName)
-
-        print(self.__eirecamera.camera.calibration_controls)
-        print(self.__cameraName)
 
         #self.__eirecamera.camera.calibration_controls = self.__calibration_controls
 
@@ -102,6 +99,7 @@ class OptSpecDevice(Observable.Observable):
         self.upt_calibs()
         if not self.__successful: self.__successful = True
 
+    """
     def upt_values(self):
         self.property_changed_event.fire('wav_f')
         self.property_changed_event.fire('lpmm_f')
@@ -113,18 +111,13 @@ class OptSpecDevice(Observable.Observable):
         self.property_changed_event.fire('camera_pixels_f')
         self.property_changed_event.fire('focalLength_f')
         self.upt_calibs()
+    """
 
     def upt_calibs(self):
-        pass
-        """
-        if self.__eirecamera.camera.camera_model == 'Newton' or self.__eirecamera.camera.camera_model == 'ProEM+: 1600xx(2)B eXcelon':
-            self.__eirecamera.camera.calibration = [{"offset": 0, "scale": 1, "units": ""},
-                                                {"offset": self.__wl - self.dispersion_f * self.__cameraSize / 2.,
-                                                 "scale": self.dispersion_f * self.__cameraSize / self.__cameraPixels,
-                                                 "units": "nm"}]
-        else:
-            logging.info('***OPT SPECT***: Camera not configured in upt_calibs.')
-        """
+        self.__instrument.SetVal('eire_x_scale',
+                                 1e-2 * 0.5 * self.dispersion_f * self.__cameraSize / self.__cameraPixels)
+        self.__instrument.SetVal('eire_x_offset', self.__wl - self.dispersion_f * self.__cameraSize / 2.)
+
 
     def measure(self):
         self.__running = True
@@ -159,7 +152,7 @@ class OptSpecDevice(Observable.Observable):
             try:
                 if message:
                     self.__running = False
-                    self.upt_values()
+                    self.upt()
                     self.property_changed_event.fire('wav_f')
                     if self.__successful: self.upt_calibs()
             except:
@@ -300,7 +293,7 @@ class OptSpecDevice(Observable.Observable):
     @camera_size_f.setter
     def camera_size_f(self, value):
         self.__cameraSize = float(value)
-        self.upt_values()
+        self.upt()
 
     @property
     def camera_pixels_f(self):
@@ -312,7 +305,7 @@ class OptSpecDevice(Observable.Observable):
     @camera_pixels_f.setter
     def camera_pixels_f(self, value):
         self.__cameraPixels = int(value)
-        self.upt_values()
+        self.upt()
 
     @property
     def focalLength_f(self):
@@ -324,7 +317,7 @@ class OptSpecDevice(Observable.Observable):
     @focalLength_f.setter
     def focalLength_f(self, value):
         self.__fl = int(value)
-        self.upt_values()
+        self.upt()
 
     @property
     def pixel_size_f(self):

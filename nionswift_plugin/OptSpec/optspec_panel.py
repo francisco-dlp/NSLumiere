@@ -74,9 +74,6 @@ class OptSpechandler:
     def upt(self, widget):
         self.instrument.upt()
 
-    def upt_info(self, widget):
-        self.instrument.upt_info()
-
     def measure(self, widget):
         self.instrument.measure()
 

@@ -11,3 +11,6 @@
 
 ----- v7.0.3 (26-02-2023) -----
 - Updating CL spectrometer to be automatically compatible between machines and AUTOSTEM [NOT FINISHED].
+
+----- v7.0.4 (27-02-2023) -----
+- Updating CL spectrometer [FINISHED].

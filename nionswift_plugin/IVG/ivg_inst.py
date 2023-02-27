@@ -95,14 +95,13 @@ class ivgInstrument(stem_controller.STEMController):
         self.__x_real_pos = self.__y_real_pos = 0.0
 
         self.__loop_index = 0
-        ## spim properties attributes START
 
+        ## spim properties attributes START
         self.__spim_type = 0
         self.__spim_trigger = 0
         self.__spim_xpix = 64
         self.__spim_ypix = 64
         self.__spim_sampling = [0, 0]
-
         ## spim properties attributes END
 
         self.__driftCorrectionUpdateInterval = 1
@@ -113,9 +112,29 @@ class ivgInstrument(stem_controller.STEMController):
         self.__resetShiftersToOpposite = False
         self.__driftRate = [0, 0]
         self.__driftCompensation = [1e-9, 1e-9]
-        #self.__calib = [25002.0 / 2461.5, 25002.0/2332.0] #DAC/nm
         self.__calib = [0.0019320, -0.0044940, -0.0043035, -0.0016495]  # DAC/nm
         self.__csh = [0., 0.]
+
+        self.__calibration_controls = {
+            "x_scale_control": "Princeton_CL_nmperpixel",
+            "x_offset_control": "Princeton_CL_nmOffset",
+            "x_units_value": "nm",
+            "y_scale_control": "Princeton_CL_radsperpixel",
+            "y_units_value": "rad",
+            "intensity_units_value": "Counts",
+            "counts_per_electron_control": "Princeton_CL_CountsPerElectron"
+        }
+
+        # Optical spectrometer values
+        self.__EIRE_Controls = dict()
+        self.__EIRE_Controls["eire_x_scale"] = 1
+        self.__EIRE_Controls["eire_x_offset"] = 0
+        self.__EIRE_Controls["eire_x_units"] = 'nm'
+        self.__EIRE_Controls["eire_y_scale"] = 1
+        self.__EIRE_Controls["eire_y_units"] = 'rad'
+        self.__EIRE_Controls["eire_y_offset"] = 0
+        self.__EIRE_Controls["intensity_units_value"] = 'Counts'
+        self.__EIRE_Controls["counts_per_electron_control"] = 0
 
         self.__gun_gauge = gun.GunVacuum(SERIAL_PORT_GUN)
         if not self.__gun_gauge.success:
@@ -126,6 +145,7 @@ class ivgInstrument(stem_controller.STEMController):
         if not self.__ll_gauge.success:
             from .virtual_instruments import airlock_vi
             self.__ll_gauge = airlock_vi.AirLockVacuum()
+
     def init_handler(self):
         self.__lensInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("lenses_controller")
         self.__EELSInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_controller")
@@ -599,7 +619,11 @@ class ivgInstrument(stem_controller.STEMController):
         self.stage_periodic()
 
     def SetVal(self, s, val):
-        if s == 'DriftRate.u':
+        if s in self.__EIRE_Controls.keys():
+            if s == 'eire_x_scale':
+                val = val * 2e2
+            self.__EIRE_Controls[s] = val
+        elif s == 'DriftRate.u':
             self.__driftRate[0] = val
         elif s == 'DriftRate.v':
             self.__driftRate[1] = val
@@ -619,6 +643,8 @@ class ivgInstrument(stem_controller.STEMController):
             self.__diftAutoStopThreshold = val
         elif s == "ResetShiftersToOpposite":
             self.__resetShiftersToOpposite = val
+        else:
+            logging.info(f'**IVG***: Could not found controller {s} with value {val} in SetVal.')
         return True
 
     def InformControl(self, s, val):
@@ -650,7 +676,9 @@ class ivgInstrument(stem_controller.STEMController):
         return True
 
     def TryGetVal(self, s: str) -> (bool, float):
-        if s == "eels_y_offset":
+        if s in self.__EIRE_Controls.keys():
+            return True, self.__EIRE_Controls[s]
+        elif s == "eels_y_offset":
             return True, 0
         elif s == "eels_x_offset":
             return True, self.__EELSInstrument.ene_offset_edit_f + self.__EELSInstrument.tare_edit_f
@@ -677,6 +705,7 @@ class ivgInstrument(stem_controller.STEMController):
         elif s == "ResetShiftersToOpposite":
             return True, self.__resetShiftersToOpposite
         else:
+            logging.info(f'**IVG***: Could not found controller value {s} in TryGetVal.')
             return True, 1
 
     @property
