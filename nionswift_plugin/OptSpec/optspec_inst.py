@@ -78,7 +78,7 @@ class OptSpecDevice(Observable.Observable):
         self.__eirecamera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             self.__cameraName)
 
-        #self.__eirecamera.camera.calibration_controls = self.__calibration_controls
+        self.__eirecamera.camera.calibration_controls = self.__calibration_controls
 
         return (True and self.__eirecamera is not None)
 
@@ -114,9 +114,9 @@ class OptSpecDevice(Observable.Observable):
     """
 
     def upt_calibs(self):
-        self.__instrument.SetVal('eire_x_scale',
-                                 1e-2 * 0.5 * self.dispersion_f * self.__cameraSize / self.__cameraPixels)
-        self.__instrument.SetVal('eire_x_offset', self.__wl - self.dispersion_f * self.__cameraSize / 2.)
+        self.__instrument.SetVal('Princeton_CL_nmperpixel',
+                                 self.dispersion_f * self.__cameraSize / self.__cameraPixels)
+        self.__instrument.SetVal('Princeton_CL_nmOffset', self.__wl - self.dispersion_f * self.__cameraSize / 2.)
 
 
     def measure(self):
