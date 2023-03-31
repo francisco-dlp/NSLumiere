@@ -1,16 +1,14 @@
 from setuptools import setup
 
 setup(
-    
-    
-    
     name="OrsayLille",
-    version="XX",
+    version="1.0",
     author="Yves Auad",
     description="Set of tools to run VG Cold Microscope in Nionswift",
     url="https://github.com/yvesauad/swift_lumiere",
     packages=['nionswift_plugin.EELS_spec', 'nionswift_plugin.IVG',
               'nionswift_plugin.IVG.virtual_instruments',
+              'nionswift_plugin.IVG.scan', 'nionswift_plugin.lenses',
               'nionswift_plugin.IVG.tp3', 'nionswift_plugin.IVG.camera'],
     python_requires='>=3.8.5',
     data_files=[('nionswift_plugin/aux_files/config', [
@@ -31,7 +29,6 @@ setup(
         'nionswift_plugin/aux_files/DLLs/SpectroCL.dll',
         'nionswift_plugin/aux_files/DLLs/AttoClient.dll',
     ]
-
     )],
     zip_safe = False
 )
