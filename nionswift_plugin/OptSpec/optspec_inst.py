@@ -78,7 +78,10 @@ class OptSpecDevice(Observable.Observable):
         self.__eirecamera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             self.__cameraName)
 
-        self.__eirecamera.camera.calibration_controls = self.__calibration_controls
+        try:
+            self.__eirecamera.camera.calibration_controls = self.__calibration_controls
+        except AttributeError:
+            logging.info("***OPT SPEC***: Can't set calibration controls.")
 
         return (True and self.__eirecamera is not None)
 

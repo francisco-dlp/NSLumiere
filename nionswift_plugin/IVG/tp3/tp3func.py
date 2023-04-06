@@ -996,6 +996,122 @@ class TimePix3():
                     return
         return
 
+    def acquire_4dstreamed_frame_from_scan(self, port, message):
+        """
+        Main client function. Main loop is explained below.
+
+        Client is a socket connected to camera in host computer 129.175.108.52. Port depends on which kind of data you
+        are listening on. After connection, timeout is set to 5 ms, which is camera current dead time. cam_properties
+        is a dict containing all info camera sends through tcp (the header); frame_data is the frame; buffer_size is how
+        many bytes we collect within each loop interaction; frame_number is the frame counter and frame_time is when the
+        whole frame began.
+
+        check string value is a convenient function to detect the values using the header standard format for jsonimage.
+        """
+
+        inputs = list()
+        outputs = list()
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        """
+        127.0.0.1 -> LocalHost;
+        129.175.108.58 -> Patrick;
+        129.175.81.162 -> My personal Dell PC;
+        192.0.0.11 -> My old personal (outside lps.intra);
+        192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
+        129.175.108.52 -> CheeTah
+        """
+        ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname(self.__camIP)
+        address = (ip, port)
+        try:
+            client.connect(address)
+            logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
+            inputs.append(client)
+        except ConnectionRefusedError:
+            return False
+
+        if self.__port != 0: #This ensures we are streaming data and not saving locally
+            self.setCurrentPort(0)
+        buffer_size = 4*64000
+        self.__xspim, self.__yspim = self.get_scan_size()
+        self.__pixel_time = self.get_scan_pixel_time()
+        config_bytes = self.create_configuration_bytes(True, 32, False, 2,
+                                                       self.__xspim, self.__yspim, self.__xspim, self.__yspim, self.__pixel_time, 0, 0)
+        self.__tr = False  # Start always with false and will be updated if otherwise
+
+        self.__spimData = numpy.zeros(self.__xspim * self.__yspim * 8, dtype=numpy.uint32)
+
+        client.send(config_bytes)
+
+        self.__isReady.set() #This waits until spimData is created so scan can have access to it.
+        if message == 2:
+            counter = 0
+            while True:
+                dt = numpy.dtype(numpy.uint32).newbyteorder('<')
+                try:
+                    read, _, _ = select.select(inputs, outputs, inputs)
+                    for s in read:
+                        counter += 1
+                        packet_data = s.recv(buffer_size)
+
+                        ### Method 01 ###
+                        """
+                        index = 0
+                        while index < len(packet_data):
+                            index = packet_data.find(b'{StartUnique}', index)
+                            if index == -1: break
+                            index2 = packet_data.find(b'{StartIndexes}', index)
+                            if index2 == -1: #If there is not, do another call.
+                                packet_data += s.recv(buffer_size)
+                                index2 = packet_data.find(b'{StartIndexes}', index)
+                            #try:
+                            unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
+                            last_index = index2+14+(index2-index-13)*mult_factor
+                            if last_index > len(packet_data):
+                                packet_data += s.recv(last_index - len(packet_data))
+                            event_list = numpy.frombuffer(packet_data[index2+14:last_index], dtype=dt)
+
+                            index += 13
+                            try:
+                                self.__spimData[event_list] += unique
+                            except IndexError:
+                                logging.info(f'***TP3***: Indexing error.')
+                            except ValueError:
+                                logging.info(f'***TP3***: Value error.')
+                                logging.info(f'***TP3***: Incomplete data.')
+                        """
+
+                        ### Method 02 ###
+                        if len(packet_data) == 0:
+                            logging.info('***TP3***: No more packets received. Finishing SPIM.')
+                            #self.update_spim_all()
+                            return
+
+                        #q = len(packet_data) % 32
+                        #if q:
+                        #    packet_data += s.recv(32 - q)
+
+                        try:
+                            event_list = numpy.frombuffer(packet_data, dtype=dt)
+                            self.update_4d_direct(event_list)
+                            #if len(event_list) > 0:
+                                #for val in event_list:
+                                #    self.__spimData[val] += 1
+                                #self.update_spim_direct(event_list)
+                        except ValueError:
+                            logging.info(f'***TP3***: Value error.')
+                        except IndexError:
+                            logging.info(f'***TP3***: Indexing error.')
+
+                except ConnectionResetError:
+                    logging.info("***TP3***: Socket reseted. Closing connection.")
+                    return
+
+                if not self.__isPlaying:
+                    logging.info('***TP3***: Finishing SPIM.')
+                    #self.update_spim_all()
+                    return
+        return
+
 
     def get_last_data(self):
         return self.__dataQueue.get()
@@ -1013,6 +1129,26 @@ class TimePix3():
         unique, counts = numpy.unique(event_list, return_counts=True)
         counts = counts.astype(numpy.uint32)
         self.__spimData[unique] += counts
+
+    def update_4d_direct(self, event_list):
+        unique, counts = numpy.unique(event_list, return_counts=True)
+        counts = counts.astype(numpy.uint32)
+        self.__spimData[unique] += counts
+
+
+        #unique, indexes, counts = numpy.unique(event_list >> 32, return_counts=True,
+        #                              return_index = True)
+        #counts = counts.astype(numpy.uint32)
+        #mask = event_list[indexes] & 4294967295
+        #print(mask)
+
+        #for channel in range(8):
+        #    is_channel = (mask >> channel) & 1
+        #    self.__spimData[unique * is_channel * 8 + channel] += counts
+
+        #first_channel = mask & 1
+        #second_channel = mask & 2
+        #self.__spimData[unique * 8] += counts
 
     def update_spim_all(self):
         logging.info('***TP3***: Emptying queue and closing connection.')
@@ -1076,4 +1212,4 @@ class TimePix3():
         return frame_int
 
     def create_spimimage_from_events(self):
-        return self.__spimData.reshape((self.__yspim, self.__xspim, SPIM_SIZE))
+        return self.__spimData.reshape((self.__yspim, self.__xspim, 8))
