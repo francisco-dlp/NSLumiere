@@ -646,7 +646,7 @@ class TimePix3():
         Starts the client Thread and sets isPlaying to True.
         """
         self.__isPlaying = True
-        self.__clientThread = threading.Thread(target=self.acquire_streamed_frame_from_scan, args=(port, message,))
+        self.__clientThread = threading.Thread(target=self.acquire_4dstreamed_frame_from_scan, args=(port, message,))
         self.__clientThread.start()
 
 

@@ -35,7 +35,7 @@ def test_update_scan_data_element(data_element, scan_frame_parameters, data_shap
                                                                                                     data_shape[1]
     center_x_nm = float(scan_properties.get("center_x_nm", 0.0))
     center_y_nm = float(scan_properties.get("center_y_nm", 0.0))
-    fov_nm = float(scan_frame_parameters["fov_nm"])  # context fov_nm, not actual fov_nm returned from low level
+    fov_nm = float(scan_frame_parameters.fov_nm)  # context fov_nm, not actual fov_nm returned from low level
     if scan_frame_parameters.size[0] > scan_frame_parameters.size[1]:
         fractional_size = scan_frame_parameters.subscan_fractional_size[
             0] if scan_frame_parameters.subscan_fractional_size else 1.0
@@ -94,7 +94,7 @@ class Frame:
         self.start_time = time.time()
         self.scan_data = None
 
-class Device:
+class Device(scan_base.ScanDevice):
 
     def __init__(self, instrument: ivg_inst.ivgInstrument):
         self.scan_device_id = "orsay_scan_device"
@@ -226,32 +226,32 @@ class Device:
         Device should use these parameters for new acquisition; and update to these parameters during acquisition.
         """
         self.__frame_parameters = copy.deepcopy(frame_parameters)
-        if self.field_of_view != frame_parameters['fov_nm']: self.field_of_view = frame_parameters['fov_nm']
-        if self.pixel_time != frame_parameters['pixel_time_us']: self.pixel_time = frame_parameters['pixel_time_us']
+        if self.field_of_view != frame_parameters.fov_nm: self.field_of_view = frame_parameters.fov_nm
+        if self.pixel_time != frame_parameters.pixel_time_us: self.pixel_time = frame_parameters.pixel_time_us
 
-        if self.scan_rotation != frame_parameters['rotation_rad']:
-            self.scan_rotation = frame_parameters['rotation_rad']
+        if self.scan_rotation != frame_parameters.rotation_rad:
+            self.scan_rotation = frame_parameters.rotation_rad
 
         if not self.__spim:
-            if frame_parameters['subscan_pixel_size']:
+            if frame_parameters.subscan_pixel_size:
                 self.subscan_status = True
                 #self.__instrument.is_subscan_f=[True, frame_parameters['subscan_pixel_size'][1]/self.p0, frame_parameters['subscan_pixel_size'][0]/self.p1]
-                self.p0, self.p1 = frame_parameters['size']
+                self.p0, self.p1 = frame_parameters.size
                 self.p2 = int(
-                    frame_parameters['subscan_fractional_center'][1] * self.p0 - frame_parameters['subscan_pixel_size'][
+                    frame_parameters.subscan_fractional_center[1] * self.p0 - frame_parameters.subscan_pixel_size[
                         1] / 2)
                 self.p4 = int(
-                    frame_parameters['subscan_fractional_center'][0] * self.p1 - frame_parameters['subscan_pixel_size'][
+                    frame_parameters.subscan_fractional_center[0] * self.p1 - frame_parameters.subscan_pixel_size[
                         0] / 2)
-                self.p3 = self.p2 + frame_parameters['subscan_pixel_size'][1]
-                self.p5 = self.p4 + frame_parameters['subscan_pixel_size'][0]
+                self.p3 = self.p2 + frame_parameters.subscan_pixel_size[1]
+                self.p5 = self.p4 + frame_parameters.subscan_pixel_size[0]
                 #subscan = frame_parameters['subscan_pixel_size']
                 #logging.info(f'***SCAN***: Setting subscan to {subscan}.')
                 self.Image_area = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
             else:
                 self.subscan_status = False
                 #if self.subscan_status or (self.Image_area[0], self.Image_area[1]) != frame_parameters['size']:
-                self.p0, self.p1 = frame_parameters['size']
+                self.p0, self.p1 = frame_parameters.size
                 self.p2, self.p4 = 0, 0
                 self.p3, self.p5 = self.p0, self.p1
                 self.Image_area = [self.p0, self.p1, 0, self.p3, 0, self.p5]
@@ -359,11 +359,9 @@ class Device:
         current_frame = self.__frame  # this is from Frame Class defined above
         assert current_frame is not None
         frame_parameters = current_frame.frame_parameters
-        is_synchronized_scan = frame_parameters.external_clock_mode != 0
-        scan_area = [self.Spim_image_area[0], self.Spim_image_area[1]] if is_synchronized_scan else\
+        scan_area = [self.Spim_image_area[0], self.Spim_image_area[1]] if self.__spim else\
             [self.Image_area[3]-self.Image_area[2], self.Image_area[5]-self.Image_area[4]]
-        scan_offset = [0, 0] if is_synchronized_scan else [self.Image_area[2], self.Image_area[4]]
-        #scan_area = self.Spim_image_area if is_synchronized_scan else self.Image_area
+        scan_offset = [0, 0] if self.__spim else [self.Image_area[2], self.Image_area[4]]
 
         if self.__line_number == scan_area[1]:
             current_frame.complete = True
@@ -408,44 +406,9 @@ class Device:
                     data_elements.append(data_element)
 
 
-                # if not self.__spim:
-                # #if not self.__spim and self.__isplaying:
-                #     data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):(channel.channel_id + 1) * (
-                #     self.__scan_area[1]),
-                #                  0+1: (self.__scan_area[0]-1)]
-                #     if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
-                #         data_array = data_array[self.p4:self.p5, self.p2:self.p3]
-                #     data_element["data"] = data_array
-                #     properties = current_frame.frame_parameters.as_dict()
-                #     properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
-                #     properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
-                #     properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
-                #     properties["channel_id"] = channel.channel_id
-                #     data_element["properties"] = properties
-                #     if data_array is not None:
-                #         data_elements.append(data_element)
-                #
-                # elif self.__spim:
-                #     data_array = self.imagedata[channel.channel_id * (self.__scan_area[1]):channel.channel_id * (
-                #         self.__scan_area[1]) + self.__spim_pixels[1],
-                #                  0: (self.__spim_pixels[0])].astype(numpy.float32)
-                #     #data_array = self.imagedata.astype(numpy.float32)
-                #     #if self.subscan_status:  # Marcel programs returns 0 pixels without the sub scan region so i just crop
-                #     #    data_array = data_array[self.p4:self.p5, self.p2:self.p3]
-                #     data_element["data"] = data_array
-                #     properties = current_frame.frame_parameters.as_dict()
-                #     properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
-                #     properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
-                #     properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
-                #     properties["channel_id"] = channel.channel_id
-                #     data_element["properties"] = properties
-                #     if data_array is not None:
-                #         data_elements.append(data_element)
-
         bad_frame = False
         self.has_data_event.clear()
 
-        #current_frame.complete = True
         if current_frame.complete:
             self.__frame = None
 
@@ -464,14 +427,14 @@ class Device:
 
     #This one is called in scan_base
     def prepare_synchronized_scan(self, scan_frame_parameters: scan_base.ScanFrameParameters, *, camera_exposure_ms, **kwargs) -> None:
-        scan_frame_parameters["pixel_time_us"] = min(5120000, int(1000 * camera_exposure_ms * 0.75))
-        scan_frame_parameters["external_clock_wait_time_ms"] = 20000 # int(camera_frame_parameters["exposure_ms"] * 1.5)
-        scan_frame_parameters["external_clock_mode"] = 1
+        #scan_frame_parameters["pixel_time_us"] = min(5120000, int(1000 * camera_exposure_ms * 0.75))
+        #scan_frame_parameters["external_clock_wait_time_ms"] = 20000 # int(camera_frame_parameters["exposure_ms"] * 1.5)
+        #scan_frame_parameters["external_clock_mode"] = 1
 
-        if scan_frame_parameters['subscan_pixel_size']:
-            size = size = scan_frame_parameters['subscan_pixel_size']
+        if scan_frame_parameters.subscan_pixel_size:
+            size = scan_frame_parameters.subscan_pixel_size
         else:
-            size = scan_frame_parameters["size"]
+            size = scan_frame_parameters.size
 
         self.Spim_image_area = [size[0], size[1]]
         self.__spim = True
@@ -663,8 +626,21 @@ class Device:
         document_controller = api.application.document_controllers[0]._document_controller
         myConfig = ConfigDialog(document_controller)
 
+class ScanModule(scan_base.ScanModule):
+    def __init__(self, instrument: ivg_inst.ivgInstrument) -> None:
+        self.stem_controller_id = instrument.instrument_id
+        self.device = Device(instrument)
+        setattr(self.device, "priority", 20)
+        scan_modes = (
+            scan_base.ScanSettingsMode(_("Fast"), "fast", scan_base.ScanFrameParameters(pixel_size=(256, 256), pixel_time_us=1, fov_nm=4000)),
+            scan_base.ScanSettingsMode(_("Slow"), "slow", scan_base.ScanFrameParameters(pixel_size=(512, 512), pixel_time_us=1, fov_nm=4000)),
+            scan_base.ScanSettingsMode(_("Record"), "record", scan_base.ScanFrameParameters(pixel_size=(1024, 1024), pixel_time_us=1, fov_nm=4000))
+        )
+        self.settings = scan_base.ScanSettings(scan_modes, lambda d: scan_base.ScanFrameParameters(d), 0, 2)
 
-def run(instrument: ivg_inst.ivgInstrument):
-    scan_device = Device(instrument)
-    component_types = {"scan_device"}  # the set of component types that this component represents
-    Registry.register_component(scan_device, component_types)
+
+def run(instrument: ivg_inst.ivgInstrument) -> None:
+    Registry.register_component(ScanModule(instrument), {"scan_module"})
+
+def stop() -> None:
+    Registry.unregister_component(Registry.get_component("scan_module"), {"scan_module"})
