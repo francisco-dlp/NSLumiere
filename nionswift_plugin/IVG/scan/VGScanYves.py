@@ -202,6 +202,7 @@ class Device(scan_base.ScanDevice):
         for camera in cameras:
             if camera["manufacturer"] == 4:
                 channels.append(Channel(2, "TPX3", False))
+                channels.append(Channel(2, "4D_TPX3", False))
         return channels
 
     def __get_initial_profiles(self) -> typing.List[scan_base.ScanFrameParameters]:

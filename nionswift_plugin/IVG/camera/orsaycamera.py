@@ -49,7 +49,7 @@ if (sys.maxsize > 2**32):
     libname = os.path.join(libpath, "../../aux_files/DLLs/")
     dllname = os.path.join(libname, 'Cameras.dll')
     _library = cdll.LoadLibrary(dllname)
-    for dllname in ['atmcd64d.dll', 'STEMSerial.dll', 'STEMSerial.dll', 'Connection.dll', 'Connection.dll.config']:
+    for dllname in ['atmcd64d.dll', 'STEMSerial.dll', 'STEMSerial.dll', 'Connection.dll', 'Connection.dll.config', 'Newtonsoft.Json.dll']:
         dll_path = os.path.join(libname, dllname)
         shutil.copy2(dll_path, parent_exec)
 
