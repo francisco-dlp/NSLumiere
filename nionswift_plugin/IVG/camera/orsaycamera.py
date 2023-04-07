@@ -53,23 +53,6 @@ if (sys.maxsize > 2**32):
         dll_path = os.path.join(libname, dllname)
         shutil.copy2(dll_path, parent_exec)
 
-
-
-    #if pos>0:
-    #    python_folder=python_folder.replace("python.exe","")
-    #    lib2name=os.path.join(libpath, "STEMSerial.dll")
-    #    #shutil.copy2(lib2name,python_folder)
-    #    lib3name = os.path.join(libpath, "Connection.dll")
-    #    #shutil.copy2(lib3name, python_folder)
-    #    lib3nameconfig = os.path.join(libpath, "Connection.dll.config")
-        #shutil.copy2(lib3nameconfig, python_folder)
-    #libname = os.path.dirname(__file__)
-    #libname = os.path.join(libname, "../../aux_files/DLLs/Cameras.dll")
-    #_library = cdll.LoadLibrary(libname)
-    #print(f'***CAMERA***: Placing atmcd64d.dll in {sys.executable}.')
-    #dll_path = os.path.join(os.path.dirname(__file__), '../../aux_files/DLLs/atmcd64d.dll')
-    #parent_exec = os.path.join(Path(sys.executable).parent.absolute(), 'atmcd64d.dll')
-    #shutil.copyfile(dll_path, parent_exec)
 else:
     raise Exception("It must a python 64 bit version")
 
@@ -271,14 +254,14 @@ class orsayCamera(object):
         self.__OrsayCameraGetVideoThreshold = _buildFunction(_library.GetVideoThreshold, [c_void_p], c_ushort)
 
         #	const char CAMERAS_EXPORT *JsonAcquisitionHeader(void *o);
-        #self.__OrsayCameraAcquisitionHeader = _buildFunction(_library.JsonAcquisitionHeader, [c_void_p], c_char_p)
+        self.__OrsayCameraAcquisitionHeader = _buildFunction(_library.JsonAcquisitionHeader, [c_void_p], c_char_p)
         #	const char CAMERAS_EXPORT *JsonImageHeader(void *o);
-        #self.__OrsayCameraImageHeader = _buildFunction(_library.JsonImageHeader, [c_void_p], c_char_p)
+        self.__OrsayCameraImageHeader = _buildFunction(_library.JsonImageHeader, [c_void_p], c_char_p)
 
-        #	int CAMERAS_EXPORT GetChipsConfig(void *o);
-        #self.__OrsayCameraSetChipsConfig = _buildFunction(_library.SetChipsConfig, [c_void_p, c_int], c_bool)
         #	bool CAMERAS_EXPORT SetChipsConfig(void *o, int value);
-        #self.__OrsayCameraGetChipsConfig = _buildFunction(_library.GetChipsConfig, [c_void_p], c_int)
+        self.__OrsayCameraSetChipsConfig = _buildFunction(_library.SetChipsConfig, [c_void_p, c_int], c_bool)
+        #	int CAMERAS_EXPORT GetChipsConfig(void *o);
+        self.__OrsayCameraGetChipsConfig = _buildFunction(_library.GetChipsConfig, [c_void_p], c_int)
 
     def close(self):
         self.__OrsayCameraClose(self.orsaycamera)
@@ -845,11 +828,11 @@ class orsayCamera(object):
 
     @property
     def acquisition_header(self) -> str:
-        return self.__OrsayCameraAcquisitionHeader(self.orsaycamera);
+        return self.__OrsayCameraAcquisitionHeader(self.orsaycamera)
 
     @property
     def image_header(self) -> str:
-        return self.__OrsayCameraImageHeader(self.orsaycamera);
+        return self.__OrsayCameraImageHeader(self.orsaycamera)
 
     @property
     def chips_config(self)-> int:
