@@ -394,7 +394,7 @@ class TimePix3():
         """
          This function must be called when you want to have a SPIM as a Scan Channel.
          """
-        self.__isReady.clear()
+        self.__isReady.clear() # Clearing the Event so synchronization can occur properly later on
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
@@ -414,6 +414,32 @@ class TimePix3():
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
             self.start_listening_from_scan(port, message=message)
+            return True
+
+    def Start4DFromScan(self):
+        """
+         This function must be called when you want to have a SPIM as a Scan Channel.
+         """
+        self.__isReady.clear() # Clearing the Event so synchronization can occur properly later on
+        try:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
+            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
+        except AttributeError:
+            logging.info("***TP3***: Could not set TDC to spim acquisition.")
+        port = 8088
+        self.__softBinning = True
+        message = 4
+        self.__isCumul = False
+        if self.getCCDStatus() == "DA_RECORDING":
+            self.stopFocus()
+            logging.info("***TPX3***: Please turn off TPX3 from camera panel. Trying to do it for you...")
+        elif self.getCCDStatus() == "DA_IDLE":
+            resp = self.request_get(url=self.__serverURL + '/measurement/start')
+            data = resp.text
+            self.start_4dlistening_from_scan(port, message=message)
             return True
 
     def stopFocus(self):
@@ -646,6 +672,14 @@ class TimePix3():
         Starts the client Thread and sets isPlaying to True.
         """
         self.__isPlaying = True
+        self.__clientThread = threading.Thread(target=self.acquire_streamed_frame_from_scan, args=(port, message,))
+        self.__clientThread.start()
+
+    def start_4dlistening_from_scan(self, port=8088, message=1):
+        """
+        Starts the client Thread and sets isPlaying to True.
+        """
+        self.__isPlaying = True
         self.__clientThread = threading.Thread(target=self.acquire_4dstreamed_frame_from_scan, args=(port, message,))
         self.__clientThread.start()
 
@@ -679,12 +713,12 @@ class TimePix3():
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            if scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size']:
-                x_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][0])
-                y_size = int(scanInstrument.scan_device.current_frame_parameters['subscan_pixel_size'][1])
+            if scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size:
+                x_size = int(scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size[0])
+                y_size = int(scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size[1])
             else:
-                x_size = int(scanInstrument.scan_device.current_frame_parameters['size'][0])
-                y_size = int(scanInstrument.scan_device.current_frame_parameters['size'][1])
+                x_size = int(scanInstrument.scan_device.current_frame_parameters.size[0])
+                y_size = int(scanInstrument.scan_device.current_frame_parameters.size[1])
         except AttributeError:
             logging.info("***TP3***: Could not grab scan parameters. Sending (64, 64) to TP3.")
             x_size = 64
@@ -694,7 +728,7 @@ class TimePix3():
     def get_scan_pixel_time(self):
         scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_scan_device")
-        return scanInstrument.scan_device.current_frame_parameters['pixel_time_us']
+        return scanInstrument.scan_device.current_frame_parameters.pixel_time_us
 
     def create_configuration_bytes(self, soft_binning, bitdepth, is_cumul, mode, sizex, sizey, scansizex, scansizey,
                                    pixel_time, tdelay, twidth):
@@ -1034,7 +1068,7 @@ class TimePix3():
         buffer_size = 4*64000
         self.__xspim, self.__yspim = self.get_scan_size()
         self.__pixel_time = self.get_scan_pixel_time()
-        config_bytes = self.create_configuration_bytes(True, 32, False, 2,
+        config_bytes = self.create_configuration_bytes(True, 32, False, 3,
                                                        self.__xspim, self.__yspim, self.__xspim, self.__yspim, self.__pixel_time, 0, 0)
         self.__tr = False  # Start always with false and will be updated if otherwise
 
@@ -1043,7 +1077,7 @@ class TimePix3():
         client.send(config_bytes)
 
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
-        if message == 2:
+        if message == 4:
             counter = 0
             while True:
                 dt = numpy.dtype(numpy.uint32).newbyteorder('<')
@@ -1053,37 +1087,9 @@ class TimePix3():
                         counter += 1
                         packet_data = s.recv(buffer_size)
 
-                        ### Method 01 ###
-                        """
-                        index = 0
-                        while index < len(packet_data):
-                            index = packet_data.find(b'{StartUnique}', index)
-                            if index == -1: break
-                            index2 = packet_data.find(b'{StartIndexes}', index)
-                            if index2 == -1: #If there is not, do another call.
-                                packet_data += s.recv(buffer_size)
-                                index2 = packet_data.find(b'{StartIndexes}', index)
-                            #try:
-                            unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
-                            last_index = index2+14+(index2-index-13)*mult_factor
-                            if last_index > len(packet_data):
-                                packet_data += s.recv(last_index - len(packet_data))
-                            event_list = numpy.frombuffer(packet_data[index2+14:last_index], dtype=dt)
-
-                            index += 13
-                            try:
-                                self.__spimData[event_list] += unique
-                            except IndexError:
-                                logging.info(f'***TP3***: Indexing error.')
-                            except ValueError:
-                                logging.info(f'***TP3***: Value error.')
-                                logging.info(f'***TP3***: Incomplete data.')
-                        """
-
                         ### Method 02 ###
                         if len(packet_data) == 0:
                             logging.info('***TP3***: No more packets received. Finishing SPIM.')
-                            #self.update_spim_all()
                             return
 
                         #q = len(packet_data) % 32
@@ -1093,10 +1099,6 @@ class TimePix3():
                         try:
                             event_list = numpy.frombuffer(packet_data, dtype=dt)
                             self.update_4d_direct(event_list)
-                            #if len(event_list) > 0:
-                                #for val in event_list:
-                                #    self.__spimData[val] += 1
-                                #self.update_spim_direct(event_list)
                         except ValueError:
                             logging.info(f'***TP3***: Value error.')
                         except IndexError:
@@ -1108,7 +1110,6 @@ class TimePix3():
 
                 if not self.__isPlaying:
                     logging.info('***TP3***: Finishing SPIM.')
-                    #self.update_spim_all()
                     return
         return
 
@@ -1134,21 +1135,6 @@ class TimePix3():
         unique, counts = numpy.unique(event_list, return_counts=True)
         counts = counts.astype(numpy.uint32)
         self.__spimData[unique] += counts
-
-
-        #unique, indexes, counts = numpy.unique(event_list >> 32, return_counts=True,
-        #                              return_index = True)
-        #counts = counts.astype(numpy.uint32)
-        #mask = event_list[indexes] & 4294967295
-        #print(mask)
-
-        #for channel in range(8):
-        #    is_channel = (mask >> channel) & 1
-        #    self.__spimData[unique * is_channel * 8 + channel] += counts
-
-        #first_channel = mask & 1
-        #second_channel = mask & 2
-        #self.__spimData[unique * 8] += counts
 
     def update_spim_all(self):
         logging.info('***TP3***: Emptying queue and closing connection.')
@@ -1212,4 +1198,7 @@ class TimePix3():
         return frame_int
 
     def create_spimimage_from_events(self):
+        return self.__spimData.reshape((self.__yspim, self.__xspim, SPIM_SIZE))
+
+    def create_4dimage_from_events(self):
         return self.__spimData.reshape((self.__yspim, self.__xspim, 8))

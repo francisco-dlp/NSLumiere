@@ -141,6 +141,7 @@ class Device(scan_base.ScanDevice):
         self.__spim = False
 
         self.__tpx3_spim = False
+        self.__tpx3_4d = False
         self.__tpx3_data = None
         self.__tpx3_camera = None
         self.__tpx3_calib = dict()
@@ -202,7 +203,7 @@ class Device(scan_base.ScanDevice):
         for camera in cameras:
             if camera["manufacturer"] == 4:
                 channels.append(Channel(2, "TPX3", False))
-                channels.append(Channel(2, "4D_TPX3", False))
+                channels.append(Channel(3, "4D_TPX3", False))
         return channels
 
     def __get_initial_profiles(self) -> typing.List[scan_base.ScanFrameParameters]:
@@ -263,23 +264,34 @@ class Device(scan_base.ScanDevice):
         """Called when shutting down. Save frame parameters to persistent storage."""
         pass
 
-    def prepare_timepix3(self):
+    def prepare_timepix3(self, channel_type):
         self.__tpx3_camera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_camera_timepix3")
-        self.__tpx3_spim = self.__tpx3_camera.camera.camera.StartSpimFromScan()
-        if self.__tpx3_spim: #True if successful
-            self.__tpx3_calib["dispersion"] = self.__instrument.TryGetVal("eels_x_scale")[1]
-            self.__tpx3_calib["offset"] = self.__instrument.TryGetVal("eels_x_offset")[1]
-            self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
-            self.__tpx3_data = self.__tpx3_camera.camera.camera.create_spimimage_from_events()
-            time.sleep(0.5) #Timepix has already a socket connected. Wait until it is definitely reading data
+        if channel_type == "TPX3":
+            self.__tpx3_spim = self.__tpx3_camera.camera.camera.StartSpimFromScan()
+            if self.__tpx3_spim: #True if successful
+                self.__tpx3_calib["dispersion"] = self.__instrument.TryGetVal("eels_x_scale")[1]
+                self.__tpx3_calib["offset"] = self.__instrument.TryGetVal("eels_x_offset")[1]
+                self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
+                self.__tpx3_data = self.__tpx3_camera.camera.camera.create_spimimage_from_events() #Getting the reference
+                time.sleep(0.5) #Timepix has already a socket connected. Wait until it is definitely reading data
+        elif channel_type == "4D_TPX3":
+            self.__tpx3_4d = self.__tpx3_camera.camera.camera.Start4DFromScan()
+            if self.__tpx3_4d:  # True if successful
+                self.__tpx3_calib["dispersion"] = 1 #4d channels
+                self.__tpx3_calib["offset"] = 0 #Starts at 0
+                self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
+                self.__tpx3_data = self.__tpx3_camera.camera.camera.create_4dimage_from_events() #Getting the reference
+                time.sleep(0.5)  # Timepix has already a socket connected. Wait until it is definitely reading data
+
 
     def stop_timepix3(self):
-        if self.__tpx3_spim: #only stop if this was on
+        if self.__tpx3_spim or self.__tpx3_4d: #only stop if this was on
             self.__tpx3_camera = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_camera_timepix3")
             self.__tpx3_camera.camera.camera.stopSpim(True)
             self.__tpx3_spim = False
+            self.__tpx3_4d = False
 
     def no_prepare_timepix3(self):
         self.__tpx3_data = None
@@ -311,19 +323,19 @@ class Device(scan_base.ScanDevice):
             print(f'{self.__sizez} and {self.__scan_size} and {self.__scan_area} amd {self.Spim_image_area} and '
                   f'{self.Image_area} and {self.__spim_pixels} and {self.imagedata.shape} and {self.spimscan.getImageArea()} and {self.orsayscan.getImageArea()}')
 
-
             if not self.__spim:
                 for channel in self.__channels:
-                    if channel.name == 'TPX3':
+                    if channel.name == 'TPX3' or "4D_TPX3":
                         if channel.enabled:
-                            self.prepare_timepix3()
-                        else:
-                            self.no_prepare_timepix3()
+                            self.prepare_timepix3(channel.name)
+                        #else:
+                        #    self.no_prepare_timepix3()
                 #Scan must be started after timepix3 so we are ready for receiving TDC's
                 self.__is_scanning = self.orsayscan.startImaging(0, 1)
             else:
                 self.__is_scanning = self.spimscan.startSpim(0, 1)
 
+            assert ((self.__tpx3_spim & self.__tpx3_4d) == False) #One of them is allowed
             logging.info(f'**SCAN***: Acquisition Started is {self.__is_scanning}.')
         return self.__frame_number
 
@@ -377,6 +389,21 @@ class Device(scan_base.ScanDevice):
 
             #Timepix3 Spim channel
             if channel.name == 'TPX3':
+                if self.__frame_number % 10 == 0:
+                    data_array = self.__tpx3_data
+                    data_element["data"] = data_array
+                    properties = current_frame.frame_parameters.as_dict()
+                    properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
+                    properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
+                    properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
+                    properties["channel_id"] = channel.channel_id
+                    properties["eels_dispersion"] = self.__tpx3_calib["dispersion"]
+                    properties["eels_offset"] = self.__tpx3_calib["offset"]
+                    data_element["properties"] = properties
+                    if data_array is not None:
+                        data_elements.append(data_element)
+
+            elif channel.name == '4D_TPX3':
                 if self.__frame_number % 10 == 0:
                     data_array = self.__tpx3_data
                     data_element["data"] = data_array
