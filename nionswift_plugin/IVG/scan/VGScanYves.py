@@ -25,6 +25,8 @@ from nionswift_plugin.IVG import ivg_inst
 
 _ = gettext.gettext
 
+DEBUG = False
+
 
 # set the calibrations for this image. does not touch metadata.
 def test_update_scan_data_element(data_element, scan_frame_parameters, data_shape, channel_name, channel_id,
@@ -320,8 +322,9 @@ class Device(scan_base.ScanDevice):
             self.imagedata = numpy.zeros((self.__sizez * (self.__scan_size[0]), (self.__scan_size[1])), dtype=numpy.int16)
             self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
 
-            print(f'{self.__sizez} and {self.__scan_size} and {self.__scan_area} amd {self.Spim_image_area} and '
-                  f'{self.Image_area} and {self.__spim_pixels} and {self.imagedata.shape} and {self.spimscan.getImageArea()} and {self.orsayscan.getImageArea()}')
+            if DEBUG:
+                print(f'{self.__sizez} and {self.__scan_size} and {self.__scan_area} amd {self.Spim_image_area} and '
+                      f'{self.Image_area} and {self.__spim_pixels} and {self.imagedata.shape} and {self.spimscan.getImageArea()} and {self.orsayscan.getImageArea()}')
 
             if not self.__spim:
                 for channel in self.__channels:
@@ -518,7 +521,8 @@ class Device(scan_base.ScanDevice):
     @Image_area.setter
     def Image_area(self, value):
         self.__scan_area = value
-        print(f'setting normal {self.__spim_pixels} and {self.__scan_area}')
+        if DEBUG:
+            print(f'setting normal {self.__spim_pixels} and {self.__scan_area}')
         self.orsayscan.setImageArea(self.__scan_area[0], self.__scan_area[1], self.__scan_area[2], self.__scan_area[3],
                                     self.__scan_area[4], self.__scan_area[5])
         self.imagedata = numpy.zeros((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
@@ -531,7 +535,8 @@ class Device(scan_base.ScanDevice):
     @Spim_image_area.setter
     def Spim_image_area(self, value):
         self.__spim_pixels = value
-        print(f'setting spim {self.__spim_pixels} and {self.__scan_area}')
+        if DEBUG:
+            print(f'setting spim {self.__spim_pixels} and {self.__scan_area}')
         self.spimscan.setImageArea(self.__spim_pixels[0], self.__spim_pixels[1], self.__scan_area[2], self.__scan_area[3],
                                     self.__scan_area[4], self.__scan_area[5])
 
