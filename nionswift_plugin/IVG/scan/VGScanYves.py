@@ -404,19 +404,19 @@ class Device(scan_base.ScanDevice):
                         data_elements.append(data_element)
 
             elif channel.name == '4D_TPX3':
-                if self.__frame_number % 10 == 0:
-                    data_array = self.__tpx3_data
-                    data_element["data"] = data_array
-                    properties = current_frame.frame_parameters.as_dict()
-                    properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
-                    properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
-                    properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
-                    properties["channel_id"] = channel.channel_id
-                    properties["eels_dispersion"] = self.__tpx3_calib["dispersion"]
-                    properties["eels_offset"] = self.__tpx3_calib["offset"]
-                    data_element["properties"] = properties
-                    if data_array is not None:
-                        data_elements.append(data_element)
+                #if self.__frame_number % 10 == 0:
+                data_array = self.__tpx3_data
+                data_element["data"] = data_array
+                properties = current_frame.frame_parameters.as_dict()
+                properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
+                properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
+                properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
+                properties["channel_id"] = channel.channel_id
+                properties["eels_dispersion"] = self.__tpx3_calib["dispersion"]
+                properties["eels_offset"] = self.__tpx3_calib["offset"]
+                data_element["properties"] = properties
+                if data_array is not None:
+                    data_elements.append(data_element)
 
             else:
                 data_array = self.imagedata[channel.channel_id * (scan_area[1]) + scan_offset[1]:(channel.channel_id + 1) * (
@@ -648,7 +648,7 @@ class Device(scan_base.ScanDevice):
             self.has_data_event.set()
             self.__line_number = rect[1] + rect[3]
 
-    def show_configuration_dialog(self, api_broker) -> None:
+    def open_configuration_interface(self, api_broker) -> None:
         """Open settings dialog, if any."""
         api = api_broker.get_api(version="1", ui_version="1")
         document_controller = api.application.document_controllers[0]._document_controller

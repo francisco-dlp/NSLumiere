@@ -23,6 +23,7 @@ class Response():
 
 
 SAVE_FILE = False
+NUMBER_OF_MASKS = 4
 
 
 class TimePix3():
@@ -658,6 +659,22 @@ class TimePix3():
     """
     --->Functions of the client listener<---
     """
+    def start_listening_new(self, port = 8088, message = 1, mode = 0):
+        """
+        mode -> 0: either focus / chrono
+        mode -> 1: spim from scan
+        mode -> 2: 4d from scan
+        """
+        self.__isPlaying = True
+        if mode == 0:
+            self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(port, message,))
+        elif mode == 1:
+            self.__clientThread = threading.Thread(target=self.acquire_streamed_frame_from_scan, args=(port, message,))
+        elif mode == 2:
+            self.__clientThread = threading.Thread(target=self.acquire_4dstreamed_frame_from_scan,
+                                                   args=(port, message,))
+        self.__clientThread.start()
+
 
     def start_listening(self, port=8088, message=1):
         """
@@ -680,7 +697,7 @@ class TimePix3():
         Starts the client Thread and sets isPlaying to True.
         """
         self.__isPlaying = True
-        self.__clientThread = threading.Thread(target=self.acquire_4dstreamed_frame_from_scan, args=(port, message,))
+        self.__clientThread = threading.Thread(target=self.acquire_4dstreamed_frame_from_scan_frame, args=(port, message,))
         self.__clientThread.start()
 
 
@@ -1072,7 +1089,7 @@ class TimePix3():
                                                        self.__xspim, self.__yspim, self.__xspim, self.__yspim, self.__pixel_time, 0, 0)
         self.__tr = False  # Start always with false and will be updated if otherwise
 
-        self.__spimData = numpy.zeros(self.__xspim * self.__yspim * 8, dtype=numpy.uint32)
+        self.__spimData = numpy.zeros(self.__xspim * self.__yspim * 2, dtype=numpy.uint32)
 
         client.send(config_bytes)
 
@@ -1099,6 +1116,93 @@ class TimePix3():
                         try:
                             event_list = numpy.frombuffer(packet_data, dtype=dt)
                             self.update_4d_direct(event_list)
+                        except ValueError:
+                            logging.info(f'***TP3***: Value error.')
+                        except IndexError:
+                            logging.info(f'***TP3***: Indexing error.')
+
+                except ConnectionResetError:
+                    logging.info("***TP3***: Socket reseted. Closing connection.")
+                    return
+
+                if not self.__isPlaying:
+                    logging.info('***TP3***: Finishing SPIM.')
+                    return
+        return
+
+    def acquire_4dstreamed_frame_from_scan_frame(self, port, message):
+        """
+        Main client function. Main loop is explained below.
+
+        Client is a socket connected to camera in host computer 129.175.108.52. Port depends on which kind of data you
+        are listening on. After connection, timeout is set to 5 ms, which is camera current dead time. cam_properties
+        is a dict containing all info camera sends through tcp (the header); frame_data is the frame; buffer_size is how
+        many bytes we collect within each loop interaction; frame_number is the frame counter and frame_time is when the
+        whole frame began.
+
+        check string value is a convenient function to detect the values using the header standard format for jsonimage.
+        """
+
+        inputs = list()
+        outputs = list()
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        """
+        127.0.0.1 -> LocalHost;
+        129.175.108.58 -> Patrick;
+        129.175.81.162 -> My personal Dell PC;
+        192.0.0.11 -> My old personal (outside lps.intra);
+        192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
+        129.175.108.52 -> CheeTah
+        """
+        ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname(self.__camIP)
+        address = (ip, port)
+        try:
+            client.connect(address)
+            logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
+            inputs.append(client)
+        except ConnectionRefusedError:
+            return False
+
+        if self.__port != 0: #This ensures we are streaming data and not saving locally
+            self.setCurrentPort(0)
+        buffer_size = 4*64000
+        self.__xspim, self.__yspim = self.get_scan_size()
+        self.__pixel_time = self.get_scan_pixel_time()
+        config_bytes = self.create_configuration_bytes(True, 32, False, 3,
+                                                       self.__xspim, self.__yspim, self.__xspim, self.__yspim, self.__pixel_time, 0, 0)
+        self.__tr = False  # Start always with false and will be updated if otherwise
+
+        self.__spimData = numpy.zeros(self.__xspim * self.__yspim * NUMBER_OF_MASKS, dtype=numpy.int16)
+
+        client.send(config_bytes)
+
+        self.__isReady.set() #This waits until spimData is created so scan can have access to it.
+        if message == 4:
+            counter = 0
+            while True:
+                dt = numpy.dtype(numpy.int16).newbyteorder('<')
+                try:
+                    read, _, _ = select.select(inputs, outputs, inputs)
+                    for s in read:
+                        counter += 1
+                        packet_data = s.recv(buffer_size)
+
+                        ### Method 02 ###
+                        if len(packet_data) == 0:
+                            logging.info('***TP3***: No more packets received. Finishing SPIM.')
+                            return
+
+                        how_many_more_bytes = self.__xspim * self.__yspim * NUMBER_OF_MASKS * 2 - len(packet_data)
+                        while how_many_more_bytes != 0:
+                            bytes_to_receive = min(buffer_size, how_many_more_bytes)
+                            packet_data += s.recv(bytes_to_receive)
+                            how_many_more_bytes = self.__xspim * self.__yspim * NUMBER_OF_MASKS * 2 - len(packet_data)
+
+                        try:
+                            event_list = numpy.frombuffer(packet_data, dtype=dt)
+                            self.__spimData[:] = event_list[:]
+                            #self.__spimData += event_list
+                            #self.update_4d_direct(event_list)
                         except ValueError:
                             logging.info(f'***TP3***: Value error.')
                         except IndexError:
@@ -1201,4 +1305,4 @@ class TimePix3():
         return self.__spimData.reshape((self.__yspim, self.__xspim, SPIM_SIZE))
 
     def create_4dimage_from_events(self):
-        return self.__spimData.reshape((self.__yspim, self.__xspim, 8))
+        return self.__spimData.reshape((self.__yspim, self.__xspim, NUMBER_OF_MASKS))
