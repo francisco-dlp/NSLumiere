@@ -80,19 +80,11 @@ _OrsayStageMotorGoToCalPosition = _buildFunction(_library.MotorGoToCalPosition, 
 
 class VGStage(object):
 
-    def __logger(self, message):
-        """ Permet de capter les messages de la dll"""
-        print("log: ", _convertToString23(message))
-
-    def __init__(self, fn=None):
+    def __init__(self, message):
         """ Instancie la dll
         fn callback pour logger les messages (pourrait sans doute être self.__logger)
         """
-        if fn is None:
-            self.__logger_func = LOGGERFUNC(self.__logger)
-        else:
-            self.__logger_func = fn
-
+        self.sendmessage = message
         self._InitOk = False
         self._stage = _OrsayStageInit()
         if not self._stage:
