@@ -7,7 +7,7 @@ import logging
 from nion.utils import Event
 from nion.utils import Observable
 from nion.swift.model import HardwareSource
-from ..aux_files.config import read_data
+from ..aux_files import read_data
 
 
 class OptSpecDevice(Observable.Observable):

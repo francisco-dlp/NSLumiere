@@ -10,7 +10,7 @@ from nion.swift.model import HardwareSource
 from nion.instrumentation import stem_controller
 from nion.utils import Geometry
 
-from ..aux_files.config import read_data
+from ..aux_files import read_data
 
 sender_email = "vg.lumiere@gmail.com"
 receiver_email = "yvesauad@gmail.com"

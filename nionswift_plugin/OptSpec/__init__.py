@@ -1,7 +1,7 @@
 from nion.instrumentation import HardwareSource
 
 from . import optspec_inst, optspec_panel
-from ..aux_files.config import read_data
+from ..aux_files import read_data
 
 set_file = read_data.FileManager('global_settings')
 MANUFACTURER = set_file.settings["spectrometer"]["WHICH"]
