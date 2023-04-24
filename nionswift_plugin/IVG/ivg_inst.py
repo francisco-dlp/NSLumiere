@@ -33,7 +33,8 @@ OBJECTIVE_MAX_TEMPERATURE = 60.0
 OBJECTIVE_RESISTANCE = 5.18
 TEMP_COEF = 0.004041
 MAX_PTS = 5000
-TIME_FAST_PERIODIC = 0.1
+TOTAL_TIME_FAST_PERIODIC = 5.0
+TIME_FAST_PERIODIC = 0.2
 
 from . import gun as gun
 from . import airlock as al
@@ -165,7 +166,7 @@ class ivgInstrument(stem_controller.STEMController):
 
     def stage_periodic_start(self):
         counter = 0
-        while counter < 30.0 / TIME_FAST_PERIODIC:
+        while counter < TOTAL_TIME_FAST_PERIODIC / TIME_FAST_PERIODIC:
             self.stage_event.fire(self.__y_real_pos, self.__x_real_pos)
             self.property_changed_event.fire('x_stage_f')
             self.property_changed_event.fire('y_stage_f')
