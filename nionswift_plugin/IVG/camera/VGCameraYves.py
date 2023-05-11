@@ -24,7 +24,10 @@ from nion.instrumentation.camera_base import CameraFrameParameters
 from nionswift_plugin.IVG.tp3 import tp3func
 
 from nionswift_plugin.IVG import ivg_inst
-from ...aux_files import read_data
+try:
+    from ..aux_files import read_data
+except ImportError:
+    from ...aux_files.config import read_data
 
 _ = gettext.gettext
 

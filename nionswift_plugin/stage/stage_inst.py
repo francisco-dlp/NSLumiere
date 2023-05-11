@@ -8,7 +8,10 @@ import shutil
 
 from nion.utils import Event
 from nion.utils import Observable
-from ..aux_files import read_data
+try:
+    from ..aux_files import read_data
+except ImportError:
+    from ..aux_files.config import read_data
 
 set_file = read_data.FileManager('global_settings')
 DEBUG = set_file.settings["stage"]["DEBUG"]
