@@ -16,6 +16,9 @@ def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
 SPIM_SIZE = 1025 + 200
+SAVE_PATH = "file:/media/asi/Data2/TP3_Data"
+PIXEL_MASK_PATH = '/home/asi/load_files/bpcs/'
+PIXEL_THRESHOLD_PATH = '/home/asi/load_files/dacs/'
 
 class Response():
     def __init__(self):
@@ -66,8 +69,8 @@ class TimePix3():
                     logging.info('***TP3***: Problem initializing Timepix3. Bad status code.')
 
                 # Loading bpc and dacs
-                bpcFile = '/home/asi/load_files/tpx3-demo_better_standard.bpc'
-                dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
+                bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_00.bpc'
+                dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_00.dacs'
                 self.cam_init(bpcFile, dacsFile)
                 self.acq_init()
                 self.set_destination(self.__port)
@@ -128,24 +131,24 @@ class TimePix3():
 
     def set_pixel_mask(self, which):
         if which==0:
-            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard.bpc'
+            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_00.bpc'
         elif which==1:
-            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_64.bpc'
+            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_01.bpc'
         elif which==2:
-            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_64_4.bpc'
+            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_02.bpc'
         elif which==3:
-            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_64_6.bpc'
+            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_03.bpc'
         elif which==4:
-            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_64_8.bpc'
+            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_04.bpc'
         elif which==5:
-            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_64_16.bpc'
+            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_05.bpc'
         elif which==6:
-            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard_64_32.bpc'
+            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_06.bpc'
         elif which==7:
-            bpcFile = '/home/asi/load_files/tpx3-demo_better.bpc'
+            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_07.bpc'
         else:
             logging.info(f'***TP3***: Pixel mask profile not found.')
-            bpcFile = '/home/asi/load_files/tpx3-demo_better_standard.bpc'
+            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_00.bpc'
 
         resp = self.request_get(url=self.__serverURL + '/config/load?format=pixelconfig&file=' + bpcFile)
         data = resp.text
@@ -153,18 +156,18 @@ class TimePix3():
 
     def set_threshold(self, which):
         if which==0:
-            dacsFile = '/home/asi/load_files/tpx3-demo-th6.dacs' #very low
+            dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_00.dacs'
         elif which==1:
-            dacsFile = '/home/asi/load_files/tpx3-demo-th5.dacs' #low
+            dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_01.dacs'
         elif which==2:
-            dacsFile = '/home/asi/load_files/tpx3-demo.dacs' #For 60 keV
+            dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_02.dacs'
         elif which == 3:
-            dacsFile = '/home/asi/load_files/tpx3-demo-100.dacs'  # For more than 100 keV
+            dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_03.dacs'
         elif which == 4:
-            dacsFile = '/home/asi/load_files/tpx3-demo-low.dacs'  # Very high threshold
+            dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_04.dacs'
         else:
             logging.info(f'***TP3***: Pixel mask profile not found.')
-            dacsFile = '/home/asi/load_files/tpx3-demo.dacs'
+            dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_00.dacs'
 
         resp = self.request_get(url=self.__serverURL + '/config/load?format=dacs&file=' + dacsFile)
         data = resp.text
@@ -239,7 +242,7 @@ class TimePix3():
             destination = {
                 "Raw": [{
                     #"Base": "file:/home/asi/load_files/data",
-                    "Base": "file:/media/asi/Data2/TP3_Data",
+                    "Base": SAVE_PATH,
                     "FilePattern": "raw",
                 }]
             }
@@ -252,7 +255,7 @@ class TimePix3():
                     "SamplingMode": "skipOnFrame",
                     "Period": 10000,
                     "ImageChannels": [{
-                        "Base": "file:/media/asi/Data21/TP3_Data",
+                        "Base": SAVE_PATH,
                         "FilePattern": "f%Hms_",
                         "Format": "tiff",
                         "Mode": "count_fb"
