@@ -6,8 +6,6 @@ import queue
 import socket
 import numpy
 import struct
-import pathlib
-import os
 import select
 
 from nion.swift.model import HardwareSource
@@ -21,6 +19,8 @@ SPIM_SIZE = 1025 + 200
 SAVE_PATH = "file:/media/asi/Data21/TP3_Data"
 PIXEL_MASK_PATH = '/home/asi/load_files/bpcs/'
 PIXEL_THRESHOLD_PATH = '/home/asi/load_files/dacs/'
+BUFFER_SIZE = 4 * 64000
+SPIM_READOUTS_BEFORE_ADD = 1
 
 class Response():
     def __init__(self):
@@ -29,6 +29,22 @@ class Response():
 
 SAVE_FILE = False
 NUMBER_OF_MASKS = 4
+
+class Timepix3Configurations():
+    def __init__(self):
+        self.soft_binning = None
+        self.bitdepth = None
+        self.is_cumul = None
+        self.mode = None
+        self.sizex = None
+        self.sizey = None
+        self.scan_sizex = None
+        self.scan_sizey = None
+        self.pixel_time = None
+        self.tdelay = None
+        self.twidth = None
+        self.time_resolved = None
+        self.frame_based = None
 
 
 class TimePix3():
@@ -43,21 +59,16 @@ class TimePix3():
         self.__serverURL = url
         self.__camIP = url[fst_string+7:sec_string]
         self.__dataQueue = queue.LifoQueue()
-        self.__eventQueue = queue.Queue()
         self.__spimData = None
+        self.__detector_config = Timepix3Configurations()
+
         self.__frame_based = False
         self.__isPlaying = False
-        self.__softBinning = False
-        self.__isCumul = False
         self.__accumulation = 0.
-        self.__tr = False
         self.__expTime = None
         self.__port = 0
         self.__delay = 0.
         self.__width = 0.
-        self.__tdc = 0  # Beginning of line n and beginning of line n+1
-        self.__tp3mode = 0
-        self.__filepath = os.path.join(pathlib.Path(__file__).parent.absolute(), "data")
         self.__simul = simul
         self.__isReady = threading.Event()
         self.sendmessage = message
@@ -375,13 +386,22 @@ class TimePix3():
         except AttributeError:
             logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
         port = 8088
-        self.__softBinning = True if displaymode == '1d' else False
+
+        #Setting the configurations
+        self.__detector_config.soft_binning = True if displaymode == '1d' else False
+        self.__detector_config.mode = 10 if self.__frame_based else 0
+        self.__detector_config.is_cumul = bool(accumulate)
+        if self.__port == 2:
+            self.__detector_config.mode = 8
+        self.__detector_config.bitdepth = 32 if displaymode == '1d' else 16
+        self.__detector_config.sizex = int(self.__accumulation)
+        self.__detector_config.sizey = int(self.__accumulation)
+        self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
+        self.__detector_config.pixel_time = self.get_scan_pixel_time()
+        self.__detector_config.tdelay = self.__delay
+        self.__detector_config.twidth = self.__width
+
         message = 1
-        if self.__frame_based:
-            self.__tp3mode = 10
-        else:
-            self.__tp3mode = 0
-        self.__isCumul = bool(accumulate)
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE":
@@ -409,15 +429,22 @@ class TimePix3():
         except AttributeError:
             logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
         port = 8088
-        self.__softBinning = True if displaymode == '1d' else False
+
+        # Setting the configurations
+        self.__detector_config.soft_binning = True if displaymode == '1d' else False
+        self.__detector_config.mode = 6 if mode == 0 else 7
+        self.__detector_config.is_cumul = bool(accumulate)
+        if self.__port == 2:
+            self.__detector_config.mode = 8
+        self.__detector_config.bitdepth = 32
+        self.__detector_config.sizex = int(self.__accumulation)
+        self.__detector_config.sizey = int(self.__accumulation)
+        self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
+        self.__detector_config.pixel_time = self.get_scan_pixel_time()
+        self.__detector_config.tdelay = self.__delay
+        self.__detector_config.twidth = self.__width
+
         message = 3
-        if mode == 0:
-            self.__tp3mode = 6
-        elif mode == 1:
-            self.__tp3mode = 7
-        else:
-            logging.info('***TP3***: No Chrono mode detected.')
-            return
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE":
@@ -449,9 +476,22 @@ class TimePix3():
         except AttributeError:
             logging.info("***TP3***: Could not set TDC to spim acquisition.")
         port = 8088
-        self.__softBinning = True
+
+        # Setting the configurations
+        self.__detector_config.soft_binning = True
+        self.__detector_config.mode = 2
+        self.__detector_config.is_cumul = False
+        if self.__port == 2:
+            self.__detector_config.mode = 8
+        self.__detector_config.bitdepth = 32
+        self.__detector_config.sizex = int(self.__accumulation)
+        self.__detector_config.sizey = int(self.__accumulation)
+        self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
+        self.__detector_config.pixel_time = self.get_scan_pixel_time()
+        self.__detector_config.tdelay = self.__delay
+        self.__detector_config.twidth = self.__width
+
         message = 2
-        self.__isCumul = False
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
             logging.info("***TPX3***: Please turn off TPX3 from camera panel. Trying to do it for you...")
@@ -475,9 +515,22 @@ class TimePix3():
         except AttributeError:
             logging.info("***TP3***: Could not set TDC to spim acquisition.")
         port = 8088
-        self.__softBinning = True
+
+        # Setting the configurations
+        self.__detector_config.soft_binning = True
+        self.__detector_config.mode = 2
+        self.__detector_config.is_cumul = False
+        if self.__port == 2:
+            self.__detector_config.mode = 8
+        self.__detector_config.bitdepth = 32
+        self.__detector_config.sizex = int(self.__accumulation)
+        self.__detector_config.sizey = int(self.__accumulation)
+        self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
+        self.__detector_config.pixel_time = self.get_scan_pixel_time()
+        self.__detector_config.tdelay = self.__delay
+        self.__detector_config.twidth = self.__width
+
         message = 4
-        self.__isCumul = False
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
             logging.info("***TPX3***: Please turn off TPX3 from camera panel. Trying to do it for you...")
@@ -492,13 +545,6 @@ class TimePix3():
         Stop acquisition. Finish listening put global isPlaying to False and wait client thread to finish properly using
         .join() method. Also replaces the old Queue with a new one with no itens on it (so next one won't use old data).
         """
-        #try:
-        #    scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-        #        "orsay_scan_device")
-        #    scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
-        #    scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
-        #except AttributeError:
-        #    logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly turned down.")
         status = self.getCCDStatus()
         resp = self.request_get(url=self.__serverURL + '/measurement/stop')
         data = resp.text
@@ -509,13 +555,6 @@ class TimePix3():
         Identical to stopFocus. Just to be consistent with VGCameraYves.
         """
         self.stopFocus()
-
-        if self.__tr:
-            logging.info(f'***TP3***: TR is on. Cancelling Laser.')
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            LaserInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("sgain_controller")
-            if LaserInstrument is not None and not self.__simul: LaserInstrument.over_spim_TP3()
 
     def pauseSpim(self):
         pass
@@ -578,9 +617,6 @@ class TimePix3():
 
     def setWidthTime(self, width):
         self.__width = width
-
-    def setTp3Mode(self, mode):
-        self.__tp3mode = mode
 
     def getNumofSpeeds(self, cameraport):
         pass
@@ -701,26 +737,6 @@ class TimePix3():
     def setCCDOverscan(self, sx, sy):
         pass
 
-    """
-    --->Functions of the client listener<---
-    """
-    def start_listening_new(self, port = 8088, message = 1, mode = 0):
-        """
-        mode -> 0: either focus / chrono
-        mode -> 1: spim from scan
-        mode -> 2: 4d from scan
-        """
-        self.__isPlaying = True
-        if mode == 0:
-            self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(port, message,))
-        elif mode == 1:
-            self.__clientThread = threading.Thread(target=self.acquire_streamed_frame_from_scan, args=(port, message,))
-        elif mode == 2:
-            self.__clientThread = threading.Thread(target=self.acquire_4dstreamed_frame_from_scan,
-                                                   args=(port, message,))
-        self.__clientThread.start()
-
-
     def start_listening(self, port=8088, message=1):
         """
         Starts the client Thread and sets isPlaying to True.
@@ -754,10 +770,6 @@ class TimePix3():
             self.__isPlaying = False
             self.__clientThread.join()
             logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
-            logging.info(
-                f'***TP3***: Stopping acquisition. There was {self.__eventQueue.qsize()} electron events in the Queue.')
-            self.__dataQueue = queue.LifoQueue()
-            self.__eventQueue = queue.Queue()
 
     def save_locally_routine(self):
         logging.info(
@@ -792,39 +804,38 @@ class TimePix3():
             "orsay_scan_device")
         return scanInstrument.scan_device.current_frame_parameters.pixel_time_us
 
-    def create_configuration_bytes(self, soft_binning, bitdepth, is_cumul, mode, sizex, sizey, scansizex, scansizey,
-                                   pixel_time, tdelay, twidth):
+    def create_configuration_bytes(self):
         config_bytes = b''
 
-        if soft_binning:
-            config_bytes += b'\x01'  # Soft binning
+        if self.__detector_config.soft_binning:
+            config_bytes += b'\x01'
         else:
-            config_bytes += b'\x00'  # No soft binning
+            config_bytes += b'\x00'
 
-        if bitdepth == 32:
+        if self.__detector_config.bitdepth == 32:
             config_bytes += b'\x02'
-        elif bitdepth == 16:
+        elif self.__detector_config.bitdepth == 16:
             config_bytes += b'\x01'
-        elif bitdepth == 8:
+        elif self.__detector_config.bitdepth == 8:
             config_bytes += b'\x00'
 
-        if is_cumul:
+        if self.__detector_config.is_cumul:
             config_bytes += b'\x01'
         else:
             config_bytes += b'\x00'
 
-        config_bytes += bytes([mode])
+        config_bytes += bytes([self.__detector_config.mode])
 
-        config_bytes += sizex.to_bytes(2, 'big')
-        config_bytes += sizey.to_bytes(2, 'big')
+        config_bytes += self.__detector_config.sizex.to_bytes(2, 'big')
+        config_bytes += self.__detector_config.sizey.to_bytes(2, 'big')
 
-        config_bytes += scansizex.to_bytes(2, 'big')
-        config_bytes += scansizey.to_bytes(2, 'big')
+        config_bytes += self.__detector_config.scan_sizex.to_bytes(2, 'big')
+        config_bytes += self.__detector_config.scan_sizey.to_bytes(2, 'big')
 
-        config_bytes += (int(pixel_time * 1000 / 1.5625)).to_bytes(2, 'big') #In units of 1.5625 ns already
+        config_bytes += (int(self.__detector_config.pixel_time * 1000 / 1.5625)).to_bytes(2, 'big') #In units of 1.5625 ns already
 
-        config_bytes += struct.pack(">H", tdelay)  # BE. See https://docs.python.org/3/library/struct.html
-        config_bytes += struct.pack(">H", twidth)  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack(">H", self.__detector_config.tdelay)  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack(">H", self.__detector_config.twidth)  # BE. See https://docs.python.org/3/library/struct.html
 
         return config_bytes
     
@@ -842,25 +853,13 @@ class TimePix3():
         """
 
         #Important parameters to configure Timepix3.
-        mode = self.__tp3mode
         if self.__port==1:
             self.save_locally_routine()
             return
         elif self.__port == 2:
             self.save_locally_routine()
-            mode = 8
 
-        if self.__softBinning or mode == 6 or mode == 7:
-            bitdepth = 32
-        else:
-            bitdepth = 16
-
-        x = y = int(self.__accumulation)
-        xscan, yscan = self.get_scan_size()
-        pixel_time = self.get_scan_pixel_time()
-
-        config_bytes = self.create_configuration_bytes(self.__softBinning, bitdepth, self.__isCumul, mode,
-                                                       x, y, xscan, yscan, pixel_time, int(self.__delay), int(self.__width))
+        config_bytes = self.create_configuration_bytes()
 
         #Connecting the socket.
         inputs = list()
@@ -885,8 +884,7 @@ class TimePix3():
 
         #Setting few properties and sending the configuration bytes to the detector
         cam_properties = dict()
-        buffer_size = 2*64000
-        self.__tr = False  # Start always with false and will be updated if otherwise
+        buffer_size = BUFFER_SIZE
         client.send(config_bytes)
 
 
@@ -1005,162 +1003,37 @@ class TimePix3():
 
         if self.__port != 0: #This ensures we are streaming data and not saving locally
             self.setCurrentPort(0)
-        buffer_size = 4*64000
-        self.__xspim, self.__yspim = self.get_scan_size()
-        self.__pixel_time = self.get_scan_pixel_time()
-        config_bytes = self.create_configuration_bytes(True, 32, False, 2,
-                                                       self.__xspim, self.__yspim, self.__xspim, self.__yspim, self.__pixel_time, 0, 0)
-        self.__tr = False  # Start always with false and will be updated if otherwise
+        buffer_size = BUFFER_SIZE
 
-        max_val = max(self.__xspim, self.__yspim)
+        max_val = max(self.__detector_config.scan_sizex, self.__detector_config.scan_sizey)
+        array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPIM_SIZE
         if max_val <= 64:
-            self.__spimData = numpy.zeros(self.__xspim * self.__yspim * SPIM_SIZE, dtype=numpy.uint32)
+            self.__spimData = numpy.zeros(array_size, dtype=numpy.uint32)
         elif max_val <= 1024:
-            self.__spimData = numpy.zeros(self.__xspim * self.__yspim * SPIM_SIZE, dtype=numpy.uint16)
+            self.__spimData = numpy.zeros(array_size, dtype=numpy.uint16)
         else:
-            self.__spimData = numpy.zeros(self.__xspim * self.__yspim * SPIM_SIZE, dtype=numpy.uint8)
+            self.__spimData = numpy.zeros(array_size, dtype=numpy.uint8)
 
         client.send(config_bytes)
 
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
         if message == 2:
-            counter = 0
             while True:
                 dt = numpy.dtype(numpy.uint32).newbyteorder('<')
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
-                        counter += 1
                         packet_data = s.recv(buffer_size)
-
-                        ### Method 01 ###
-                        """
-                        index = 0
-                        while index < len(packet_data):
-                            index = packet_data.find(b'{StartUnique}', index)
-                            if index == -1: break
-                            index2 = packet_data.find(b'{StartIndexes}', index)
-                            if index2 == -1: #If there is not, do another call.
-                                packet_data += s.recv(buffer_size)
-                                index2 = packet_data.find(b'{StartIndexes}', index)
-                            #try:
-                            unique = numpy.frombuffer(packet_data[index+13:index2], dtype=dt_unique)
-                            last_index = index2+14+(index2-index-13)*mult_factor
-                            if last_index > len(packet_data):
-                                packet_data += s.recv(last_index - len(packet_data))
-                            event_list = numpy.frombuffer(packet_data[index2+14:last_index], dtype=dt)
-
-                            index += 13
-                            try:
-                                self.__spimData[event_list] += unique
-                            except IndexError:
-                                logging.info(f'***TP3***: Indexing error.')
-                            except ValueError:
-                                logging.info(f'***TP3***: Value error.')
-                                logging.info(f'***TP3***: Incomplete data.')
-                        """
-
-                        ### Method 02 ###
                         if len(packet_data) == 0:
                             logging.info('***TP3***: No more packets received. Finishing SPIM.')
-                            #self.update_spim_all()
                             return
-
-                        #q = len(packet_data) % 32
-                        #if q:
-                        #    packet_data += s.recv(32 - q)
-
                         try:
                             event_list = numpy.frombuffer(packet_data, dtype=dt)
-                            self.update_spim_direct(event_list)
+                            self.update_spim(event_list)
                             #if len(event_list) > 0:
                                 #for val in event_list:
                                 #    self.__spimData[val] += 1
-                                #self.update_spim_direct(event_list)
-                        except ValueError:
-                            logging.info(f'***TP3***: Value error.')
-                        except IndexError:
-                            logging.info(f'***TP3***: Indexing error.')
-
-                except ConnectionResetError:
-                    logging.info("***TP3***: Socket reseted. Closing connection.")
-                    return
-
-                if not self.__isPlaying:
-                    logging.info('***TP3***: Finishing SPIM.')
-                    #self.update_spim_all()
-                    return
-        return
-
-    def acquire_4dstreamed_frame_from_scan(self, port, message):
-        """
-        Main client function. Main loop is explained below.
-
-        Client is a socket connected to camera in host computer 129.175.108.52. Port depends on which kind of data you
-        are listening on. After connection, timeout is set to 5 ms, which is camera current dead time. cam_properties
-        is a dict containing all info camera sends through tcp (the header); frame_data is the frame; buffer_size is how
-        many bytes we collect within each loop interaction; frame_number is the frame counter and frame_time is when the
-        whole frame began.
-
-        check string value is a convenient function to detect the values using the header standard format for jsonimage.
-        """
-
-        inputs = list()
-        outputs = list()
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        """
-        127.0.0.1 -> LocalHost;
-        129.175.108.58 -> Patrick;
-        129.175.81.162 -> My personal Dell PC;
-        192.0.0.11 -> My old personal (outside lps.intra);
-        192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
-        129.175.108.52 -> CheeTah
-        """
-        ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname(self.__camIP)
-        address = (ip, port)
-        try:
-            client.connect(address)
-            logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
-            inputs.append(client)
-        except ConnectionRefusedError:
-            return False
-
-        if self.__port != 0: #This ensures we are streaming data and not saving locally
-            self.setCurrentPort(0)
-        buffer_size = 4*64000
-        self.__xspim, self.__yspim = self.get_scan_size()
-        self.__pixel_time = self.get_scan_pixel_time()
-        config_bytes = self.create_configuration_bytes(True, 32, False, 3,
-                                                       self.__xspim, self.__yspim, self.__xspim, self.__yspim, self.__pixel_time, 0, 0)
-        self.__tr = False  # Start always with false and will be updated if otherwise
-
-        self.__spimData = numpy.zeros(self.__xspim * self.__yspim * 2, dtype=numpy.uint32)
-
-        client.send(config_bytes)
-
-        self.__isReady.set() #This waits until spimData is created so scan can have access to it.
-        if message == 4:
-            counter = 0
-            while True:
-                dt = numpy.dtype(numpy.uint32).newbyteorder('<')
-                try:
-                    read, _, _ = select.select(inputs, outputs, inputs)
-                    for s in read:
-                        counter += 1
-                        packet_data = s.recv(buffer_size)
-
-                        ### Method 02 ###
-                        if len(packet_data) == 0:
-                            logging.info('***TP3***: No more packets received. Finishing SPIM.')
-                            return
-
-                        #q = len(packet_data) % 32
-                        #if q:
-                        #    packet_data += s.recv(32 - q)
-
-                        try:
-                            event_list = numpy.frombuffer(packet_data, dtype=dt)
-                            self.update_4d_direct(event_list)
+                                #self.update_spim(event_list)
                         except ValueError:
                             logging.info(f'***TP3***: Value error.')
                         except IndexError:
@@ -1210,44 +1083,37 @@ class TimePix3():
 
         if self.__port != 0: #This ensures we are streaming data and not saving locally
             self.setCurrentPort(0)
-        buffer_size = 4*64000
-        self.__xspim, self.__yspim = self.get_scan_size()
-        self.__pixel_time = self.get_scan_pixel_time()
-        config_bytes = self.create_configuration_bytes(True, 32, False, 3,
-                                                       self.__xspim, self.__yspim, self.__xspim, self.__yspim, self.__pixel_time, 0, 0)
-        self.__tr = False  # Start always with false and will be updated if otherwise
+        buffer_size = BUFFER_SIZE
 
-        self.__spimData = numpy.zeros(self.__xspim * self.__yspim * NUMBER_OF_MASKS, dtype=numpy.int16)
-
+        array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * NUMBER_OF_MASKS
+        self.__spimData = numpy.zeros(array_size, dtype=numpy.int16)
         client.send(config_bytes)
 
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
         if message == 4:
-            counter = 0
             while True:
                 dt = numpy.dtype(numpy.int16).newbyteorder('<')
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
-                        counter += 1
                         packet_data = s.recv(buffer_size)
 
-                        ### Method 02 ###
                         if len(packet_data) == 0:
                             logging.info('***TP3***: No more packets received. Finishing SPIM.')
                             return
 
-                        how_many_more_bytes = self.__xspim * self.__yspim * NUMBER_OF_MASKS * 2 - len(packet_data)
+                        how_many_more_bytes = self.__detector_config.scan_sizex * \
+                                              self.__detector_config.scan_sizey * \
+                                              NUMBER_OF_MASKS * 2 - len(packet_data)
                         while how_many_more_bytes != 0:
                             bytes_to_receive = min(buffer_size, how_many_more_bytes)
                             packet_data += s.recv(bytes_to_receive)
-                            how_many_more_bytes = self.__xspim * self.__yspim * NUMBER_OF_MASKS * 2 - len(packet_data)
-
+                            how_many_more_bytes = self.__detector_config.scan_sizex * \
+                                                  self.__detector_config.scan_sizey * \
+                                                  NUMBER_OF_MASKS * 2 - len(packet_data)
                         try:
                             event_list = numpy.frombuffer(packet_data, dtype=dt)
                             self.__spimData[:] = event_list[:]
-                            #self.__spimData += event_list
-                            #self.update_4d_direct(event_list)
                         except ValueError:
                             logging.info(f'***TP3***: Value error.')
                         except IndexError:
@@ -1266,42 +1132,13 @@ class TimePix3():
     def get_last_data(self):
         return self.__dataQueue.get()
 
-    def get_last_event(self):
-        return self.__eventQueue.get()
-
-    def update_spim(self):
-        event_list = self.__eventQueue.get()
+    def update_spim(self, event_list):
         unique, counts = numpy.unique(event_list, return_counts=True)
         counts = counts.astype(numpy.uint32)
         self.__spimData[unique] += counts
-
-    def update_spim_direct(self, event_list):
-        unique, counts = numpy.unique(event_list, return_counts=True)
-        counts = counts.astype(numpy.uint32)
-        self.__spimData[unique] += counts
-
-    def update_4d_direct(self, event_list):
-        unique, counts = numpy.unique(event_list, return_counts=True)
-        counts = counts.astype(numpy.uint32)
-        self.__spimData[unique] += counts
-
-    def update_spim_all(self):
-        logging.info('***TP3***: Emptying queue and closing connection.')
-        while not self.__eventQueue.empty():
-            qs = self.__eventQueue.qsize()
-            if qs % 100 == 0:
-                logging.info(f'***TP3***: Approximate points left: {qs}')
-            event_list = self.__eventQueue.get()
-            unique, counts = numpy.unique(event_list, return_counts=True)
-            counts = counts.astype(numpy.uint32)
-            self.__spimData[unique] += counts
-        logging.info('***TP3***: SPIM finished.')
-
-    def get_total_counts_from_data(self, frame_int):
-        return numpy.sum(frame_int)
 
     def get_current(self, frame_int, frame_number):
-        if self.__isCumul and frame_number:
+        if self.__detector_config.is_cumul and frame_number:
             eps = (numpy.sum(frame_int) / self.__expTime) / frame_number
         else:
             eps = numpy.sum(frame_int) / self.__expTime
@@ -1325,29 +1162,8 @@ class TimePix3():
         frame_int = numpy.reshape(frame_int, (height, width))
         return frame_int
 
-    def create_spimimage_from_bytes(self, frame_data, bitDepth, width, height, xspim, yspim):
-        """
-        Creates an image int8 (1 byte) from byte frame_data. No softBinning for now.
-        """
-        assert height == 1
-        frame_data = numpy.array(frame_data[:-1])
-        if bitDepth == 8:
-            dt = numpy.dtype(numpy.uint8).newbyteorder('>')
-            frame_int = numpy.frombuffer(frame_data, dtype=dt)
-            frame_int = frame_int.astype(numpy.float32)
-        if bitDepth == 16:
-            dt = numpy.dtype(numpy.uint16).newbyteorder('>')
-            frame_int = numpy.frombuffer(frame_data, dtype=dt)
-            frame_int = frame_int.astype(numpy.float32)
-        elif bitDepth == 32:
-            dt = numpy.dtype(numpy.uint32).newbyteorder('>')
-            frame_int = numpy.frombuffer(frame_data, dtype=dt)
-            frame_int = frame_int.astype(numpy.float32)
-        frame_int = numpy.reshape(frame_int, (self.__yspim, self.__xspim, width))
-        return frame_int
-
     def create_spimimage_from_events(self):
-        return self.__spimData.reshape((self.__yspim, self.__xspim, SPIM_SIZE))
+        return self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPIM_SIZE))
 
     def create_4dimage_from_events(self):
-        return self.__spimData.reshape((self.__yspim, self.__xspim, NUMBER_OF_MASKS))
+        return self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, NUMBER_OF_MASKS))
