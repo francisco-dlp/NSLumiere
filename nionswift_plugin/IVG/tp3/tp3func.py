@@ -219,7 +219,7 @@ class TimePix3():
         detector_config["TriggerMode"] = "CONTINUOUS"
         #detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
         detector_config["BiasEnabled"] = True
-        detector_config["BiasVoltage"] = 100 #100V
+        detector_config["BiasVoltage"] = 140
         detector_config["Fan1PWM"] = 100 #100V
         detector_config["Fan2PWM"] = 100 #100V
         detector_config["TriggerPeriod"] = 1.0  # 1s
