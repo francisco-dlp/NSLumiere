@@ -40,6 +40,7 @@ class TimePix3():
         self.__dataQueue = queue.LifoQueue()
         self.__eventQueue = queue.Queue()
         self.__spimData = None
+        self.__frame_based = False
         self.__isPlaying = False
         self.__softBinning = False
         self.__isCumul = False
@@ -187,6 +188,21 @@ class TimePix3():
                  'Tdc': ['P0', 'P0'], 'LogLevel': 1}
         return detectorConfig
 
+    def set_exposure_time(self, exposure_time):
+        detector_config = self.get_config()
+        if self.__frame_based: #This is frame-based mode
+            detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
+            detector_config["TriggerPeriod"] = exposure_time  # 1s
+            detector_config["ExposureTime"] = exposure_time-0.002  # 1s
+        else:
+            detector_config["TriggerMode"] = "CONTINUOUS"
+            detector_config["TriggerPeriod"] = 0.1  # 1s
+            detector_config["ExposureTime"] = 0.1  # 1s
+
+        resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
+        data = resp.text
+        logging.info('Response of updating Detector Configuration (exposure time): ' + data)
+
     def acq_init(self, ntrig=99999):
         """
         Initialization of detector. Standard value is 99999 triggers in continuous mode (a single trigger).
@@ -227,6 +243,22 @@ class TimePix3():
                     "FilePattern": "raw",
                 }]
             }
+        elif port == 3:
+            destination = {
+                "Raw": [{
+                    "Base": "tcp://connect@127.0.0.1:8098",
+                }],
+                "Preview": {
+                    "SamplingMode": "skipOnFrame",
+                    "Period": 10000,
+                    "ImageChannels": [{
+                        "Base": "file:/media/asi/Data21/TP3_Data",
+                        "FilePattern": "f%Hms_",
+                        "Format": "tiff",
+                        "Mode": "count_fb"
+                    }]
+                }
+            }
         """
         elif port == 2:
             destination = {
@@ -251,7 +283,7 @@ class TimePix3():
         logging.info(f'***TP3***: Selected port is {port} and corresponds to: ' + options[port])
 
     def getPortNames(self):
-        return ['TCP Stream', 'Save Locally', 'Save IsiBox Locally']
+        return ['TCP Stream', 'Save Locally', 'Save IsiBox Locally', 'Frame-based mode']
 
     def getCCDSize(self):
         return (256, 1024)
@@ -323,7 +355,7 @@ class TimePix3():
         accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
         Message=1 because it is the normal data_locker.
         """
-        #if not self.__simul:
+        self.set_exposure_time(exposure)
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
@@ -337,6 +369,10 @@ class TimePix3():
         port = 8088
         self.__softBinning = True if displaymode == '1d' else False
         message = 1
+        if self.__frame_based:
+            self.__tp3mode = 10
+        else:
+            self.__tp3mode = 0
         self.__isCumul = bool(accumulate)
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
@@ -579,6 +615,7 @@ class TimePix3():
 
     def setCurrentPort(self, cameraport):
         self.__port = cameraport
+        self.__frame_based = True if (self.__port == 3) else False
         self.set_destination(cameraport)
 
     def getMultiplication(self):
