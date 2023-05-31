@@ -8,7 +8,12 @@ from ctypes import cdll, create_string_buffer, POINTER, byref
 from ctypes import c_uint, c_int, c_char, c_char_p, c_void_p, c_short, c_int, c_long, c_bool, c_double, c_uint64, \
     c_uint32, Array, CFUNCTYPE, WINFUNCTYPE
 import os
-from ..aux_files import read_data
+
+try:
+    from ..aux_files import read_data
+except ImportError:
+    from ..aux_files.config import read_data
+
 
 from nion.utils import Event
 

@@ -16,7 +16,9 @@ def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
 SPIM_SIZE = 1025 + 200
-SAVE_PATH = "file:/media/asi/Data2/TP3_Data"
+
+
+SAVE_PATH = "file:/media/asi/Data21/TP3_Data"
 PIXEL_MASK_PATH = '/home/asi/load_files/bpcs/'
 PIXEL_THRESHOLD_PATH = '/home/asi/load_files/dacs/'
 
@@ -194,17 +196,19 @@ class TimePix3():
     def set_exposure_time(self, exposure_time):
         detector_config = self.get_config()
         if self.__frame_based: #This is frame-based mode
+            value = exposure_time
             detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
-            detector_config["TriggerPeriod"] = exposure_time  # 1s
-            detector_config["ExposureTime"] = exposure_time-0.002  # 1s
+            detector_config["TriggerPeriod"] = value  # 1s
+            detector_config["ExposureTime"] = value-0.002  # 1s
         else:
+            value = 0.1
             detector_config["TriggerMode"] = "CONTINUOUS"
             detector_config["TriggerPeriod"] = 0.1  # 1s
             detector_config["ExposureTime"] = 0.1  # 1s
 
         resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
         data = resp.text
-        logging.info('Response of updating Detector Configuration (exposure time): ' + data)
+        logging.info(f'Response of updating Detector Configuration (exposure time to {value}): ' + data)
 
     def acq_init(self, ntrig=99999):
         """
@@ -232,6 +236,7 @@ class TimePix3():
         data flown in port 8088 and 8089 but only one client at a time.
         """
         options = self.getPortNames()
+        self.set_exposure_time(1.0) #Must set the correct trigger before updating destination
         if port==0:
             destination = {
                 "Raw": [{
