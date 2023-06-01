@@ -14,6 +14,7 @@ def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
 SPIM_SIZE = 1025 + 200
+SPEC_SIZE = 1025
 
 
 SAVE_PATH = "file:/media/asi/Data21/TP3_Data"
@@ -94,6 +95,7 @@ class TimePix3():
         self.__serverURL = url
         self.__camIP = url[fst_string+7:sec_string]
         self.__dataQueue = queue.LifoQueue()
+        self.__specData = None
         self.__spimData = None
         self.__detector_config = Timepix3Configurations()
 
@@ -433,8 +435,8 @@ class TimePix3():
         self.__detector_config.sizey = int(self.__accumulation)
         self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
-        self.__detector_config.tdelay = self.__delay
-        self.__detector_config.twidth = self.__width
+        self.__detector_config.tdelay = int(self.__delay)
+        self.__detector_config.twidth = int(self.__width)
 
         message = 1
         if self.getCCDStatus() == "DA_RECORDING":
@@ -468,7 +470,7 @@ class TimePix3():
         # Setting the configurations
         self.__detector_config.soft_binning = True if displaymode == '1d' else False
         self.__detector_config.mode = 6 if mode == 0 else 7
-        self.__detector_config.is_cumul = bool(accumulate)
+        self.__detector_config.is_cumul = False
         if self.__port == 2:
             self.__detector_config.mode = 8
         self.__detector_config.bitdepth = 32
@@ -476,8 +478,8 @@ class TimePix3():
         self.__detector_config.sizey = int(self.__accumulation)
         self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
-        self.__detector_config.tdelay = self.__delay
-        self.__detector_config.twidth = self.__width
+        self.__detector_config.tdelay = int(self.__delay)
+        self.__detector_config.twidth = int(self.__width)
 
         message = 3
         if self.getCCDStatus() == "DA_RECORDING":
@@ -523,8 +525,8 @@ class TimePix3():
         self.__detector_config.sizey = int(self.__accumulation)
         self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
-        self.__detector_config.tdelay = self.__delay
-        self.__detector_config.twidth = self.__width
+        self.__detector_config.tdelay = int(self.__delay)
+        self.__detector_config.twidth = int(self.__width)
 
         message = 2
         if self.getCCDStatus() == "DA_RECORDING":
@@ -772,6 +774,9 @@ class TimePix3():
     def setCCDOverscan(self, sx, sy):
         pass
 
+    def setTp3Mode(self, value):
+        pass
+
     def start_listening(self, port=8088, message=1):
         """
         Starts the client Thread and sets isPlaying to True.
@@ -883,7 +888,18 @@ class TimePix3():
 
         #Setting few properties and sending the configuration bytes to the detector
         cam_properties = dict()
-        buffer_size = BUFFER_SIZE
+        if self.__detector_config.soft_binning:
+            array_size = SPEC_SIZE
+        else:
+            array_size = SPEC_SIZE * 256
+        if self.__detector_config.bitdepth == 8:
+            dt = numpy.dtype(numpy.int8).newbyteorder('<')
+        if self.__detector_config.bitdepth == 16:
+            dt = numpy.dtype(numpy.int16).newbyteorder('<')
+        if self.__detector_config.bitdepth == 32:
+            dt = numpy.dtype(numpy.int32).newbyteorder('<')
+        self.__specData = numpy.zeros(array_size, dtype=dt)
+
         client.send(config_bytes)
 
 
@@ -914,7 +930,7 @@ class TimePix3():
                 assert int(cam_properties['width']) * int(
                     cam_properties['height']) * int(
                     cam_properties['bitDepth'] / 8) == int(cam_properties['dataSize'])
-                assert cam_properties['dataSize'] + 1 == len(frame)
+                assert cam_properties['dataSize'] == len(frame)
                 self.__dataQueue.put((cam_prop, frame))
                 self.sendmessage(message)
                 return True
@@ -929,10 +945,10 @@ class TimePix3():
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
                         if s == inputs[0]:
-                            packet_data = s.recv(buffer_size)
+                            packet_data = s.recv(128)
                             if packet_data == b'': return
                             while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
-                                temp = s.recv(buffer_size)
+                                temp = s.recv(BUFFER_SIZE)
                                 if temp == b'':
                                     return
                                 else:
@@ -941,6 +957,7 @@ class TimePix3():
                             begin_header = packet_data.index(b'{"time')
                             end_header = packet_data.index(b'}\n', begin_header)
                             header = packet_data[begin_header:end_header + 1].decode('latin-1')
+
                             for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth",
                                                "width",
                                                "height"]:
@@ -948,16 +965,19 @@ class TimePix3():
 
                             data_size = int(cam_properties['dataSize'])
 
-                            while len(packet_data) < begin_header + data_size + len(header):
-                                temp = s.recv(buffer_size)
-                                if temp == b'':
-                                    return
-                                else:
-                                    packet_data += temp
+                            assert (begin_header == 0)
+                            how_many_more_bytes = data_size + len(header) - len(packet_data) + 1
+                            while how_many_more_bytes != 0:
+                                bytes_to_receive = min(BUFFER_SIZE, how_many_more_bytes)
+                                packet_data += s.recv(bytes_to_receive)
+                                how_many_more_bytes = data_size + len(header) - len(packet_data) + 1
 
-                            frame_data = packet_data[end_header + 2:end_header + 2 + data_size + 1]
-                            if put_queue(cam_properties, frame_data):
-                                frame_data = b''
+                            frame_data = packet_data[end_header + 2:end_header + 2 + data_size]
+                            event_list = numpy.frombuffer(frame_data, dtype=dt)
+                            self.__specData[:] = event_list[:]
+                            self.sendmessage(message)
+                            #if put_queue(cam_properties, frame_data):
+                            #    frame_data = b''
 
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
@@ -1003,7 +1023,6 @@ class TimePix3():
 
         if self.__port != 0: #This ensures we are streaming data and not saving locally
             self.setCurrentPort(0)
-        buffer_size = BUFFER_SIZE
 
         max_val = max(self.__detector_config.scan_sizex, self.__detector_config.scan_sizey)
         array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPIM_SIZE
@@ -1023,7 +1042,7 @@ class TimePix3():
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
-                        packet_data = s.recv(buffer_size)
+                        packet_data = s.recv(BUFFER_SIZE)
                         if len(packet_data) == 0:
                             logging.info('***TP3***: No more packets received. Finishing SPIM.')
                             return
@@ -1084,7 +1103,6 @@ class TimePix3():
 
         if self.__port != 0: #This ensures we are streaming data and not saving locally
             self.setCurrentPort(0)
-        buffer_size = BUFFER_SIZE
 
         array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * NUMBER_OF_MASKS
         self.__spimData = numpy.zeros(array_size, dtype=numpy.int16)
@@ -1097,7 +1115,7 @@ class TimePix3():
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
-                        packet_data = s.recv(buffer_size)
+                        packet_data = s.recv(BUFFER_SIZE)
 
                         if len(packet_data) == 0:
                             logging.info('***TP3***: No more packets received. Finishing SPIM.')
@@ -1107,7 +1125,7 @@ class TimePix3():
                                               self.__detector_config.scan_sizey * \
                                               NUMBER_OF_MASKS * 2 - len(packet_data)
                         while how_many_more_bytes != 0:
-                            bytes_to_receive = min(buffer_size, how_many_more_bytes)
+                            bytes_to_receive = min(BUFFER_SIZE, how_many_more_bytes)
                             packet_data += s.recv(bytes_to_receive)
                             how_many_more_bytes = self.__detector_config.scan_sizex * \
                                                   self.__detector_config.scan_sizey * \
@@ -1150,7 +1168,7 @@ class TimePix3():
         """
         Creates an image int8 (1 byte) from byte frame_data. If softBinning is True, we sum in Y axis.
         """
-        frame_data = numpy.array(frame_data[:-1])
+        #frame_data = numpy.array(frame_data[:])
         if bitDepth == 8:
             dt = numpy.dtype(numpy.uint8).newbyteorder('<')
             frame_int = numpy.frombuffer(frame_data, dtype=dt)
@@ -1163,8 +1181,14 @@ class TimePix3():
         frame_int = numpy.reshape(frame_int, (height, width))
         return frame_int
 
-    def create_spimimage_from_events(self):
+    def create_specimage(self):
+        if self.__detector_config.soft_binning:
+            return self.__specData
+        else:
+            return self.__specData.reshape((256, SPEC_SIZE))
+
+    def create_spimimage(self):
         return self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPIM_SIZE))
 
-    def create_4dimage_from_events(self):
+    def create_4dimage(self):
         return self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, NUMBER_OF_MASKS))

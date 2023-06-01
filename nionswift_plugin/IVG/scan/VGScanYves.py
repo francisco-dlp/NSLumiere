@@ -275,7 +275,7 @@ class Device(scan_base.ScanDevice):
                 self.__tpx3_calib["dispersion"] = self.__instrument.TryGetVal("eels_x_scale")[1]
                 self.__tpx3_calib["offset"] = self.__instrument.TryGetVal("eels_x_offset")[1]
                 self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
-                self.__tpx3_data = self.__tpx3_camera.camera.camera.create_spimimage_from_events() #Getting the reference
+                self.__tpx3_data = self.__tpx3_camera.camera.camera.create_spim() #Getting the reference
                 time.sleep(0.5) #Timepix has already a socket connected. Wait until it is definitely reading data
         elif channel_type == "4D_TPX3":
             self.__tpx3_4d = self.__tpx3_camera.camera.camera.Start4DFromScan()
@@ -283,7 +283,7 @@ class Device(scan_base.ScanDevice):
                 self.__tpx3_calib["dispersion"] = 1 #4d channels
                 self.__tpx3_calib["offset"] = 0 #Starts at 0
                 self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
-                self.__tpx3_data = self.__tpx3_camera.camera.camera.create_4dimage_from_events() #Getting the reference
+                self.__tpx3_data = self.__tpx3_camera.camera.camera.create_4dimage() #Getting the reference
                 time.sleep(0.5)  # Timepix has already a socket connected. Wait until it is definitely reading data
 
 

@@ -893,10 +893,11 @@ class CameraDevice(camera_base.CameraDevice):
 
         def sendMessage(message):
             if message == 1:
-                prop, last_bytes_data = self.camera.get_last_data()
-                self.frame_number = int(prop['frameNumber'])
-                self.imagedata = self.camera.create_image_from_bytes(last_bytes_data,
-                                                                     prop['bitDepth'], prop['width'], prop['height'])
+                #prop, last_bytes_data = self.camera.get_last_data()
+                self.frame_number += 1
+                #self.imagedata = self.camera.create_image_from_bytes(last_bytes_data,
+                #                                                     prop['bitDepth'], prop['width'], prop['height'])
+                self.imagedata = self.camera.create_specimage()
                 self.current_event.fire(
                     format(self.camera.get_current(self.imagedata, self.frame_number), ".5f")
                 )
