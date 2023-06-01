@@ -46,6 +46,41 @@ class Timepix3Configurations():
         self.time_resolved = None
         self.frame_based = None
 
+    def create_configuration_bytes(self):
+        config_bytes = b''
+
+        if self.soft_binning:
+            config_bytes += b'\x01'
+        else:
+            config_bytes += b'\x00'
+
+        if self.bitdepth == 32:
+            config_bytes += b'\x02'
+        elif self.bitdepth == 16:
+            config_bytes += b'\x01'
+        elif self.bitdepth == 8:
+            config_bytes += b'\x00'
+
+        if self.is_cumul:
+            config_bytes += b'\x01'
+        else:
+            config_bytes += b'\x00'
+
+        config_bytes += bytes([self.mode])
+
+        config_bytes += self.sizex.to_bytes(2, 'big')
+        config_bytes += self.sizey.to_bytes(2, 'big')
+
+        config_bytes += self.scan_sizex.to_bytes(2, 'big')
+        config_bytes += self.scan_sizey.to_bytes(2, 'big')
+
+        config_bytes += (int(self.pixel_time * 1000 / 1.5625)).to_bytes(2, 'big') #In units of 1.5625 ns already
+
+        config_bytes += struct.pack(">H", self.tdelay)  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack(">H", self.twidth)  # BE. See https://docs.python.org/3/library/struct.html
+
+        return config_bytes
+
 
 class TimePix3():
 
@@ -803,42 +838,6 @@ class TimePix3():
         scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_scan_device")
         return scanInstrument.scan_device.current_frame_parameters.pixel_time_us
-
-    def create_configuration_bytes(self):
-        config_bytes = b''
-
-        if self.__detector_config.soft_binning:
-            config_bytes += b'\x01'
-        else:
-            config_bytes += b'\x00'
-
-        if self.__detector_config.bitdepth == 32:
-            config_bytes += b'\x02'
-        elif self.__detector_config.bitdepth == 16:
-            config_bytes += b'\x01'
-        elif self.__detector_config.bitdepth == 8:
-            config_bytes += b'\x00'
-
-        if self.__detector_config.is_cumul:
-            config_bytes += b'\x01'
-        else:
-            config_bytes += b'\x00'
-
-        config_bytes += bytes([self.__detector_config.mode])
-
-        config_bytes += self.__detector_config.sizex.to_bytes(2, 'big')
-        config_bytes += self.__detector_config.sizey.to_bytes(2, 'big')
-
-        config_bytes += self.__detector_config.scan_sizex.to_bytes(2, 'big')
-        config_bytes += self.__detector_config.scan_sizey.to_bytes(2, 'big')
-
-        config_bytes += (int(self.__detector_config.pixel_time * 1000 / 1.5625)).to_bytes(2, 'big') #In units of 1.5625 ns already
-
-        config_bytes += struct.pack(">H", self.__detector_config.tdelay)  # BE. See https://docs.python.org/3/library/struct.html
-        config_bytes += struct.pack(">H", self.__detector_config.twidth)  # BE. See https://docs.python.org/3/library/struct.html
-
-        return config_bytes
-    
     def acquire_streamed_frame(self, port, message):
         """
         Main client function. Main loop is explained below.
@@ -859,7 +858,7 @@ class TimePix3():
         elif self.__port == 2:
             self.save_locally_routine()
 
-        config_bytes = self.create_configuration_bytes()
+        config_bytes = self.__detector_config.create_configuration_bytes()
 
         #Connecting the socket.
         inputs = list()
@@ -980,6 +979,7 @@ class TimePix3():
         check string value is a convenient function to detect the values using the header standard format for jsonimage.
         """
 
+        config_bytes = self.__detector_config.create_configuration_bytes()
 
         inputs = list()
         outputs = list()
@@ -1060,6 +1060,7 @@ class TimePix3():
 
         check string value is a convenient function to detect the values using the header standard format for jsonimage.
         """
+        config_bytes = self.__detector_config.create_configuration_bytes()
 
         inputs = list()
         outputs = list()
