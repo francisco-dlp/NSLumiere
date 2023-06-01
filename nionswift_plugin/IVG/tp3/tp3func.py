@@ -356,7 +356,7 @@ class TimePix3():
         pass
 
     def getImageSize(self):
-        return (1024, 256)
+        return (1025, 256)
 
     def registerLogger(self, fn):
         pass
@@ -495,8 +495,43 @@ class TimePix3():
         """
         Similar to startFocus. Just to be consistent with VGCameraYves. Message=02 because of spim.
         """
-        logging.info("***TPX3***: Deprecated. Spim must be started from Scan Channel.")
+        try:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=dwelltime, on_time=0.0000001)
+            # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy Line 05
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
+            # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
+        except AttributeError:
+            logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
+        port = 8088
+
+        # Setting the configurations
+        self.__detector_config.soft_binning = not is2D
+        self.__detector_config.mode = 11
+        self.__detector_config.is_cumul = False
+        if self.__port == 2:
+            self.__detector_config.mode = 8
+        self.__detector_config.bitdepth = 32
+        self.__detector_config.sizex = int(self.__accumulation)
+        self.__detector_config.sizey = int(self.__accumulation)
+        self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
+        self.__detector_config.pixel_time = self.get_scan_pixel_time()
+        self.__detector_config.tdelay = int(self.__delay)
+        self.__detector_config.twidth = int(self.__width)
+
+        message = 2
+        if self.getCCDStatus() == "DA_RECORDING":
+            self.stopFocus()
+        if self.getCCDStatus() == "DA_IDLE":
+            resp = self.request_get(url=self.__serverURL + '/measurement/start')
+            data = resp.text
+            self.start_listening(port, message=message)
+            return True
+        else:
+            logging.info('***TP3***: Check if experiment type matches mode selection.')
         return
+
 
     def StartSpimFromScan(self):
         """
@@ -842,6 +877,7 @@ class TimePix3():
         scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_scan_device")
         return scanInstrument.scan_device.current_frame_parameters.pixel_time_us
+
     def acquire_streamed_frame(self, port, message):
         """
         Main client function. Main loop is explained below.
@@ -899,6 +935,12 @@ class TimePix3():
             dt = numpy.dtype(numpy.int32).newbyteorder('<')
         self.__specData = numpy.zeros(array_size, dtype=dt)
 
+        if message == 2:
+            self.spim_frame = 0
+            spim_array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPEC_SIZE
+            number_of_spec = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey
+            self.__spimData = numpy.zeros(spim_array_size, dtype=numpy.uint32)
+
         client.send(config_bytes)
 
 
@@ -937,7 +979,7 @@ class TimePix3():
                     f'***TP3***: Problem in size/len assertion. Properties are {cam_properties} and data is {len(frame)}')
                 return False
 
-        if message == 1 or message == 3:
+        if message == 1 or message == 2 or message == 3:
             while True:
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
@@ -971,9 +1013,19 @@ class TimePix3():
                                 how_many_more_bytes = data_size + len(header) - len(packet_data) + 1
 
                             frame_data = packet_data[end_header + 2:end_header + 2 + data_size]
+
                             event_list = numpy.frombuffer(frame_data, dtype=dt)
-                            self.__specData[:] = event_list[:]
-                            check_data_and_send_message(cam_properties, frame_data)
+                            if message == 1 or message == 3:
+                                self.__specData[:] = event_list[:]
+                                check_data_and_send_message(cam_properties, frame_data)
+                            if message == 2:
+                                self.spim_frame = min(cam_properties['frameNumber'], number_of_spec)
+                                self.__spimData[:] = event_list[:]
+                                self.sendmessage(2)
+                                if cam_properties['frameNumber'] >= self.__detector_config.scan_sizex * self.__detector_config.scan_sizey:
+                                    logging.info("***TP3***: Spim is over. Closing connection.")
+                                    return
+
 
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
@@ -1164,6 +1216,9 @@ class TimePix3():
 
     def create_spimimage(self):
         return self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPIM_SIZE))
+
+    def create_spimimage_frame(self):
+        return (self.spim_frame, self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPEC_SIZE)))
 
     def create_4dimage(self):
         return self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, NUMBER_OF_MASKS))

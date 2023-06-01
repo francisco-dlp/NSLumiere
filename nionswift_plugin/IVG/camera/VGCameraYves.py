@@ -904,8 +904,7 @@ class CameraDevice(camera_base.CameraDevice):
                 self.has_data_event.set()
 
             elif message == 2:
-                self.frame_number += 1
-                self.spimimagedata = self.camera.create_spimimage_from_events()
+                self.frame_number, self.spimimagedata[:] = self.camera.create_spimimage_frame()
                 self.has_spim_data_event.set()
 
             elif message == 3:
