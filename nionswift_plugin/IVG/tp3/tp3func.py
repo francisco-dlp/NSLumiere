@@ -94,7 +94,6 @@ class TimePix3():
         self.success = False
         self.__serverURL = url
         self.__camIP = url[fst_string+7:sec_string]
-        self.__dataQueue = queue.LifoQueue()
         self.__specData = None
         self.__spimData = None
         self.__detector_config = Timepix3Configurations()
@@ -809,7 +808,7 @@ class TimePix3():
         if self.__isPlaying:
             self.__isPlaying = False
             self.__clientThread.join()
-            logging.info(f'***TP3***: Stopping acquisition. There was {self.__dataQueue.qsize()} items in the Queue.')
+            logging.info(f'***TP3***: Stopping acquisition.')
 
     def save_locally_routine(self):
         logging.info(
@@ -925,13 +924,12 @@ class TimePix3():
                 value = str(header[begin_value:end_value])
             return value
 
-        def put_queue(cam_prop, frame):
+        def check_data_and_send_message(cam_prop, frame):
             try:
                 assert int(cam_properties['width']) * int(
                     cam_properties['height']) * int(
                     cam_properties['bitDepth'] / 8) == int(cam_properties['dataSize'])
                 assert cam_properties['dataSize'] == len(frame)
-                self.__dataQueue.put((cam_prop, frame))
                 self.sendmessage(message)
                 return True
             except AssertionError:
@@ -975,9 +973,7 @@ class TimePix3():
                             frame_data = packet_data[end_header + 2:end_header + 2 + data_size]
                             event_list = numpy.frombuffer(frame_data, dtype=dt)
                             self.__specData[:] = event_list[:]
-                            self.sendmessage(message)
-                            #if put_queue(cam_properties, frame_data):
-                            #    frame_data = b''
+                            check_data_and_send_message(cam_properties, frame_data)
 
                 except ConnectionResetError:
                     logging.info("***TP3***: Socket reseted. Closing connection.")
@@ -1147,10 +1143,6 @@ class TimePix3():
                     return
         return
 
-
-    def get_last_data(self):
-        return self.__dataQueue.get()
-
     def update_spim(self, event_list):
         unique, counts = numpy.unique(event_list, return_counts=True)
         counts = counts.astype(numpy.uint32)
@@ -1163,23 +1155,6 @@ class TimePix3():
             eps = numpy.sum(frame_int) / self.__expTime
         cur_pa = eps / (6.242 * 1e18) * 1e12
         return cur_pa
-
-    def create_image_from_bytes(self, frame_data, bitDepth, width, height):
-        """
-        Creates an image int8 (1 byte) from byte frame_data. If softBinning is True, we sum in Y axis.
-        """
-        #frame_data = numpy.array(frame_data[:])
-        if bitDepth == 8:
-            dt = numpy.dtype(numpy.uint8).newbyteorder('<')
-            frame_int = numpy.frombuffer(frame_data, dtype=dt)
-        elif bitDepth == 16:
-            dt = numpy.dtype(numpy.uint16).newbyteorder('<')
-            frame_int = numpy.frombuffer(frame_data, dtype=dt)
-        elif bitDepth == 32:
-            dt = numpy.dtype(numpy.uint32).newbyteorder('<')
-            frame_int = numpy.frombuffer(frame_data, dtype=dt)
-        frame_int = numpy.reshape(frame_int, (height, width))
-        return frame_int
 
     def create_specimage(self):
         if self.__detector_config.soft_binning:

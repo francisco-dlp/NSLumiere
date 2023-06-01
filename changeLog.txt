@@ -17,3 +17,6 @@
 
 ----- v7.0.5 (27-02-2023) -----
 - Added the spectra flip. They are consistent between focus and spectral image acquisitions.
+
+----- v9.0.5 (27-02-2023) -----
+- Adding Timepix3 frame-based mode. Many modifications in the data structures and display.
