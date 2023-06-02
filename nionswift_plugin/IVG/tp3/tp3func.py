@@ -2,11 +2,11 @@ import json
 import requests
 import threading
 import logging
-import queue
 import socket
 import numpy
 import struct
 import select
+from numba import jit
 
 from nion.swift.model import HardwareSource
 
@@ -20,8 +20,13 @@ SPEC_SIZE = 1025
 SAVE_PATH = "file:/media/asi/Data21/TP3_Data"
 PIXEL_MASK_PATH = '/home/asi/load_files/bpcs/'
 PIXEL_THRESHOLD_PATH = '/home/asi/load_files/dacs/'
-BUFFER_SIZE = 4 * 64000
-SPIM_READOUTS_BEFORE_ADD = 1
+BUFFER_SIZE = 64000
+
+def update_spim_numba(array, event_list):
+    for val in event_list:
+        array[val] += 1
+
+numba_jit = jit(update_spim_numba)
 
 class Response():
     def __init__(self):
@@ -549,6 +554,9 @@ class TimePix3():
         port = 8088
 
         # Setting the configurations
+        if self.__port != 0: #This ensures we are streaming data and not saving locally
+            self.setCurrentPort(0)
+
         self.__detector_config.soft_binning = True
         self.__detector_config.mode = 2
         self.__detector_config.is_cumul = False
@@ -587,6 +595,9 @@ class TimePix3():
         port = 8088
 
         # Setting the configurations
+        if self.__port != 0: #This ensures we are streaming data and not saving locally
+            self.setCurrentPort(0)
+
         self.__detector_config.soft_binning = True
         self.__detector_config.mode = 3
         self.__detector_config.is_cumul = False
@@ -1067,9 +1078,6 @@ class TimePix3():
         except ConnectionRefusedError:
             return False
 
-        if self.__port != 0: #This ensures we are streaming data and not saving locally
-            self.setCurrentPort(0)
-
         max_val = max(self.__detector_config.scan_sizex, self.__detector_config.scan_sizey)
         array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPIM_SIZE
         if max_val <= 64:
@@ -1092,9 +1100,16 @@ class TimePix3():
                         if len(packet_data) == 0:
                             logging.info('***TP3***: No more packets received. Finishing SPIM.')
                             return
+
+                        #Checking if its a multiple of 4 bytes (32 bit)
+                        q = len(packet_data) % 4
+                        if q:
+                            packet_data += s.recv(4 - q)
+
                         try:
                             event_list = numpy.frombuffer(packet_data, dtype=dt)
-                            self.update_spim(event_list)
+                            numba_jit(self.__spimData, event_list)
+                            #self.update_spim(event_list)
                             #if len(event_list) > 0:
                                 #for val in event_list:
                                 #    self.__spimData[val] += 1
@@ -1146,9 +1161,6 @@ class TimePix3():
             inputs.append(client)
         except ConnectionRefusedError:
             return False
-
-        if self.__port != 0: #This ensures we are streaming data and not saving locally
-            self.setCurrentPort(0)
 
         array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * NUMBER_OF_MASKS
         self.__spimData = numpy.zeros(array_size, dtype=numpy.int16)
