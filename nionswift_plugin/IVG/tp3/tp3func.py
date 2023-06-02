@@ -555,8 +555,7 @@ class TimePix3():
         if self.__port == 2:
             self.__detector_config.mode = 8
         self.__detector_config.bitdepth = 32
-        self.__detector_config.sizex = int(self.__accumulation)
-        self.__detector_config.sizey = int(self.__accumulation)
+        self.__detector_config.sizex, self.__detector_config.sizey = self.get_scan_size()
         self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.tdelay = int(self.__delay)
@@ -589,13 +588,12 @@ class TimePix3():
 
         # Setting the configurations
         self.__detector_config.soft_binning = True
-        self.__detector_config.mode = 2
+        self.__detector_config.mode = 3
         self.__detector_config.is_cumul = False
         if self.__port == 2:
             self.__detector_config.mode = 8
         self.__detector_config.bitdepth = 32
-        self.__detector_config.sizex = int(self.__accumulation)
-        self.__detector_config.sizey = int(self.__accumulation)
+        self.__detector_config.sizex, self.__detector_config.sizey = self.get_scan_size()
         self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.tdelay = self.__delay
