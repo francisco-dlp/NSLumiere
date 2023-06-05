@@ -51,6 +51,7 @@ class Timepix3Configurations():
         self.twidth = None
         self.time_resolved = None
         self.frame_based = None
+        self.save_locally = None
 
     def create_configuration_bytes(self):
         config_bytes = b''
@@ -84,6 +85,14 @@ class Timepix3Configurations():
 
         config_bytes += struct.pack(">H", self.tdelay)  # BE. See https://docs.python.org/3/library/struct.html
         config_bytes += struct.pack(">H", self.twidth)  # BE. See https://docs.python.org/3/library/struct.html
+
+        if self.save_locally:
+            config_bytes += b'\x01'
+        else:
+            config_bytes += b'\x00'
+
+        #Unused bit for now. There is currently 20-bit wide message
+        config_bytes += b'\x00'
 
         return config_bytes
 
@@ -289,13 +298,13 @@ class TimePix3():
         """
         options = self.getPortNames()
         self.set_exposure_time(1.0) #Must set the correct trigger before updating destination
-        if port==0:
+        if port==0 or port == 1:
             destination = {
                 "Raw": [{
                     "Base": "tcp://connect@127.0.0.1:8098",
                 }]
             }
-        elif port == 1 or port == 2:
+        elif port == 2 or port == 3:
             destination = {
                 "Raw": [{
                     #"Base": "file:/home/asi/load_files/data",
@@ -303,7 +312,7 @@ class TimePix3():
                     "FilePattern": "raw",
                 }]
             }
-        elif port == 3:
+        elif port == 4:
             destination = {
                 "Raw": [{
                     "Base": "tcp://connect@127.0.0.1:8098",
@@ -343,7 +352,7 @@ class TimePix3():
         logging.info(f'***TP3***: Selected port is {port} and corresponds to: ' + options[port])
 
     def getPortNames(self):
-        return ['TCP Stream', 'Save Locally', 'Save IsiBox Locally', 'Frame-based mode']
+        return ['TCP Stream', 'TCP Stream + Save Locally', 'Save Locally', 'Save IsiBox Locally', 'Frame-based mode']
 
     def getCCDSize(self):
         return (256, 1024)
@@ -432,7 +441,7 @@ class TimePix3():
         self.__detector_config.soft_binning = True if displaymode == '1d' else False
         self.__detector_config.mode = 10 if self.__frame_based else 0
         self.__detector_config.is_cumul = bool(accumulate)
-        if self.__port == 2:
+        if self.__port == 3:
             self.__detector_config.mode = 8
         self.__detector_config.bitdepth = 32 if displaymode == '1d' else 16
         self.__detector_config.sizex = int(self.__accumulation)
@@ -441,6 +450,7 @@ class TimePix3():
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.tdelay = int(self.__delay)
         self.__detector_config.twidth = int(self.__width)
+        self.__detector_config.save_locally = (self.__port == 1)
 
         message = 1
         if self.getCCDStatus() == "DA_RECORDING":
@@ -475,7 +485,7 @@ class TimePix3():
         self.__detector_config.soft_binning = True if displaymode == '1d' else False
         self.__detector_config.mode = 6 if mode == 0 else 7
         self.__detector_config.is_cumul = False
-        if self.__port == 2:
+        if self.__port == 3:
             self.__detector_config.mode = 8
         self.__detector_config.bitdepth = 32
         self.__detector_config.sizex = int(self.__accumulation)
@@ -484,6 +494,7 @@ class TimePix3():
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.tdelay = int(self.__delay)
         self.__detector_config.twidth = int(self.__width)
+        self.__detector_config.save_locally = (self.__port == 1)
 
         message = 3
         if self.getCCDStatus() == "DA_RECORDING":
@@ -515,7 +526,7 @@ class TimePix3():
         self.__detector_config.soft_binning = not is2D
         self.__detector_config.mode = 11
         self.__detector_config.is_cumul = False
-        if self.__port == 2:
+        if self.__port == 3:
             self.__detector_config.mode = 8
         self.__detector_config.bitdepth = 32
         self.__detector_config.sizex = int(self.__accumulation)
@@ -524,6 +535,7 @@ class TimePix3():
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.tdelay = int(self.__delay)
         self.__detector_config.twidth = int(self.__width)
+        self.__detector_config.save_locally = (self.__port == 1)
 
         message = 2
         if self.getCCDStatus() == "DA_RECORDING":
@@ -554,13 +566,13 @@ class TimePix3():
         port = 8088
 
         # Setting the configurations
-        if self.__port != 0: #This ensures we are streaming data and not saving locally
+        if self.__port > 1: #This ensures we are streaming data and not saving locally
             self.setCurrentPort(0)
 
         self.__detector_config.soft_binning = True
         self.__detector_config.mode = 2
         self.__detector_config.is_cumul = False
-        if self.__port == 2:
+        if self.__port == 3:
             self.__detector_config.mode = 8
         self.__detector_config.bitdepth = 32
         self.__detector_config.sizex, self.__detector_config.sizey = self.get_scan_size()
@@ -568,6 +580,7 @@ class TimePix3():
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.tdelay = int(self.__delay)
         self.__detector_config.twidth = int(self.__width)
+        self.__detector_config.save_locally = (self.__port == 1)
 
         message = 2
         if self.getCCDStatus() == "DA_RECORDING":
@@ -595,13 +608,13 @@ class TimePix3():
         port = 8088
 
         # Setting the configurations
-        if self.__port != 0: #This ensures we are streaming data and not saving locally
+        if self.__port > 1: #This ensures we are streaming data and not saving locally
             self.setCurrentPort(0)
 
         self.__detector_config.soft_binning = True
         self.__detector_config.mode = 3
         self.__detector_config.is_cumul = False
-        if self.__port == 2:
+        if self.__port == 3:
             self.__detector_config.mode = 8
         self.__detector_config.bitdepth = 32
         self.__detector_config.sizex, self.__detector_config.sizey = self.get_scan_size()
@@ -609,6 +622,7 @@ class TimePix3():
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.tdelay = self.__delay
         self.__detector_config.twidth = self.__width
+        self.__detector_config.save_locally = (self.__port == 1)
 
         message = 4
         if self.getCCDStatus() == "DA_RECORDING":
@@ -739,7 +753,7 @@ class TimePix3():
 
     def setCurrentPort(self, cameraport):
         self.__port = cameraport
-        self.__frame_based = True if (self.__port == 3) else False
+        self.__frame_based = True if (self.__port == 4) else False
         self.set_destination(cameraport)
 
     def getMultiplication(self):
@@ -901,10 +915,10 @@ class TimePix3():
         """
 
         #Important parameters to configure Timepix3.
-        if self.__port==1:
+        if self.__port==2:
             self.save_locally_routine()
             return
-        elif self.__port == 2:
+        elif self.__port == 3:
             self.save_locally_routine()
 
         config_bytes = self.__detector_config.create_configuration_bytes()
