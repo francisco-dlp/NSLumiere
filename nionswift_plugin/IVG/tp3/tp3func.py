@@ -58,8 +58,6 @@ class Timepix3Configurations():
         self.frame_based = None
         self.save_locally = None
 
-        #self.spimData = None
-        #self.specData = None
         self.data = None
 
     def create_configuration_bytes(self):
@@ -153,26 +151,6 @@ class Timepix3Configurations():
         else:
             raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_data.")
         return self.data
-    #def get_spec_array(self):
-    #    array_size = self.get_array_size()
-    #    data_depth = self.get_data_type()
-    #    self.specData = numpy.zeros(array_size, dtype=data_depth)
-    #    return self.specData
-    #def get_spim_array(self):
-    #    array_size = self.get_array_size()
-    #    if self.mode == 2 or self.mode == 12:
-    #        max_val = max(self.scan_sizex, self.scan_sizey)
-    #        if max_val <= 64:
-    #            self.spimData = numpy.zeros(array_size, dtype=numpy.uint32)
-    #        elif max_val <= 1024:
-    #            self.spimData = numpy.zeros(array_size, dtype=numpy.uint16)
-    #        else:
-    #            self.spimData = numpy.zeros(array_size, dtype=numpy.uint8)
-    #    elif self.mode == 13:
-    #        self.spimData = numpy.zeros(array_size, dtype=numpy.uint8)
-    #    else:
-    #        raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_spim_array.")
-    #    return self.spimData
 
     def create_reshaped_array(self):
         if self.mode == 6 or self.mode == 7:
@@ -189,25 +167,7 @@ class Timepix3Configurations():
                 (RAW4D_PIXELS_X, RAW4D_PIXELS_Y, self.scan_sizey, self.scan_sizex))
         else:
             raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in spimimage.")
-    #def create_spimimage(self):
-    #    if self.mode == 2 or self.mode == 12:
-    #        return self.spimData.reshape((self.scan_sizey, self.scan_sizex, SPIM_SIZE))
-    #    elif self.mode == 13:
-    #        return self.spimData.reshape(
-    #            (RAW4D_PIXELS_X, RAW4D_PIXELS_Y, self.scan_sizey, self.scan_sizex))
-    #    else:
-    #        raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in spimimage.")
 
-    #def create_specimage(self):
-    #    if self.mode == 6 or self.mode == 7:
-    #        return self.specData.reshape((self.sizex, SPEC_SIZE))
-    #    elif self.mode == 0:
-    #        if self.soft_binning:
-    #            return self.specData.reshape((SPEC_SIZE))
-    #        else:
-    #            return self.specData.reshape((SPEC_SIZE_Y, SPEC_SIZE))
-    #    else:
-    #        raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in specimage.")
 
 
 class TimePix3():
@@ -1069,22 +1029,8 @@ class TimePix3():
 
         #Setting few properties and sending the configuration bytes to the detector
         cam_properties = dict()
-        #if self.__detector_config.soft_binning:
-        #    array_size = SPEC_SIZE
-        #else:
-        #    array_size = SPEC_SIZE * SPEC_SIZE_Y
-        #if self.__detector_config.bitdepth == 8:
-        #    dt = numpy.dtype(numpy.int8).newbyteorder('<')
-        #if self.__detector_config.bitdepth == 16:
-        #    dt = numpy.dtype(numpy.int16).newbyteorder('<')
-        #if self.__detector_config.bitdepth == 32:
-        #    dt = numpy.dtype(numpy.int32).newbyteorder('<')
-        array_size = self.__detector_config.get_array_size()
-        dt = self.__detector_config.get_data_type()
-        #print(array_size)
-        #self.__specData = numpy.zeros(array_size, dtype=dt)
 
-        #self.__specData = self.__detector_config.get_spec_array()
+        dt = self.__detector_config.get_data_type()
         self.__specData = self.__detector_config.get_data()
 
         if message == 2:
@@ -1221,7 +1167,6 @@ class TimePix3():
             return False
 
         dt = self.__detector_config.get_data_type()
-        #self.__spimData = self.__detector_config.get_spim_array()
         self.__spimData = self.__detector_config.get_data()
         client.send(config_bytes)
 

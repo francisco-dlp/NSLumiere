@@ -910,12 +910,7 @@ class CameraDevice(camera_base.CameraDevice):
             elif message == 3:
                 self.frame_number += 1
                 self.spimimagedata = self.camera.create_specimage()
-                #prop, last_bytes_data = self.camera.get_last_data()
-                #self.frame_number = int(prop['frameNumber'])
-                #self.spimimagedata = self.camera.create_image_from_bytes(last_bytes_data,
-                #                                                         prop['bitDepth'], prop['width'],
-                #                                                         prop['height'])
-                #self.has_data_event.set()
+                self.has_data_event.set()
 
         return sendMessage
 
