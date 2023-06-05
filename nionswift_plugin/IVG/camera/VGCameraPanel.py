@@ -77,7 +77,7 @@ class CameraHandler:
         self.current_value = Model.PropertyModel("0")
         self.delay_value = Model.PropertyModel(frame_parameters["timeDelay"])
         self.width_value = Model.PropertyModel(frame_parameters["timeWidth"])
-        self.time_converter = Converter.PhysicalValueToStringConverter("ns", 1)
+        self.time_converter = Converter.PhysicalValueToStringConverter("(1.5625 ns)", 1)
         self.gain_items = Model.PropertyModel([])
         self.gain_items.value = list(self.camera_device.camera.getGains(frame_parameters["port"]))
         self.gain_item = Model.PropertyModel(frame_parameters["gain"])
@@ -107,6 +107,10 @@ class CameraHandler:
         self.mode_item_text = Model.PropertyModel("???g")
 
         self.tp3mode_item = Model.PropertyModel(frame_parameters["tp3mode"])
+        if self.camera_device.isTimepix:
+            self.tp3mode_items = list(self.camera_device.camera.getTp3Modes())
+        else:
+            self.tp3mode_items = list(['None'])
 
         #def frame_parameter_changed(name, *args, **kwargs):
         #    if name == "acquisition_mode":
@@ -423,7 +427,7 @@ class CameraPanelFactory:
         width_row = ui.create_row(width_label, width_value, ui.create_stretch())
 
         tp3mode = ui.create_row(ui.create_label(text=_("Tp3 Mode: ")),
-                              ui.create_combo_box(items=["Spectrum", "Spectrum TR"],  current_index="@binding(tp3mode_item.value)"), ui.create_stretch())
+                              ui.create_combo_box(items_ref="@binding(tp3mode_items)",  current_index="@binding(tp3mode_item.value)"), ui.create_stretch())
 
         tp3_column = ui.create_column(current_column, delay_row, width_row, tp3mode, spacing=2)
         tp3_group = ui.create_group(tp3_column, title=_("TimePix3"))

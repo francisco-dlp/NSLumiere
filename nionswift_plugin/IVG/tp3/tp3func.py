@@ -13,8 +13,12 @@ from nion.swift.model import HardwareSource
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
+ISI_CHANNELS = 200
 SPIM_SIZE = 1025 + 200
+RAW4D_PIXELS_X = 1024
+RAW4D_PIXELS_Y = 256
 SPEC_SIZE = 1025
+SPEC_SIZE_Y = 256
 
 
 SAVE_PATH = "file:/media/asi/Data21/TP3_Data"
@@ -52,6 +56,8 @@ class Timepix3Configurations():
         self.time_resolved = None
         self.frame_based = None
         self.save_locally = None
+        self.event_based_type = None #0 is for standard. 1 is for coincidence values. 2 is for raw 4D data
+        self.is_isibox_connected = None
 
     def create_configuration_bytes(self):
         config_bytes = b''
@@ -73,6 +79,14 @@ class Timepix3Configurations():
         else:
             config_bytes += b'\x00'
 
+        if self.mode == 2: #This is the standard event_based measurement.
+            if self.event_based_type == 0:
+                self.mode = 2
+            if self.event_based_type == 1:
+                self.mode = 12
+            if self.event_based_type == 2:
+                self.mode = 13
+                #self.mode = 13 #Live Raw 4D
         config_bytes += bytes([self.mode])
 
         config_bytes += self.sizex.to_bytes(2, 'big')
@@ -832,7 +846,10 @@ class TimePix3():
         pass
 
     def setTp3Mode(self, value):
-        pass
+        self.__detector_config.event_based_type = value
+
+    def getTp3Modes(self):
+        return ['Standard', 'Coincidence', 'Raw 4D Image']
 
     def start_listening(self, port=8088, message=1):
         """
@@ -949,7 +966,7 @@ class TimePix3():
         if self.__detector_config.soft_binning:
             array_size = SPEC_SIZE
         else:
-            array_size = SPEC_SIZE * 256
+            array_size = SPEC_SIZE * SPEC_SIZE_Y
         if self.__detector_config.bitdepth == 8:
             dt = numpy.dtype(numpy.int8).newbyteorder('<')
         if self.__detector_config.bitdepth == 16:
@@ -1092,13 +1109,19 @@ class TimePix3():
         except ConnectionRefusedError:
             return False
 
-        max_val = max(self.__detector_config.scan_sizex, self.__detector_config.scan_sizey)
-        array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPIM_SIZE
-        if max_val <= 64:
-            self.__spimData = numpy.zeros(array_size, dtype=numpy.uint32)
-        elif max_val <= 1024:
-            self.__spimData = numpy.zeros(array_size, dtype=numpy.uint16)
-        else:
+        if self.__detector_config.event_based_type == 0 or self.__detector_config.event_based_type == 1:
+            dt = numpy.dtype(numpy.uint32).newbyteorder('<')
+            max_val = max(self.__detector_config.scan_sizex, self.__detector_config.scan_sizey)
+            array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPIM_SIZE
+            if max_val <= 64:
+                self.__spimData = numpy.zeros(array_size, dtype=numpy.uint32)
+            elif max_val <= 1024:
+                self.__spimData = numpy.zeros(array_size, dtype=numpy.uint16)
+            else:
+                self.__spimData = numpy.zeros(array_size, dtype=numpy.uint8)
+        elif self.__detector_config.event_based_type == 2:
+            dt = numpy.dtype(numpy.uint64).newbyteorder('<')
+            array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * RAW4D_PIXELS_Y * RAW4D_PIXELS_X
             self.__spimData = numpy.zeros(array_size, dtype=numpy.uint8)
 
         client.send(config_bytes)
@@ -1106,7 +1129,6 @@ class TimePix3():
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
         if message == 2:
             while True:
-                dt = numpy.dtype(numpy.uint32).newbyteorder('<')
                 try:
                     read, _, _ = select.select(inputs, outputs, inputs)
                     for s in read:
@@ -1116,9 +1138,9 @@ class TimePix3():
                             return
 
                         #Checking if its a multiple of 4 bytes (32 bit)
-                        q = len(packet_data) % 4
+                        q = len(packet_data) % 8
                         if q:
-                            packet_data += s.recv(4 - q)
+                            packet_data += s.recv(8 - q)
 
                         try:
                             event_list = numpy.frombuffer(packet_data, dtype=dt)
@@ -1236,10 +1258,14 @@ class TimePix3():
         if self.__detector_config.soft_binning:
             return self.__specData
         else:
-            return self.__specData.reshape((256, SPEC_SIZE))
+            return self.__specData.reshape((SPEC_SIZE_Y, SPEC_SIZE))
 
     def create_spimimage(self):
-        return self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPIM_SIZE))
+        if self.__detector_config.event_based_type == 0 or self.__detector_config.event_based_type == 1:
+            return self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPIM_SIZE))
+        else:
+            return self.__spimData.reshape(
+                (RAW4D_PIXELS_X, RAW4D_PIXELS_Y, self.__detector_config.scan_sizey, self.__detector_config.scan_sizex))
 
     def create_spimimage_frame(self):
         return (self.spim_frame, self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPEC_SIZE)))
