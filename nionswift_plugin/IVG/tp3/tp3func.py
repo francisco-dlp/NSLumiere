@@ -18,6 +18,7 @@ SPIM_SIZE = 1025 + 200
 RAW4D_PIXELS_X = 1024
 RAW4D_PIXELS_Y = 256
 SPEC_SIZE = 1025
+SPEC_SIZE_ISI = 1025 + 200
 SPEC_SIZE_Y = 256
 
 
@@ -56,8 +57,10 @@ class Timepix3Configurations():
         self.time_resolved = None
         self.frame_based = None
         self.save_locally = None
-        self.event_based_type = None #0 is for standard. 1 is for coincidence values. 2 is for raw 4D data
-        self.is_isibox_connected = None
+
+        #self.spimData = None
+        #self.specData = None
+        self.data = None
 
     def create_configuration_bytes(self):
         config_bytes = b''
@@ -79,14 +82,6 @@ class Timepix3Configurations():
         else:
             config_bytes += b'\x00'
 
-        if self.mode == 2: #This is the standard event_based measurement.
-            if self.event_based_type == 0:
-                self.mode = 2
-            if self.event_based_type == 1:
-                self.mode = 12
-            if self.event_based_type == 2:
-                self.mode = 13
-                #self.mode = 13 #Live Raw 4D
         config_bytes += bytes([self.mode])
 
         config_bytes += self.sizex.to_bytes(2, 'big')
@@ -109,6 +104,110 @@ class Timepix3Configurations():
         config_bytes += b'\x00'
 
         return config_bytes
+
+    def get_array_size(self):
+        if self.mode == 0:
+            if self.soft_binning:
+                return SPEC_SIZE
+            else:
+                return SPEC_SIZE * SPEC_SIZE_Y
+        elif self.mode == 6 or self.mode == 7:
+            return SPEC_SIZE * self.sizex
+        elif self.mode == 2 or self.mode == 12:
+            return self.scan_sizex * self.scan_sizey * SPIM_SIZE
+        elif self.mode == 13:
+            return self.scan_sizex * self.scan_sizey * RAW4D_PIXELS_Y * RAW4D_PIXELS_X
+        else:
+            raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_array_size.")
+
+    def get_data_type(self):
+        if self.mode == 2 or self.mode == 12:
+            return numpy.dtype(numpy.uint32).newbyteorder('<')
+        elif self.mode == 13:
+            return numpy.dtype(numpy.uint64).newbyteorder('<')
+        elif self.mode == 0 or self.mode == 6 or self.mode == 7:
+            if self.bitdepth == 8:
+                return numpy.dtype(numpy.int8).newbyteorder('<')
+            elif self.bitdepth == 16:
+                return numpy.dtype(numpy.int16).newbyteorder('<')
+            elif self.bitdepth == 32:
+                return numpy.dtype(numpy.int32).newbyteorder('<')
+        else:
+            raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_data_type.")
+
+    def get_data(self):
+        data_depth = self.get_data_type()
+        array_size = self.get_array_size()
+        if self.mode == 2 or self.mode == 12:
+            max_val = max(self.scan_sizex, self.scan_sizey)
+            if max_val <= 64:
+                self.data = numpy.zeros(array_size, dtype=numpy.uint32)
+            elif max_val <= 1024:
+                self.data = numpy.zeros(array_size, dtype=numpy.uint16)
+            else:
+                self.data = numpy.zeros(array_size, dtype=numpy.uint8)
+        elif self.mode == 13:
+            self.data = numpy.zeros(array_size, dtype=numpy.uint8)
+        elif self.mode == 0 or self.mode == 6 or self.mode == 7:
+            self.data = numpy.zeros(array_size, dtype=data_depth)
+        else:
+            raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_data.")
+        return self.data
+    #def get_spec_array(self):
+    #    array_size = self.get_array_size()
+    #    data_depth = self.get_data_type()
+    #    self.specData = numpy.zeros(array_size, dtype=data_depth)
+    #    return self.specData
+    #def get_spim_array(self):
+    #    array_size = self.get_array_size()
+    #    if self.mode == 2 or self.mode == 12:
+    #        max_val = max(self.scan_sizex, self.scan_sizey)
+    #        if max_val <= 64:
+    #            self.spimData = numpy.zeros(array_size, dtype=numpy.uint32)
+    #        elif max_val <= 1024:
+    #            self.spimData = numpy.zeros(array_size, dtype=numpy.uint16)
+    #        else:
+    #            self.spimData = numpy.zeros(array_size, dtype=numpy.uint8)
+    #    elif self.mode == 13:
+    #        self.spimData = numpy.zeros(array_size, dtype=numpy.uint8)
+    #    else:
+    #        raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_spim_array.")
+    #    return self.spimData
+
+    def create_reshaped_array(self):
+        if self.mode == 6 or self.mode == 7:
+            return self.data.reshape((self.sizex, SPEC_SIZE))
+        elif self.mode == 0:
+            if self.soft_binning:
+                return self.data.reshape((SPEC_SIZE))
+            else:
+                return self.data.reshape((SPEC_SIZE_Y, SPEC_SIZE))
+        elif self.mode == 2 or self.mode == 12:
+            return self.data.reshape((self.scan_sizey, self.scan_sizex, SPIM_SIZE))
+        elif self.mode == 13:
+            return self.data.reshape(
+                (RAW4D_PIXELS_X, RAW4D_PIXELS_Y, self.scan_sizey, self.scan_sizex))
+        else:
+            raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in spimimage.")
+    #def create_spimimage(self):
+    #    if self.mode == 2 or self.mode == 12:
+    #        return self.spimData.reshape((self.scan_sizey, self.scan_sizex, SPIM_SIZE))
+    #    elif self.mode == 13:
+    #        return self.spimData.reshape(
+    #            (RAW4D_PIXELS_X, RAW4D_PIXELS_Y, self.scan_sizey, self.scan_sizex))
+    #    else:
+    #        raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in spimimage.")
+
+    #def create_specimage(self):
+    #    if self.mode == 6 or self.mode == 7:
+    #        return self.specData.reshape((self.sizex, SPEC_SIZE))
+    #    elif self.mode == 0:
+    #        if self.soft_binning:
+    #            return self.specData.reshape((SPEC_SIZE))
+    #        else:
+    #            return self.specData.reshape((SPEC_SIZE_Y, SPEC_SIZE))
+    #    else:
+    #        raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in specimage.")
 
 
 class TimePix3():
@@ -133,6 +232,7 @@ class TimePix3():
         self.__port = 0
         self.__delay = 0.
         self.__width = 0.
+        self.__subMode = 0.
         self.__simul = simul
         self.__isReady = threading.Event()
         self.sendmessage = message
@@ -551,7 +651,7 @@ class TimePix3():
         self.__detector_config.twidth = int(self.__width)
         self.__detector_config.save_locally = (self.__port == 1)
 
-        message = 2
+        message = 3
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE":
@@ -585,6 +685,12 @@ class TimePix3():
 
         self.__detector_config.soft_binning = True
         self.__detector_config.mode = 2
+        if self.__subMode == 0: #Standard
+            self.__detector_config.mode = 2
+        elif self.__subMode == 1: #Event-based in coincidence
+            self.__detector_config.mode = 12
+        elif self.__subMode == 2: #Event-based using raw 4D data
+            self.__detector_config.mode = 13
         self.__detector_config.is_cumul = False
         if self.__port == 3:
             self.__detector_config.mode = 8
@@ -846,7 +952,7 @@ class TimePix3():
         pass
 
     def setTp3Mode(self, value):
-        self.__detector_config.event_based_type = value
+        self.__subMode = value
 
     def getTp3Modes(self):
         return ['Standard', 'Coincidence', 'Raw 4D Image']
@@ -963,17 +1069,23 @@ class TimePix3():
 
         #Setting few properties and sending the configuration bytes to the detector
         cam_properties = dict()
-        if self.__detector_config.soft_binning:
-            array_size = SPEC_SIZE
-        else:
-            array_size = SPEC_SIZE * SPEC_SIZE_Y
-        if self.__detector_config.bitdepth == 8:
-            dt = numpy.dtype(numpy.int8).newbyteorder('<')
-        if self.__detector_config.bitdepth == 16:
-            dt = numpy.dtype(numpy.int16).newbyteorder('<')
-        if self.__detector_config.bitdepth == 32:
-            dt = numpy.dtype(numpy.int32).newbyteorder('<')
-        self.__specData = numpy.zeros(array_size, dtype=dt)
+        #if self.__detector_config.soft_binning:
+        #    array_size = SPEC_SIZE
+        #else:
+        #    array_size = SPEC_SIZE * SPEC_SIZE_Y
+        #if self.__detector_config.bitdepth == 8:
+        #    dt = numpy.dtype(numpy.int8).newbyteorder('<')
+        #if self.__detector_config.bitdepth == 16:
+        #    dt = numpy.dtype(numpy.int16).newbyteorder('<')
+        #if self.__detector_config.bitdepth == 32:
+        #    dt = numpy.dtype(numpy.int32).newbyteorder('<')
+        array_size = self.__detector_config.get_array_size()
+        dt = self.__detector_config.get_data_type()
+        #print(array_size)
+        #self.__specData = numpy.zeros(array_size, dtype=dt)
+
+        #self.__specData = self.__detector_config.get_spec_array()
+        self.__specData = self.__detector_config.get_data()
 
         if message == 2:
             self.spim_frame = 0
@@ -982,7 +1094,6 @@ class TimePix3():
             self.__spimData = numpy.zeros(spim_array_size, dtype=numpy.uint32)
 
         client.send(config_bytes)
-
 
         def check_string_value(header, prop):
             """
@@ -1109,21 +1220,9 @@ class TimePix3():
         except ConnectionRefusedError:
             return False
 
-        if self.__detector_config.event_based_type == 0 or self.__detector_config.event_based_type == 1:
-            dt = numpy.dtype(numpy.uint32).newbyteorder('<')
-            max_val = max(self.__detector_config.scan_sizex, self.__detector_config.scan_sizey)
-            array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPIM_SIZE
-            if max_val <= 64:
-                self.__spimData = numpy.zeros(array_size, dtype=numpy.uint32)
-            elif max_val <= 1024:
-                self.__spimData = numpy.zeros(array_size, dtype=numpy.uint16)
-            else:
-                self.__spimData = numpy.zeros(array_size, dtype=numpy.uint8)
-        elif self.__detector_config.event_based_type == 2:
-            dt = numpy.dtype(numpy.uint64).newbyteorder('<')
-            array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * RAW4D_PIXELS_Y * RAW4D_PIXELS_X
-            self.__spimData = numpy.zeros(array_size, dtype=numpy.uint8)
-
+        dt = self.__detector_config.get_data_type()
+        #self.__spimData = self.__detector_config.get_spim_array()
+        self.__spimData = self.__detector_config.get_data()
         client.send(config_bytes)
 
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
@@ -1255,17 +1354,12 @@ class TimePix3():
         return cur_pa
 
     def create_specimage(self):
-        if self.__detector_config.soft_binning:
-            return self.__specData
-        else:
-            return self.__specData.reshape((SPEC_SIZE_Y, SPEC_SIZE))
+        #return self.__detector_config.create_specimage()
+        return self.__detector_config.create_reshaped_array()
 
     def create_spimimage(self):
-        if self.__detector_config.event_based_type == 0 or self.__detector_config.event_based_type == 1:
-            return self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPIM_SIZE))
-        else:
-            return self.__spimData.reshape(
-                (RAW4D_PIXELS_X, RAW4D_PIXELS_Y, self.__detector_config.scan_sizey, self.__detector_config.scan_sizex))
+        #return self.__detector_config.create_spimimage()
+        return self.__detector_config.create_reshaped_array()
 
     def create_spimimage_frame(self):
         return (self.spim_frame, self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPEC_SIZE)))
