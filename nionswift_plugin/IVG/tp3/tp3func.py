@@ -695,8 +695,8 @@ class TimePix3():
         self.__detector_config.sizex, self.__detector_config.sizey = self.get_scan_size()
         self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
-        self.__detector_config.tdelay = self.__delay
-        self.__detector_config.twidth = self.__width
+        self.__detector_config.tdelay = int(self.__delay)
+        self.__detector_config.twidth = int(self.__width)
         self.__detector_config.save_locally = (self.__port == 1)
 
         message = 4
@@ -706,7 +706,7 @@ class TimePix3():
         elif self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_4dlistening_from_scan(port, message=message)
+            self.start_4dlistening_from_scan(port)
             return True
 
     def stopFocus(self):
@@ -1078,7 +1078,7 @@ class TimePix3():
                 read, _, _ = select.select(inputs, outputs, inputs)
                 for s in read:
                     if s == inputs[0]:
-                        packet_data = s.recv(128)
+                        packet_data = s.recv(BUFFER_SIZE)
                         if packet_data == b'': return
                         while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
                             temp = s.recv(BUFFER_SIZE)
