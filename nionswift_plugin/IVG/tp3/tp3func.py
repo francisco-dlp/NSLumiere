@@ -103,20 +103,44 @@ class Timepix3Configurations():
 
         return config_bytes
 
+    #def get_array_size(self):
+    #    if self.mode == 0:
+    #        if self.soft_binning:
+    #            return SPEC_SIZE
+    #        else:
+    #            return SPEC_SIZE * SPEC_SIZE_Y
+    #    elif self.mode == 6 or self.mode == 7:
+    #        return SPEC_SIZE * self.sizex
+    #    elif self.mode == 2 or self.mode == 12:
+    #        return self.scan_sizex * self.scan_sizey * SPIM_SIZE
+    #    elif self.mode == 13:
+    #        return self.scan_sizex * self.scan_sizey * RAW4D_PIXELS_Y * RAW4D_PIXELS_X
+    #    else:
+    #        raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_array_size.")
+
     def get_array_size(self):
-        if self.mode == 0:
+        shape = self.get_array_shape()
+        array_size = 1
+        try:
+            for val in shape:
+                array_size *= val
+        except TypeError:
+            array_size = shape
+        return array_size
+    def get_array_shape(self):
+        if self.mode == 6 or self.mode == 7:
+            return (self.sizex, SPEC_SIZE)
+        elif self.mode == 0:
             if self.soft_binning:
-                return SPEC_SIZE
+                return (SPEC_SIZE)
             else:
-                return SPEC_SIZE * SPEC_SIZE_Y
-        elif self.mode == 6 or self.mode == 7:
-            return SPEC_SIZE * self.sizex
+                return (SPEC_SIZE_Y, SPEC_SIZE)
         elif self.mode == 2 or self.mode == 12:
-            return self.scan_sizex * self.scan_sizey * SPIM_SIZE
+            return (self.scan_sizey, self.scan_sizex, SPIM_SIZE)
         elif self.mode == 13:
-            return self.scan_sizex * self.scan_sizey * RAW4D_PIXELS_Y * RAW4D_PIXELS_X
+            return (RAW4D_PIXELS_X, RAW4D_PIXELS_Y, self.scan_sizey, self.scan_sizex)
         else:
-            raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_array_size.")
+            raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in spimimage.")
 
     def get_data_type(self):
         if self.mode == 2 or self.mode == 12:
@@ -153,22 +177,8 @@ class Timepix3Configurations():
         return self.data
 
     def create_reshaped_array(self):
-        if self.mode == 6 or self.mode == 7:
-            return self.data.reshape((self.sizex, SPEC_SIZE))
-        elif self.mode == 0:
-            if self.soft_binning:
-                return self.data.reshape((SPEC_SIZE))
-            else:
-                return self.data.reshape((SPEC_SIZE_Y, SPEC_SIZE))
-        elif self.mode == 2 or self.mode == 12:
-            return self.data.reshape((self.scan_sizey, self.scan_sizex, SPIM_SIZE))
-        elif self.mode == 13:
-            return self.data.reshape(
-                (RAW4D_PIXELS_X, RAW4D_PIXELS_Y, self.scan_sizey, self.scan_sizex))
-        else:
-            raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in spimimage.")
-
-
+        shape = self.get_array_shape()
+        return self.data.reshape(shape)
 
 class TimePix3():
 
