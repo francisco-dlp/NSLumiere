@@ -103,22 +103,7 @@ class Timepix3Configurations():
 
         return config_bytes
 
-    #def get_array_size(self):
-    #    if self.mode == 0:
-    #        if self.soft_binning:
-    #            return SPEC_SIZE
-    #        else:
-    #            return SPEC_SIZE * SPEC_SIZE_Y
-    #    elif self.mode == 6 or self.mode == 7:
-    #        return SPEC_SIZE * self.sizex
-    #    elif self.mode == 2 or self.mode == 12:
-    #        return self.scan_sizex * self.scan_sizey * SPIM_SIZE
-    #    elif self.mode == 13:
-    #        return self.scan_sizex * self.scan_sizey * RAW4D_PIXELS_Y * RAW4D_PIXELS_X
-    #    else:
-    #        raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_array_size.")
-
-    def get_array_size(self):
+    def _get_array_size(self):
         shape = self.get_array_shape()
         array_size = 1
         try:
@@ -127,6 +112,7 @@ class Timepix3Configurations():
         except TypeError:
             array_size = shape
         return array_size
+
     def get_array_shape(self):
         if self.mode == 6 or self.mode == 7:
             return (self.sizex, SPEC_SIZE)
@@ -135,31 +121,30 @@ class Timepix3Configurations():
                 return (SPEC_SIZE)
             else:
                 return (SPEC_SIZE_Y, SPEC_SIZE)
+        elif self.mode == 3:
+            return (self.scan_sizey, self.scan_sizex, NUMBER_OF_MASKS)
         elif self.mode == 2 or self.mode == 12:
             return (self.scan_sizey, self.scan_sizex, SPIM_SIZE)
+        elif self.mode == 11: #Frame based measurement
+            return (self.scan_sizey, self.scan_sizex, SPEC_SIZE)
         elif self.mode == 13:
             return (RAW4D_PIXELS_X, RAW4D_PIXELS_Y, self.scan_sizey, self.scan_sizex)
         else:
             raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in spimimage.")
 
-    def get_data_type(self):
-        if self.mode == 2 or self.mode == 12:
+    def get_data_receive_type(self):
+        if self.bitdepth == 8:
+            return numpy.dtype(numpy.uint8).newbyteorder('<')
+        elif self.bitdepth == 16:
+            return numpy.dtype(numpy.uint16).newbyteorder('<')
+        elif self.bitdepth == 32:
             return numpy.dtype(numpy.uint32).newbyteorder('<')
-        elif self.mode == 13:
+        elif self.bitdepth == 64:
             return numpy.dtype(numpy.uint64).newbyteorder('<')
-        elif self.mode == 0 or self.mode == 6 or self.mode == 7:
-            if self.bitdepth == 8:
-                return numpy.dtype(numpy.int8).newbyteorder('<')
-            elif self.bitdepth == 16:
-                return numpy.dtype(numpy.int16).newbyteorder('<')
-            elif self.bitdepth == 32:
-                return numpy.dtype(numpy.int32).newbyteorder('<')
-        else:
-            raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_data_type.")
 
     def get_data(self):
-        data_depth = self.get_data_type()
-        array_size = self.get_array_size()
+        data_depth = self.get_data_receive_type()
+        array_size = self._get_array_size()
         if self.mode == 2 or self.mode == 12:
             max_val = max(self.scan_sizex, self.scan_sizey)
             if max_val <= 64:
@@ -170,7 +155,7 @@ class Timepix3Configurations():
                 self.data = numpy.zeros(array_size, dtype=numpy.uint8)
         elif self.mode == 13:
             self.data = numpy.zeros(array_size, dtype=numpy.uint8)
-        elif self.mode == 0 or self.mode == 6 or self.mode == 7:
+        elif self.mode == 0 or self.mode == 3 or self.mode == 6 or self.mode == 7 or self.mode == 11:
             self.data = numpy.zeros(array_size, dtype=data_depth)
         else:
             raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_data.")
@@ -191,7 +176,7 @@ class TimePix3():
         self.success = False
         self.__serverURL = url
         self.__camIP = url[fst_string+7:sec_string]
-        self.__specData = None
+        self.__data = None
         self.__spimData = None
         self.__detector_config = Timepix3Configurations()
 
@@ -706,7 +691,7 @@ class TimePix3():
         self.__detector_config.is_cumul = False
         if self.__port == 3:
             self.__detector_config.mode = 8
-        self.__detector_config.bitdepth = 32
+        self.__detector_config.bitdepth = 16
         self.__detector_config.sizex, self.__detector_config.sizey = self.get_scan_size()
         self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
@@ -940,15 +925,15 @@ class TimePix3():
         Starts the client Thread and sets isPlaying to True.
         """
         self.__isPlaying = True
-        self.__clientThread = threading.Thread(target=self.acquire_streamed_frame_from_scan, args=(port, message,))
+        self.__clientThread = threading.Thread(target=self.acquire_streamed_frame_from_scan, args=(port,))
         self.__clientThread.start()
 
-    def start_4dlistening_from_scan(self, port=8088, message=1):
+    def start_4dlistening_from_scan(self, port=8088):
         """
         Starts the client Thread and sets isPlaying to True.
         """
         self.__isPlaying = True
-        self.__clientThread = threading.Thread(target=self.acquire_4dstreamed_frame_from_scan_frame, args=(port, message,))
+        self.__clientThread = threading.Thread(target=self.acquire_4dstreamed_frame_from_scan_frame, args=(port,))
         self.__clientThread.start()
 
 
@@ -1040,14 +1025,16 @@ class TimePix3():
         #Setting few properties and sending the configuration bytes to the detector
         cam_properties = dict()
 
-        dt = self.__detector_config.get_data_type()
-        self.__specData = self.__detector_config.get_data()
+        dt = self.__detector_config.get_data_receive_type()
+        self.__data = self.__detector_config.get_data()
+        self.spim_frame = 0
 
-        if message == 2:
-            self.spim_frame = 0
-            spim_array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPEC_SIZE
-            number_of_spec = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey
-            self.__spimData = numpy.zeros(spim_array_size, dtype=numpy.uint32)
+        #Frame_based spectral image
+        #if message == 2:
+        #    self.spim_frame = 0
+        #    spim_array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPEC_SIZE
+        #    number_of_spec = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey
+        #    self.__spimData = numpy.zeros(spim_array_size, dtype=numpy.uint32)
 
         client.send(config_bytes)
 
@@ -1086,213 +1073,208 @@ class TimePix3():
                     f'***TP3***: Problem in size/len assertion. Properties are {cam_properties} and data is {len(frame)}')
                 return False
 
-        if message == 1 or message == 2 or message == 3:
-            while True:
-                try:
-                    read, _, _ = select.select(inputs, outputs, inputs)
-                    for s in read:
-                        if s == inputs[0]:
-                            packet_data = s.recv(128)
-                            if packet_data == b'': return
-                            while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
-                                temp = s.recv(BUFFER_SIZE)
-                                if temp == b'':
-                                    return
-                                else:
-                                    packet_data += temp
+        while True:
+            try:
+                read, _, _ = select.select(inputs, outputs, inputs)
+                for s in read:
+                    if s == inputs[0]:
+                        packet_data = s.recv(128)
+                        if packet_data == b'': return
+                        while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
+                            temp = s.recv(BUFFER_SIZE)
+                            if temp == b'':
+                                return
+                            else:
+                                packet_data += temp
 
-                            begin_header = packet_data.index(b'{"time')
-                            end_header = packet_data.index(b'}\n', begin_header)
-                            header = packet_data[begin_header:end_header + 1].decode('latin-1')
+                        begin_header = packet_data.index(b'{"time')
+                        end_header = packet_data.index(b'}\n', begin_header)
+                        header = packet_data[begin_header:end_header + 1].decode('latin-1')
 
-                            for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth",
-                                               "width",
-                                               "height"]:
-                                cam_properties[properties] = (check_string_value(header, properties))
+                        for properties in ["timeAtFrame", "frameNumber", "measurementID", "dataSize", "bitDepth",
+                                           "width",
+                                           "height"]:
+                            cam_properties[properties] = (check_string_value(header, properties))
 
-                            data_size = int(cam_properties['dataSize'])
+                        data_size = int(cam_properties['dataSize'])
 
-                            assert (begin_header == 0)
-                            how_many_more_bytes = data_size + len(header) - len(packet_data) + 1
-                            while how_many_more_bytes != 0:
-                                bytes_to_receive = min(BUFFER_SIZE, how_many_more_bytes)
-                                packet_data += s.recv(bytes_to_receive)
-                                how_many_more_bytes = data_size + len(header) - len(packet_data) + 1
-
-                            frame_data = packet_data[end_header + 2:end_header + 2 + data_size]
-
-                            event_list = numpy.frombuffer(frame_data, dtype=dt)
-                            if message == 1 or message == 3:
-                                self.__specData[:] = event_list[:]
-                                check_data_and_send_message(cam_properties, frame_data)
-                            if message == 2:
-                                self.spim_frame = min(cam_properties['frameNumber'], number_of_spec)
-                                self.__spimData[:] = event_list[:]
-                                self.sendmessage(2)
-                                if cam_properties['frameNumber'] >= self.__detector_config.scan_sizex * self.__detector_config.scan_sizey:
-                                    logging.info("***TP3***: Spim is over. Closing connection.")
-                                    return
-
-
-                except ConnectionResetError:
-                    logging.info("***TP3***: Socket reseted. Closing connection.")
-                    return
-                if not self.__isPlaying:
-                    return
-        return
-
-    def acquire_streamed_frame_from_scan(self, port, message):
-        """
-        Main client function. Main loop is explained below.
-
-        Client is a socket connected to camera in host computer 129.175.108.52. Port depends on which kind of data you
-        are listening on. After connection, timeout is set to 5 ms, which is camera current dead time. cam_properties
-        is a dict containing all info camera sends through tcp (the header); frame_data is the frame; buffer_size is how
-        many bytes we collect within each loop interaction; frame_number is the frame counter and frame_time is when the
-        whole frame began.
-
-        check string value is a convenient function to detect the values using the header standard format for jsonimage.
-        """
-
-        config_bytes = self.__detector_config.create_configuration_bytes()
-
-        inputs = list()
-        outputs = list()
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        """
-        127.0.0.1 -> LocalHost;
-        129.175.108.58 -> Patrick;
-        129.175.81.162 -> My personal Dell PC;
-        192.0.0.11 -> My old personal (outside lps.intra);
-        192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
-        129.175.108.52 -> CheeTah
-        """
-        ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname(self.__camIP)
-        address = (ip, port)
-        try:
-            client.connect(address)
-            logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
-            inputs.append(client)
-        except ConnectionRefusedError:
-            return False
-
-        dt = self.__detector_config.get_data_type()
-        self.__spimData = self.__detector_config.get_data()
-        client.send(config_bytes)
-
-        self.__isReady.set() #This waits until spimData is created so scan can have access to it.
-        if message == 2:
-            while True:
-                try:
-                    read, _, _ = select.select(inputs, outputs, inputs)
-                    for s in read:
-                        packet_data = s.recv(BUFFER_SIZE)
-                        if len(packet_data) == 0:
-                            logging.info('***TP3***: No more packets received. Finishing SPIM.')
-                            return
-
-                        #Checking if its a multiple of 4 bytes (32 bit)
-                        q = len(packet_data) % 8
-                        if q:
-                            packet_data += s.recv(8 - q)
-
-                        try:
-                            event_list = numpy.frombuffer(packet_data, dtype=dt)
-                            numba_jit(self.__spimData, event_list)
-                            #self.update_spim(event_list)
-                            #if len(event_list) > 0:
-                                #for val in event_list:
-                                #    self.__spimData[val] += 1
-                                #self.update_spim(event_list)
-                        except ValueError:
-                            logging.info(f'***TP3***: Value error.')
-                        except IndexError:
-                            logging.info(f'***TP3***: Indexing error.')
-
-                except ConnectionResetError:
-                    logging.info("***TP3***: Socket reseted. Closing connection.")
-                    return
-
-                if not self.__isPlaying:
-                    logging.info('***TP3***: Finishing SPIM.')
-                    return
-        return
-
-    def acquire_4dstreamed_frame_from_scan_frame(self, port, message):
-        """
-        Main client function. Main loop is explained below.
-
-        Client is a socket connected to camera in host computer 129.175.108.52. Port depends on which kind of data you
-        are listening on. After connection, timeout is set to 5 ms, which is camera current dead time. cam_properties
-        is a dict containing all info camera sends through tcp (the header); frame_data is the frame; buffer_size is how
-        many bytes we collect within each loop interaction; frame_number is the frame counter and frame_time is when the
-        whole frame began.
-
-        check string value is a convenient function to detect the values using the header standard format for jsonimage.
-        """
-        config_bytes = self.__detector_config.create_configuration_bytes()
-
-        inputs = list()
-        outputs = list()
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        """
-        127.0.0.1 -> LocalHost;
-        129.175.108.58 -> Patrick;
-        129.175.81.162 -> My personal Dell PC;
-        192.0.0.11 -> My old personal (outside lps.intra);
-        192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
-        129.175.108.52 -> CheeTah
-        """
-        ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname(self.__camIP)
-        address = (ip, port)
-        try:
-            client.connect(address)
-            logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
-            inputs.append(client)
-        except ConnectionRefusedError:
-            return False
-
-        array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * NUMBER_OF_MASKS
-        self.__spimData = numpy.zeros(array_size, dtype=numpy.int16)
-        client.send(config_bytes)
-
-        self.__isReady.set() #This waits until spimData is created so scan can have access to it.
-        if message == 4:
-            while True:
-                dt = numpy.dtype(numpy.int16).newbyteorder('<')
-                try:
-                    read, _, _ = select.select(inputs, outputs, inputs)
-                    for s in read:
-                        packet_data = s.recv(BUFFER_SIZE)
-
-                        if len(packet_data) == 0:
-                            logging.info('***TP3***: No more packets received. Finishing SPIM.')
-                            return
-
-                        how_many_more_bytes = self.__detector_config.scan_sizex * \
-                                              self.__detector_config.scan_sizey * \
-                                              NUMBER_OF_MASKS * 2 - len(packet_data)
+                        assert (begin_header == 0)
+                        how_many_more_bytes = data_size + len(header) - len(packet_data) + 1
                         while how_many_more_bytes != 0:
                             bytes_to_receive = min(BUFFER_SIZE, how_many_more_bytes)
                             packet_data += s.recv(bytes_to_receive)
-                            how_many_more_bytes = self.__detector_config.scan_sizex * \
-                                                  self.__detector_config.scan_sizey * \
-                                                  NUMBER_OF_MASKS * 2 - len(packet_data)
-                        try:
-                            event_list = numpy.frombuffer(packet_data, dtype=dt)
-                            self.__spimData[:] = event_list[:]
-                        except ValueError:
-                            logging.info(f'***TP3***: Value error.')
-                        except IndexError:
-                            logging.info(f'***TP3***: Indexing error.')
+                            how_many_more_bytes = data_size + len(header) - len(packet_data) + 1
 
-                except ConnectionResetError:
-                    logging.info("***TP3***: Socket reseted. Closing connection.")
-                    return
+                        frame_data = packet_data[end_header + 2:end_header + 2 + data_size]
 
-                if not self.__isPlaying:
-                    logging.info('***TP3***: Finishing SPIM.')
-                    return
+                        event_list = numpy.frombuffer(frame_data, dtype=dt)
+                        self.__data[:] = event_list[:]
+                        if message == 1 or message == 3:
+                            check_data_and_send_message(cam_properties, frame_data)
+                        if message == 2:
+                            self.spim_frame = min(cam_properties['frameNumber'], number_of_spec)
+                            self.sendmessage(2)
+                            if cam_properties['frameNumber'] >= self.__detector_config.scan_sizex * self.__detector_config.scan_sizey:
+                                logging.info("***TP3***: Spim is over. Closing connection.")
+                                return
+
+
+            except ConnectionResetError:
+                logging.info("***TP3***: Socket reseted. Closing connection.")
+                return
+            if not self.__isPlaying:
+                return
+        return
+
+    def acquire_streamed_frame_from_scan(self, port):
+        """
+        Main client function. Main loop is explained below.
+
+        Client is a socket connected to camera in host computer 129.175.108.52. Port depends on which kind of data you
+        are listening on. After connection, timeout is set to 5 ms, which is camera current dead time. cam_properties
+        is a dict containing all info camera sends through tcp (the header); frame_data is the frame; buffer_size is how
+        many bytes we collect within each loop interaction; frame_number is the frame counter and frame_time is when the
+        whole frame began.
+
+        check string value is a convenient function to detect the values using the header standard format for jsonimage.
+        """
+
+        config_bytes = self.__detector_config.create_configuration_bytes()
+
+        inputs = list()
+        outputs = list()
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        """
+        127.0.0.1 -> LocalHost;
+        129.175.108.58 -> Patrick;
+        129.175.81.162 -> My personal Dell PC;
+        192.0.0.11 -> My old personal (outside lps.intra);
+        192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
+        129.175.108.52 -> CheeTah
+        """
+        ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname(self.__camIP)
+        address = (ip, port)
+        try:
+            client.connect(address)
+            logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
+            inputs.append(client)
+        except ConnectionRefusedError:
+            return False
+
+        dt = self.__detector_config.get_data_receive_type()
+        self.__data = self.__detector_config.get_data()
+        client.send(config_bytes)
+
+        self.__isReady.set() #This waits until spimData is created so scan can have access to it.
+        while True:
+            try:
+                read, _, _ = select.select(inputs, outputs, inputs)
+                for s in read:
+                    packet_data = s.recv(BUFFER_SIZE)
+                    if len(packet_data) == 0:
+                        logging.info('***TP3***: No more packets received. Finishing SPIM.')
+                        return
+
+                    #Checking if its a multiple of 4 bytes (32 bit)
+                    q = len(packet_data) % 8
+                    if q:
+                        packet_data += s.recv(8 - q)
+
+                    try:
+                        event_list = numpy.frombuffer(packet_data, dtype=dt)
+                        numba_jit(self.__data, event_list)
+                        #self.update_spim(event_list)
+                        #if len(event_list) > 0:
+                            #for val in event_list:
+                            #    self.__spimData[val] += 1
+                            #self.update_spim(event_list)
+                    except ValueError:
+                        logging.info(f'***TP3***: Value error.')
+                    except IndexError:
+                        logging.info(f'***TP3***: Indexing error.')
+
+            except ConnectionResetError:
+                logging.info("***TP3***: Socket reseted. Closing connection.")
+                return
+
+            if not self.__isPlaying:
+                logging.info('***TP3***: Finishing SPIM.')
+                return
+        return
+
+    def acquire_4dstreamed_frame_from_scan_frame(self, port):
+        """
+        Main client function. Main loop is explained below.
+
+        Client is a socket connected to camera in host computer 129.175.108.52. Port depends on which kind of data you
+        are listening on. After connection, timeout is set to 5 ms, which is camera current dead time. cam_properties
+        is a dict containing all info camera sends through tcp (the header); frame_data is the frame; buffer_size is how
+        many bytes we collect within each loop interaction; frame_number is the frame counter and frame_time is when the
+        whole frame began.
+
+        check string value is a convenient function to detect the values using the header standard format for jsonimage.
+        """
+        config_bytes = self.__detector_config.create_configuration_bytes()
+
+        inputs = list()
+        outputs = list()
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        """
+        127.0.0.1 -> LocalHost;
+        129.175.108.58 -> Patrick;
+        129.175.81.162 -> My personal Dell PC;
+        192.0.0.11 -> My old personal (outside lps.intra);
+        192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
+        129.175.108.52 -> CheeTah
+        """
+        ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname(self.__camIP)
+        address = (ip, port)
+        try:
+            client.connect(address)
+            logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
+            inputs.append(client)
+        except ConnectionRefusedError:
+            return False
+
+        dt = self.__detector_config.get_data_receive_type()
+        self.__data = self.__detector_config.get_data()
+        client.send(config_bytes)
+
+        self.__isReady.set() #This waits until spimData is created so scan can have access to it.
+        while True:
+            try:
+                read, _, _ = select.select(inputs, outputs, inputs)
+                for s in read:
+                    packet_data = s.recv(BUFFER_SIZE)
+
+                    if len(packet_data) == 0:
+                        logging.info('***TP3***: No more packets received. Finishing SPIM.')
+                        return
+
+                    how_many_more_bytes = self.__detector_config.scan_sizex * \
+                                          self.__detector_config.scan_sizey * \
+                                          NUMBER_OF_MASKS * 2 - len(packet_data)
+                    while how_many_more_bytes != 0:
+                        bytes_to_receive = min(BUFFER_SIZE, how_many_more_bytes)
+                        packet_data += s.recv(bytes_to_receive)
+                        how_many_more_bytes = self.__detector_config.scan_sizex * \
+                                              self.__detector_config.scan_sizey * \
+                                              NUMBER_OF_MASKS * 2 - len(packet_data)
+                    try:
+                        event_list = numpy.frombuffer(packet_data, dtype=dt)
+                        self.__data[:] = event_list[:]
+                    except ValueError:
+                        logging.info(f'***TP3***: Value error.')
+                    except IndexError:
+                        logging.info(f'***TP3***: Indexing error.')
+
+            except ConnectionResetError:
+                logging.info("***TP3***: Socket reseted. Closing connection.")
+                return
+
+            if not self.__isPlaying:
+                logging.info('***TP3***: Finishing SPIM.')
+                return
         return
 
     def update_spim(self, event_list):
@@ -1309,7 +1291,6 @@ class TimePix3():
         return cur_pa
 
     def create_specimage(self):
-        #return self.__detector_config.create_specimage()
         return self.__detector_config.create_reshaped_array()
 
     def create_spimimage(self):
@@ -1320,4 +1301,4 @@ class TimePix3():
         return (self.spim_frame, self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPEC_SIZE)))
 
     def create_4dimage(self):
-        return self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, NUMBER_OF_MASKS))
+        return self.__detector_config.create_reshaped_array()
