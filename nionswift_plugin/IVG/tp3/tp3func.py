@@ -116,8 +116,10 @@ class Timepix3Configurations():
         return array_size
 
     def get_array_shape(self):
-        if self.mode == 6 or self.mode == 7:
+        if self.mode == 6:
             return (self.sizex, SPEC_SIZE)
+        elif self.mode == 7:
+            return (self.twidth * 2, SPEC_SIZE)
         elif self.mode == 0:
             if self.soft_binning:
                 return (SPEC_SIZE)
@@ -556,7 +558,7 @@ class TimePix3():
         # Setting the configurations
         self.__detector_config.soft_binning = True if displaymode == '1d' else False
         self.__detector_config.mode = 6 if mode == 0 else 7
-        self.__detector_config.is_cumul = False
+        self.__detector_config.is_cumul = False if mode == 0 else True
         if self.__port == 3:
             self.__detector_config.mode = 8
         self.__detector_config.bitdepth = 32
