@@ -74,6 +74,8 @@ class Timepix3Configurations():
             config_bytes += b'\x01'
         elif self.bitdepth == 8:
             config_bytes += b'\x00'
+        elif self.bitdepth == 64:
+            config_bytes += b'\x04'
 
         if self.is_cumul:
             config_bytes += b'\x01'
@@ -128,7 +130,7 @@ class Timepix3Configurations():
         elif self.mode == 11: #Frame based measurement
             return (self.scan_sizey, self.scan_sizex, SPEC_SIZE)
         elif self.mode == 13:
-            return (RAW4D_PIXELS_X, RAW4D_PIXELS_Y, self.scan_sizey, self.scan_sizex)
+            return (self.scan_sizey, self.scan_sizex, RAW4D_PIXELS_Y, RAW4D_PIXELS_X)
         else:
             raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in spimimage.")
 
@@ -177,6 +179,7 @@ class TimePix3():
         self.__serverURL = url
         self.__camIP = url[fst_string+7:sec_string]
         self.__data = None
+        self.__frame = 0
         self.__spimData = None
         self.__detector_config = Timepix3Configurations()
 
@@ -427,10 +430,10 @@ class TimePix3():
         return (256, 1024)
 
     def getSpeeds(self, port):
-        return list(['Standard', 'E2', 'E4', 'E6', 'E8', 'E16', 'E32', 'OnlyHotPixels'])
+        return list(['Standard', 'Mask1', 'Mask2', 'Mask3', 'Mask4', 'Mask5', 'Mask6', 'Mask7'])
 
     def getGains(self, port):
-        return list(['Very low', 'Low', '>60 keV (Medium)', '>100 keV (High)', 'Very high'])
+        return list(['Very low', 'Low', 'Medium', 'High', 'Very high'])
 
     def getBinning(self):
         return (1, 1)
@@ -649,7 +652,7 @@ class TimePix3():
         self.__detector_config.is_cumul = False
         if self.__port == 3:
             self.__detector_config.mode = 8
-        self.__detector_config.bitdepth = 32
+        self.__detector_config.bitdepth = 64 if self.__subMode == 2 else 32
         self.__detector_config.sizex, self.__detector_config.sizey = self.get_scan_size()
         self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
@@ -1027,11 +1030,11 @@ class TimePix3():
 
         dt = self.__detector_config.get_data_receive_type()
         self.__data = self.__detector_config.get_data()
-        self.spim_frame = 0
+        self.__frame = 0
 
         #Frame_based spectral image
         #if message == 2:
-        #    self.spim_frame = 0
+        #    self.__frame = 0
         #    spim_array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPEC_SIZE
         #    number_of_spec = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey
         #    self.__spimData = numpy.zeros(spim_array_size, dtype=numpy.uint32)
@@ -1078,7 +1081,7 @@ class TimePix3():
                 read, _, _ = select.select(inputs, outputs, inputs)
                 for s in read:
                     if s == inputs[0]:
-                        packet_data = s.recv(BUFFER_SIZE)
+                        packet_data = s.recv(128)
                         if packet_data == b'': return
                         while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
                             temp = s.recv(BUFFER_SIZE)
@@ -1112,7 +1115,7 @@ class TimePix3():
                         if message == 1 or message == 3:
                             check_data_and_send_message(cam_properties, frame_data)
                         if message == 2:
-                            self.spim_frame = min(cam_properties['frameNumber'], number_of_spec)
+                            self.__frame = min(cam_properties['frameNumber'], number_of_spec)
                             self.sendmessage(2)
                             if cam_properties['frameNumber'] >= self.__detector_config.scan_sizex * self.__detector_config.scan_sizey:
                                 logging.info("***TP3***: Spim is over. Closing connection.")
@@ -1298,7 +1301,7 @@ class TimePix3():
         return self.__detector_config.create_reshaped_array()
 
     def create_spimimage_frame(self):
-        return (self.spim_frame, self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPEC_SIZE)))
+        return (self.__frame, self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPEC_SIZE)))
 
     def create_4dimage(self):
         return self.__detector_config.create_reshaped_array()
