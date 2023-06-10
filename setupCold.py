@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="OrsayCold",
-    version="9.0.9",
+    version="9.1.0",
     author="Yves Auad",
     description="Set of tools to run VG Cold Microscope in Nionswift",
     url="https://github.com/yvesauad/swift_lumiere",

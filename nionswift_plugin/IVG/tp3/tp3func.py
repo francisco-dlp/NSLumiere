@@ -21,11 +21,25 @@ SPEC_SIZE = 1025
 SPEC_SIZE_ISI = 1025 + 200
 SPEC_SIZE_Y = 256
 
-
 SAVE_PATH = "file:/media/asi/Data21/TP3_Data"
 PIXEL_MASK_PATH = '/home/asi/load_files/bpcs/'
 PIXEL_THRESHOLD_PATH = '/home/asi/load_files/dacs/'
 BUFFER_SIZE = 64000
+
+#Modes that we receive a frame
+FRAME = 0
+FASTCHRONO = 6
+COINC_CHRONO = 7
+FRAME_4DMASKED = 3
+#Modes that we receive an event list
+EVENT_HYPERSPEC = 2
+EVENT_HYPERSPEC_COINC = 12
+EVENT_4DRAW = 14
+#Modes in which the detector is in frame-based acquisition
+FRAME_BASED = 10
+HYPERSPEC_FRAME_BASED = 11
+
+
 
 def update_spim_numba(array, event_list):
     for val in event_list:
@@ -116,22 +130,22 @@ class Timepix3Configurations():
         return array_size
 
     def get_array_shape(self):
-        if self.mode == 6:
+        if self.mode == FASTCHRONO:
             return (self.sizex, SPEC_SIZE)
-        elif self.mode == 7:
+        elif self.mode == COINC_CHRONO:
             return (self.twidth * 2, SPEC_SIZE)
-        elif self.mode == 0:
+        elif self.mode == FRAME or self.mode == FRAME_BASED:
             if self.soft_binning:
                 return (SPEC_SIZE)
             else:
                 return (SPEC_SIZE_Y, SPEC_SIZE)
-        elif self.mode == 3:
+        elif self.mode == FRAME_4DMASKED:
             return (self.scan_sizey, self.scan_sizex, NUMBER_OF_MASKS)
-        elif self.mode == 2 or self.mode == 12:
+        elif self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC:
             return (self.scan_sizey, self.scan_sizex, SPIM_SIZE)
-        elif self.mode == 11: #Frame based measurement
+        elif self.mode == HYPERSPEC_FRAME_BASED: #Frame based measurement
             return (self.scan_sizey, self.scan_sizex, SPEC_SIZE)
-        elif self.mode == 13:
+        elif self.mode == EVENT_4DRAW:
             return (self.scan_sizey, self.scan_sizex, RAW4D_PIXELS_Y, RAW4D_PIXELS_X)
         else:
             raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in spimimage.")
@@ -149,7 +163,7 @@ class Timepix3Configurations():
     def get_data(self):
         data_depth = self.get_data_receive_type()
         array_size = self._get_array_size()
-        if self.mode == 2 or self.mode == 12:
+        if self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC:
             max_val = max(self.scan_sizex, self.scan_sizey)
             if max_val <= 64:
                 self.data = numpy.zeros(array_size, dtype=numpy.uint32)
@@ -157,9 +171,11 @@ class Timepix3Configurations():
                 self.data = numpy.zeros(array_size, dtype=numpy.uint16)
             else:
                 self.data = numpy.zeros(array_size, dtype=numpy.uint8)
-        elif self.mode == 13:
+        elif self.mode == EVENT_4DRAW:
             self.data = numpy.zeros(array_size, dtype=numpy.uint8)
-        elif self.mode == 0 or self.mode == 3 or self.mode == 6 or self.mode == 7 or self.mode == 11:
+        elif self.mode == FRAME or self.mode == FRAME_BASED \
+                or self.mode == FRAME_4DMASKED or self.mode == FASTCHRONO \
+                or self.mode == COINC_CHRONO or self.mode == HYPERSPEC_FRAME_BASED:
             self.data = numpy.zeros(array_size, dtype=data_depth)
         else:
             raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_data.")

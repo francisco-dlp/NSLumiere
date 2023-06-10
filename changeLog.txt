@@ -23,3 +23,6 @@
 
 ----- v9.0.6 (01-06-2023) -----
 - Added the typical spectral image. There is still a missing 50% of acquisition that does not go away
+
+----- v9.1.0 (10-06-2023) -----
+- Timepix3 mode choice organized.
