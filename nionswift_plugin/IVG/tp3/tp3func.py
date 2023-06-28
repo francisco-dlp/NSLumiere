@@ -21,9 +21,16 @@ SPEC_SIZE = 1025
 SPEC_SIZE_ISI = 1025 + 200
 SPEC_SIZE_Y = 256
 
+BIAS_VOLTAGE = 140
 SAVE_PATH = "file:/media/asi/Data21/TP3_Data"
 PIXEL_MASK_PATH = '/home/asi/load_files/bpcs/'
 PIXEL_THRESHOLD_PATH = '/home/asi/load_files/dacs/'
+PIXEL_MASK_FILES = ['eq-accos-03_00.bpc', 'eq-accos-03_01.bpc', 'eq-accos-03_02.bpc',
+                    'eq-accos-03_03.bpc', 'eq-accos-03_04.bpc', 'eq-accos-03_05.bpc',
+                    'eq-accos-03_06.bpc', 'eq-accos-03_07.bpc']
+PIXEL_THRESHOLD_FILES = ['eq-accos-03_00.dacs', 'eq-accos-03_01.dacs', 'eq-accos-03_02.dacs',
+                         'eq-accos-03_03.dacs', 'eq-accos-03_04.dacs', 'eq-accos-03_05.dacs',
+                         'eq-accos-03_06.dacs', 'eq-accos-03_07.dacs']
 BUFFER_SIZE = 64000
 
 #Modes that we receive a frame
@@ -224,8 +231,8 @@ class TimePix3():
                     logging.info('***TP3***: Problem initializing Timepix3. Bad status code.')
 
                 # Loading bpc and dacs
-                bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_00.bpc'
-                dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_00.dacs'
+                bpcFile = PIXEL_MASK_PATH + PIXEL_MASK_FILES[0]
+                dacsFile = PIXEL_THRESHOLD_PATH + PIXEL_THRESHOLD_FILES[0]
                 self.cam_init(bpcFile, dacsFile)
                 self.acq_init()
                 self.set_destination(self.__port)
@@ -285,44 +292,22 @@ class TimePix3():
         logging.info(f'***TP3***: Response of loading dacs file: ' + data)
 
     def set_pixel_mask(self, which):
-        if which==0:
-            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_00.bpc'
-        elif which==1:
-            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_01.bpc'
-        elif which==2:
-            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_02.bpc'
-        elif which==3:
-            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_03.bpc'
-        elif which==4:
-            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_04.bpc'
-        elif which==5:
-            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_05.bpc'
-        elif which==6:
-            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_06.bpc'
-        elif which==7:
-            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_07.bpc'
+        if which < 8:
+            bpcFile = PIXEL_MASK_PATH + PIXEL_MASK_FILES[which]
         else:
             logging.info(f'***TP3***: Pixel mask profile not found.')
-            bpcFile = PIXEL_MASK_PATH + 'eq-accos-03_00.bpc'
+            bpcFile = PIXEL_MASK_PATH + PIXEL_MASK_FILES[0]
 
         resp = self.request_get(url=self.__serverURL + '/config/load?format=pixelconfig&file=' + bpcFile)
         data = resp.text
         logging.info(f'***TP3***: Response of loading binary pixel configuration file (from set_pixel): ' + data)
 
     def set_threshold(self, which):
-        if which==0:
-            dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_00.dacs'
-        elif which==1:
-            dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_01.dacs'
-        elif which==2:
-            dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_02.dacs'
-        elif which == 3:
-            dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_03.dacs'
-        elif which == 4:
-            dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_04.dacs'
+        if which < 8:
+            dacsFile = PIXEL_THRESHOLD_PATH + PIXEL_THRESHOLD_FILES[which]
         else:
             logging.info(f'***TP3***: Pixel mask profile not found.')
-            dacsFile = PIXEL_THRESHOLD_PATH + 'eq-accos-03_00.dacs'
+            dacsFile = PIXEL_THRESHOLD_PATH + PIXEL_THRESHOLD_FILES[0]
 
         resp = self.request_get(url=self.__serverURL + '/config/load?format=dacs&file=' + dacsFile)
         data = resp.text
@@ -372,7 +357,7 @@ class TimePix3():
         detector_config["TriggerMode"] = "CONTINUOUS"
         #detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
         detector_config["BiasEnabled"] = True
-        detector_config["BiasVoltage"] = 140
+        detector_config["BiasVoltage"] = BIAS_VOLTAGE
         detector_config["Fan1PWM"] = 100 #100V
         detector_config["Fan2PWM"] = 100 #100V
         detector_config["TriggerPeriod"] = 1.0  # 1s
