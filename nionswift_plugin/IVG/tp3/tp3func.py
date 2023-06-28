@@ -336,8 +336,8 @@ class TimePix3():
         if self.__frame_based: #This is frame-based mode
             value = exposure_time
             detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
-            detector_config["TriggerPeriod"] = value  # 1s
-            detector_config["ExposureTime"] = value-0.002  # 1s
+            detector_config["TriggerPeriod"] = value+0.002  # 1s
+            detector_config["ExposureTime"] = value  # 1s
         else:
             value = 0.1
             detector_config["TriggerMode"] = "CONTINUOUS"
