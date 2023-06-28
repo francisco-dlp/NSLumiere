@@ -41,7 +41,7 @@ FRAME_4DMASKED = 3
 #Modes that we receive an event list
 EVENT_HYPERSPEC = 2
 EVENT_HYPERSPEC_COINC = 12
-EVENT_4DRAW = 14
+EVENT_4DRAW = 13
 #Modes in which the detector is in frame-based acquisition
 FRAME_BASED = 10
 HYPERSPEC_FRAME_BASED = 11
@@ -157,7 +157,7 @@ class Timepix3Configurations():
         elif self.mode == EVENT_4DRAW:
             return (self.scan_sizey, self.scan_sizex, RAW4D_PIXELS_Y, RAW4D_PIXELS_X)
         else:
-            raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in spimimage.")
+            raise TypeError(f"***TP3_CONFIG***: Attempted mode ({self.mode}) that is not configured in spimimage.")
 
     def get_data_receive_type(self):
         if self.bitdepth == 8:
@@ -187,7 +187,7 @@ class Timepix3Configurations():
                 or self.mode == COINC_CHRONO or self.mode == HYPERSPEC_FRAME_BASED or self.mode == ISIBOX_SAVEALL:
             self.data = numpy.zeros(array_size, dtype=data_depth)
         else:
-            raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_data.")
+            raise TypeError("***TP3_CONFIG***: Attempted mode ({self.mode}) that is not configured in get_data.")
         return self.data
 
     def create_reshaped_array(self):
