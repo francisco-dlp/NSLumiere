@@ -38,6 +38,8 @@ EVENT_4DRAW = 14
 #Modes in which the detector is in frame-based acquisition
 FRAME_BASED = 10
 HYPERSPEC_FRAME_BASED = 11
+#Modes involving Isibox
+ISIBOX_SAVEALL = 8
 
 
 
@@ -134,7 +136,7 @@ class Timepix3Configurations():
             return (self.sizex, SPEC_SIZE)
         elif self.mode == COINC_CHRONO:
             return (self.twidth * 2, SPEC_SIZE)
-        elif self.mode == FRAME or self.mode == FRAME_BASED:
+        elif self.mode == FRAME or self.mode == FRAME_BASED or self.mode == ISIBOX_SAVEALL:
             if self.soft_binning:
                 return (SPEC_SIZE)
             else:
@@ -175,7 +177,7 @@ class Timepix3Configurations():
             self.data = numpy.zeros(array_size, dtype=numpy.uint8)
         elif self.mode == FRAME or self.mode == FRAME_BASED \
                 or self.mode == FRAME_4DMASKED or self.mode == FASTCHRONO \
-                or self.mode == COINC_CHRONO or self.mode == HYPERSPEC_FRAME_BASED:
+                or self.mode == COINC_CHRONO or self.mode == HYPERSPEC_FRAME_BASED or self.mode == ISIBOX_SAVEALL:
             self.data = numpy.zeros(array_size, dtype=data_depth)
         else:
             raise TypeError("***TP3_CONFIG***: Attempted mode that is not configured in get_data.")
@@ -361,7 +363,7 @@ class TimePix3():
         data = resp.text
         logging.info(f'Response of updating Detector Configuration (exposure time to {value}): ' + data)
 
-    def acq_init(self, ntrig=99999):
+    def acq_init(self, ntrig=9999999):
         """
         Initialization of detector. Standard value is 99999 triggers in continuous mode (a single trigger).
         """
