@@ -614,7 +614,7 @@ class TimePix3():
         self.__detector_config.twidth = int(self.__width)
         self.__detector_config.save_locally = (self.__port == 1)
 
-        message = 3
+        message = 2
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
         if self.getCCDStatus() == "DA_IDLE":
@@ -1120,7 +1120,7 @@ class TimePix3():
                         if message == 1 or message == 3:
                             check_data_and_send_message(cam_properties, frame_data)
                         if message == 2:
-                            self.__frame = min(cam_properties['frameNumber'], number_of_spec)
+                            self.__frame = min(cam_properties['frameNumber'], self.__detector_config.scan_sizex * self.__detector_config.scan_sizey)
                             self.sendmessage(2)
                             if cam_properties['frameNumber'] >= self.__detector_config.scan_sizex * self.__detector_config.scan_sizey:
                                 logging.info("***TP3***: Spim is over. Closing connection.")
@@ -1306,7 +1306,7 @@ class TimePix3():
         return self.__detector_config.create_reshaped_array()
 
     def create_spimimage_frame(self):
-        return (self.__frame, self.__spimData.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPEC_SIZE)))
+        return (self.__frame, self.__data.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPEC_SIZE)))
 
     def create_4dimage(self):
         return self.__detector_config.create_reshaped_array()

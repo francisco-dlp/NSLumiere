@@ -169,7 +169,7 @@ class CameraTask:
             is_complete = self.__camera_device.frame_number >= self.__scan_count
             # if self.__last_rows != rows or self.__last_rows == self.__scan_shape[0]:
             self.__last_rows = rows
-            #print(f"valid rows {rows},  frame number {self.__camera_device.frame_number}/{self.__scan_count}")
+            print(f"valid rows {rows},  frame number {self.__camera_device.frame_number}/{self.__scan_count}")
             self.__xdata.metadata["hardware_source"]["valid_rows"] = rows
             self.__xdata.metadata["hardware_source"]["frame_number"] = self.__camera_device.frame_number
             self.__xdata.metadata["hardware_source"]["integration_count"] = 1
