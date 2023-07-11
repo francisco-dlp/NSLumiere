@@ -118,8 +118,8 @@ class Device(scan_base.ScanDevice):
         self.__buffer = list()
         self.bottom_blanker = 0
 
-        self.orsayscan = orsayScan(1, vg=True)
-        self.spimscan = orsayScan(2, self.orsayscan.orsayscan, vg=True)
+        self.orsayscan = orsayScan(1, vg=False)
+        self.spimscan = orsayScan(2, self.orsayscan.orsayscan, vg=False)
 
         self.orsayscan.SetInputs([1, 0])
         self.spimscan.SetInputs([1, 0])
@@ -132,6 +132,7 @@ class Device(scan_base.ScanDevice):
         self.orsayscan.registerUnlockerA(self.fnunlock)
 
         self.orsayscan.setScanScale(0, 5.0, 5.0)
+        self.scan_device_is_secondary = True
 
         ######
 

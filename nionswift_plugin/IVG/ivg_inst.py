@@ -30,7 +30,7 @@ set_file = read_data.FileManager('global_settings')
 SERIAL_PORT_GUN = set_file.settings["IVG"]["COM_GUN"]
 SERIAL_PORT_AIRLOCK = set_file.settings["IVG"]["COM_AIRLOCK"]
 SENDMAIL = 0
-SLOW_PERIODIC = 1
+SLOW_PERIODIC = 0
 TIME_SLOW_PERIODIC = 1.0
 OBJECTIVE_MAX_TEMPERATURE = 60.0
 OBJECTIVE_RESISTANCE = 5.18
@@ -139,6 +139,15 @@ class ivgInstrument(stem_controller.STEMController):
         self.__EIRE_Controls["eire_y_offset"] = 0
         self.__EIRE_Controls["intensity_units_value"] = 'Counts'
         self.__EIRE_Controls["counts_per_electron_control"] = 0
+
+        #Checking if auto_stem is here. This is to control ChromaTEM
+        AUTOSTEM_CONTROLLER_ID = "autostem_controller"
+        self.__isChromaTEM = False
+        autostem = HardwareSource.HardwareSourceManager().get_instrument_by_id(AUTOSTEM_CONTROLLER_ID)
+        if autostem != None:
+            tuning_manager = autostem.tuning_manager
+            self.__instrument = tuning_manager.instrument_controller
+            self.__isChromaTEM = True
 
         self.__gun_gauge = gun.GunVacuum(SERIAL_PORT_GUN)
         if not self.__gun_gauge.success:
@@ -680,16 +689,24 @@ class ivgInstrument(stem_controller.STEMController):
         return True
 
     def TryGetVal(self, s: str) -> (bool, float):
+        if self.__isChromaTEM:
+            return self.__instrument.TryGetVal(s)
         if s in self.__EIRE_Controls.keys():
             return True, self.__EIRE_Controls[s]
         elif s == "eels_y_offset":
             return True, 0
         elif s == "eels_x_offset":
-            return True, self.__EELSInstrument.ene_offset_edit_f + self.__EELSInstrument.tare_edit_f
+            try:
+                return True, self.__EELSInstrument.ene_offset_edit_f + self.__EELSInstrument.tare_edit_f
+            except AttributeError:
+                return True, 0
         elif s == "eels_y_scale":
             return True, 1
         elif s == "eels_x_scale":
-            return True, self.__EELSInstrument.range_f
+            try:
+                return True, self.__EELSInstrument.range_f
+            except AttributeError:
+                return True, 1
         elif s == "DriftCompensation.u":
             return True, self.__driftCompensation[0]
         elif s == "DriftCompensation.v":

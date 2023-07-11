@@ -787,16 +787,29 @@ class CameraDevice(camera_base.CameraDevice):
 
     @property
     def calibration_controls(self) -> dict:
-        return {
-            "x_scale_control": self.camera_type + "_x_scale",
-            "x_offset_control": self.camera_type + "_x_offset",
-            "x_units_value": "eV" if self.camera_type == 'eels' else "nm",
-            "y_scale_control": self.camera_type + "_y_scale",
-            "y_offset_control": self.camera_type + "_y_offset",
-            "y_units_value": "",
-            "intensity_units_value": "counts",
-            "counts_per_electron_value": 1
-        }
+        if self.camera_type == "eels":
+            return {
+                "x_scale_control": "EELS_TV_eVperpixel",
+                "x_offset_control": "ZLPtare",
+                "x_units_value": "eV",
+                "y_scale_control": self.camera_type + "_y_scale",
+                "y_offset_control": self.camera_type + "_y_offset",
+                "y_units_value": "",
+                "intensity_units_value": "counts",
+                "counts_per_electron_value": 1
+            }
+        else:
+            return {
+                "x_scale_control": self.camera_type + "_x_scale",
+                "x_offset_control": self.camera_type + "_x_offset",
+                "x_units_value": "eV" if self.camera_type == 'eels' else "nm",
+                "y_scale_control": self.camera_type + "_y_scale",
+                "y_offset_control": self.camera_type + "_y_offset",
+                "y_units_value": "",
+                "intensity_units_value": "counts",
+                "counts_per_electron_value": 1
+            }
+
 
     @property
     def processing(self) -> typing.Optional[str]:
