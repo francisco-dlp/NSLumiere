@@ -355,6 +355,7 @@ class TimePix3():
         detector_config = self.get_config()
         detector_config["nTriggers"] = ntrig
         detector_config["TriggerMode"] = "CONTINUOUS"
+        detector_config["TriggerOut"] = 2
         #detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
         detector_config["BiasEnabled"] = True
         detector_config["BiasVoltage"] = BIAS_VOLTAGE
@@ -608,7 +609,9 @@ class TimePix3():
         self.__detector_config.bitdepth = 32
         self.__detector_config.sizex = int(self.__accumulation)
         self.__detector_config.sizey = int(self.__accumulation)
-        self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
+        #You should call the function set_scan_size with the correct tuple. The total number of specimage is not enough
+        #in the current implementation
+        #self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.tdelay = int(self.__delay)
         self.__detector_config.twidth = int(self.__width)
@@ -966,6 +969,10 @@ class TimePix3():
         except AttributeError:
             logging.info("***TP3***: Could not set TDC to spim acquisition.")
 
+
+    def set_scan_size(self, value: (int, int)):
+        self.__detector_config.scan_sizey, self.__detector_config.scan_sizex = value
+
     def get_scan_size(self):
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
@@ -1120,6 +1127,7 @@ class TimePix3():
                         if message == 1 or message == 3:
                             check_data_and_send_message(cam_properties, frame_data)
                         if message == 2:
+                            print(f'***TP3***: Acquiring hyperspecimage. Header is {header}.')
                             self.__frame = min(cam_properties['frameNumber'], self.__detector_config.scan_sizex * self.__detector_config.scan_sizey)
                             self.sendmessage(2)
                             if cam_properties['frameNumber'] >= self.__detector_config.scan_sizex * self.__detector_config.scan_sizey:

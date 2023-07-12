@@ -121,8 +121,8 @@ class Device(scan_base.ScanDevice):
         self.orsayscan = orsayScan(1, vg=False)
         self.spimscan = orsayScan(2, self.orsayscan.orsayscan, vg=False)
 
-        self.orsayscan.SetInputs([1, 0])
-        self.spimscan.SetInputs([1, 0])
+        self.orsayscan.SetInputs([3, 2])
+        self.spimscan.SetInputs([3, 2])
 
         self.has_data_event = threading.Event()
 
@@ -137,7 +137,7 @@ class Device(scan_base.ScanDevice):
         ######
 
         self.pixel_time = 0.5
-        self.field_of_view = 4000
+        self.field_of_view = 25
         self.orsayscan.SetProbeAt(0, 0)
         self.__spim_pixels = (0, 0)
         self.subscan_status = True
@@ -211,7 +211,7 @@ class Device(scan_base.ScanDevice):
 
     def __get_initial_profiles(self) -> typing.List[scan_base.ScanFrameParameters]:
         profiles = list()
-        profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 0.5, "fov_nm": 4000., "rotation_rad": 0.393}))
+        profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 0.5, "fov_nm": 400., "rotation_rad": 0.393}))
         profiles.append(scan_base.ScanFrameParameters({"size": (128, 128), "pixel_time_us": 1, "fov_nm": 100.}))
         profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 1, "fov_nm": 100.}))
         return profiles
@@ -273,8 +273,8 @@ class Device(scan_base.ScanDevice):
         if channel_type == "TPX3":
             self.__tpx3_spim = self.__tpx3_camera.camera.camera.StartSpimFromScan()
             if self.__tpx3_spim: #True if successful
-                self.__tpx3_calib["dispersion"] = self.__instrument.TryGetVal("eels_x_scale")[1]
-                self.__tpx3_calib["offset"] = self.__instrument.TryGetVal("eels_x_offset")[1]
+                self.__tpx3_calib["dispersion"] = self.__instrument.TryGetVal("EELS_TV_eVperpixel")[1]
+                self.__tpx3_calib["offset"] = self.__instrument.TryGetVal("ZLPtare")[1]
                 self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
                 self.__tpx3_data = self.__tpx3_camera.camera.camera.create_spimimage() #Getting the reference
                 time.sleep(0.5) #Timepix has already a socket connected. Wait until it is definitely reading data
@@ -666,9 +666,9 @@ class ScanModule(scan_base.ScanModule):
         self.device = Device(instrument)
         setattr(self.device, "priority", 20)
         scan_modes = (
-            scan_base.ScanSettingsMode(_("Fast"), "fast", scan_base.ScanFrameParameters(pixel_size=(256, 256), pixel_time_us=1, fov_nm=4000)),
-            scan_base.ScanSettingsMode(_("Slow"), "slow", scan_base.ScanFrameParameters(pixel_size=(512, 512), pixel_time_us=1, fov_nm=4000)),
-            scan_base.ScanSettingsMode(_("Record"), "record", scan_base.ScanFrameParameters(pixel_size=(1024, 1024), pixel_time_us=1, fov_nm=4000))
+            scan_base.ScanSettingsMode(_("Fast"), "fast", scan_base.ScanFrameParameters(pixel_size=(256, 256), pixel_time_us=1, fov_nm=25)),
+            scan_base.ScanSettingsMode(_("Slow"), "slow", scan_base.ScanFrameParameters(pixel_size=(512, 512), pixel_time_us=1, fov_nm=25)),
+            scan_base.ScanSettingsMode(_("Record"), "record", scan_base.ScanFrameParameters(pixel_size=(1024, 1024), pixel_time_us=1, fov_nm=25))
         )
         self.settings = scan_base.ScanSettings(scan_modes, lambda d: scan_base.ScanFrameParameters(d), 0, 2)
 

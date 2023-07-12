@@ -237,6 +237,12 @@ class ivgInstrument(stem_controller.STEMController):
 
     def fov_change(self, FOV):
         self.__fov = float(FOV * 1e6)  # in microns
+        if self.__isChromaTEM:
+            scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "superscan")
+            d = scan.get_frame_parameters(0)
+            d.fov_nm = FOV * 1e9
+            scan.set_frame_parameters(0, d)
         self.property_changed_event.fire('spim_sampling_f')
         self.property_changed_event.fire('spim_time_f')
 
@@ -619,6 +625,8 @@ class ivgInstrument(stem_controller.STEMController):
         }
 
     def change_stage_position(self, *, dy: int = None, dx: int = None):
+        if self.__isChromaTEM:
+            self.__instrument.change_stage_position(dy=dy, dx=dx)
         angle = self.__OrsayScanInstrument.scan_device.scan_rotation
         angle = angle - 22.5
         new_dx = dx*numpy.cos(numpy.radians(angle)) - dy*numpy.sin(numpy.radians(angle))

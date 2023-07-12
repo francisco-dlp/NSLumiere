@@ -146,6 +146,10 @@ class CameraTask:
             self.__data = self.__camera_device.spimimagedata
         self.__xdata = DataAndMetadata.new_data_and_metadata(self.__data, data_descriptor=self.__data_descriptor)
         self.__xdata.metadata.setdefault("hardware_source", dict())["valid_rows"] = 0
+        try:
+            self.__camera_device.camera.set_scan_size(self.__scan_shape)
+        except:
+            print(f'Could not set scan shape. This is normal in non-Timepix3 detectors.')
         self.__camera_device.camera.startSpim(scan_size, 1,
                                               self.__camera_device.current_camera_settings.exposure_ms / 1000,
                                               self.__twoD)
@@ -770,7 +774,7 @@ class CameraDevice(camera_base.CameraDevice):
     def acquire_synchronized_continue(self, *, update_period: float = 1.0,
                                       **kwargs: typing.Any) -> camera_base.PartialData:
         # assert self.__camera_task
-        is_complete, is_canceled, valid_count = self.__camera_task.grab_partial(update_period=update_period)
+        is_complete, is_canceled, valid_count = self.__camera_task.grab_partial(update_period=3.0)
         return camera_base.PartialData(self.__camera_task.xdata, is_complete, is_canceled, valid_count)
 
     def acquire_synchronized_end(self, **kwargs: typing.Any) -> None:
@@ -798,6 +802,16 @@ class CameraDevice(camera_base.CameraDevice):
                 "intensity_units_value": "counts",
                 "counts_per_electron_value": 1
             }
+        elif self.camera_type == "eire":
+            return {
+                "x_scale_control": "Princeton_CL_nmperpixel",
+                "x_offset_control": "Princeton_CL_nmOffset",
+                "x_units_value": "nm",
+                "y_scale_control": "Princeton_CL_radsperpixel",
+                "y_units_value": "rad",
+                "intensity_units_value": "counts",
+                "counts_per_electron_value": "Princeton_CL_CountsPerElectron"
+            }
         else:
             return {
                 "x_scale_control": self.camera_type + "_x_scale",
@@ -809,6 +823,7 @@ class CameraDevice(camera_base.CameraDevice):
                 "intensity_units_value": "counts",
                 "counts_per_electron_value": 1
             }
+
 
 
     @property

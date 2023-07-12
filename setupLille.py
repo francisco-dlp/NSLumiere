@@ -6,9 +6,9 @@ setup(
     author="Yves Auad",
     description="Set of tools to run VG Cold Microscope in Nionswift",
     url="https://github.com/yvesauad/swift_lumiere",
-    packages=['nionswift_plugin.EELS_spec', 'nionswift_plugin.IVG',
+    packages=['nionswift_plugin.IVG',
               'nionswift_plugin.IVG.virtual_instruments',
-              'nionswift_plugin.IVG.scan', 'nionswift_plugin.lenses',
+              'nionswift_plugin.IVG.scan', 'nionswift_plugin.OptSpec',
               'nionswift_plugin.IVG.tp3', 'nionswift_plugin.IVG.camera'],
     python_requires='>=3.8.5',
     data_files=[('nionswift_plugin/aux_files/config', [
@@ -19,6 +19,9 @@ setup(
 
     ]), ('nionswift_plugin/aux_files/DLLs', [
         'nionswift_plugin/aux_files/DLLs/Cameras.dll',
+        'nionswift_plugin/aux_files/DLLs/Connection.dll',
+        'nionswift_plugin/aux_files/DLLs/Connection.dll.config',
+        'nionswift_plugin/aux_files/DLLs/Newtonsoft.Json.dll',
         'nionswift_plugin/aux_files/DLLs/atmcd64d.dll',
         'nionswift_plugin/aux_files/DLLs/Scan.dll',
         'nionswift_plugin/aux_files/DLLs/udk3-1.4-x86_64.dll',
