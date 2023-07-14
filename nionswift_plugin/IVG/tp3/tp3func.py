@@ -13,6 +13,8 @@ from nion.swift.model import HardwareSource
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
+SUPERSCAN = True
+
 ISI_CHANNELS = 200
 SPIM_SIZE = 1025 + 200
 RAW4D_PIXELS_X = 1024
@@ -113,7 +115,11 @@ class Timepix3Configurations():
         config_bytes += self.scan_sizex.to_bytes(2, 'big')
         config_bytes += self.scan_sizey.to_bytes(2, 'big')
 
-        config_bytes += (int(self.pixel_time * 1000 / 1.5625)).to_bytes(2, 'big') #In units of 1.5625 ns already
+        try:
+            config_bytes += (int(self.pixel_time * 1000 / 1.5625)).to_bytes(2, 'big') #In units of 1.5625 ns already
+        except OverflowError:
+            config_bytes += (int(self.pixel_time * 1 / 1.5625)).to_bytes(2, 'big')  # In units of 1.5625 ns already
+
 
         config_bytes += struct.pack(">H", self.tdelay)  # BE. See https://docs.python.org/3/library/struct.html
         config_bytes += struct.pack(">H", self.twidth)  # BE. See https://docs.python.org/3/library/struct.html
@@ -592,10 +598,9 @@ class TimePix3():
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=dwelltime, on_time=0.0000001)
-            # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy Line 05
+            #scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=dwelltime, on_time=0.0000001)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0, period=dwelltime, on_time=0.0000001) #OFF
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
-            # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
         except AttributeError:
             logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
         port = 8088
@@ -638,7 +643,13 @@ class TimePix3():
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
+            if SUPERSCAN:
+                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy superscan line
+                scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                    "superscan")
+                scanInstrument.stop_playing()
+            else:
+                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
             #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
         except AttributeError:
@@ -672,6 +683,7 @@ class TimePix3():
         if self.getCCDStatus() == "DA_RECORDING":
             self.stopFocus()
             logging.info("***TPX3***: Please turn off TPX3 from camera panel. Trying to do it for you...")
+            return False
         elif self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
@@ -975,8 +987,12 @@ class TimePix3():
 
     def get_scan_size(self):
         try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
+            if SUPERSCAN:
+                scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                    "superscan")
+            else:
+                scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                    "orsay_scan_device")
             if scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size:
                 x_size = int(scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size[0])
                 y_size = int(scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size[1])
@@ -990,8 +1006,12 @@ class TimePix3():
         return x_size, y_size
 
     def get_scan_pixel_time(self):
-        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            "orsay_scan_device")
+        if SUPERSCAN:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "superscan")
+        else:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
         return scanInstrument.scan_device.current_frame_parameters.pixel_time_us
 
     def acquire_streamed_frame(self, port, message):
@@ -1182,6 +1202,12 @@ class TimePix3():
         client.send(config_bytes)
 
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
+        if SUPERSCAN:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "superscan")
+            scanInstrument.start_playing()
+            logging.info(f'***TPX3***: Superscan is activated. Using it as a scanning source.')
+
         while True:
             try:
                 read, _, _ = select.select(inputs, outputs, inputs)

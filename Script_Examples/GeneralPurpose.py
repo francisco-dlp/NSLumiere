@@ -13,8 +13,8 @@ eels = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_co
 eels2 = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("eels_spec_controller")
 all = HardwareSource.HardwareSourceManager().get_all_instrument_ids()
 
-print(dir(cam.camera))
-cam.camera.camera.resumeSpim(4)
+#print(dir(cam.camera))
+#cam.camera.camera.resumeSpim(4)
 
 #print(eels)
 #print(eels2)
@@ -23,6 +23,7 @@ cam.camera.camera.resumeSpim(4)
 
 #scan.scan_device.orsayscan.SetBottomBlanking(0, 14, beamontime=1e-6, delay=500e-9)
 #scan.scan_device.orsayscan.SetBottomBlanking(3, 14, risingedge=True, beamontime=10e-6, delay=500e-9)
+scan.scan_device.orsayscan.SetTdcLine(0, 2, 2)  # Copy from line 0
 
 #scan.scan_device.orsayscan.AlObjective(0.1, 0, 0, 0)
 

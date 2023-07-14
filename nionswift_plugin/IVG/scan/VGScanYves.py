@@ -111,6 +111,7 @@ class Device(scan_base.ScanDevice):
         self.__probe_position_pixels = [0, 0]
         self.__rotation = 0.
         self.__is_scanning = False
+        self.__is_tpx3_running = False
         self.on_device_state_changed = None
         self.__profiles = self.__get_initial_profiles()
         self.__frame_parameters = copy.deepcopy(self.__profiles[0])
@@ -140,6 +141,7 @@ class Device(scan_base.ScanDevice):
         self.field_of_view = 25
         self.orsayscan.SetProbeAt(0, 0)
         self.__spim_pixels = (0, 0)
+        self.__line_number = 0
         self.subscan_status = True
         self.__spim = False
 
@@ -174,10 +176,12 @@ class Device(scan_base.ScanDevice):
     def stop(self) -> None:
         """Stop acquiring."""
         self.__spim = False
+        if self.__is_tpx3_running:
+            self.__is_tpx3_running = False
+            self.stop_timepix3()
         if self.__is_scanning:
             self.orsayscan.stopImaging(True)
             self.spimscan.stopImaging(True)
-            self.stop_timepix3()
             self.__is_scanning = False
 
     def set_idle_position_by_percentage(self, x: float, y: float) -> None:
@@ -187,10 +191,12 @@ class Device(scan_base.ScanDevice):
     def cancel(self) -> None:
         """Cancel acquisition (immediate)."""
         self.__spim = False
+        if self.__is_tpx3_running:
+            self.__is_tpx3_running = False
+            self.stop_timepix3()
         if self.__is_scanning:
             self.orsayscan.stopImaging(False)
             self.spimscan.stopImaging(True)
-            self.stop_timepix3()
             self.__is_scanning = False
 
     def __get_channels(self) -> typing.List[Channel]:
@@ -327,15 +333,20 @@ class Device(scan_base.ScanDevice):
                 print(f'{self.__sizez} and {self.__scan_size} and {self.__scan_area} amd {self.Spim_image_area} and '
                       f'{self.Image_area} and {self.__spim_pixels} and {self.imagedata.shape} and {self.spimscan.getImageArea()} and {self.orsayscan.getImageArea()}')
 
+            should_start = False
             if not self.__spim:
                 for channel in self.__channels:
-                    if channel.name == 'TPX3' or "4D_TPX3":
+                    if channel.name == 'TPX3' or channel.name == "4D_TPX3":
                         if channel.enabled:
+                            self.__is_tpx3_running = True
                             self.prepare_timepix3(channel.name)
+                    if channel.name == "ADF" or channel.name == "BF":
+                        if channel.enabled:
+                            should_start = True
                         #else:
                         #    self.no_prepare_timepix3()
                 #Scan must be started after timepix3 so we are ready for receiving TDC's
-                self.__is_scanning = self.orsayscan.startImaging(0, 1)
+                if should_start: self.__is_scanning = self.orsayscan.startImaging(0, 1)
             else:
                 self.__is_scanning = self.spimscan.startSpim(0, 1)
 
@@ -393,19 +404,19 @@ class Device(scan_base.ScanDevice):
 
             #Timepix3 Spim channel
             if channel.name == 'TPX3':
-                if self.__frame_number % 10 == 0:
-                    data_array = self.__tpx3_data
-                    data_element["data"] = data_array
-                    properties = current_frame.frame_parameters.as_dict()
-                    properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
-                    properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
-                    properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
-                    properties["channel_id"] = channel.channel_id
-                    properties["eels_dispersion"] = self.__tpx3_calib["dispersion"]
-                    properties["eels_offset"] = self.__tpx3_calib["offset"]
-                    data_element["properties"] = properties
-                    if data_array is not None:
-                        data_elements.append(data_element)
+                #if self.__frame_number % 10 == 0:
+                data_array = self.__tpx3_data
+                data_element["data"] = data_array
+                properties = current_frame.frame_parameters.as_dict()
+                properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
+                properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
+                properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
+                properties["channel_id"] = channel.channel_id
+                properties["eels_dispersion"] = self.__tpx3_calib["dispersion"]
+                properties["eels_offset"] = self.__tpx3_calib["offset"]
+                data_element["properties"] = properties
+                if data_array is not None:
+                    data_elements.append(data_element)
 
             elif channel.name == '4D_TPX3':
                 #if self.__frame_number % 10 == 0:
