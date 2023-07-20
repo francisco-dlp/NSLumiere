@@ -558,8 +558,7 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure, on_time=0.0000001)
-            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy Line 05
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  # Top2 bottom blanker
             # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
         except AttributeError:
             logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
@@ -650,7 +649,7 @@ class TimePix3():
                 scanInstrument.stop_playing()
             else:
                 scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  # Top2 bottom blanker
             #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
         except AttributeError:
             logging.info("***TP3***: Could not set TDC to spim acquisition.")

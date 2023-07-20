@@ -23,7 +23,9 @@ all = HardwareSource.HardwareSourceManager().get_all_instrument_ids()
 
 #scan.scan_device.orsayscan.SetBottomBlanking(0, 14, beamontime=1e-6, delay=500e-9)
 #scan.scan_device.orsayscan.SetBottomBlanking(3, 14, risingedge=True, beamontime=10e-6, delay=500e-9)
-scan.scan_device.orsayscan.SetTdcLine(0, 2, 2)  # Copy from line 0
+scan.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 7)  #When width increases, this goes to higher values
+scan.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  #When width increases, this goes to smaller values
+scan.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 5)  #Laser. This is delay dependent, so not so good
 
 #scan.scan_device.orsayscan.AlObjective(0.1, 0, 0, 0)
 
