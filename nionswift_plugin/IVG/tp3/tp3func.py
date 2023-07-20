@@ -340,7 +340,7 @@ class TimePix3():
     def set_exposure_time(self, exposure_time):
         detector_config = self.get_config()
         if self.__frame_based: #This is frame-based mode
-            value = exposure_time
+            value = min(exposure_time, 0.025)
             detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
             detector_config["TriggerPeriod"] = value+0.002  # 1s
             detector_config["ExposureTime"] = value  # 1s
@@ -594,6 +594,8 @@ class TimePix3():
         """
         Similar to startFocus. Just to be consistent with VGCameraYves. Message=02 because of spim.
         """
+        self.__frame_based = True
+        self.set_exposure_time(dwelltime)
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
