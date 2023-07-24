@@ -557,7 +557,11 @@ class TimePix3():
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure, on_time=0.0000001)
+            if mode == 0:
+                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure, on_time=0.0000001)
+            else:
+                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy superscan line
+            #scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure, on_time=0.0000001)
             scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  # Top2 bottom blanker
             # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
         except AttributeError:
