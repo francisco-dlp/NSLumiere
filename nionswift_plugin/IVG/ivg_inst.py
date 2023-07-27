@@ -703,14 +703,14 @@ class ivgInstrument(stem_controller.STEMController):
             return True, self.__EIRE_Controls[s]
         elif s == "eels_y_offset":
             return True, 0
-        elif s == "eels_x_offset":
+        elif s == "ZLPtare":
             try:
                 return True, self.__EELSInstrument.ene_offset_edit_f + self.__EELSInstrument.tare_edit_f
             except AttributeError:
                 return True, 0
         elif s == "eels_y_scale":
             return True, 1
-        elif s == "eels_x_scale":
+        elif s == "EELS_TV_eVperpixel":
             try:
                 return True, self.__EELSInstrument.range_f
             except AttributeError:

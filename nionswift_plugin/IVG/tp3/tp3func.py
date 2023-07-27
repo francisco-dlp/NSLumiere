@@ -13,8 +13,6 @@ from nion.swift.model import HardwareSource
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
-SUPERSCAN = True
-
 ISI_CHANNELS = 200
 SPIM_SIZE = 1025 + 200
 RAW4D_PIXELS_X = 1024
@@ -227,6 +225,14 @@ class TimePix3():
         self.__simul = simul
         self.__isReady = threading.Event()
         self.sendmessage = message
+
+        # Checking if auto_stem is here. This is to control ChromaTEM
+        AUTOSTEM_CONTROLLER_ID = "autostem_controller"
+        self.__isChromaTEM = False
+        autostem = HardwareSource.HardwareSourceManager().get_instrument_by_id(AUTOSTEM_CONTROLLER_ID)
+        if autostem != None:
+            tuning_manager = autostem.tuning_manager
+            self.__isChromaTEM = True
 
         if not simul:
             try:
@@ -645,7 +651,7 @@ class TimePix3():
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            if SUPERSCAN:
+            if self.__isChromaTEM:
                 scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy superscan line
                 scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                     "superscan")
@@ -989,7 +995,7 @@ class TimePix3():
 
     def get_scan_size(self):
         try:
-            if SUPERSCAN:
+            if self.__isChromaTEM:
                 scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                     "superscan")
             else:
@@ -1008,7 +1014,7 @@ class TimePix3():
         return x_size, y_size
 
     def get_scan_pixel_time(self):
-        if SUPERSCAN:
+        if self.__isChromaTEM:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "superscan")
         else:
@@ -1204,7 +1210,7 @@ class TimePix3():
         client.send(config_bytes)
 
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
-        if SUPERSCAN:
+        if self.__isChromaTEM:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "superscan")
             scanInstrument.start_playing()
