@@ -80,6 +80,8 @@ class Timepix3Configurations():
         self.time_resolved = None
         self.frame_based = None
         self.save_locally = None
+        self.eels_offset = None
+        self.eels_dispersion = None
 
         self.data = None
 
@@ -107,28 +109,27 @@ class Timepix3Configurations():
 
         config_bytes += bytes([self.mode])
 
-        config_bytes += self.sizex.to_bytes(2, 'big')
-        config_bytes += self.sizey.to_bytes(2, 'big')
+        config_bytes += struct.pack("<H", self.sizex)
+        config_bytes += struct.pack("<H", self.sizey)
 
-        config_bytes += self.scan_sizex.to_bytes(2, 'big')
-        config_bytes += self.scan_sizey.to_bytes(2, 'big')
+        config_bytes += struct.pack("<H", self.scan_sizex)
+        config_bytes += struct.pack("<H", self.scan_sizey)
 
-        try:
-            config_bytes += (int(self.pixel_time * 1000 / 1.5625)).to_bytes(2, 'big') #In units of 1.5625 ns already
-        except OverflowError:
-            config_bytes += (int(self.pixel_time * 1 / 1.5625)).to_bytes(2, 'big')  # In units of 1.5625 ns already
+        config_bytes += struct.pack("<I", int(self.pixel_time * 1000 / 1.5625))
 
-
-        config_bytes += struct.pack(">H", self.tdelay)  # BE. See https://docs.python.org/3/library/struct.html
-        config_bytes += struct.pack(">H", self.twidth)  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack("<H", self.tdelay)  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack("<H", self.twidth)  # BE. See https://docs.python.org/3/library/struct.html
 
         if self.save_locally:
             config_bytes += b'\x01'
         else:
             config_bytes += b'\x00'
 
-        #Unused bit for now. There is currently 20-bit wide message
-        config_bytes += b'\x00'
+        config_bytes += struct.pack("<f", float(self.eels_dispersion))  # BE. See https://docs.python.org/3/library/struct.html
+        config_bytes += struct.pack("<f", float(self.eels_offset))  # BE. See https://docs.python.org/3/library/struct.html
+
+        bytes_length = len(config_bytes)
+        config_bytes += bytes(512 - bytes_length)
 
         return config_bytes
 
@@ -232,7 +233,13 @@ class TimePix3():
         autostem = HardwareSource.HardwareSourceManager().get_instrument_by_id(AUTOSTEM_CONTROLLER_ID)
         if autostem != None:
             tuning_manager = autostem.tuning_manager
+            self.__instrument = tuning_manager.instrument_controller
             self.__isChromaTEM = True
+            logging.info("***TPX3***: autostem_controller is found.")
+        else:
+            self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_controller")
+            logging.info("***TPX3***: VG_controller is found.")
+
 
         if not simul:
             try:
@@ -541,6 +548,8 @@ class TimePix3():
         self.__detector_config.tdelay = int(self.__delay)
         self.__detector_config.twidth = int(self.__width)
         self.__detector_config.save_locally = (self.__port == 1)
+        self.__detector_config.eels_dispersion = self.get_detector_eels_dispersion()
+        self.__detector_config.eels_offset = self.get_detector_eels_offset()
 
         message = 1
         if self.getCCDStatus() == "DA_RECORDING":
@@ -585,6 +594,8 @@ class TimePix3():
         self.__detector_config.tdelay = int(self.__delay)
         self.__detector_config.twidth = int(self.__width)
         self.__detector_config.save_locally = (self.__port == 1)
+        self.__detector_config.eels_dispersion = self.get_detector_eels_dispersion()
+        self.__detector_config.eels_offset = self.get_detector_eels_offset()
 
         message = 3
         if self.getCCDStatus() == "DA_RECORDING":
@@ -629,6 +640,8 @@ class TimePix3():
         self.__detector_config.tdelay = int(self.__delay)
         self.__detector_config.twidth = int(self.__width)
         self.__detector_config.save_locally = (self.__port == 1)
+        self.__detector_config.eels_dispersion = self.get_detector_eels_dispersion()
+        self.__detector_config.eels_offset = self.get_detector_eels_offset()
 
         message = 2
         if self.getCCDStatus() == "DA_RECORDING":
@@ -686,6 +699,8 @@ class TimePix3():
         self.__detector_config.tdelay = int(self.__delay)
         self.__detector_config.twidth = int(self.__width)
         self.__detector_config.save_locally = (self.__port == 1)
+        self.__detector_config.eels_dispersion = self.get_detector_eels_dispersion()
+        self.__detector_config.eels_offset = self.get_detector_eels_offset()
 
         message = 2
         if self.getCCDStatus() == "DA_RECORDING":
@@ -729,6 +744,8 @@ class TimePix3():
         self.__detector_config.tdelay = int(self.__delay)
         self.__detector_config.twidth = int(self.__width)
         self.__detector_config.save_locally = (self.__port == 1)
+        self.__detector_config.eels_dispersion = self.get_detector_eels_dispersion()
+        self.__detector_config.eels_offset = self.get_detector_eels_offset()
 
         message = 4
         if self.getCCDStatus() == "DA_RECORDING":
@@ -1021,6 +1038,12 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
         return scanInstrument.scan_device.current_frame_parameters.pixel_time_us
+
+    def get_detector_eels_dispersion(self):
+        return self.__instrument.TryGetVal("EELS_TV_eVperpixel")[1]
+
+    def get_detector_eels_offset(self):
+        return self.__instrument.TryGetVal("ZLPtare")[1]
 
     def acquire_streamed_frame(self, port, message):
         """

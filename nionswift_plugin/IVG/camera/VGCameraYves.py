@@ -1023,7 +1023,10 @@ class CameraSettings():
         self.__camera_device = camera_device
 
         # the list of possible modes should be defined here
-        self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "2D-Chrono"]
+        if camera_device.isTimepix:
+            self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "2D-Chrono", "Event Spim"]
+        else:
+            self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "2D-Chrono"]
         self.settings_id = camera_device.camera_id
 
     def close(self):
