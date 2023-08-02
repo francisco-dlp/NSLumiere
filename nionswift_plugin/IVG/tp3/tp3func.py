@@ -218,7 +218,7 @@ class TimePix3():
         self.__frame_based = False
         self.__isPlaying = False
         self.__accumulation = 0.
-        self.__expTime = None
+        self.__expTime = 1.0
         self.__port = 0
         self.__delay = 0.
         self.__width = 0.

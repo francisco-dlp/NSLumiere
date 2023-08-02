@@ -627,14 +627,12 @@ class CameraDevice(camera_base.CameraDevice):
             #                                           self.__y_pix_spim)  # This must finish before calling the rest
             # self.camera.resumeSpim(4)
 
-        elif "SpimTP" in self.current_camera_settings.as_dict()['acquisition_mode']:
-            pass
-            # self.sizey = self.sizez = self.sizey = self.current_camera_settings.spectra_count
-            # self.camera.stopFocus()
-            # self.camera.startSpim(self.current_camera_settings.spectra_count ** 2, 1,
-            #                       self.current_camera_settings.exposure_ms / 1000.,
-            #                       self.current_camera_settings.acquisition_mode == "2D-Chrono")
-            # self.camera.resumeSpim(4)
+        elif "Event Hyperspec" in self.current_camera_settings.as_dict()['acquisition_mode']:
+            self.camera.stopFocus()
+            self.camera.StartSpimFromScan()
+            self.camera._TimePix3__isReady.wait(5.0)
+            assert self.isTimepix == True
+            self.spimimagedata = self.camera.create_spimimage()
 
         else:
             self.sizez = 1
@@ -656,7 +654,7 @@ class CameraDevice(camera_base.CameraDevice):
             self.__acqon = False
         if "Chrono" in self.current_camera_settings.as_dict()['acquisition_mode'] \
                 or ("Focus" in self.current_camera_settings.as_dict()['acquisition_mode'] and self.__acqspimon) \
-                or "SpimTP" in self.current_camera_settings.as_dict()['acquisition_mode']:
+                or "Event Hyperspec" in self.current_camera_settings.as_dict()['acquisition_mode']:
             self.camera.stopSpim(True)
             self.__acqon = False
             self.__acqspimon = False
@@ -679,13 +677,9 @@ class CameraDevice(camera_base.CameraDevice):
                 collection_dimensions = 0
                 datum_dimensions = 2
 
-        elif "Focus" in acquisition_mode and self.__acqspimon:
-            self.has_spim_data_event.wait(1.0)
-            self.has_spim_data_event.clear()
-            spnb = self.frame_number
-            y0 = int(spnb / 10)
-            x0 = int(spnb - y0 * 10)
+        elif "Event Hyperspec" in acquisition_mode:
             self.acquire_data = self.spimimagedata
+            #print(self.acquire_data.__array_interface__['data'])
             collection_dimensions = 2
             datum_dimensions = 1
 
@@ -1024,7 +1018,7 @@ class CameraSettings():
 
         # the list of possible modes should be defined here
         if camera_device.isTimepix:
-            self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "2D-Chrono", "Event Spim"]
+            self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "2D-Chrono", "Event Hyperspec"]
         else:
             self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "2D-Chrono"]
         self.settings_id = camera_device.camera_id
