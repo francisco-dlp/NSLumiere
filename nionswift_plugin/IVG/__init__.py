@@ -12,6 +12,8 @@ except ModuleNotFoundError:
     logging.info("***IVG***: SCAN Module not found. If this is unintended please add it"
                  "in the setup file.")
 
+IMPORT_VG_SCAN = True
+
 def run():
     instrument = ivg_inst.ivgInstrument('VG_controller')
     # You definitely need to register the instrument over here.
@@ -20,9 +22,11 @@ def run():
     ivg_panel.run(instrument)
     #ivg_spim_panel.run(instrument)
     try:
-        VGScanYves.run(instrument)
+        if IMPORT_VG_SCAN:
+            VGScanYves.run(instrument)
+        else:
+            logging.info("***IVG***: Skipping VGScan. Please check the init file.")
     except NameError:
         logging.info("***IVG***: Skipping VGScan. Module not imported.")
     VGCameraYves.run(instrument)
     VGCameraPanel.run()
-

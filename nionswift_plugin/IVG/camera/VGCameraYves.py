@@ -659,9 +659,6 @@ class CameraDevice(camera_base.CameraDevice):
             self.__acqon = False
             self.__acqspimon = False
             logging.info('***CAMERA***: Spim stopped. Handling...')
-            if not "Chrono" in self.current_camera_settings.as_dict()['acquisition_mode'] \
-                    and not "SpimTP" in self.current_camera_settings.as_dict()['acquisition_mode']:
-                self.instrument.warn_Scan_instrument_spim(False)
 
     def acquire_image(self) -> dict:
         self.has_data_event.wait(1)

@@ -23,6 +23,7 @@ SPEC_SIZE_Y = 256
 
 BIAS_VOLTAGE = 140
 SAVE_PATH = "file:/media/asi/Data21/TP3_Data"
+SAVE_PATH_TIFF = "file:/data"
 PIXEL_MASK_PATH = '/home/asi/load_files/bpcs/'
 PIXEL_THRESHOLD_PATH = '/home/asi/load_files/dacs/'
 PIXEL_MASK_FILES = ['eq-accos-03_00.bpc', 'eq-accos-03_01.bpc', 'eq-accos-03_02.bpc',
@@ -353,7 +354,7 @@ class TimePix3():
     def set_exposure_time(self, exposure_time):
         detector_config = self.get_config()
         if self.__frame_based: #This is frame-based mode
-            value = min(exposure_time, 0.025)
+            value = min(exposure_time, 0.010)
             detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
             detector_config["TriggerPeriod"] = value+0.002  # 1s
             detector_config["ExposureTime"] = value  # 1s
@@ -418,7 +419,7 @@ class TimePix3():
                     "SamplingMode": "skipOnFrame",
                     "Period": 10000,
                     "ImageChannels": [{
-                        "Base": SAVE_PATH,
+                        "Base": SAVE_PATH_TIFF,
                         "FilePattern": "f%Hms_",
                         "Format": "tiff",
                         "Mode": "count_fb"
@@ -540,7 +541,7 @@ class TimePix3():
         self.__detector_config.is_cumul = bool(accumulate)
         if self.__port == 3:
             self.__detector_config.mode = 8
-        self.__detector_config.bitdepth = 32 if displaymode == '1d' else 16
+        self.__detector_config.bitdepth = 32
         self.__detector_config.sizex = int(self.__accumulation)
         self.__detector_config.sizey = int(self.__accumulation)
         self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
