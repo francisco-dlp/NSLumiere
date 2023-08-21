@@ -200,7 +200,7 @@ class Device(scan_base.ScanDevice):
             self.__is_scanning = False
 
     def __get_channels(self) -> typing.List[Channel]:
-        channels = [Channel(0, "ADF", True), Channel(1, "BF", False)]
+        channels = [Channel(0, "ADF", False), Channel(1, "BF", False)]
         abs_path = os.path.abspath('C:\ProgramData\Microscope\Orsay_cameras_list.json')
         try:
             with open(abs_path) as savfile:

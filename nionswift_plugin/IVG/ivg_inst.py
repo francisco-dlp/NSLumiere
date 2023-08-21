@@ -236,6 +236,7 @@ class ivgInstrument(stem_controller.STEMController):
             server.sendmail(sender_email, receiver_email, message)
 
     def fov_change(self, FOV):
+        #Magic function. Uncomment for switching between superscan and vg scan main subscan choice.
         self.__fov = float(FOV * 1e6)  # in microns
         if self.__isChromaTEM:
             scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
