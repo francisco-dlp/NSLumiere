@@ -241,7 +241,7 @@ class ivgInstrument(stem_controller.STEMController):
         if self.__isChromaTEM:
             scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "superscan")
-            #d = scan.get_frame_parameters(0)
+            d = scan.get_frame_parameters(0)
             #d.fov_nm = FOV * 1e9
             #scan.set_frame_parameters(0, d)
         self.property_changed_event.fire('spim_sampling_f')
