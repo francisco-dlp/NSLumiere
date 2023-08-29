@@ -1175,16 +1175,22 @@ class TimePix3():
                         frame_data = packet_data[end_header + 2:end_header + 2 + data_size]
 
                         event_list = numpy.frombuffer(frame_data, dtype=dt)
-                        self.__data[:] = event_list[:]
                         if message == 1 or message == 3:
+                            self.__data[:] = event_list[:]
                             check_data_and_send_message(cam_properties, frame_data)
                         if message == 2:
+                            start_channel = int(cam_properties['frameNumber']) * SPEC_SIZE #Spatial pixel * number of energy channels
+                            number_of_channels = (data_size * 8 / int(cam_properties['bitDepth']))
+                            self.__data[start_channel:start_channel + number_of_channels] = event_list[:]
                             print(f'***TP3***: Acquiring hyperspecimage. Header is {header}.')
                             self.__frame = min(cam_properties['frameNumber'], self.__detector_config.scan_sizex * self.__detector_config.scan_sizey)
                             self.sendmessage(2)
-                            if cam_properties['frameNumber'] >= self.__detector_config.scan_sizex * self.__detector_config.scan_sizey:
+                            if start_channel + number_of_channels >= self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPEC_SIZE:
                                 logging.info("***TP3***: Spim is over. Closing connection.")
                                 return
+                            #if cam_properties['frameNumber'] >= self.__detector_config.scan_sizex * self.__detector_config.scan_sizey:
+                            #    logging.info("***TP3***: Spim is over. Closing connection.")
+                            #    return
 
 
             except ConnectionResetError:
