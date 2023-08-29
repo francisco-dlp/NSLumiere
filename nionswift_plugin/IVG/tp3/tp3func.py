@@ -32,7 +32,7 @@ PIXEL_MASK_FILES = ['eq-accos-03_00.bpc', 'eq-accos-03_01.bpc', 'eq-accos-03_02.
 PIXEL_THRESHOLD_FILES = ['eq-accos-03_00.dacs', 'eq-accos-03_01.dacs', 'eq-accos-03_02.dacs',
                          'eq-accos-03_03.dacs', 'eq-accos-03_04.dacs', 'eq-accos-03_05.dacs',
                          'eq-accos-03_06.dacs', 'eq-accos-03_07.dacs']
-BUFFER_SIZE = 64000
+BUFFER_SIZE = 640000
 
 #Modes that we receive a frame
 FRAME = 0
@@ -354,7 +354,7 @@ class TimePix3():
     def set_exposure_time(self, exposure_time):
         detector_config = self.get_config()
         if self.__frame_based: #This is frame-based mode
-            value = min(exposure_time, 0.010)
+            value = min(exposure_time, 0.250) #Maximum value is 250 ms
             detector_config["TriggerMode"] = "AUTOTRIGSTART_TIMERSTOP"
             detector_config["TriggerPeriod"] = value+0.002  # 1s
             detector_config["ExposureTime"] = value  # 1s
@@ -1180,18 +1180,15 @@ class TimePix3():
                             check_data_and_send_message(cam_properties, frame_data)
                         if message == 2:
                             start_channel = int(cam_properties['frameNumber']) * SPEC_SIZE #Spatial pixel * number of energy channels
-                            number_of_channels = (data_size * 8 / int(cam_properties['bitDepth']))
+                            number_of_channels = int((data_size * 8 / int(cam_properties['bitDepth'])))
+                            extra_pixels = int(number_of_channels / SPEC_SIZE)
                             self.__data[start_channel:start_channel + number_of_channels] = event_list[:]
-                            print(f'***TP3***: Acquiring hyperspecimage. Header is {header}.')
-                            self.__frame = min(cam_properties['frameNumber'], self.__detector_config.scan_sizex * self.__detector_config.scan_sizey)
+                            #print(f'***TP3***: Acquiring hyperspecimage. Header is {header}. Start and number of channels is {start_channel} and {number_of_channels}. Number of pixels per call is {extra_pixels}.')
+                            self.__frame = min(cam_properties['frameNumber']+extra_pixels, self.__detector_config.scan_sizex * self.__detector_config.scan_sizey)
                             self.sendmessage(2)
                             if start_channel + number_of_channels >= self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPEC_SIZE:
                                 logging.info("***TP3***: Spim is over. Closing connection.")
                                 return
-                            #if cam_properties['frameNumber'] >= self.__detector_config.scan_sizex * self.__detector_config.scan_sizey:
-                            #    logging.info("***TP3***: Spim is over. Closing connection.")
-                            #    return
-
 
             except ConnectionResetError:
                 logging.info("***TP3***: Socket reseted. Closing connection.")
