@@ -65,7 +65,8 @@ class MaskCreator():
 
     def output_values(self):
         print(f'Mask is written to file. Size is {self.masks_serial.shape}.')
-        self.masks_serial.tofile("C:\\ProgramData\\Microscope\\masks.dat")
+        #self.masks_serial.tofile("C:\\ProgramData\\Microscope\\masks.dat")
+        self.masks_serial.tofile("X:\\Yves\\mask_4d\\masks.dat")
 
 def do_task(interactive: Interactive, api: API):
     target_data_item = api.application.document_windows[0].target_data_item

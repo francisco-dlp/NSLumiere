@@ -7,11 +7,15 @@ api = api_broker.get_api(API.version, UI.version)  # type: API
 
 cam = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eire")
 scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+superscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("superscan")
 usim = HardwareSource.HardwareSourceManager().get_instrument_by_id("usim_stem_controller")
 stage = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
 eels = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_controller")
 eels2 = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("eels_spec_controller")
 all = HardwareSource.HardwareSourceManager().get_all_instrument_ids()
+
+#print(dir(superscan))
+print(superscan.is_playing)
 
 #print(dir(cam.camera))
 #cam.camera.camera.resumeSpim(4)
@@ -23,9 +27,9 @@ all = HardwareSource.HardwareSourceManager().get_all_instrument_ids()
 
 #scan.scan_device.orsayscan.SetBottomBlanking(0, 14, beamontime=1e-6, delay=500e-9)
 #scan.scan_device.orsayscan.SetBottomBlanking(3, 14, risingedge=True, beamontime=10e-6, delay=500e-9)
-scan.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 7)  #When width increases, this goes to higher values
-scan.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  #When width increases, this goes to smaller values
-scan.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 5)  #Laser. This is delay dependent, so not so good
+#scan.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 7)  #When width increases, this goes to higher values
+#scan.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  #When width increases, this goes to smaller values
+#scan.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 5)  #Laser. This is delay dependent, so not so good
 
 #scan.scan_device.orsayscan.AlObjective(0.1, 0, 0, 0)
 

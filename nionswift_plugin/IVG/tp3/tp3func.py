@@ -15,7 +15,7 @@ def SENDMYMESSAGEFUNC(sendmessagefunc):
 
 ISI_CHANNELS = 200
 SPIM_SIZE = 1025 + 200
-RAW4D_PIXELS_X = 1024
+RAW4D_PIXELS_X = 256
 RAW4D_PIXELS_Y = 256
 SPEC_SIZE = 1025
 SPEC_SIZE_ISI = 1025 + 200
@@ -32,7 +32,7 @@ PIXEL_MASK_FILES = ['eq-accos-03_00.bpc', 'eq-accos-03_01.bpc', 'eq-accos-03_02.
 PIXEL_THRESHOLD_FILES = ['eq-accos-03_00.dacs', 'eq-accos-03_01.dacs', 'eq-accos-03_02.dacs',
                          'eq-accos-03_03.dacs', 'eq-accos-03_04.dacs', 'eq-accos-03_05.dacs',
                          'eq-accos-03_06.dacs', 'eq-accos-03_07.dacs']
-BUFFER_SIZE = 640000
+BUFFER_SIZE = 64000
 
 #Modes that we receive a frame
 FRAME = 0
@@ -672,7 +672,7 @@ class TimePix3():
                 scanInstrument.stop_playing()
             else:
                 scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  # Top2 bottom blanker
+                scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  # Top2 bottom blanker
             #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
         except AttributeError:
             logging.info("***TP3***: Could not set TDC to spim acquisition.")
@@ -722,9 +722,15 @@ class TimePix3():
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
-            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
+            if self.__isChromaTEM:
+                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy superscan line
+                scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                    "superscan")
+                scanInstrument.stop_playing()
+            else:
+                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
+                scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  # Top2 bottom blanker
+            # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
         except AttributeError:
             logging.info("***TP3***: Could not set TDC to spim acquisition.")
         port = 8088
@@ -1001,8 +1007,10 @@ class TimePix3():
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
+            if self.__isChromaTEM:
+                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy superscan line
+            else:
+                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
             #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
         except AttributeError:
             logging.info("***TP3***: Could not set TDC to spim acquisition.")
@@ -1210,6 +1218,13 @@ class TimePix3():
         check string value is a convenient function to detect the values using the header standard format for jsonimage.
         """
 
+        # Important parameters to configure Timepix3.
+        if self.__port == 2:
+            self.save_locally_routine()
+            return
+        elif self.__port == 3:
+            self.save_locally_routine()
+
         config_bytes = self.__detector_config.create_configuration_bytes()
 
         inputs = list()
@@ -1240,8 +1255,12 @@ class TimePix3():
         if self.__isChromaTEM:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "superscan")
-            scanInstrument.start_playing()
             logging.info(f'***TPX3***: Superscan is activated. Using it as a scanning source.')
+        else:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+        #scanInstrument.start_playing()
+
 
         while True:
             try:
@@ -1274,7 +1293,8 @@ class TimePix3():
                 logging.info("***TP3***: Socket reseted. Closing connection.")
                 return
 
-            if not self.__isPlaying:
+            if not self.__isPlaying or not scanInstrument.is_playing:
+                self.stopSpim(True)
                 logging.info('***TP3***: Finishing SPIM.')
                 return
         return
@@ -1318,6 +1338,12 @@ class TimePix3():
         client.send(config_bytes)
 
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
+        if self.__isChromaTEM:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "superscan")
+            #scanInstrument.start_playing()
+            logging.info(f'***TPX3***: Superscan is activated. Using it as a scanning source.')
+
         while True:
             try:
                 read, _, _ = select.select(inputs, outputs, inputs)
