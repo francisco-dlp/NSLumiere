@@ -8,7 +8,8 @@ setup(
     url="https://github.com/yvesauad/swift_lumiere",
     packages=['nionswift_plugin.EELS_spec', 'nionswift_plugin.diaf',
               'nionswift_plugin.IVG', 'nionswift_plugin.IVG.virtual_instruments',
-              'nionswift_plugin.IVG.tp3', 'nionswift_plugin.IVG.camera',
+              'nionswift_plugin.IVG.tp3', 'nionswift_plugin.IVG.QuantumPY',
+              'nionswift_plugin.IVG.camera',
               'nionswift_plugin.IVG.scan', 'nionswift_plugin.lenses',
               'nionswift_plugin.OptSpec', 'nionswift_plugin.stage'],
     python_requires='>=3.8.5',
@@ -35,6 +36,7 @@ setup(
         'nionswift_plugin/aux_files/DLLs/delib64.dll',
         'nionswift_plugin/aux_files/DLLs/SpectroCL.dll',
         'nionswift_plugin/aux_files/DLLs/AttoClient.dll',
+        'nionswift_plugin/aux_files/DLLs/Newtonsoft.Json.dll',
     ]), ('swift_rust/target/release', [
         'swift_rust/target/release/rust2swift.pyd'
     ]

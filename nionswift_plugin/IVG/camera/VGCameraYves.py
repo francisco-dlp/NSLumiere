@@ -201,6 +201,9 @@ class CameraDevice(camera_base.CameraDevice):
         if manufacturer == 4:
             self.camera_callback = tp3func.SENDMYMESSAGEFUNC(self.sendMessageFactory())
             self.camera = tp3func.TimePix3(sn, simul, self.sendMessageFactory())
+        elif manufacturer == 6:
+            self.camera_callback = tp3func.SENDMYMESSAGEFUNC(self.sendMessageFactory())
+            self.camera = tp3func.TimePix3(sn, simul, self.sendMessageFactory())
         else:
             from nionswift_plugin.IVG.camera import orsaycamera
             self.camera = orsaycamera.orsayCamera(manufacturer, model, sn, simul)
@@ -220,7 +223,7 @@ class CameraDevice(camera_base.CameraDevice):
 
 
         # register data locker for focus acquisition
-        if manufacturer != 4:
+        if manufacturer != 4 and manufacturer != 6:
             self.fnlock = orsaycamera.DATALOCKFUNC(self.__data_locker)
             self.camera.registerDataLocker(self.fnlock)
             self.fnunlock = orsaycamera.DATAUNLOCKFUNC(self.__data_unlocker)
@@ -231,7 +234,7 @@ class CameraDevice(camera_base.CameraDevice):
         self.has_data_event = threading.Event()
 
         # register data locker for SPIM acquisition
-        if manufacturer != 4:
+        if manufacturer != 4 and manufacturer != 6:
             self.fnspimlock = orsaycamera.SPIMLOCKFUNC(self.__spim_data_locker)
             self.camera.registerSpimDataLocker(self.fnspimlock)
             self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
@@ -1110,6 +1113,9 @@ def run(instrument: ivg_inst.ivgInstrument):
                 sn = camera["ip_address"]
             elif camera["manufacturer"] == 4:
                 manufacturer = "AmsterdamScientificInstruments"
+                sn = camera["ip_address"]
+            elif camera["manufacturer"] == 6:
+                manufacturer = "QuantumDetectorsPY"
                 sn = camera["ip_address"]
             model = camera["model"]
             if (camera["manufacturer"] == 2) and camera["simulation"]:
