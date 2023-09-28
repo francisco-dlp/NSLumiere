@@ -15,7 +15,7 @@ def SENDMYMESSAGEFUNC(sendmessagefunc):
 
 ISI_CHANNELS = 200
 SPIM_SIZE = 1025 + 200
-RAW4D_PIXELS_X = 256
+RAW4D_PIXELS_X = 1024
 RAW4D_PIXELS_Y = 256
 SPEC_SIZE = 1025
 SPEC_SIZE_ISI = 1025 + 200
@@ -50,12 +50,10 @@ HYPERSPEC_FRAME_BASED = 11
 ISIBOX_SAVEALL = 8
 
 
-
+@jit(nopython=True)
 def update_spim_numba(array, event_list):
     for val in event_list:
         array[val] += 1
-
-numba_jit = jit(update_spim_numba)
 
 class Response():
     def __init__(self):
@@ -764,14 +762,16 @@ class TimePix3():
             self.start_4dlistening_from_scan(port)
             return True
 
+    def stopTimepix3Measurement(self):
+        status = self.getCCDStatus()
+        resp = self.request_get(url=self.__serverURL + '/measurement/stop')
+        return resp.text
     def stopFocus(self):
         """
         Stop acquisition. Finish listening put global isPlaying to False and wait client thread to finish properly using
         .join() method. Also replaces the old Queue with a new one with no itens on it (so next one won't use old data).
         """
-        status = self.getCCDStatus()
-        resp = self.request_get(url=self.__serverURL + '/measurement/stop')
-        data = resp.text
+        self.stopTimepix3Measurement()
         self.finish_listening()
 
     def stopSpim(self, immediate):
@@ -1251,6 +1251,8 @@ class TimePix3():
         self.__data = self.__detector_config.get_data()
         client.send(config_bytes)
 
+        logging.info(f"Creating data type as {dt} and array shape with {self.__data.shape} for the acquisition.")
+
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
         if self.__isChromaTEM:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
@@ -1271,14 +1273,14 @@ class TimePix3():
                         logging.info('***TP3***: No more packets received. Finishing SPIM.')
                         return
 
-                    #Checking if its a multiple of 4 bytes (32 bit)
+                    #Checking if its a multiple of 8 bytes (64 bit)
                     q = len(packet_data) % 8
                     if q:
                         packet_data += s.recv(8 - q)
 
                     try:
                         event_list = numpy.frombuffer(packet_data, dtype=dt)
-                        numba_jit(self.__data, event_list)
+                        update_spim_numba(self.__data, event_list)
                         #self.update_spim(event_list)
                         #if len(event_list) > 0:
                             #for val in event_list:
@@ -1294,7 +1296,7 @@ class TimePix3():
                 return
 
             if not self.__isPlaying or not scanInstrument.is_playing:
-                self.stopSpim(True)
+                self.stopTimepix3Measurement()
                 logging.info('***TP3***: Finishing SPIM.')
                 return
         return
@@ -1383,7 +1385,7 @@ class TimePix3():
     def update_spim(self, event_list):
         unique, counts = numpy.unique(event_list, return_counts=True)
         counts = counts.astype(numpy.uint32)
-        self.__spimData[unique] += counts
+        self.__data[unique] += counts
 
     def get_current(self, frame_int, frame_number):
         if self.__detector_config.is_cumul and frame_number:
