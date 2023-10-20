@@ -565,8 +565,6 @@ class CameraDevice(camera_base.CameraDevice):
         self.frame_number = 0
         self.__cumul_on = False
         self.sizex, self.sizey = self.camera.getImageSize()
-        #self.sizex = 1024
-        #self.sizey = 256
         if self.current_camera_settings.as_dict()['soft_binning']:
             self.sizey = 1
         # logging.info(f"***CAMERA***: Start live, Image size: {self.sizex} x {self.sizey}"
@@ -1106,32 +1104,32 @@ def run(instrument: ivg_inst.ivgInstrument):
     set_file = read_data.FileManager('Orsay_cameras_list')
 
     for camera in set_file.settings:
-        #try:
-        sn = ""
-        if camera["manufacturer"] == 1:
-            manufacturer = "Roperscientific"
-        elif camera["manufacturer"] == 2:
-            manufacturer = "Andor"
-        elif camera["manufacturer"] == 3:
-            manufacturer = "QuantumDetectors"
-            sn = camera["ip_address"]
-        elif camera["manufacturer"] == 4:
-            manufacturer = "AmsterdamScientificInstruments"
-            sn = camera["ip_address"]
-        elif camera["manufacturer"] == 6:
-            manufacturer = "QuantumDetectorsPY"
-            sn = camera["ip_address"]
-        model = camera["model"]
-        if (camera["manufacturer"] == 2) and camera["simulation"]:
-            logging.info(f"***CAMERA***: No simulation for {manufacturer} camera.")
-        else:
-            camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"],
-                                         instrument,
-                                         camera["id"], camera["name"], camera["type"])
+        try:
+            sn = ""
+            if camera["manufacturer"] == 1:
+                manufacturer = "Roperscientific"
+            elif camera["manufacturer"] == 2:
+                manufacturer = "Andor"
+            elif camera["manufacturer"] == 3:
+                manufacturer = "QuantumDetectors"
+                sn = camera["ip_address"]
+            elif camera["manufacturer"] == 4:
+                manufacturer = "AmsterdamScientificInstruments"
+                sn = camera["ip_address"]
+            elif camera["manufacturer"] == 6:
+                manufacturer = "QuantumDetectorsPY"
+                sn = camera["ip_address"]
+            model = camera["model"]
+            if (camera["manufacturer"] == 2) and camera["simulation"]:
+                logging.info(f"***CAMERA***: No simulation for {manufacturer} camera.")
+            else:
+                camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"],
+                                             instrument,
+                                             camera["id"], camera["name"], camera["type"])
 
-            camera_settings = CameraSettings(camera_device)
-            Registry.register_component(CameraModule("VG_controller", camera_device, camera_settings),
-                                        {"camera_module"})
-        set_file.save_locally()
-        #except Exception as e:
-        #    logging.info(f"Failed to start camera: {manufacturer}.  model: {model}. Exception: {e}")
+                camera_settings = CameraSettings(camera_device)
+                Registry.register_component(CameraModule("VG_controller", camera_device, camera_settings),
+                                            {"camera_module"})
+            set_file.save_locally()
+        except Exception as e:
+            logging.info(f"Failed to start camera: {manufacturer}.  model: {model}. Exception: {e}")
