@@ -164,6 +164,14 @@ class CameraHandler:
                 self.speed_item_text.value = self.speed_items.value[self.speed_item.value]
                 logging.info('***CAMERA***: The new port values does not support current speed. Please recheck indexes.')
 
+        def update_chips():
+            frame_parameters = self.camera_settings.get_current_frame_parameters()
+            self.chips_item.value = [15,1,2,4,8].index(frame_parameters["chips_config"])
+            self.chips_item_text.value = self.chips_items.value[self.chips_item.value]
+
+        def update_gaps():
+            self.correction_item.value = self.camera_settings.get_current_frame_parameters()["gaps_mode"]
+
         def update_gains():
             self.gain_items.value = list(self.camera_device.camera.getGains(self.port_item.value))
             gain = self.camera_settings.get_current_frame_parameters()["gain"]
@@ -172,6 +180,9 @@ class CameraHandler:
         def update_multiplier():
             if self.port_items.value[self.port_item.value] == "Electron Multiplied":
                 self.multiplication_model.value = self.camera_settings.get_current_frame_parameters()["multiplication"]
+
+        def update_threshold():
+            self.threshold_model.value = self.camera_settings.get_current_frame_parameters()["video_threshold"]
 
         def update_all_setup_widgets():
             frame_parameters = self.camera_settings.get_current_frame_parameters()
@@ -188,8 +199,12 @@ class CameraHandler:
             self.port_item.value = frame_parameters["port"]
             self.fan_enabled_model.value = frame_parameters["fan_enabled"]
             update_speeds()
+            update_chips()
+            update_gaps()
             update_gains()
+            update_binning()
             update_multiplier()
+            update_threshold()
 
         def update_binning():
             frame_parameters = self.camera_settings.get_current_frame_parameters()

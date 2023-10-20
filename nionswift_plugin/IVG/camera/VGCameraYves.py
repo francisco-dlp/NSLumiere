@@ -434,13 +434,13 @@ class CameraDevice(camera_base.CameraDevice):
 
         #Medipix3 camera values
         if self.isMedipix and "chips_config" in dict_frame_parameters:
-            if self.__hardware_settings['chips_config'] != frame_parameters['chips_config']:
-                self.__hardware_settings['chips_config'] = frame_parameters['chips_config']
+            if self.__hardware_settings['chips_config'] != dict_frame_parameters['chips_config']:
+                self.__hardware_settings['chips_config'] = dict_frame_parameters['chips_config']
                 self.camera.chips_config = self.__hardware_settings['chips_config']
 
         if self.isMedipix and "gaps_mode" in dict_frame_parameters:
-            if self.__hardware_settings['gaps_mode'] != frame_parameters['gaps_mode']:
-                self.__hardware_settings['gaps_mode'] = frame_parameters['gaps_mode']
+            if self.__hardware_settings['gaps_mode'] != dict_frame_parameters['gaps_mode']:
+                self.__hardware_settings['gaps_mode'] = dict_frame_parameters['gaps_mode']
                 self.camera.gaps_mode = self.__hardware_settings['gaps_mode']
 
     def __numpy_to_orsay_type(self, array: numpy.array):
