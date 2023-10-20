@@ -333,7 +333,7 @@ class orsayCamera(object):
         """
         return self.__OrsayCameraGetPixelDepth(self.orsaycamera)
 
-    def getImageSize(self) -> int:
+    def getImageSize(self) -> (int, int):
         """
         Read size of image given by the current setting
         """
@@ -418,7 +418,7 @@ class orsayCamera(object):
         """
         Set  horizontal, vertical binning
         """
-        self.__OrsayCameraSetBinning(self.orsaycamera, bx, by, 0)
+        self.__OrsayCameraSetBinning(self.orsaycamera, bx, int(by), 0)
 
     def setMirror(self, mirror):
         """

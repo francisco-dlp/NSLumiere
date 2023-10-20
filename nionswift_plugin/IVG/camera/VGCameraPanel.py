@@ -45,18 +45,25 @@ class CameraHandler:
 
         sx, sy = camera_device.camera.getCCDSize()
 
-        self.__areas = [(0, 0, sy, sx), (sy / 4, 0, 3 * sy / 4, sx), (3 * sy / 8, 0, 5 * sy / 8, sx),(sy / 2 - 5, 0, sy / 2 + 5, sx)]
-        self.__areas_names = [_("Full"), _("Half"), _("Quater"), _("Skinny")]
-        self.h_binning_values = [1, 2, 4, 8, 16]
-
-        if sy == 200:
-            self.v_binning_values = [1, 2, 5, 10, 20, 50, 100, 200]
-        elif sy == 100:
-            self.v_binning_values = [1, 2, 5, 10, 20, 50, 100]
-        elif sy == 256:
-            self.v_binning_values = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+        if camera_device.isMedipix:
+            self.__areas = [(0, 0, sy, sx), (sy / 2, 0, sy, sx), (3 * sy / 4, 0, sy, sx), (7 * sy / 8, 0, sy, sx),
+                            (15 * sy / 16, 0, sy, sx)]
+            self.__areas_names = [_("256"), _("128"), _("64"), _("32"), _("16")]
+            self.h_binning_values = [1, 2, 4, 8, 16]
+            self.v_binning_values = [1, sy]
         else:
-            self.v_binning_values = [1]
+            self.__areas = [(0, 0, sy, sx), (sy / 4, 0, 3 * sy / 4, sx), (3 * sy / 8, 0, 5 * sy / 8, sx),(sy / 2 - 5, 0, sy / 2 + 5, sx)]
+            self.__areas_names = [_("Full"), _("Half"), _("Quater"), _("Skinny")]
+            self.h_binning_values = [1, 2, 4, 8, 16]
+
+            if sy == 200:
+                self.v_binning_values = [1, 2, 5, 10, 20, 50, 100, 200]
+            elif sy == 100:
+                self.v_binning_values = [1, 2, 5, 10, 20, 50, 100]
+            elif sy == 256:
+                self.v_binning_values = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+            else:
+                self.v_binning_values = [1]
 
         frame_parameters = camera_settings.get_current_frame_parameters()
 
@@ -73,6 +80,10 @@ class CameraHandler:
         self.speed_items.value = list(self.camera_device.camera.getSpeeds(frame_parameters["port"]))
         self.speed_item = Model.PropertyModel(-1)
         self.speed_item_text = Model.PropertyModel("???s")
+        self.chips_items = Model.PropertyModel([])
+        self.chips_items.value = list(["All", "1", "2", "3", "4"])
+        self.chips_item = Model.PropertyModel(0)
+        self.chips_item_text = Model.PropertyModel("???s")
         self.flip_model = Model.PropertyModel(frame_parameters["flipped"])
         self.current_value = Model.PropertyModel("0")
         self.delay_value = Model.PropertyModel(frame_parameters["timeDelay"])
@@ -85,7 +96,10 @@ class CameraHandler:
         self.multiplication_converter = Converter.IntegerToStringConverter()
         self.multiplication_model = Model.PropertyModel(frame_parameters["multiplication"])
         self.h_binning_item = Model.PropertyModel(frame_parameters["h_binning"])
+        self.v_binning_items = Model.PropertyModel([])
+        self.v_binning_items.value = list(self.v_binning_values, )
         self.v_binning_item = Model.PropertyModel(frame_parameters["v_binning"])
+        self.v_binning_item_text = Model.PropertyModel("???s")
         self.exposure_converter = Converter.FloatToStringConverter(format="{0:.2f}")
         self.exposure_model = Model.PropertyModel(frame_parameters["exposure_ms"])
         self.threshold_model = Model.PropertyModel(frame_parameters["video_threshold"])
@@ -95,7 +109,10 @@ class CameraHandler:
         self.tab_v_binning = Model.PropertyModel(0)
         self.status_text = Model.PropertyModel("Stopped")
         correction_enum = 0
-        self.correction_items = [_("None"), _("Readout"), _("Gain"), _("Both")]
+        if self.camera_device.isMedipix:
+            self.correction_items = [_("No gaps"), _("Gaps zero"), _("Gaps filled")]
+        else:
+            self.correction_items = [_("None"), _("Readout"), _("Gain"), _("Both")]
         self.correction_item = Model.PropertyModel(correction_enum)
 
         self.soft_binning_model = Model.PropertyModel(frame_parameters["soft_binning"])
@@ -105,6 +122,13 @@ class CameraHandler:
         val = self.camera_settings.modes.index(frame_parameters["acquisition_mode"])
         self.mode_item = Model.PropertyModel(self.camera_settings.modes.index(frame_parameters["acquisition_mode"]))
         self.mode_item_text = Model.PropertyModel("???g")
+
+        self.synchro_items = Model.PropertyModel([])
+        self.synchro_items.value = self.camera_settings.synchro_modes
+        val = self.camera_settings.synchro_modes.index(frame_parameters["synchro_mode"])
+        self.synchro_item = Model.PropertyModel(
+            self.camera_settings.synchro_modes.index(frame_parameters["synchro_mode"]))
+        self.synchro_item_text = Model.PropertyModel("???g")
 
         self.tp3mode_item = Model.PropertyModel(frame_parameters["tp3mode"])
         if self.camera_device.isTimepix:
@@ -171,7 +195,16 @@ class CameraHandler:
             frame_parameters = self.camera_settings.get_current_frame_parameters()
             bx, by = frame_parameters["h_binning"], frame_parameters["v_binning"]
             self.h_binning_item.value = self.h_binning_values.index(bx) if bx in self.h_binning_values else None
-            self.v_binning_item.value = self.v_binning_values.index(by) if by in self.v_binning_values else None
+            if self.camera_device.isMedipix or self.camera_device.isKURO:
+                area = frame_parameters["area"]
+                self.v_binning_items.value = [1, area[2] - area[0]]
+                if by == 1:
+                    self.v_binning_item.value = 0
+                else:
+                    self.v_binning_item.value = 1
+                    set_v_binning(area[2] - area[0])
+            else:
+                self.v_binning_item.value = self.v_binning_values.index(by) if by in self.v_binning_values else None
 
         def update_exposure():
             self.exposure_model.value = self.camera_settings.get_current_frame_parameters().exposure_ms
@@ -199,6 +232,19 @@ class CameraHandler:
             frame_parameters["speed"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
 
+        def set_chips(value):
+            frame_parameters = self.camera_settings.get_current_frame_parameters()
+            if self.camera_device.isMedipix:
+                values = list([15,1,2,4,8])
+                frame_parameters["chips_config"] = values[value]
+                area = list(frame_parameters["area"])
+                if value == 15:
+                    area[3] = 1024
+                else:
+                    area[3] = 256
+                frame_parameters["area"] = tuple(area)
+                self.camera_settings.set_current_frame_parameters(frame_parameters)
+
         def set_gain(value):
             # print(f"Panel: set_gain {value}")
             frame_parameters = self.camera_settings.get_current_frame_parameters()
@@ -223,12 +269,13 @@ class CameraHandler:
 
         def set_v_binning(value):
             frame_parameters = self.camera_settings.get_current_frame_parameters()
-            frame_parameters["v_binning"] = self.v_binning_values[value]
+            # frame_parameters["v_binning"] = self.v_binning_values[value]
+            frame_parameters["v_binning"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
 
         def set_v_binning_tab(value):
-            # print(f"Tab v binning changed to {value}")
-            set_v_binning(self.v_binning_item.value)
+            print(f"Tab v binning changed to {value}")
+            set_v_binning(self.v_binning_items.value[value])
 
         def set_exposure(value):
             # print("Panel: set_exposure")
@@ -242,12 +289,24 @@ class CameraHandler:
             # update other param accordingly
             if "1D" in frame_parameters["acquisition_mode"]:
                 # frame_parameters["acquisition_style"] = "1d"
-                self.soft_binning_model.value = True
+                if self.camera_device.isMedipix or self.camera_device.isKURO:
+                    self.v_binning_item.value = 1
+                else:
+                    self.soft_binning_model.value = True
             elif "2D" in frame_parameters["acquisition_mode"]:
                 # frame_parameters["acquisition_style"] = "2d"
-                self.soft_binning_model.value = False
+                if self.camera_device.isMedipix or self.camera_device.isKURO:
+                    self.v_binning_item.value = 0
+                else:
+                    self.soft_binning_model.value = False
             self.camera_settings.set_current_frame_parameters(frame_parameters)
             self.mode_item_text.value = self.mode_items.value[value]
+
+        def set_synchro(value):
+            frame_parameters = self.camera_settings.get_current_frame_parameters()
+            frame_parameters["synchro_mode"] = self.synchro_items.value[value]
+            self.camera_settings.set_current_frame_parameters(frame_parameters)
+            self.synchro_item_text.value = self.synchro_items.value[value]
 
         def set_nbspectra(value):
             frame_parameters = self.camera_settings.get_current_frame_parameters()
@@ -255,10 +314,17 @@ class CameraHandler:
             self.camera_settings.set_current_frame_parameters(frame_parameters)
 
         def set_roi(value):
-            area = self.__areas[value]
+            area = list(self.__areas[value])
             frame_parameters = self.camera_settings.get_current_frame_parameters()
-            frame_parameters["area"] = area
+            if self.camera_device.isMedipix and frame_parameters["chips_config"] == 15:
+                area[3] = 1024
+            else:
+                area[3] = 256
+            frame_parameters["area"] = tuple(area)
             self.camera_settings.set_current_frame_parameters(frame_parameters)
+            if self.camera_device.isMedipix or self.camera_device.isKURO:
+                self.v_binning_values = [1, area[2] - area[0]]
+                update_binning()
 
         def set_soft_binning(value):
             frame_parameters = self.camera_settings.get_current_frame_parameters()
@@ -293,6 +359,7 @@ class CameraHandler:
         self.roi_item.on_value_changed = set_roi
         self.port_item.on_value_changed = set_port
         self.speed_item.on_value_changed = set_speed
+        self.chips_item.on_value_changed = set_chips
         self.gain_item.on_value_changed = set_gain
         self.multiplication_model.on_value_changed = set_multiplier
         self.threshold_model.value = 0
@@ -300,8 +367,8 @@ class CameraHandler:
         self.fan_enabled_model.on_value_changed = set_fan
 
         self.h_binning_item.on_value_changed = set_h_binning
-        self.v_binning_item.on_value_changed = set_v_binning
-        self.tab_v_binning.on_value_changed = set_v_binning_tab
+        self.v_binning_item.on_value_changed = set_v_binning_tab
+        #self.tab_v_binning.on_value_changed = set_v_binning_tab
         self.exposure_model.on_value_changed = set_exposure
         self.nbspectra_model.on_value_changed = set_nbspectra
         self.soft_binning_model.on_value_changed = set_soft_binning
@@ -311,6 +378,7 @@ class CameraHandler:
         self.tp3mode_item.on_value_changed = set_tp3mode
 
         self.mode_item.on_value_changed = set_mode
+        self.synchro_item.on_value_changed = set_synchro
 
         update_all_setup_widgets()
         update_binning()
@@ -382,13 +450,16 @@ class CameraPanelFactory:
 
         binning_row = ui.create_row(h_binning_row, v_binning_row, spacing=8)
 
-        eels_row = ui.create_row(ui.create_label(text="0.63 eV/ch"),
-                                 ui.create_check_box(text=_("Spectra"),
-                                                     checked="@binding(soft_binning_model.value)"))
+        if camera_device.isMedipix:
+            binning_group = ui.create_group(binning_row, title=_("Binning"))
+        else:
+            eels_row = ui.create_row(ui.create_label(text="0.63 eV/ch"),
+                                     ui.create_check_box(text=_("Spectra"),
+                                                         checked="@binding(soft_binning_model.value)"))
 
-        binning_content = ui.create_column(binning_row, eels_row, spacing=8)
+            binning_content = ui.create_column(binning_row, eels_row, spacing=8)
 
-        binning_group = ui.create_group(binning_content, title=_("Binning"))
+            binning_group = ui.create_group(binning_content, title=_("Binning"))
 
         task_combo_box = ui.create_combo_box(items_ref="@binding(mode_items.value)",
                                              current_index="@binding(mode_item.value)")
@@ -446,10 +517,17 @@ class CameraPanelFactory:
         ports = camera_device.camera.getPortNames()
 
         if len(ports) > 1:
-            status_row = ui.create_row(ui.create_label(text="@binding(port_item_text.value)"),
-                                       ui.create_label(text="@binding(speed_item_text.value)"),
-                                       ui.create_label(text="@binding(gain_item_text.value)"),
-                                       ui.create_label(text="@binding(status_text.value)"), spacing=8)
+            if camera_device.isMedipix:
+                status_row = ui.create_row(ui.create_label(text="@binding(port_item_text.value)"),
+                                           ui.create_label(text="@binding(chips_item_text.value)"),
+                                           ui.create_label(text="@binding(threshold_model.value)"),
+                                           ui.create_label(text="@binding(gain_item_text.value)"),
+                                           ui.create_label(text="@binding(status_text.value)"), spacing=8)
+            else:
+                status_row = ui.create_row(ui.create_label(text="@binding(port_item_text.value)"),
+                                           ui.create_label(text="@binding(speed_item_text.value)"),
+                                           ui.create_label(text="@binding(gain_item_text.value)"),
+                                           ui.create_label(text="@binding(status_text.value)"), spacing=8)
         else:
             status_row = ui.create_row(ui.create_label(text="@binding(speed_item_text.value)"),
                                        ui.create_label(text="@binding(gain_item_text.value)"),
@@ -466,10 +544,14 @@ class CameraPanelFactory:
                                                  current_index="@binding(port_item.value)")
             port_row = ui.create_row(ui.create_label(text=_("Port")), ui.create_stretch(), port_combo_box, spacing=8)
 
-        speed_combo_box = ui.create_combo_box(items_ref="@binding(speed_items.value)",
-                                              current_index="@binding(speed_item.value)")
-
-        speed_row = ui.create_row(ui.create_label(text=_("Speed")), ui.create_stretch(), speed_combo_box, spacing=8)
+        if camera_device.isMedipix:
+            chips_combo_box = ui.create_combo_box(items_ref="@binding(chips_items.value)",
+                                                  current_index="@binding(chips_item.value)")
+            chips_row = ui.create_row(ui.create_label(text=_("Chips")), ui.create_stretch(), chips_combo_box, spacing=8)
+        else:
+            speed_combo_box = ui.create_combo_box(items_ref="@binding(speed_items.value)",
+                                                  current_index="@binding(speed_item.value)")
+            speed_row = ui.create_row(ui.create_label(text=_("Speed")), ui.create_stretch(), speed_combo_box, spacing=8)
 
         flip_value=ui.create_check_box(name='flip_value', text='Flip Spectra', checked='@binding(flip_model.value)')
 
@@ -510,8 +592,12 @@ class CameraPanelFactory:
         # shutter_checkbox = ui.create_check_box(name="shutter_check_box", text="Shutter Enabled", checked="@binding(shutter_enabled_model.value)")
 
         if len(ports) > 1:
-            setup_column = ui.create_column(roi_row, port_row, speed_row, flip_value, gain_group, correction_group, fan_checkbox,
-                                            ui.create_stretch(), spacing=8, margin=4)
+            if camera_device.isMedipix:
+                setup_column = ui.create_column(roi_row, port_row, chips_row, flip_value, gain_group, correction_group,
+                                                ui.create_stretch(), spacing=8, margin=4)
+            else:
+                setup_column = ui.create_column(roi_row, port_row, speed_row, flip_value, gain_group, correction_group,
+                                                fan_checkbox, ui.create_stretch(), spacing=8, margin=4)
         else:
             setup_column = ui.create_column(roi_row, speed_row, gain_group, correction_group, fan_checkbox,
                                             ui.create_stretch(), spacing=8, margin=4)

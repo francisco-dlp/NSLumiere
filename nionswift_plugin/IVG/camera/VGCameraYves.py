@@ -264,6 +264,7 @@ class CameraDevice(camera_base.CameraDevice):
             "v_binning": by,
             "soft_binning": False,
             "acquisition_mode": "Focus",
+            "synchro_mode": "Standalone",
             "spectra_count": 10,
             "multiplication": self.camera.getMultiplication()[0],
             "area": self.camera.getArea(),
@@ -376,7 +377,7 @@ class CameraDevice(camera_base.CameraDevice):
                     self.__hardware_settings['area'] = [top - (sy - szy), left, bottom - (sy - szy), right, szy]
                     self.camera.setArea(self.__hardware_settings['area'])
                     if v_binned:
-                        self.__hardware_settings.binning = int(bottom - top)
+                        self.__hardware_settings['v_binning'] = int(bottom - top)
                         self.camera.setBinning(self.__hardware_settings['h_binning'], self.__hardware_settings['v_binning'])
                 self.__hardware_settings['area'] = dict_frame_parameters['area']
                 self.camera.setArea(self.__hardware_settings['area'])
@@ -564,6 +565,8 @@ class CameraDevice(camera_base.CameraDevice):
         self.frame_number = 0
         self.__cumul_on = False
         self.sizex, self.sizey = self.camera.getImageSize()
+        #self.sizex = 1024
+        #self.sizey = 256
         if self.current_camera_settings.as_dict()['soft_binning']:
             self.sizey = 1
         # logging.info(f"***CAMERA***: Start live, Image size: {self.sizex} x {self.sizey}"
@@ -1021,6 +1024,7 @@ class CameraSettings():
             self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "2D-Chrono", "Event Hyperspec"]
         else:
             self.modes = ["Focus", "Cumul", "1D-Chrono", "1D-Chrono-Live", "2D-Chrono"]
+        self.synchro_modes = ["Standalone", "Master", "Slave"]
         self.settings_id = camera_device.camera_id
 
     def close(self):
@@ -1102,32 +1106,32 @@ def run(instrument: ivg_inst.ivgInstrument):
     set_file = read_data.FileManager('Orsay_cameras_list')
 
     for camera in set_file.settings:
-        try:
-            sn = ""
-            if camera["manufacturer"] == 1:
-                manufacturer = "Roperscientific"
-            elif camera["manufacturer"] == 2:
-                manufacturer = "Andor"
-            elif camera["manufacturer"] == 3:
-                manufacturer = "QuantumDetectors"
-                sn = camera["ip_address"]
-            elif camera["manufacturer"] == 4:
-                manufacturer = "AmsterdamScientificInstruments"
-                sn = camera["ip_address"]
-            elif camera["manufacturer"] == 6:
-                manufacturer = "QuantumDetectorsPY"
-                sn = camera["ip_address"]
-            model = camera["model"]
-            if (camera["manufacturer"] == 2) and camera["simulation"]:
-                logging.info(f"***CAMERA***: No simulation for {manufacturer} camera.")
-            else:
-                camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"],
-                                             instrument,
-                                             camera["id"], camera["name"], camera["type"])
+        #try:
+        sn = ""
+        if camera["manufacturer"] == 1:
+            manufacturer = "Roperscientific"
+        elif camera["manufacturer"] == 2:
+            manufacturer = "Andor"
+        elif camera["manufacturer"] == 3:
+            manufacturer = "QuantumDetectors"
+            sn = camera["ip_address"]
+        elif camera["manufacturer"] == 4:
+            manufacturer = "AmsterdamScientificInstruments"
+            sn = camera["ip_address"]
+        elif camera["manufacturer"] == 6:
+            manufacturer = "QuantumDetectorsPY"
+            sn = camera["ip_address"]
+        model = camera["model"]
+        if (camera["manufacturer"] == 2) and camera["simulation"]:
+            logging.info(f"***CAMERA***: No simulation for {manufacturer} camera.")
+        else:
+            camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"],
+                                         instrument,
+                                         camera["id"], camera["name"], camera["type"])
 
-                camera_settings = CameraSettings(camera_device)
-                Registry.register_component(CameraModule("VG_controller", camera_device, camera_settings),
-                                            {"camera_module"})
-            set_file.save_locally()
-        except Exception as e:
-            logging.info(f"Failed to start camera: {manufacturer}.  model: {model}. Exception: {e}")
+            camera_settings = CameraSettings(camera_device)
+            Registry.register_component(CameraModule("VG_controller", camera_device, camera_settings),
+                                        {"camera_module"})
+        set_file.save_locally()
+        #except Exception as e:
+        #    logging.info(f"Failed to start camera: {manufacturer}.  model: {model}. Exception: {e}")
