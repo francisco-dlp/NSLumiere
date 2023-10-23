@@ -652,7 +652,7 @@ class ivgInstrument(stem_controller.STEMController):
         elif s == "CSH.u":
             self.__csh[0] = val
         elif s == "CSH.v":
-            pass
+            self.__csh[1] = val
         elif s == "DriftCorrectionUpdateInterval":
             self.__driftCorrectionUpdateInterval = val
         elif s == "DriftMeasureTime":
@@ -716,6 +716,10 @@ class ivgInstrument(stem_controller.STEMController):
                 return True, self.__EELSInstrument.range_f
             except AttributeError:
                 return True, 1
+        elif s == "CSH.u":
+            return True, self.__csh[0]
+        elif s == "CSH.v":
+            return True, self.__csh[1]
         elif s == "DriftCompensation.u":
             return True, self.__driftCompensation[0]
         elif s == "DriftCompensation.v":

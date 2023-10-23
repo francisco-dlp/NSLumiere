@@ -279,10 +279,9 @@ class CameraDevice(camera_base.CameraDevice):
             "timeDelay": 0,
             "timeWidth": 0,
             "tp3mode": 1,
+            "chips_config": 15,
+            "gaps_mode": 0,
         })
-        if self.isMedipix:
-            d["chips_config"] = 15
-            d["gaps_mode"] = 0
 
         self.current_camera_settings = CameraFrameParameters(d)
         self.__hardware_settings = self.current_camera_settings.as_dict()
