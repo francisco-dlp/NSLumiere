@@ -143,11 +143,14 @@ class ivgInstrument(stem_controller.STEMController):
         #Checking if auto_stem is here. This is to control ChromaTEM
         AUTOSTEM_CONTROLLER_ID = "autostem_controller"
         self.__isChromaTEM = False
-        autostem = HardwareSource.HardwareSourceManager().get_instrument_by_id(AUTOSTEM_CONTROLLER_ID)
-        if autostem != None:
-            tuning_manager = autostem.tuning_manager
-            self.__instrument = tuning_manager.instrument_controller
-            self.__isChromaTEM = True
+        try:
+            autostem = HardwareSource.HardwareSourceManager().get_instrument_by_id(AUTOSTEM_CONTROLLER_ID)
+            if autostem != None:
+                tuning_manager = autostem.tuning_manager
+                self.__instrument = tuning_manager.instrument_controller
+                self.__isChromaTEM = True
+        except AttributeError:
+            logging.info('**IVG***: Issue finding hardwareSource. If you are in a Nion microscope please fix this.')
 
         self.__gun_gauge = gun.GunVacuum(SERIAL_PORT_GUN)
         if not self.__gun_gauge.success:

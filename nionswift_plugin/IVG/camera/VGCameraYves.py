@@ -112,20 +112,20 @@ class CameraTask:
         self.__camera_device.current_camera_settings.processing = "None"
         datatype = numpy.float32
         # if "orsay" in settings.keys() and settings["orsay"]:
-        if hasattr(self.__camera_device, "isMedipix") and self.__camera_device.isMedipix:
-            pixel_depth = self.__camera_device.pixeldepth
-            if pixel_depth == 1:
-                datatype = numpy.uint8
-            elif pixel_depth == 6:
-                if self.__twoD:
-                    datatype = numpy.uint8
-                else:
-                    datatype = numpy.uint16
-            elif pixel_depth == 12:
-                if self.__twoD:
-                    datatype = numpy.uint16
-                else:
-                    datatype = numpy.uint32
+        # if hasattr(self.__camera_device, "isMedipix") and self.__camera_device.isMedipix:
+        #     pixel_depth = self.__camera_device.pixeldepth
+        #     if pixel_depth == 1:
+        #         datatype = numpy.uint8
+        #     elif pixel_depth == 6:
+        #         if self.__twoD:
+        #             datatype = numpy.uint8
+        #         else:
+        #             datatype = numpy.uint16
+        #     elif pixel_depth == 12:
+        #         if self.__twoD:
+        #             datatype = numpy.uint16
+        #         else:
+        #             datatype = numpy.uint32
         if self.__twoD:
             self.sizez = scan_size
             self.__camera_device.spimimagedata = numpy.zeros(
@@ -134,7 +134,7 @@ class CameraTask:
         else:
             self.sizey = scan_size
             self.sizez = 1
-            self.__camera_device.spimimagedata = numpy.ones((self.__scan_shape[0], self.__scan_shape[1], self.sizex),
+            self.__camera_device.spimimagedata = numpy.zeros((self.__scan_shape[0], self.__scan_shape[1], self.sizex),
                                                              dtype=datatype)
             camera_readout_shape = (self.sizex,)
         print(f"Spim dimensions {self.sizex} {self.sizey} {self.sizez}")
@@ -237,9 +237,9 @@ class CameraDevice(camera_base.CameraDevice):
         if manufacturer != 4 and manufacturer != 6:
             self.fnspimlock = orsaycamera.SPIMLOCKFUNC(self.__spim_data_locker)
             self.camera.registerSpimDataLocker(self.fnspimlock)
-            self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
-            #self.fnspimunlockA = orsaycamera.SPIMUNLOCKFUNCA(self.__spim_data_unlockerA)
-            self.camera.registerSpimDataUnlocker(self.fnspimunlock)
+            #self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
+            self.fnspimunlockA = orsaycamera.SPIMUNLOCKFUNCA(self.__spim_data_unlockerA)
+            self.camera.registerSpimDataUnlockerA(self.fnspimunlockA)
             self.fnspectrumlock = orsaycamera.SPECTLOCKFUNC(self.__spectrum_data_locker)
             self.camera.registerSpectrumDataLocker(self.fnspectrumlock)
             self.fnspectrumunlock = orsaycamera.SPECTUNLOCKFUNC(self.__spectrum_data_unlocker)
