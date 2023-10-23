@@ -253,7 +253,7 @@ class CameraHandler:
                 values = list([15,1,2,4,8])
                 frame_parameters["chips_config"] = values[value]
                 area = list(frame_parameters["area"])
-                if value == 15:
+                if value == 0:
                     area[3] = 1024
                 else:
                     area[3] = 256
