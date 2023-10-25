@@ -9,7 +9,15 @@ from nion.data import Calibration
 
 
 AUTOSTEM_CONTROLLER_ID = "autostem_controller"
-autostem = HardwareSource.HardwareSourceManager().get_instrument_by_id(AUTOSTEM_CONTROLLER_ID)
+STEP = 3.0e-9
+LOOPS = 60
 
-sx_m = autostem.get_control_output(shift_x_control_name)
-sy_m = autostem.get_control_output(shift_y_control_name)
+autostem = HardwareSource.HardwareSourceManager().get_instrument_by_id(AUTOSTEM_CONTROLLER_ID)
+shift_x_control_name = "SShft.x"
+shift_y_control_name = "SShft.y"
+
+for x in range(LOOPS):
+    sx_m = autostem.get_control_output(shift_x_control_name)
+    sy_m = autostem.get_control_output(shift_y_control_name)
+    autostem.set_control_output(shift_x_control_name, sx_m + STEP)
+    time.sleep(1)
