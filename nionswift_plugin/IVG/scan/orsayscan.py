@@ -60,6 +60,9 @@ class orsayScan(object):
         # void SCAN_EXPORT *OrsayScanInit();
         self.__OrsayScanInit = _buildFunction(_library.OrsayScanInit, [c_bool], c_void_p)
 
+        # void SCAN_EXPORT *OrsayScanInitEx(bool nion, const char* libfolder);
+        self.__InitEx = _buildFunction(_library.OrsayScanInitEx, [c_bool, c_char_p, c_bool], c_void_p)
+
         # void SCAN_EXPORT OrsayScanClose(void* o)
         self.__OrsayScanClose = _buildFunction(_library.OrsayScanClose, [c_void_p], None)
 
@@ -278,7 +281,7 @@ class orsayScan(object):
         #	void SCAN_EXPORT OrsayScanSetVSM(void *o, double value);
         self.__OrsayScanSetVSM = _buildFunction(_library.OrsayScanSetVSM, [c_void_p, c_double], None)
 
-    def __init__(self, gene, scandllobject = 0, vg=False):
+    def __init__(self, gene, scandllobject = 0, vg=False, efm03 = False):
         self.__initialize_library()
         self.gene = gene
         cproduct = c_short()
@@ -287,7 +290,8 @@ class orsayScan(object):
         cmajor = c_short()
         cminor = c_short()
         if (gene < 2):
-            self.orsayscan = self.__OrsayScanInit(not vg)
+            #self.orsayscan = self.__OrsayScanInit(not vg)
+            self.orsayscan = self.__InitEx(not vg, libname.encode("utf-8"), efm03)
         if (gene > 1):
             self.orsayscan = scandllobject
         self.__OrsayScangetVersion(self.orsayscan, byref(cproduct), byref(crevision), byref(cserialnumber), byref(cmajor), byref(cminor))
