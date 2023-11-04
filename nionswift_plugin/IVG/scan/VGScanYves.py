@@ -87,7 +87,7 @@ class Frame:
 class Device(scan_base.ScanDevice):
     def __init__(self, instrument):
         self.scan_device_id = "orsay_scan_device"
-        self.scan_device_is_secondary = False
+        self.scan_device_is_secondary = True
         self.scan_device_name = _("OrsayScan")
         self.__channels = self.__get_channels()
         self.__frame = None

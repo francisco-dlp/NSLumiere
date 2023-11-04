@@ -1,7 +1,7 @@
 # standard libraries
-import threading, logging, smtplib, time, numpy, copy
+import threading, logging, smtplib, time, numpy, copy, typing
 
-from nion.instrumentation import HardwareSource, stem_controller
+from nion.instrumentation import HardwareSource, stem_controller, scan_base
 from nion.utils import Registry, Geometry, Event
 
 try:
@@ -54,6 +54,7 @@ class ivgInstrument(stem_controller.STEMController):
         super().__init__()
         self.priority = 20
         self.instrument_id = instrument_id
+        self.__scan_controller = None
         self.property_changed_event = Event.Event()
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
@@ -169,6 +170,24 @@ class ivgInstrument(stem_controller.STEMController):
         self.__EELS = "orsay_camera_eels"
 
         if SLOW_PERIODIC: self.periodic()
+
+    @property
+    def scan_controller(self) -> typing.Optional[scan_base.ScanHardwareSource]:
+        # for testing
+        if self.__scan_controller:
+            return self.__scan_controller
+        # prefer the primary scan_hardware_source. this is implemented a bit funny for
+        # backwards compatibility, with reverse logic.
+        for component in Registry.get_components_by_type("scan_hardware_source"):
+            scan_hardware_source = typing.cast("scan_base.ScanHardwareSource", component)
+            if self.instrument_id == "orsay_controller" \
+                    and scan_hardware_source.hardware_source_id == "orsay_scan_device":
+                self.__scan_controller = scan_hardware_source
+                return scan_hardware_source
+            if self.instrument_id == "orsay_controller2" \
+                    and scan_hardware_source.hardware_source_id == "open_scan_device":
+                self.__scan_controller = scan_hardware_source
+                return scan_hardware_source
 
     def stage_periodic(self):
         if not self.__stage_thread.is_alive():
