@@ -1,0 +1,48 @@
+{
+  "EELS": {
+    "COM": "COM99",
+    "ACTIVATED": 1
+  },
+  "OrsayInstrument": {
+    "COM_AIRLOCK": "COM99",
+    "COM_GUN": "COM99",
+    "orsay_scan": {
+			"ACTIVATED": 1,
+			"IS_VG": 1,
+			"EFM03": 1
+    },
+    "open_scan": {
+      "ACTIVATED": 1,
+      "IS_VG": 1,
+      "EFM03": 1
+    },
+    "SLOW_PERIODIC": 1,
+  },
+  "diaf": {
+    "COM": "COM99",
+    "ACTIVATED": 1
+  },
+  "lenses": {
+    "COM": "COM99",
+    "ACTIVATED": 1
+  },
+  "spectrometer": {
+    "WHICH": [
+      "DEBUG",
+      "PRINCETON"
+    ],
+    "COM_PRINCETON": "COM99",
+    "ACTIVATED": 1
+  },
+  "stage": {
+    "DEBUG": 1,
+    "ACTIVATED": 1
+  },
+  "mirror": {
+    "DEBUG": 1,
+    "ACTIVATED": 1
+  },
+  "global_settings": {
+    "last_HT": "100"
+  }
+}

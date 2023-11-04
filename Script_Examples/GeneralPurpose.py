@@ -1,5 +1,6 @@
-import time
-from nion.swift.model import HardwareSource
+from nion.instrumentation import HardwareSource
+from nion.utils import Registry
+
 from nion.typeshed import API_1_0 as API
 from nion.typeshed import UI_1_0 as UI
 
@@ -9,13 +10,18 @@ cam = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_so
 scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
 superscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("superscan")
 usim = HardwareSource.HardwareSourceManager().get_instrument_by_id("usim_stem_controller")
-stage = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
-eels = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_controller")
-eels2 = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("eels_spec_controller")
+stage = Registry.get_component("stage_controller")
+diaf = Registry.get_component("diaf_controller")
+eels = Registry.get_component("eels_spec_controller")
 all = HardwareSource.HardwareSourceManager().get_all_instrument_ids()
 
+print(cam)
+print(scan)
+print(stage)
+print(diaf)
+
 #print(dir(superscan))
-print(superscan.is_playing)
+#print(superscan.is_playing)
 
 #print(dir(cam.camera))
 #cam.camera.camera.resumeSpim(4)

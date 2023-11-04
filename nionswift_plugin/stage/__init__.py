@@ -6,12 +6,12 @@ except ImportError:
 set_file = read_data.FileManager('global_settings')
 ACTIVATED = set_file.settings["stage"]["ACTIVATED"]
 if bool(ACTIVATED):
-    from nion.instrumentation import HardwareSource
+    from nion.utils import Registry
     from . import stage_inst
     from . import stage_panel
     def run():
         simpleInstrument=stage_inst.stageDevice()
-        HardwareSource.HardwareSourceManager().register_instrument("stage_controller", simpleInstrument)
+        Registry.register_component(simpleInstrument, {"stage_controller"})
         stage_panel.run(simpleInstrument)
 
 

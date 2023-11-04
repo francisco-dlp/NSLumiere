@@ -566,64 +566,6 @@ class Device(scan_base.ScanDevice):
     def channels_enabled(self) -> typing.Tuple[bool, ...]:
         return tuple(channel.enabled for channel in self.__channels)
 
-    @property
-    def set_spim(self):
-        return self.__spim
-
-    @set_spim.setter
-    def set_spim(self, value):
-        self.__spim = value
-
-        #self.__is_scanning is false for spim. This allows us a better control of data flow. See first loop
-        #condition in read_partial.
-
-        """
-        if value:
-            if self.__is_scanning:
-                self.orsayscan.stopImaging(True)
-                self.__is_scanning = False
-                logging.info('***SCAN***: Imaging was running. Turning it off...')
-
-            if self.__instrument.spim_trigger_f==0:
-                self.spimscan.setScanClock(2)
-                logging.info(f'***SCAN***: EELS Spim')
-            elif self.__instrument.spim_trigger_f==1:
-                self.spimscan.setScanClock(4)
-                logging.info(f'***SCAN***: Cathodoluminescence Spim')
-
-            #self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
-            #self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
-            #print(f'set spim imagedatashape {self.imagedata.shape}')
-
-            #self.spimscan.startSpim(0, 1)
-        """
-        if not value:
-            logging.info('***SCAN***: Spim is done. Handling...')
-            self.spimscan.stopImaging(True)
-            self.__is_scanning = False
-
-            pmts=[]
-            for counter, value in enumerate(self.channels_enabled):
-                if value: pmts.append(counter)
-            self.__instrument.warn_Scan_instrument_spim_over(self.imagedata, self.__spim_pixels, pmts)
-
-    @property
-    def set_spim_pixels(self):
-        return self.__spim_pixels
-
-    @set_spim_pixels.setter
-    def set_spim_pixels(self, value):
-        pass
-        #if value:
-            #self.__spim_pixels = value
-            #print(f'set spim pixels {self.__spim_pixels} and {self.__scan_area}')
-            #self.spimscan.setImageArea(self.__spim_pixels[0], self.__spim_pixels[1], self.__scan_area[2], self.__scan_area[3], self.__scan_area[4],
-            #                       self.__scan_area[5])
-            #self.imagedata = numpy.empty((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])),
-            #                             dtype=numpy.int16)
-            #self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
-            #print(f'set spim pixels imagedatashape {self.imagedata.shape}')
-
     def __data_locker(self, gene, datatype, sx, sy, sz):
         #sx[0] = self.__scan_area[0]
         #sy[0] = self.__scan_area[1]

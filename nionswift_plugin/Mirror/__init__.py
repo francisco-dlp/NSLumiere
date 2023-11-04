@@ -6,10 +6,10 @@ except ImportError:
 set_file = read_data.FileManager('global_settings')
 ACTIVATED = set_file.settings["mirror"]["ACTIVATED"]
 if bool(ACTIVATED):
-    from nion.instrumentation import HardwareSource
+    from nion.utils import Registry
     from . import mirror_inst
     from . import mirror_panel
     def run():
         simpleInstrument=mirror_inst.mirrorDevice()
-        HardwareSource.HardwareSourceManager().register_instrument("mirror_controller", simpleInstrument)
+        Registry.register_component(simpleInstrument, {"mirror_controller"})
         mirror_panel.run(simpleInstrument)

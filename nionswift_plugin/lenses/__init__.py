@@ -6,10 +6,11 @@ except ImportError:
 set_file = read_data.FileManager('global_settings')
 ACTIVATED = set_file.settings["lenses"]["ACTIVATED"]
 if bool(ACTIVATED):
-    from nion.instrumentation import HardwareSource
+    from nion.utils import Registry
+
     from . import probe_inst
     from . import probe_panel
     def run():
         simpleInstrument=probe_inst.probeDevice()
-        HardwareSource.HardwareSourceManager().register_instrument("lenses_controller", simpleInstrument)
+        Registry.register_component(simpleInstrument, {"lenses_controller"})
         probe_panel.run(simpleInstrument)

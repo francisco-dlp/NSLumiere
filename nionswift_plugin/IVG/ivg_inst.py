@@ -1,10 +1,8 @@
 # standard libraries
 import threading, logging, smtplib, time, numpy, copy
 
-from nion.utils import Event
-from nion.swift.model import HardwareSource
-from nion.instrumentation import stem_controller
-from nion.utils import Geometry
+from nion.instrumentation import HardwareSource, stem_controller
+from nion.utils import Registry, Geometry, Event
 
 try:
     from ..aux_files import read_data
@@ -160,10 +158,10 @@ class ivgInstrument(stem_controller.STEMController):
             self.__ll_gauge = airlock_vi.AirLockVacuum()
 
     def init_handler(self):
-        self.__lensInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("lenses_controller")
-        self.__EELSInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("eels_spec_controller")
-        self.__AperInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("diaf_controller")
-        self.__StageInstrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("stage_controller")
+        self.__lensInstrument = Registry.get_component("lenses_controller")
+        self.__EELSInstrument = Registry.get_component("eels_spec_controller")
+        self.__AperInstrument = Registry.get_component("diaf_controller")
+        self.__StageInstrument = Registry.get_component("stage_controller")
         self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "orsay_scan_device")
 
@@ -246,56 +244,6 @@ class ivgInstrument(stem_controller.STEMController):
             #scan.set_frame_parameters(0, d)
         self.property_changed_event.fire('spim_sampling_f')
         self.property_changed_event.fire('spim_time_f')
-
-    def warn_Scan_instrument_spim(self, value, x_pixels=0, y_pixels=0):
-        # only set scan pixels if you going to start spim.
-        if value: self.__OrsayScanInstrument.scan_device.Spim_image_area = [x_pixels, y_pixels]
-        self.__OrsayScanInstrument.scan_device.set_spim = value
-        if value:
-            self.__OrsayScanInstrument.start_playing()
-        else:
-            self.__OrsayScanInstrument.stop_playing()
-
-    def warn_Scan_instrument_spim_over(self, det_data, spim_pixels, detector):
-        self.spim_over.fire(det_data, spim_pixels, detector, self.__spim_sampling)
-
-    def start_spim_push_button(self, x_pix, y_pix):
-        if self.__spim_trigger == 0:
-            now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            self.__EELS)]
-        elif self.__spim_trigger == 1:
-            now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            self.__EIRE)]
-        elif self.__spim_trigger == 2:
-            now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            self.__EELS), HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            self.__EIRE)]
-            logging.info(
-                '***IVG***: Both measurement not yet implemented. Please check back later. Using EELS instead.')
-
-        for cam in now_cam:
-            cam.stop_playing()
-            cam.camera._CameraDevice__acqspimon = True
-            cam.camera._CameraDevice__x_pix_spim = int(x_pix)
-            cam.camera._CameraDevice__y_pix_spim = int(y_pix)
-            if not cam.is_playing:
-                cam.start_playing()
-            else:
-                logging.info('**IVG***: Please stop camera before starting spim.')
-
-    def stop_spim_push_button(self):
-        if self.__spim_trigger == 0:
-            now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            self.__EELS)]
-        elif self.__spim_trigger == 1:
-            now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            self.__EIRE)]
-        elif self.__spim_trigger == 2:
-            now_cam = [HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            self.__EELS), HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            self.__EIRE)]
-        for cam in now_cam:
-            cam.stop_playing()
 
     def sendMessageFactory(self):
         def sendMessage(message):
