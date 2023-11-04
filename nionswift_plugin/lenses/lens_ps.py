@@ -2,7 +2,7 @@ import serial
 import threading
 import logging
 
-from nion.swift.model import HardwareSource
+from nion.instrumentation import HardwareSource
 from . import Lens_controller
 
 MAX_OBJ = 9.5
