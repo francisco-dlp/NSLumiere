@@ -12,6 +12,8 @@ from . import diaf_inst
 
 _ = gettext.gettext
 
+SLIDER_MAX = 1300000
+SLIDER_MIN = 20000
 
 class diafhandler:
 
@@ -45,18 +47,21 @@ class diafhandler:
         self.instrument.save_values(self.sa_combo_box.current_item, 'VOA')
         self.total_range(widget)
 
+    def set_home(self, widget):
+        self.instrument.set_home()
+
     def total_range_2(self):
-        self.m1_slider.maximum = 1300000
-        self.m1_slider.minimum = 50000
+        self.m1_slider.maximum = SLIDER_MAX
+        self.m1_slider.minimum = SLIDER_MIN
 
-        self.m2_slider.maximum = 95000
-        self.m2_slider.minimum = 80000
+        self.m2_slider.maximum = SLIDER_MAX
+        self.m2_slider.minimum = SLIDER_MIN
 
-        self.m3_slider.maximum = 130000
-        self.m3_slider.minimum = 50000
+        self.m3_slider.maximum = SLIDER_MAX
+        self.m3_slider.minimum = SLIDER_MIN
 
-        self.m4_slider.maximum = 50000
-        self.m4_slider.minimum = 65000
+        self.m4_slider.maximum = SLIDER_MAX
+        self.m4_slider.minimum = SLIDER_MIN
 
         self.m1_range.text = '(Coarse)'
         self.m2_range.text = '(Coarse)'
@@ -86,45 +91,48 @@ class diafView:
         self.m4_range = ui.create_label(name='m4_range', text='(Coarse)')
 
         self.full_range_pb = ui.create_push_button(name='full_range_pb', text='Full Range', on_clicked='total_range',
-                                                   width=150)
+                                                   width=100)
         self.save_obj_pb = ui.create_push_button(name='save_obj_pb', text='Save Settings', on_clicked='save_ROA',
-                                                 width=150)
+                                                 width=100)
         self.save_sa_pb = ui.create_push_button(name='save_sa_pb', text='Save Settings', on_clicked='save_SA',
-                                                width=150)
+                                                width=100)
+        self.search_motors_pb = ui.create_push_button(name='search_motors_pb', text='Set Home', on_clicked='set_home',
+                                                      width=100)
 
-        self.obj_combo_box = ui.create_combo_box(name='obj_combo_box', items=['None', '50', '100', '150'],
+        self.obj_combo_box = ui.create_combo_box(name='obj_combo_box', items=['None', '150', '100', '50'],
                                                  current_index='@binding(instrument.roa_change_f)')
         self.m1_slider_label = ui.create_label(name='m1_slider_label', text='@binding(instrument.m1_f)')
         self.m1_slider_labels = ui.create_row(self.m1_slider_label, self.m1_range, ui.create_stretch(), spacing=12)
-        self.m1_slider = ui.create_slider(name='m1_slider', value='@binding(instrument.m1_f)', minimum=40000,
-                                          maximum=130000, on_slider_released='slider_release')
+        self.m1_slider = ui.create_slider(name='m1_slider', value='@binding(instrument.m1_f)', minimum=SLIDER_MIN,
+                                          maximum=SLIDER_MAX, on_slider_released='slider_release')
         self.m2_slider_label = ui.create_label(name='m2_slider_label', text='@binding(instrument.m2_f)')
         self.m2_slider_labels = ui.create_row(self.m2_slider_label, self.m2_range, ui.create_stretch(), spacing=12)
-        self.m2_slider = ui.create_slider(name='m2_slider', value='@binding(instrument.m2_f)', minimum=65000,
-                                          maximum=95000, on_slider_released='slider_release')
+        self.m2_slider = ui.create_slider(name='m2_slider', value='@binding(instrument.m2_f)', minimum=SLIDER_MIN,
+                                          maximum=SLIDER_MAX, on_slider_released='slider_release')
         self.objective_tab = ui.create_tab(label='Objective',
                                            content=ui.create_column(self.obj_combo_box, self.m1_slider_labels,
                                                                     self.m1_slider, self.m2_slider_labels,
                                                                     self.m2_slider, ui.create_row(self.full_range_pb,
-                                                                                                  ui.create_stretch(),
-                                                                                                  self.save_obj_pb)))
+                                                                                                  self.save_obj_pb,
+                                                                                                  self.search_motors_pb,
+                                                                                                  ui.create_stretch())))
 
         self.sa_combo_box = ui.create_combo_box(name='sa_combo_box', items=['None', '150', '100', '50'],
                                                 current_index='@binding(instrument.voa_change_f)')
         self.m3_slider_label = ui.create_label(name='m3_slider_label', text='@binding(instrument.m3_f)')
         self.m3_slider_labels = ui.create_row(self.m3_slider_label, self.m3_range, ui.create_stretch(), spacing=12)
-        self.m3_slider = ui.create_slider(name='m3_slider', value='@binding(instrument.m3_f)', minimum=50000,
-                                          maximum=140000, on_slider_released='slider_release')
+        self.m3_slider = ui.create_slider(name='m3_slider', value='@binding(instrument.m3_f)', minimum=SLIDER_MIN,
+                                          maximum=SLIDER_MAX, on_slider_released='slider_release')
         self.m4_slider_label = ui.create_label(name='m4_slider_label', text='@binding(instrument.m4_f)')
         self.m4_slider_labels = ui.create_row(self.m4_slider_label, self.m4_range, ui.create_stretch(), spacing=12)
-        self.m4_slider = ui.create_slider(name='m4_slider', value='@binding(instrument.m4_f)', minimum=40000,
-                                          maximum=70000, on_slider_released='slider_release')
+        self.m4_slider = ui.create_slider(name='m4_slider', value='@binding(instrument.m4_f)', minimum=SLIDER_MIN,
+                                          maximum=SLIDER_MAX, on_slider_released='slider_release')
 
         self.sa_tab = ui.create_tab(label='Selected Area',
                                     content=ui.create_column(self.sa_combo_box, self.m3_slider_labels, self.m3_slider,
                                                              self.m4_slider_labels, self.m4_slider,
-                                                             ui.create_row(self.full_range_pb, ui.create_stretch(),
-                                                                           self.save_sa_pb)))
+                                                             ui.create_row(self.full_range_pb, self.save_sa_pb,
+                                                                           self.search_motors_pb, ui.create_stretch())))
 
         self.tabs = ui.create_tabs(self.objective_tab, self.sa_tab)
         self.ui_view = ui.create_column(self.tabs)

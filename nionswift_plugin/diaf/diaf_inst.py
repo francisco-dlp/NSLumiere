@@ -15,7 +15,7 @@ START_DIAF = False
 from . import diaf as diaf
 
 diaf_list_sa = ['None', '150', '100', '50']
-diaf_list_obj = ['None', '50', '100', '150']
+diaf_list_obj = ['None', '150', '100', '50']
 
 class diafDevice(Observable.Observable):
 
@@ -45,6 +45,9 @@ class diafDevice(Observable.Observable):
                 self.voa_change_f = int(self.__lastVOA)
             except:
                 logging.info('***APERTURES***: No saved values. Check your json file.')
+
+    def set_home(self):
+        self.__apert.set_home()
 
     def set_values(self, value, which):
         if which == 'ROA':

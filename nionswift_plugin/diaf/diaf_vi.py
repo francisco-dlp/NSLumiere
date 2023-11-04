@@ -26,3 +26,9 @@ class Diafs:
         byt = self.pos_to_bytes(value)
         message = [motor, 20, byt[0], byt[1], byt[2], byt[3]]
         byt_array = bytearray(message)
+
+    def set_home(self):
+        for motor in range(4):
+            message = [motor, 1, 0, 0, 0, 0]
+            byt_array = bytearray(message)
+

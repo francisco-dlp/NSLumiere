@@ -1,11 +1,10 @@
 # standard libraries
-import copy, math, gettext, numpy, typing, time, threading, logging, sys
+import copy, math, gettext, numpy, typing, time, threading, logging, os, sys
 
 # local libraries
 from nion.utils import Registry
 from nion.utils import Geometry
-from nion.instrumentation import scan_base
-from nion.instrumentation import stem_controller
+from nion.instrumentation import scan_base, stem_controller
 
 from nionswift_plugin.IVG.scan.OScanCesysDialog import ConfigDialog
 from FPGAControl import FPGAConfig
@@ -16,19 +15,20 @@ _ = gettext.gettext
 set_file = read_data.FileManager('global_settings')
 OPEN_SCAN_IS_VG = set_file.settings["OrsayInstrument"]["open_scan"]["IS_VG"]
 OPEN_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["open_scan"]["EFM03"]
+OPEN_SCAN_BITSTREAM = set_file.settings["OrsayInstrument"]["open_scan"]["BITSTREAM_FILE"]
 
-BUFFER_SIZE = 2048
-PACKET_LEN = 1024
-CLOCK_FREQUENCY = 100
-MAX_BUFFER_DESCRIPTORS = 1
-CLOCK_TICK = 1 / CLOCK_FREQUENCY * 1e3  # in nanoseconds
+def getlibname():
+    if sys.platform.startswith('win'):
+        libname = os.path.join(os.path.dirname(__file__), "../../aux_files/DLLs/udk3-1.5.1-x86_64.dll")
+    else:
+        libname = os.path.join(os.path.dirname(__file__), "../../aux_files/DLLs/libudk3-1.5.1.so")
+    return libname
 
 class ScanEngine:
     def __init__(self):
-
         try:
-            io_system = FPGAConfig.CesysDevice("/home/yvesauad/Documents/NSLumiere/nionswift_plugin/IVG/scan/".encode(),
-                                               "/home/yvesauad/FPGA_Projects/efm03_reference_design-v1.2.1/EFM03_exdes/EFM03_exdes.runs/impl_1/efm03_wrapper.bin")
+            io_system = FPGAConfig.CesysDevice(getlibname().encode(),
+                                               OPEN_SCAN_BITSTREAM)
             self.device = FPGAConfig.ScanDevice(io_system, 128, 128, 100, 0)
         except UnboundLocalError:
             io_system = FPGAConfig.DebugClass()

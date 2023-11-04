@@ -34,6 +34,11 @@ class Lenses(Lens_controller.LensesController):
             #1;11;255;1
             logging.info("***LENSES***: Could not find Lenses PS. Entering in debug mode.")
 
+    def unblock_power_supply(self):
+        string = '>1,11,255,1\r'
+        self.ser.write(string.encode())
+        return self.ser.readline()
+
     def query(self, which):
         if which == 'OBJ':
             string = '>1,2,1\r'
