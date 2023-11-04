@@ -1,9 +1,5 @@
 # standard libraries
-import threading
-import logging
-import smtplib
-import time
-import numpy
+import threading, logging, smtplib, time, numpy, copy
 
 from nion.utils import Event
 from nion.swift.model import HardwareSource
@@ -27,10 +23,11 @@ This message was automatically sent and means objective lens @ VG Lum. was shutd
 
 set_file = read_data.FileManager('global_settings')
 
-SERIAL_PORT_GUN = set_file.settings["IVG"]["COM_GUN"]
-SERIAL_PORT_AIRLOCK = set_file.settings["IVG"]["COM_AIRLOCK"]
+SERIAL_PORT_GUN = set_file.settings["OrsayInstrument"]["COM_GUN"]
+SERIAL_PORT_AIRLOCK = set_file.settings["OrsayInstrument"]["COM_AIRLOCK"]
+SLOW_PERIODIC = set_file.settings["OrsayInstrument"]["SLOW_PERIODIC"]
+
 SENDMAIL = 0
-SLOW_PERIODIC = 0
 TIME_SLOW_PERIODIC = 1.0
 OBJECTIVE_MAX_TEMPERATURE = 60.0
 OBJECTIVE_RESISTANCE = 5.18

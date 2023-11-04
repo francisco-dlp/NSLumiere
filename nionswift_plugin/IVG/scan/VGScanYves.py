@@ -1,15 +1,5 @@
 # standard libraries
-import copy
-import math
-import ctypes
-import gettext
-import numpy
-import threading
-import typing
-import logging
-import os
-import json
-import time
+import copy, math, ctypes, gettext, numpy, threading, typing, logging, os, json, time
 
 # local libraries
 from nion.utils import Registry
@@ -20,13 +10,15 @@ from nion.swift.model import HardwareSource
 
 from nionswift_plugin.IVG.scan.orsayscan import orsayScan, LOCKERFUNC, UNLOCKERFUNCA
 from nionswift_plugin.IVG.scan.ConfigVGLumDialog import ConfigDialog
-
 from nionswift_plugin.IVG import ivg_inst
+from ...aux_files import read_data
 
 _ = gettext.gettext
 
+set_file = read_data.FileManager('global_settings')
+ORSAY_SCAN_IS_VG = set_file.settings["OrsayInstrument"]["orsay_scan"]["IS_VG"]
+ORSAY_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["orsay_scan"]["EFM03"]
 DEBUG = False
-
 
 # set the calibrations for this image. does not touch metadata.
 def test_update_scan_data_element(data_element, scan_frame_parameters, data_shape, channel_name, channel_id,
@@ -70,8 +62,6 @@ def test_update_scan_data_element(data_element, scan_frame_parameters, data_shap
             data_element["spatial_calibrations"].append(
                 {"offset": eels_offset, "scale": eels_dispersion, "units": "eV"}
             )
-
-#This is a very ugly thing apparently called MONKEY PATCHING. Although ugly, it is a perfectly fine solution
 scan_base.update_scan_data_element = test_update_scan_data_element
 
 
@@ -82,9 +72,7 @@ class Channel:
         self.enabled = enabled
         self.data = None
 
-
 class Frame:
-
     def __init__(self, frame_number: int, channels: typing.List[Channel],
                  frame_parameters: scan_base.ScanFrameParameters):
         self.frame_number = frame_number
@@ -97,11 +85,10 @@ class Frame:
         self.scan_data = None
 
 class Device(scan_base.ScanDevice):
-
-    def __init__(self, instrument: ivg_inst.ivgInstrument):
+    def __init__(self, instrument):
         self.scan_device_id = "orsay_scan_device"
-        self.scan_device_name = _("VG")
-        self.stem_controller_id = "VG_controller"
+        self.scan_device_is_secondary = False
+        self.scan_device_name = _("OrsayScan")
         self.__channels = self.__get_channels()
         self.__frame = None
         self.__frame_number = 0
@@ -119,11 +106,13 @@ class Device(scan_base.ScanDevice):
         self.__buffer = list()
         self.bottom_blanker = 0
 
-        self.orsayscan = orsayScan(1, vg=False)
-        self.spimscan = orsayScan(2, self.orsayscan.orsayscan, vg=False)
+        self.orsayscan = orsayScan(1, vg=bool(ORSAY_SCAN_IS_VG), efm03=bool(ORSAY_SCAN_EFM03))
+        self.spimscan = orsayScan(2, self.orsayscan.orsayscan, vg=bool(ORSAY_SCAN_IS_VG), efm03=bool(ORSAY_SCAN_EFM03))
 
-        self.orsayscan.SetInputs([3, 2])
-        self.spimscan.SetInputs([3, 2])
+        #Depending on the microscopes we use different input channels
+        input_channels = [0, 1] if bool(ORSAY_SCAN_IS_VG) else [3, 2]
+        self.orsayscan.SetInputs(input_channels)
+        self.spimscan.SetInputs(input_channels)
 
         self.has_data_event = threading.Event()
 
@@ -131,9 +120,6 @@ class Device(scan_base.ScanDevice):
         self.orsayscan.registerLocker(self.fnlock)
         self.fnunlock = UNLOCKERFUNCA(self.__data_unlockerA)
         self.orsayscan.registerUnlockerA(self.fnunlock)
-
-        self.orsayscan.setScanScale(0, 5.0, 5.0)
-        self.scan_device_is_secondary = True
 
         ######
 
@@ -161,6 +147,7 @@ class Device(scan_base.ScanDevice):
         self.Image_area = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
         #self.set_spim_pixels = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
         self.orsayscan.setScanRotation(22.5)
+        self.orsayscan.setScanScale(0, 5.0, 5.0)
 
         #Set HADF and BF initial gain values
         self.orsayscan.SetPMT(1, 2200)
@@ -237,16 +224,16 @@ class Device(scan_base.ScanDevice):
         Device should use these parameters for new acquisition; and update to these parameters during acquisition.
         """
         self.__frame_parameters = copy.deepcopy(frame_parameters)
-        if self.field_of_view != frame_parameters.fov_nm: self.field_of_view = frame_parameters.fov_nm
-        if self.pixel_time != frame_parameters.pixel_time_us: self.pixel_time = frame_parameters.pixel_time_us
-
+        if self.field_of_view != frame_parameters.fov_nm:
+            self.field_of_view = frame_parameters.fov_nm
+        if self.pixel_time != frame_parameters.pixel_time_us:
+            self.pixel_time = frame_parameters.pixel_time_us
         if self.scan_rotation != frame_parameters.rotation_rad:
             self.scan_rotation = frame_parameters.rotation_rad
 
         if not self.__spim:
             if frame_parameters.subscan_pixel_size:
                 self.subscan_status = True
-                #self.__instrument.is_subscan_f=[True, frame_parameters['subscan_pixel_size'][1]/self.p0, frame_parameters['subscan_pixel_size'][0]/self.p1]
                 self.p0, self.p1 = frame_parameters.size
                 self.p2 = int(
                     frame_parameters.subscan_fractional_center[1] * self.p0 - frame_parameters.subscan_pixel_size[
@@ -256,18 +243,13 @@ class Device(scan_base.ScanDevice):
                         0] / 2)
                 self.p3 = self.p2 + frame_parameters.subscan_pixel_size[1]
                 self.p5 = self.p4 + frame_parameters.subscan_pixel_size[0]
-                #subscan = frame_parameters['subscan_pixel_size']
-                #logging.info(f'***SCAN***: Setting subscan to {subscan}.')
                 self.Image_area = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
             else:
                 self.subscan_status = False
-                #if self.subscan_status or (self.Image_area[0], self.Image_area[1]) != frame_parameters['size']:
                 self.p0, self.p1 = frame_parameters.size
                 self.p2, self.p4 = 0, 0
                 self.p3, self.p5 = self.p0, self.p1
                 self.Image_area = [self.p0, self.p1, 0, self.p3, 0, self.p5]
-
-                #self.__instrument.is_subscan_f=[False, 1, 1]
 
     def save_frame_parameters(self) -> None:
         """Called when shutting down. Save frame parameters to persistent storage."""
@@ -514,8 +496,8 @@ class Device(scan_base.ScanDevice):
 
     @pixel_time.setter
     def pixel_time(self, value):
-        self.__pixeltime = value / 1e6
-        self.orsayscan.pixelTime = self.__pixeltime
+        self.__pixeltime = value
+        self.orsayscan.pixelTime = self.__pixeltime / 1e6
 
     @property
     def scan_rotation(self):

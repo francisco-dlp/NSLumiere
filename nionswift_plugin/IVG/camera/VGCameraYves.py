@@ -21,13 +21,12 @@ from nion.utils import Registry
 from nion.instrumentation import camera_base
 from nion.data import DataAndMetadata
 from nion.instrumentation.camera_base import CameraFrameParameters
-from nionswift_plugin.IVG.tp3 import tp3func
 
 from nionswift_plugin.IVG import ivg_inst
 try:
     from ..aux_files import read_data
 except ImportError:
-    from ...aux_files.config import read_data
+    from ...aux_files import read_data
 
 _ = gettext.gettext
 
@@ -192,16 +191,17 @@ class CameraTask:
 
 class CameraDevice(camera_base.CameraDevice):
 
-    def __init__(self, manufacturer, model, sn, simul, instrument: ivg_inst.ivgInstrument, id, name, type):
+    def __init__(self, manufacturer, model, sn, simul, id, name, type):
         self.camera_id = id
         self.camera_type = type
         self.camera_name = name
         self.camera_model = model
-        self.instrument = instrument
-        if manufacturer == 4:
+        if manufacturer == 4: #Timepix3
+            from nionswift_plugin.IVG.tp3 import tp3func
             self.camera_callback = tp3func.SENDMYMESSAGEFUNC(self.sendMessageFactory())
             self.camera = tp3func.TimePix3(sn, simul, self.sendMessageFactory())
-        elif manufacturer == 6:
+        elif manufacturer == 6: #To be quantum detector
+            from nionswift_plugin.IVG.tp3 import tp3func
             self.camera_callback = tp3func.SENDMYMESSAGEFUNC(self.sendMessageFactory())
             self.camera = tp3func.TimePix3(sn, simul, self.sendMessageFactory())
         else:
@@ -600,17 +600,17 @@ class CameraDevice(camera_base.CameraDevice):
             if self.current_camera_settings.as_dict()['acquisition_mode'] == "1D-Chrono-Live":
                 self.camera.setSpimMode(1)
 
-        elif "Focus" in self.current_camera_settings.as_dict()['acquisition_mode'] and self.__acqspimon:
-            self.sizey = self.__x_pix_spim
-            self.sizez = self.__y_pix_spim
-            self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype=numpy.float32)
-            self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
-            self.camera.stopFocus()
-            self.camera.startSpim(self.__x_pix_spim * self.__y_pix_spim, 1,
-                                  self.current_camera_settings.as_dict()['exposure_ms'] / 1000.,
-                                  self.current_camera_settings.as_dict()['acquisition_mode'] == "2D-Chrono")
-            self.instrument.warn_Scan_instrument_spim(True, self.__x_pix_spim,
-                                                      self.__y_pix_spim)  # This must finish before calling the rest
+        #elif "Focus" in self.current_camera_settings.as_dict()['acquisition_mode'] and self.__acqspimon:
+        #    self.sizey = self.__x_pix_spim
+        #    self.sizez = self.__y_pix_spim
+        #    self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype=numpy.float32)
+        #    self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
+        #    self.camera.stopFocus()
+        #    self.camera.startSpim(self.__x_pix_spim * self.__y_pix_spim, 1,
+        #                          self.current_camera_settings.as_dict()['exposure_ms'] / 1000.,
+        #                          self.current_camera_settings.as_dict()['acquisition_mode'] == "2D-Chrono")
+        #    self.instrument.warn_Scan_instrument_spim(True, self.__x_pix_spim,
+        #                                              self.__y_pix_spim)  # This must finish before calling the rest
             #self.camera.resumeSpim(4)
 
         elif "Spim" in self.current_camera_settings.as_dict()['acquisition_mode']:
@@ -1099,7 +1099,7 @@ def periodic_logger():
     data_elements = list()
     return messages, data_elements
 
-def run(instrument: ivg_inst.ivgInstrument):
+def run():
     set_file = read_data.FileManager('Orsay_cameras_list')
 
     for camera in set_file.settings:
@@ -1123,7 +1123,6 @@ def run(instrument: ivg_inst.ivgInstrument):
                 logging.info(f"***CAMERA***: No simulation for {manufacturer} camera.")
             else:
                 camera_device = CameraDevice(camera["manufacturer"], camera["model"], sn, camera["simulation"],
-                                             instrument,
                                              camera["id"], camera["name"], camera["type"])
 
                 camera_settings = CameraSettings(camera_device)

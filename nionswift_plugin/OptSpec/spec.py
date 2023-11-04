@@ -1,6 +1,6 @@
 import serial
 import logging
-from ..aux_files.config import read_data
+from ..aux_files import read_data
 
 __author__ = "Yves Auad"
 
