@@ -19,7 +19,7 @@ OPEN_SCAN_BITSTREAM = set_file.settings["OrsayInstrument"]["open_scan"]["BITSTRE
 
 def getlibname():
     if sys.platform.startswith('win'):
-        libname = os.path.join(os.path.dirname(__file__), "../../aux_files/DLLs/udk3-1.5.1-x86_64.dll")
+        libname = os.path.join(os.path.dirname(__file__), "../../aux_files/DLLs/")
     else:
         libname = os.path.join(os.path.dirname(__file__), "../../aux_files/DLLs/libudk3-1.5.1.so")
     return libname

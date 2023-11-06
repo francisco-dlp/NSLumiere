@@ -1,12 +1,9 @@
 # standard libraries
-import threading
-import numpy
-import queue
-import logging
+import threading, numpy, queue, logging
 
 from nion.utils import Event
 from nion.utils import Observable
-from nion.swift.model import HardwareSource
+from nion.instrumentation import HardwareSource
 try:
     from ..aux_files import read_data
 except ImportError:
@@ -73,7 +70,7 @@ class OptSpecDevice(Observable.Observable):
         AUTOSTEM_CONTROLLER_ID = "autostem_controller"
         autostem = HardwareSource.HardwareSourceManager().get_instrument_by_id(AUTOSTEM_CONTROLLER_ID)
         if autostem == None:
-            self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id('VG_controller')
+            self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id('orsay_controller')
         else:
             tuning_manager = autostem.tuning_manager
             self.__instrument = tuning_manager.instrument_controller

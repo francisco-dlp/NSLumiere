@@ -166,7 +166,7 @@ class gainView:
 
         self.astig_group=ui.create_group(title='Objective Astigmators', content=self.astig_column)
 
-        self.probe_offset0_label = ui.create_label(name='probe_offset0_label', text='Probe offset 0: ')
+        self.probe_offset0_label = ui.create_label(name='probe_offset0_label', text='Probe offset 0 (nm): ')
         self.probe_offset0_value_label = ui.create_label(name='probe_offset0_value_label', text='@binding(instrument.probe_offset0_f)')
         self.probe_offset_0_minus_button = ui.create_push_button(name='probe_offset_0_minus_button', text='<<',
                                                                  width=25, on_clicked='probe0_minus_pb')
@@ -176,7 +176,7 @@ class gainView:
         self.probe_offset0_slider = ui.create_slider(name='probe_offset0_slider', value='@binding(instrument.probe_offset0_f)',
                                               minimum=-280000, maximum=280000)
 
-        self.probe_offset1_label = ui.create_label(name='probe_offset1_label', text='Probe offset 1: ')
+        self.probe_offset1_label = ui.create_label(name='probe_offset1_label', text='Probe offset 1 (nm): ')
         self.probe_offset1_value_label = ui.create_label(name='probe_offset1_value_label',
                                                          text='@binding(instrument.probe_offset1_f)')
         self.probe_offset_1_minus_button = ui.create_push_button(name='probe_offset_1_minus_button', text='<<', width = 25, on_clicked='probe1_minus_pb')
@@ -187,7 +187,7 @@ class gainView:
                                                      value='@binding(instrument.probe_offset1_f)',
                                                      minimum=-280000, maximum=280000)
 
-        self.probe_offset2_label = ui.create_label(name='probe_offset2_label', text='Probe offset 2: ')
+        self.probe_offset2_label = ui.create_label(name='probe_offset2_label', text='Probe offset 2 (nm): ')
         self.probe_offset2_value_label = ui.create_label(name='probe_offset2_value_label',
                                                          text='@binding(instrument.probe_offset2_f)')
         self.probe_offset_2_minus_button = ui.create_push_button(name='probe_offset_2_minus_button', text='<<',
@@ -200,7 +200,7 @@ class gainView:
                                                      value='@binding(instrument.probe_offset2_f)',
                                                      minimum=-280000, maximum=280000)
 
-        self.probe_offset3_label = ui.create_label(name='probe_offset3_label', text='Probe offset 3: ')
+        self.probe_offset3_label = ui.create_label(name='probe_offset3_label', text='Probe offset 3 (nm): ')
         self.probe_offset3_value_label = ui.create_label(name='probe_offset3_value_label',
                                                          text='@binding(instrument.probe_offset3_f)')
         self.probe_offset_3_minus_button = ui.create_push_button(name='probe_offset_3_minus_button', text='<<',

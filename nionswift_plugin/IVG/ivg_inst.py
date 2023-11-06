@@ -617,9 +617,11 @@ class ivgInstrument(stem_controller.STEMController):
         elif s == 'DriftRate.v':
             self.__driftRate[1] = val
         elif s == "CSH.u":
-            self.__csh[0] = val
+            self.__csh[0] = val #in nanometers
+            self.__lensInstrument.probe_offset0_f = int(val * 1e9)
         elif s == "CSH.v":
-            self.__csh[1] = val
+            self.__csh[1] = val #in nanometers
+            self.__lensInstrument.probe_offset2_f = int(val * 1e9)
         elif s == "DriftCorrectionUpdateInterval":
             self.__driftCorrectionUpdateInterval = val
         elif s == "DriftMeasureTime":
@@ -636,33 +638,33 @@ class ivgInstrument(stem_controller.STEMController):
             logging.info(f'**IVG***: Could not found controller {s} with value {val} in SetVal.')
         return True
 
-    def InformControl(self, s, val):
-        if s=='DriftRate.u':
-            self.__driftRate[0] = val
-            self.__driftCompensation[0] = val
-        elif s == 'DriftRate.v':
-            self.__driftRate[1] = val
-            self.__driftCompensation[1] = val
-        return True
+    # def InformControl(self, s, val):
+    #     if s=='DriftRate.u':
+    #         self.__driftRate[0] = val
+    #         self.__driftCompensation[0] = val
+    #     elif s == 'DriftRate.v':
+    #         self.__driftRate[1] = val
+    #         self.__driftCompensation[1] = val
+    #     return True
 
-    def SetValAndConfirm(self, s, val, tolfactor, timeout_ms):
-        if s == "CSH.u":
-            pass
-            #self.__lensInstrument.probe_offset0_f += int(self.__calib[0] * (1-val)*1e9)
-        elif s == "CSH.v":
-            self.__csh[1] = val
-
-            #Setting up X
-            num = self.__calib[3] * (1 - self.__csh[0]) * 1e9 - self.__calib[1] * (1 - self.__csh[1]) * 1e9
-            den = self.__calib[0] * self.__calib[3] - self.__calib[2] * self.__calib[1]
-            self.__lensInstrument.probe_offset0_f += int(num/den)
-
-            # Setting up Y
-            num = self.__calib[2] * (1 - self.__csh[0]) * 1e9 - self.__calib[0] * (1 - self.__csh[1]) * 1e9
-            den = self.__calib[1] * self.__calib[2] - self.__calib[0] * self.__calib[3]
-            self.__lensInstrument.probe_offset2_f += int(num / den)
-            #self.__lensInstrument.probe_offset1_f += int(self.__calib[1] * (1-val)*1e9)
-        return True
+    # def SetValAndConfirm(self, s, val, tolfactor, timeout_ms):
+    #     if s == "CSH.u":
+    #         pass
+    #         #self.__lensInstrument.probe_offset0_f += int(self.__calib[0] * (1-val)*1e9)
+    #     elif s == "CSH.v":
+    #         self.__csh[1] = val
+    #
+    #         #Setting up X
+    #         num = self.__calib[3] * (1 - self.__csh[0]) * 1e9 - self.__calib[1] * (1 - self.__csh[1]) * 1e9
+    #         den = self.__calib[0] * self.__calib[3] - self.__calib[2] * self.__calib[1]
+    #         self.__lensInstrument.probe_offset0_f += int(num/den)
+    #
+    #         # Setting up Y
+    #         num = self.__calib[2] * (1 - self.__csh[0]) * 1e9 - self.__calib[0] * (1 - self.__csh[1]) * 1e9
+    #         den = self.__calib[1] * self.__calib[2] - self.__calib[0] * self.__calib[3]
+    #         self.__lensInstrument.probe_offset2_f += int(num / den)
+    #         #self.__lensInstrument.probe_offset1_f += int(self.__calib[1] * (1-val)*1e9)
+    #     return True
 
     def TryGetVal(self, s: str) -> (bool, float):
         if self.__isChromaTEM:
