@@ -1,11 +1,12 @@
-import os
-import logging
-import json
+import os, logging, json, sys
 
 class FileManager:
     def __init__(self, filename):
         self.filename = filename
-        abs_path = os.path.abspath('C:\\ProgramData\\Microscope\\' + filename + '.json')
+        if sys.platform.startswith('win'):
+            abs_path = os.path.abspath('C:\\ProgramData\\Microscope\\' + filename + '.json')
+        else:
+            abs_path = os.path.abspath('/srv/data/' + filename + '.json')
         try:
             with open(abs_path) as savfile:
                 self.abs_path = abs_path

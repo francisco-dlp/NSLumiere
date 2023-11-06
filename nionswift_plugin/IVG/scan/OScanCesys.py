@@ -21,7 +21,7 @@ def getlibname():
     if sys.platform.startswith('win'):
         libname = os.path.join(os.path.dirname(__file__), "../../aux_files/DLLs/")
     else:
-        libname = os.path.join(os.path.dirname(__file__), "../../aux_files/DLLs/libudk3-1.5.1.so")
+        libname = os.path.join(os.path.dirname(__file__), "../../aux_files/DLLs/")
     return libname
 
 class ScanEngine:
@@ -38,7 +38,7 @@ class ScanEngine:
             io_system = FPGAConfig.DebugClass()
             self.device = FPGAConfig.ScanDevice(io_system, 128, 128, 100, 0)
             logging.warning(f'Could not found the library libudk3-1.5.1.so. You should probably use '
-                            f'export LD_LIBRARY_PATH=/home/yvesauad/Documents/NSLumiere/nionswift_plugin/IVG/scan')
+                            f'export LD_LIBRARY_PATH='+getlibname())
 
 
         self.__x = None

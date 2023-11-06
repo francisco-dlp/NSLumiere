@@ -7,24 +7,31 @@
     "COM_AIRLOCK": "COM99",
     "COM_GUN": "COM99",
     "orsay_scan": {
-			"ACTIVATED": 1,
-			"IS_VG": 1,
-			"EFM03": 1
+      "ACTIVATED": 1,
+      "IS_VG": 1,
+      "EFM03": 1
     },
     "open_scan": {
       "ACTIVATED": 1,
-      "IS_VG": 1,
+      "BITSTREAM_FILE": "/home/yvesauad/FPGA_Projects/efm03_reference_design-v1.2.1/EFM03_exdes/EFM03_exdes.runs/impl_1/efm03_wrapper.bin",
       "EFM03": 1,
-      "BITSTREAM_FILE": "/home/yvesauad/FPGA_Projects/efm03_reference_design-v1.2.1/EFM03_exdes/EFM03_exdes.runs/impl_1/efm03_wrapper.bin"
+      "IS_VG": 1
     },
-    "SLOW_PERIODIC": 1,
+    "SLOW_PERIODIC": 1
   },
   "diaf": {
     "COM": "COM99",
     "ACTIVATED": 1
   },
+  "global_settings": {
+    "last_HT": "100"
+  },
   "lenses": {
     "COM": "COM99",
+    "ACTIVATED": 1
+  },
+  "mirror": {
+    "DEBUG": 1,
     "ACTIVATED": 1
   },
   "spectrometer": {
@@ -38,12 +45,5 @@
   "stage": {
     "DEBUG": 1,
     "ACTIVATED": 1
-  },
-  "mirror": {
-    "DEBUG": 1,
-    "ACTIVATED": 1
-  },
-  "global_settings": {
-    "last_HT": "100"
   }
 }
