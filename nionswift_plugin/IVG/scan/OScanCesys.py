@@ -294,7 +294,7 @@ class Device(scan_base.ScanDevice):
             self.__is_scanning = False
 
     def __get_channels(self) -> typing.List[Channel]:
-        channels = [Channel(0, "ADF", True), Channel(1, "BF", False), Channel(2, "Hyperspectral", False), Channel(3, "Sync", False)]
+        channels = [Channel(0, "ListScan", True), Channel(1, "BF", False), Channel(2, "ADF", True)]
         return channels
 
     def __get_initial_profiles(self) -> typing.List[scan_base.ScanFrameParameters]:
@@ -361,7 +361,7 @@ class Device(scan_base.ScanDevice):
         a 'channel_id' indicating the index of the channel (may be an int or float).
         """
 
-        # gotit = self.has_data_event.wait(1.0)
+        gotit = self.has_data_event.wait(0.1)
 
         if self.__frame is None:
             self.__start_next_frame()
@@ -383,7 +383,7 @@ class Device(scan_base.ScanDevice):
             if data_array is not None:
                 data_elements.append(data_element)
 
-        # self.has_data_event.clear()
+        self.has_data_event.clear()
 
         current_frame.complete = True
         if current_frame.complete:
