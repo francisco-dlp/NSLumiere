@@ -17,6 +17,8 @@ OPEN_SCAN_IS_VG = set_file.settings["OrsayInstrument"]["open_scan"]["IS_VG"]
 OPEN_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["open_scan"]["EFM03"]
 OPEN_SCAN_BITSTREAM = set_file.settings["OrsayInstrument"]["open_scan"]["BITSTREAM_FILE"]
 
+from .OScanCesysDialog import KERNEL_LIST, ACQUISITION_WINDOW
+
 def getlibname():
     if sys.platform.startswith('win'):
         libname = os.path.join(os.path.dirname(__file__), "../../aux_files/DLLs/")
@@ -84,7 +86,7 @@ class ScanEngine:
                                            lissajous_nx = self.lissajous_nx,
                                            lissajous_ny=self.lissajous_ny,
                                            lissajous_phase = self.lissajous_phase,
-                                           kernelMode = self.kernel_mode,
+                                           kernelMode = KERNEL_LIST[self.kernel_mode],
                                            acquisitionCutoff=self.acquisition_cutoff,
                                            acquisitionWindow=self.acquisition_window
                                            )
@@ -182,7 +184,7 @@ class ScanEngine:
     def kernel_mode(self, value):
         if self.__kernel_mode != value:
             self.__kernel_mode = value
-            self.device.change_adc_kernel(kernelMode=self.__kernel_mode,
+            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.__kernel_mode],
                                           acquisitionCutoff=self.__acquisition_cutoff,
                                           acquisitionWindow=self.__acquisition_window)
 
@@ -194,7 +196,7 @@ class ScanEngine:
     def acquisition_cutoff(self, value):
         if self.__acquisition_cutoff != value:
             self.__acquisition_cutoff = value
-            self.device.change_adc_kernel(kernelMode = self.__kernel_mode,
+            self.device.change_adc_kernel(kernelMode = KERNEL_LIST[self.__kernel_mode],
                                           acquisitionCutoff = self.__acquisition_cutoff,
                                           acquisitionWindow = self.__acquisition_window)
 
@@ -206,7 +208,7 @@ class ScanEngine:
     def acquisition_window(self, value):
         if self.__acquisition_window != value:
             self.__acquisition_window = value
-            self.device.change_adc_kernel(kernelMode=self.__kernel_mode,
+            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.__kernel_mode],
                                           acquisitionCutoff=self.__acquisition_cutoff,
                                           acquisitionWindow=self.__acquisition_window)
 

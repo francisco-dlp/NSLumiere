@@ -3,6 +3,7 @@ from nion.utils import Event
 from nion.swift.model import HardwareSource
 
 ACQUISITION_WINDOW = ['boxcar', 'triang', 'blackman', 'hamming', 'hann']
+KERNEL_LIST = ['Square', 'Triangular', 'Gaussian', 'Blackman', 'Custom', 'First pixel', 'Last pixel']
 
 class Handler:
     def __init__(self):
@@ -171,7 +172,7 @@ class View():
         #ADC parameters
 
         self.kernel_mode_text = ui.create_label(name='kernel_mode_text', text="DSP Kernel: ")
-        self.kernel_mode_value = ui.create_combo_box(items=['First pixel', 'Custom', 'Square', 'Triangular', 'Gaussian'],
+        self.kernel_mode_value = ui.create_combo_box(items=KERNEL_LIST,
                                                 current_index='@binding(kernel_mode)',
                                                 name='kernel_mode_value', width='100')
         self.kernel_mode_row = ui.create_row(self.kernel_mode_text, self.kernel_mode_value, ui.create_stretch())
