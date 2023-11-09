@@ -4,6 +4,7 @@ from nion.swift.model import HardwareSource
 
 ACQUISITION_WINDOW = ['boxcar', 'triang', 'blackman', 'hamming', 'hann']
 KERNEL_LIST = ['Square', 'Triangular', 'Gaussian', 'Blackman', 'Custom', 'First pixel', 'Last pixel']
+SCAN_MODES = ['Normal', 'Serpentine', 'Random', 'Mini-scans', 'Lissajous', 'Sawtooth Lissajous']
 
 class Handler:
     def __init__(self):
@@ -149,7 +150,7 @@ class View():
                                                   ui.create_stretch())
 
         self.rastering_text = ui.create_label(name='rastering_text', text="Rastering mode: ")
-        self.rastering_value = ui.create_combo_box(items=['Normal', 'Serpentine', 'Random', 'Lissajous', 'Saw lissajous'],
+        self.rastering_value = ui.create_combo_box(items=SCAN_MODES,
                                                    current_index='@binding(rastering_mode)',
                                                    name='rastering_value', width='100')
         self.rastering_row = ui.create_row(self.rastering_text, self.rastering_value, ui.create_stretch())
