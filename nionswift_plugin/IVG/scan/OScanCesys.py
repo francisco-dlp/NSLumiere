@@ -17,7 +17,7 @@ OPEN_SCAN_IS_VG = set_file.settings["OrsayInstrument"]["open_scan"]["IS_VG"]
 OPEN_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["open_scan"]["EFM03"]
 OPEN_SCAN_BITSTREAM = set_file.settings["OrsayInstrument"]["open_scan"]["BITSTREAM_FILE"]
 
-from .OScanCesysDialog import KERNEL_LIST, ACQUISITION_WINDOW, SCAN_MODES
+from .OScanCesysDialog import KERNEL_LIST, ACQUISITION_WINDOW, SCAN_MODES, IMAGE_VIEW_MODES
 
 def getlibname():
     if sys.platform.startswith('win'):
@@ -78,7 +78,7 @@ class ScanEngine:
         self.acquisition_window = 2
 
     def receive_total_frame(self, channel: int):
-        image = self.device.get_image(channel, imageType = self.imagedisplay)
+        image = self.device.get_image(channel, imageType = IMAGE_VIEW_MODES[self.imagedisplay])
         return image
 
     def set_frame_parameters(self, x, y, pixel_us, fov_nm):

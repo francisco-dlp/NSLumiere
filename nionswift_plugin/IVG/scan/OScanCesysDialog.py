@@ -5,6 +5,7 @@ from nion.swift.model import HardwareSource
 ACQUISITION_WINDOW = ['boxcar', 'triang', 'blackman', 'hamming', 'hann']
 KERNEL_LIST = ['None', 'Square', 'Triangular', 'Gaussian', 'Blackman', 'Custom', 'First pixel', 'Last pixel']
 SCAN_MODES = ['Normal', 'Serpentine', 'Random', 'Mini-scans', 'Lissajous', 'Sawtooth Lissajous']
+IMAGE_VIEW_MODES = ['Normal', 'Ordered', 'DAC-based', 'Inpainting']
 
 class Handler:
     def __init__(self):
@@ -130,7 +131,7 @@ class View():
         #Acquisition parameters
         self.imageshow_text = ui.create_label(name='imageshow_text', text="Image display: ")
         self.imageshow_value = ui.create_combo_box(
-            items=['Normal', 'Ordered', 'DAC-based'],
+            items=IMAGE_VIEW_MODES,
             current_index='@binding(imagedisplay)',
             name='rastering_value', width='100')
         self.imageshow_row = ui.create_row(self.imageshow_text, self.imageshow_value, ui.create_stretch())
