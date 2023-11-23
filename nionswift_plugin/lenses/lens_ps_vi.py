@@ -38,10 +38,19 @@ class Lenses(Lens_controller.LensesController):
         elif which == 'OBJ_ALIG':
             scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
+            open_scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "open_scan_device")
+
             if scan is not None:
                 scan.scan_device.orsayscan.AlObjective(val[0] / 1000000., val[1] / 1000000., val[2] / 1000000., val[3] / 1000000.)
             else:
                 logging.info('***LENSES***: Could not align objetive lens.')
+
+            if open_scan is not None:
+                open_scan.scan_device.scan_engine.debug_io.probe_offset = [-val[0] * 4.05, -val[2] * 4.05]
+            else:
+                logging.info('***LENSES***: Could not debug OpenScan probe offset.')
+
             return
         elif which == 'GUN_STIG':
             logging.info(f'Gun. Stig value is {val}.')

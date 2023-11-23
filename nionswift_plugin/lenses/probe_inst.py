@@ -150,7 +150,7 @@ class probeDevice(Observable.Observable):
 
     @probe_offset0_f.setter
     def probe_offset0_f(self, value):
-        self.__probeOffset[0] = value
+        self.__probeOffset[0] = float(value)
         self.__lenses_ps.locked_set_val(self.__probeOffset, 'OBJ_ALIG')
         self.property_changed_event.fire('probe_offset0_f')
 
@@ -160,7 +160,7 @@ class probeDevice(Observable.Observable):
 
     @probe_offset1_f.setter
     def probe_offset1_f(self, value):
-        self.__probeOffset[1] = value
+        self.__probeOffset[1] = float(value)
         self.__lenses_ps.locked_set_val(self.__probeOffset, 'OBJ_ALIG')
         self.property_changed_event.fire('probe_offset1_f')
 
@@ -170,7 +170,7 @@ class probeDevice(Observable.Observable):
 
     @probe_offset2_f.setter
     def probe_offset2_f(self, value):
-        self.__probeOffset[2] = value
+        self.__probeOffset[2] = float(value)
         self.__lenses_ps.locked_set_val(self.__probeOffset, 'OBJ_ALIG')
         self.property_changed_event.fire('probe_offset2_f')
 
@@ -180,7 +180,7 @@ class probeDevice(Observable.Observable):
 
     @probe_offset3_f.setter
     def probe_offset3_f(self, value):
-        self.__probeOffset[3] = value
+        self.__probeOffset[3] = float(value)
         self.__lenses_ps.locked_set_val(self.__probeOffset, 'OBJ_ALIG')
         self.property_changed_event.fire('probe_offset3_f')
 

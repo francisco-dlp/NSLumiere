@@ -8,6 +8,7 @@ api = api_broker.get_api(API.version, UI.version)  # type: API
 
 cam = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_camera_eire")
 scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
+open_scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("open_scan_device")
 superscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("superscan")
 usim = HardwareSource.HardwareSourceManager().get_instrument_by_id("usim_stem_controller")
 stage = Registry.get_component("stage_controller")
@@ -20,7 +21,9 @@ print(scan)
 print(stage)
 print(diaf)
 
-#print(dir(superscan))
+#Acessing the DEBUG_IO in OpenScan
+probe_pos = open_scan.scan_device.scan_engine.debug_io.probe_offset
+
 #print(superscan.is_playing)
 
 #print(dir(cam.camera))

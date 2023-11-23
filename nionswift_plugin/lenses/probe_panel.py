@@ -11,7 +11,7 @@ from nion.swift.model import HardwareSource
 
 from . import probe_inst
 
-INCREMENT_PROBE = 250
+INCREMENT_PROBE = 50
 _ = gettext.gettext
 
 class gainhandler:
@@ -167,7 +167,8 @@ class gainView:
         self.astig_group=ui.create_group(title='Objective Astigmators', content=self.astig_column)
 
         self.probe_offset0_label = ui.create_label(name='probe_offset0_label', text='Probe offset 0 (nm): ')
-        self.probe_offset0_value_label = ui.create_label(name='probe_offset0_value_label', text='@binding(instrument.probe_offset0_f)')
+        self.probe_offset0_value_label = ui.create_line_edit(name='probe_offset0_value_label', width=50,
+                                                             text='@binding(instrument.probe_offset0_f)')
         self.probe_offset_0_minus_button = ui.create_push_button(name='probe_offset_0_minus_button', text='<<',
                                                                  width=25, on_clicked='probe0_minus_pb')
         self.probe_offset_0_plus_button = ui.create_push_button(name='probe_offset_0_plus_button', text='>>', width=25, on_clicked='probe0_plus_pb')
@@ -177,7 +178,7 @@ class gainView:
                                               minimum=-280000, maximum=280000)
 
         self.probe_offset1_label = ui.create_label(name='probe_offset1_label', text='Probe offset 1 (nm): ')
-        self.probe_offset1_value_label = ui.create_label(name='probe_offset1_value_label',
+        self.probe_offset1_value_label = ui.create_line_edit(name='probe_offset1_value_label', width=50,
                                                          text='@binding(instrument.probe_offset1_f)')
         self.probe_offset_1_minus_button = ui.create_push_button(name='probe_offset_1_minus_button', text='<<', width = 25, on_clicked='probe1_minus_pb')
         self.probe_offset_1_plus_button = ui.create_push_button(name='probe_offset_1_plus_button', text='>>', width = 25, on_clicked='probe1_plus_pb')
@@ -188,7 +189,7 @@ class gainView:
                                                      minimum=-280000, maximum=280000)
 
         self.probe_offset2_label = ui.create_label(name='probe_offset2_label', text='Probe offset 2 (nm): ')
-        self.probe_offset2_value_label = ui.create_label(name='probe_offset2_value_label',
+        self.probe_offset2_value_label = ui.create_line_edit(name='probe_offset2_value_label', width=50,
                                                          text='@binding(instrument.probe_offset2_f)')
         self.probe_offset_2_minus_button = ui.create_push_button(name='probe_offset_2_minus_button', text='<<',
                                                                  width=25, on_clicked='probe2_minus_pb')
@@ -201,7 +202,7 @@ class gainView:
                                                      minimum=-280000, maximum=280000)
 
         self.probe_offset3_label = ui.create_label(name='probe_offset3_label', text='Probe offset 3 (nm): ')
-        self.probe_offset3_value_label = ui.create_label(name='probe_offset3_value_label',
+        self.probe_offset3_value_label = ui.create_line_edit(name='probe_offset3_value_label', width=50,
                                                          text='@binding(instrument.probe_offset3_f)')
         self.probe_offset_3_minus_button = ui.create_push_button(name='probe_offset_3_minus_button', text='<<',
                                                                  width=25, on_clicked='probe3_minus_pb')
@@ -215,10 +216,10 @@ class gainView:
 
 
 
-        self.probe_offset_column = ui.create_column(self.probe_offset0_row, self.probe_offset0_slider,
-                                                    self.probe_offset1_row, self.probe_offset1_slider,
-                                                    self.probe_offset2_row, self.probe_offset2_slider,
-                                                    self.probe_offset3_row, self.probe_offset3_slider,
+        self.probe_offset_column = ui.create_column(self.probe_offset0_row,
+                                                    self.probe_offset1_row,
+                                                    self.probe_offset2_row,
+                                                    self.probe_offset3_row,
                                                     self.probe_offset_reset)
 
         self.probe_offset_group = ui.create_group(title='Probe Offset', content=self.probe_offset_column)

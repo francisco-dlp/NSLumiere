@@ -29,16 +29,17 @@ def getlibname():
 class ScanEngine:
     def __init__(self):
         try:
+            self.debug_io = None
             io_system = FPGAConfig.CesysDevice(getlibname().encode(),
                                                OPEN_SCAN_BITSTREAM)
             self.device = FPGAConfig.ScanDevice(io_system, 128, 128, 100, 0)
         except UnboundLocalError:
-            io_system = FPGAConfig.DebugClass()
-            self.device = FPGAConfig.ScanDevice(io_system, 128, 128, 100, 0)
+            self.debug_io = FPGAConfig.DebugClass()
+            self.device = FPGAConfig.ScanDevice(self.debug_io, 128, 128, 100, 0)
             logging.warning(f'Could not found CESYS system connected. Entering in debug mode.')
         except:
-            io_system = FPGAConfig.DebugClass()
-            self.device = FPGAConfig.ScanDevice(io_system, 128, 128, 100, 0)
+            self.debug_io = io_system = FPGAConfig.DebugClass()
+            self.device = FPGAConfig.ScanDevice(self.debug_io, 128, 128, 100, 0)
             logging.warning(f'Could not found the library libudk3-1.5.1.so. You should probably use '
                             f'export LD_LIBRARY_PATH='+getlibname())
 

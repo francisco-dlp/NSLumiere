@@ -686,9 +686,9 @@ class ivgInstrument(stem_controller.STEMController):
             except AttributeError:
                 return True, 1
         elif s == "CSH.u":
-            return True, self.__csh[0]
+            return True, self.__lensInstrument.probe_offset0_f / 1e9
         elif s == "CSH.v":
-            return True, self.__csh[1]
+            return True, self.__lensInstrument.probe_offset2_f / 1e9
         elif s == "DriftCompensation.u":
             return True, self.__driftCompensation[0]
         elif s == "DriftCompensation.v":

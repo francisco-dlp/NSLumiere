@@ -26,4 +26,5 @@ def run():
         from .scan import OScanCesys
         instrument2 = ivg_inst.ivgInstrument('orsay_controller2')
         Registry.register_component(instrument2, {"instrument_controller", "stem_controller"})
+        ivg_panel.run(instrument2)
         OScanCesys.run(instrument2)
