@@ -60,6 +60,7 @@ class ScanEngine:
         self.__lissajous_nx = None
         self.__lissajous_ny = None
         self.__kernel_mode = None
+        self.__given_pixel = None
         self.__acquisition_cutoff = None
         self.__acquisition_window = None
 
@@ -75,6 +76,7 @@ class ScanEngine:
         self.lissajous_ny = 1
         self.lissajous_phase = 0
         self.kernel_mode = 0
+        self.given_pixel = 1
         self.acquisition_cutoff = 500
         self.acquisition_window = 2
 
@@ -88,6 +90,7 @@ class ScanEngine:
                                            lissajous_ny=self.lissajous_ny,
                                            lissajous_phase = self.lissajous_phase,
                                            kernelMode = KERNEL_LIST[self.kernel_mode],
+                                           givenPixel=self.__given_pixel,
                                            acquisitionCutoff=self.acquisition_cutoff,
                                            acquisitionWindow=self.acquisition_window
                                            )
@@ -186,6 +189,20 @@ class ScanEngine:
         if self.__kernel_mode != value:
             self.__kernel_mode = value
             self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.__kernel_mode],
+                                          givenPixel=self.__given_pixel,
+                                          acquisitionCutoff=self.__acquisition_cutoff,
+                                          acquisitionWindow=self.__acquisition_window)
+
+    @property
+    def given_pixel(self):
+        return self.__given_pixel
+
+    @given_pixel.setter
+    def given_pixel(self, value):
+        if self.__given_pixel != value:
+            self.__given_pixel = value
+            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.__kernel_mode],
+                                          givenPixel=self.__given_pixel,
                                           acquisitionCutoff=self.__acquisition_cutoff,
                                           acquisitionWindow=self.__acquisition_window)
 
@@ -198,6 +215,7 @@ class ScanEngine:
         if self.__acquisition_cutoff != value:
             self.__acquisition_cutoff = value
             self.device.change_adc_kernel(kernelMode = KERNEL_LIST[self.__kernel_mode],
+                                          givenPixel=self.__given_pixel,
                                           acquisitionCutoff = self.__acquisition_cutoff,
                                           acquisitionWindow = self.__acquisition_window)
 
@@ -210,6 +228,7 @@ class ScanEngine:
         if self.__acquisition_window != value:
             self.__acquisition_window = value
             self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.__kernel_mode],
+                                          givenPixel=self.__given_pixel,
                                           acquisitionCutoff=self.__acquisition_cutoff,
                                           acquisitionWindow=self.__acquisition_window)
 

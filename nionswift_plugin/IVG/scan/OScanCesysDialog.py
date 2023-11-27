@@ -3,7 +3,7 @@ from nion.utils import Event
 from nion.swift.model import HardwareSource
 
 ACQUISITION_WINDOW = ['boxcar', 'triang', 'blackman', 'hamming', 'hann']
-KERNEL_LIST = ['None', 'Square', 'Triangular', 'Gaussian', 'Blackman', 'Custom', 'First pixel', 'Last pixel']
+KERNEL_LIST = ['None', 'Square', 'Triangular', 'Gaussian', 'Blackman', 'Custom', 'First pixel', 'Last pixel', 'Given pixel']
 SCAN_MODES = ['Normal', 'Serpentine', 'Random', 'Mini-scans', 'Lissajous', 'Sawtooth Lissajous']
 IMAGE_VIEW_MODES = ['Normal', 'Ordered', 'DAC-based', 'Inpainting']
 
@@ -35,6 +35,14 @@ class Handler:
     @kernel_mode.setter
     def kernel_mode(self, value):
         self.scan.kernel_mode = value
+
+    @property
+    def given_pixel(self):
+        return self.scan.given_pixel
+
+    @given_pixel.setter
+    def given_pixel(self, value):
+        self.scan.given_pixel = value
 
     @property
     def dsp_filter(self):
@@ -177,7 +185,11 @@ class View():
         self.kernel_mode_value = ui.create_combo_box(items=KERNEL_LIST,
                                                 current_index='@binding(kernel_mode)',
                                                 name='kernel_mode_value', width='100')
-        self.kernel_mode_row = ui.create_row(self.kernel_mode_text, self.kernel_mode_value, ui.create_stretch())
+        self.kernel_given_pixel_label = ui.create_label(text='Given pixel: ')
+        self.kernel_given_pixel_value = ui.create_line_edit(name='kernel_given_pixel_value',
+                                                            text='@binding(given_pixel)', width=45)
+        self.kernel_mode_row = ui.create_row(self.kernel_mode_text, self.kernel_mode_value, ui.create_stretch(),
+                                             self.kernel_given_pixel_label, self.kernel_given_pixel_value)
 
         self.filter_text = ui.create_label(name='filter_text', text="IIR Filter: ")
         self.filter_value = ui.create_combo_box(items=['1', '2', '4', '8', '16', '32', '64'],
