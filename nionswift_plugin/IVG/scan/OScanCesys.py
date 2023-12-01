@@ -38,7 +38,7 @@ class ScanEngine:
             self.device = FPGAConfig.ScanDevice(self.debug_io, 128, 128, 100, 0)
             logging.warning(f'Could not found CESYS system connected. Entering in debug mode.')
         except:
-            self.debug_io = io_system = FPGAConfig.DebugClass()
+            self.debug_io = FPGAConfig.DebugClass()
             self.device = FPGAConfig.ScanDevice(self.debug_io, 128, 128, 100, 0)
             logging.warning(f'Could not found the library libudk3-1.5.1.so. You should probably use '
                             f'export LD_LIBRARY_PATH='+getlibname())
@@ -72,8 +72,8 @@ class ScanEngine:
         self.rastering_mode = 0
         self.magboard_switches = '100100'
         self.offset_adc = 13000
-        self.lissajous_nx = 1
-        self.lissajous_ny = 1
+        self.lissajous_nx = 800
+        self.lissajous_ny = 799
         self.lissajous_phase = 0
         self.kernel_mode = 0
         self.given_pixel = 1
@@ -83,6 +83,9 @@ class ScanEngine:
     def receive_total_frame(self, channel: int):
         image = self.device.get_image(channel, imageType = IMAGE_VIEW_MODES[self.imagedisplay])
         return image
+
+    def get_frame_counter(self, channel: int):
+        return self.device.get_frame_counter(channel)
 
     def set_frame_parameters(self, x, y, pixel_us, fov_nm):
         self.device.change_scan_parameters(x, y, pixel_us, self.__flyback_us, fov_nm, SCAN_MODES[self.rastering_mode],
@@ -293,6 +296,8 @@ class Device(scan_base.ScanDevice):
         self.__frame_parameters = copy.deepcopy(self.__profiles[0])
         self.flyback_pixels = 0
         self.__buffer = list()
+        self.__sequence_buffer_size = 0
+        self.__view_buffer_size = 20
         self.bottom_blanker = 0
         self.scan_engine = ScanEngine()
 
@@ -366,7 +371,9 @@ class Device(scan_base.ScanDevice):
             frame_parameters.subscan_pixel_size if frame_parameters.subscan_pixel_size else frame_parameters.size)
         for channel in channels:
             channel.data = numpy.zeros(tuple(size), numpy.float32)
-        self.__frame_number += 1  # This is updated in the self.__frame_number
+        #(self.__frame_number, new_frame) = self.scan_engine.get_frame_counter(0)
+        #while not new_frame:
+        #    (self.__frame_number, new_frame) = self.scan_engine.get_frame_counter(0)
         self.__frame = Frame(self.__frame_number, channels, frame_parameters)
 
     def read_partial(self, frame_number, pixels_to_skip) -> (typing.Sequence[dict], bool, bool, tuple, int, int):
@@ -383,13 +390,13 @@ class Device(scan_base.ScanDevice):
         a 'channel_id' indicating the index of the channel (may be an int or float).
         """
 
-        gotit = self.has_data_event.wait(0.1)
-
         if self.__frame is None:
             self.__start_next_frame()
 
         current_frame = self.__frame  # this is from Frame Class defined above
         assert current_frame is not None
+        frame_number = current_frame.frame_number
+
         data_elements = list()
 
         for channel in current_frame.channels:
@@ -405,19 +412,41 @@ class Device(scan_base.ScanDevice):
             if data_array is not None:
                 data_elements.append(data_element)
 
-        self.has_data_event.clear()
-
         current_frame.complete = True
         if current_frame.complete:
             self.__frame = None
+            if len(self.__buffer) > 0 and len(self.__buffer[-1]) != len(data_elements):
+                self.__buffer = list()
+            self.__buffer.append(data_elements)
+            while len(self.__buffer) > self.__sequence_buffer_size + self.__view_buffer_size:
+                del self.__buffer[self.__sequence_buffer_size]
 
         # return data_elements, complete, bad_frame, sub_area, frame_number, pixels_to_skip
-        return data_elements, current_frame.complete, False, ((0, 0), data_array.shape), None, 0
+        return data_elements, current_frame.complete, False, ((0, 0), data_array.shape), frame_number, 0
 
     # This one is called in scan_base
     def prepare_synchronized_scan(self, scan_frame_parameters: scan_base.ScanFrameParameters, *, camera_exposure_ms,
                                   **kwargs) -> None:
         pass
+
+    def set_sequence_buffer_size(self, buffer_size: int) -> None:
+        self.__sequence_buffer_size = buffer_size
+        self.__buffer = list()
+
+    def get_sequence_buffer_count(self) -> int:
+        return len(self.__buffer)
+
+    def pop_sequence_buffer_data(self) -> typing.List[typing.Dict[str, typing.Any]]:
+        self.__sequence_buffer_size -= 1
+        return self.__buffer.pop(0)
+
+    def get_buffer_data(self, start: int, count: int) -> typing.List[typing.List[typing.Dict[str, typing.Any]]]:
+        # print(f"get {start=} {count=} {len(self.__buffer)=}")
+        # time.sleep(0.1)
+        if start < 0:
+            return self.__buffer[start: start + count if count < -start else None]
+        else:
+            return self.__buffer[start: start + count]
 
     def set_channel_enabled(self, channel_index: int, enabled: bool) -> bool:
         assert 0 <= channel_index < self.channel_count

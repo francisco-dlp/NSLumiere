@@ -46,7 +46,7 @@ class Lenses(Lens_controller.LensesController):
             else:
                 logging.info('***LENSES***: Could not align objetive lens.')
 
-            if open_scan is not None:
+            if open_scan is not None and open_scan.scan_device.scan_engine.debug_io is not None:
                 open_scan.scan_device.scan_engine.debug_io.probe_offset = [-val[0] * 4.05, -val[2] * 4.05]
             else:
                 logging.info('***LENSES***: Could not debug OpenScan probe offset.')
