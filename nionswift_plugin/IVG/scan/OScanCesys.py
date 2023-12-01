@@ -371,9 +371,7 @@ class Device(scan_base.ScanDevice):
             frame_parameters.subscan_pixel_size if frame_parameters.subscan_pixel_size else frame_parameters.size)
         for channel in channels:
             channel.data = numpy.zeros(tuple(size), numpy.float32)
-        #(self.__frame_number, new_frame) = self.scan_engine.get_frame_counter(0)
-        #while not new_frame:
-        #    (self.__frame_number, new_frame) = self.scan_engine.get_frame_counter(0)
+        (self.__frame_number, new_frame) = self.scan_engine.get_frame_counter(0)
         self.__frame = Frame(self.__frame_number, channels, frame_parameters)
 
     def read_partial(self, frame_number, pixels_to_skip) -> (typing.Sequence[dict], bool, bool, tuple, int, int):
