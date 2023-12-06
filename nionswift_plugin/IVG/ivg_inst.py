@@ -599,12 +599,8 @@ class ivgInstrument(stem_controller.STEMController):
         angle = angle - 22.5
         new_dx = dx*numpy.cos(numpy.radians(angle)) - dy*numpy.sin(numpy.radians(angle))
         new_dy = dx*numpy.sin(numpy.radians(angle)) + dy*numpy.cos(numpy.radians(angle))
-        if self.__fov < 1.0:
-            fac = 2.0
-        else:
-            fac = 1.0
-        self.__StageInstrument.x_pos_edit_f = float(self.__StageInstrument.x_pos_edit_f) + fac * new_dx * 1e6
-        self.__StageInstrument.y_pos_edit_f = float(self.__StageInstrument.y_pos_edit_f) - fac * new_dy * 1e6
+        self.__StageInstrument.x_pos_edit_f = float(self.__StageInstrument.x_pos_edit_f) + 1.0 * new_dx * 1e6
+        self.__StageInstrument.y_pos_edit_f = float(self.__StageInstrument.y_pos_edit_f) - 1.0 * new_dy * 1e6
         self.stage_periodic()
 
     def SetVal(self, s, val):

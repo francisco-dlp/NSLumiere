@@ -62,6 +62,7 @@ class Response():
 
 SAVE_FILE = False
 NUMBER_OF_MASKS = 4
+STANDARD_CONTROLLER = "orsay_controller"
 
 class Timepix3Configurations():
     def __init__(self):
@@ -236,8 +237,12 @@ class TimePix3():
             self.__isChromaTEM = True
             logging.info("***TPX3***: autostem_controller is found.")
         else:
-            self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_controller")
-            logging.info("***TPX3***: VG_controller is found.")
+            self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
+            if self.__instrument is not None:
+                print(self.__instrument)
+                logging.info("***TPX3***: orsay_controller is found.")
+            else:
+                logging.info(f"***TPX3***: No controller is found. Will reattempt with the controller {STANDARD_CONTROLLER}")
 
 
         if not simul:
@@ -246,7 +251,7 @@ class TimePix3():
                 if initial_status_code == 200:
                     logging.info('***TP3***: Timepix has initialized correctly.')
                 else:
-                    logging.info('***TP3***: Problem initializing Timepix3. Bad status code.')
+                    logging.info(f'***TP3***: Problem initializing Timepix3. Bad status code: {initial_status_code}.')
 
                 # Loading bpc and dacs
                 bpcFile = PIXEL_MASK_PATH + PIXEL_MASK_FILES[0]
@@ -1049,9 +1054,13 @@ class TimePix3():
         return scanInstrument.scan_device.current_frame_parameters.pixel_time_us
 
     def get_detector_eels_dispersion(self):
+        if self.__instrument is None:
+            self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id(STANDARD_CONTROLLER)
         return self.__instrument.TryGetVal("EELS_TV_eVperpixel")[1]
 
     def get_detector_eels_offset(self):
+        if self.__instrument is None:
+            self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id(STANDARD_CONTROLLER)
         return self.__instrument.TryGetVal("ZLPtare")[1]
 
     def acquire_streamed_frame(self, port, message):

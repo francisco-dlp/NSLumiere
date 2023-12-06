@@ -3,6 +3,8 @@ import threading
 import numpy
 
 from nion.instrumentation import HardwareSource
+DISPLACEMENT = [0.25 / 2343.2, 0, 0.25 / 2421.8, 0]
+ANGLE_REFERENCE = 316
 
 from . import Lens_controller
 
@@ -42,7 +44,13 @@ class Lenses(Lens_controller.LensesController):
                 "open_scan_device")
 
             if scan is not None:
-                scan.scan_device.orsayscan.AlObjective(val[0] / 1000000., val[1] / 1000000., val[2] / 1000000., val[3] / 1000000.)
+                angle = scan.scan_device.scan_rotation
+                angle = angle - ANGLE_REFERENCE
+                new_dx = val[0] * DISPLACEMENT[0] * numpy.cos(numpy.radians(angle)) - val[2] * DISPLACEMENT[2] * numpy.sin(numpy.radians(angle))
+                new_dy = val[0] * DISPLACEMENT[0] * numpy.sin(numpy.radians(angle)) + val[2] * DISPLACEMENT[2] * numpy.cos(numpy.radians(angle))
+                scan.scan_device.orsayscan.AlObjective(new_dx, val[1] * DISPLACEMENT[1],
+                                                       -new_dy,
+                                                       val[3] * DISPLACEMENT[3])
             else:
                 logging.info('***LENSES***: Could not align objetive lens.')
 

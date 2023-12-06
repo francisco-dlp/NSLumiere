@@ -146,7 +146,7 @@ class Device(scan_base.ScanDevice):
         self.p5 = 512
         self.Image_area = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
         #self.set_spim_pixels = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
-        self.orsayscan.setScanRotation(22.5)
+        self.scan_rotation = 0.0
         self.orsayscan.setScanScale(0, 5.0, 5.0)
 
         #Set HADF and BF initial gain values
@@ -187,7 +187,7 @@ class Device(scan_base.ScanDevice):
             self.__is_scanning = False
 
     def __get_channels(self) -> typing.List[Channel]:
-        channels = [Channel(0, "ADF", False), Channel(1, "BF", False)]
+        channels = [Channel(0, "ADF", ORSAY_SCAN_IS_VG), Channel(1, "BF", False)]
         abs_path = os.path.abspath('C:\ProgramData\Microscope\Orsay_cameras_list.json')
         try:
             with open(abs_path) as savfile:
@@ -601,7 +601,7 @@ class ScanModule(scan_base.ScanModule):
         self.device = Device(instrument)
         setattr(self.device, "priority", 20)
         scan_modes = (
-            scan_base.ScanSettingsMode(_("Fast"), "fast", scan_base.ScanFrameParameters(pixel_size=(256, 256), pixel_time_us=1, fov_nm=25)),
+            scan_base.ScanSettingsMode(_("Fast"), "fast", scan_base.ScanFrameParameters(pixel_size=(256, 256), pixel_time_us=1, fov_nm=1000, rotation_rad=0.393)),
             scan_base.ScanSettingsMode(_("Slow"), "slow", scan_base.ScanFrameParameters(pixel_size=(512, 512), pixel_time_us=1, fov_nm=25)),
             scan_base.ScanSettingsMode(_("Record"), "record", scan_base.ScanFrameParameters(pixel_size=(1024, 1024), pixel_time_us=1, fov_nm=25))
         )

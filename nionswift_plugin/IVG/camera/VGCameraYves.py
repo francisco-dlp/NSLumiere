@@ -1126,7 +1126,7 @@ def run():
                                              camera["id"], camera["name"], camera["type"])
 
                 camera_settings = CameraSettings(camera_device)
-                Registry.register_component(CameraModule("VG_controller", camera_device, camera_settings),
+                Registry.register_component(CameraModule("orsay_controller", camera_device, camera_settings),
                                             {"camera_module"})
             set_file.save_locally()
         except Exception as e:

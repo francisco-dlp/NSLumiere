@@ -14,12 +14,14 @@ usim = HardwareSource.HardwareSourceManager().get_instrument_by_id("usim_stem_co
 stage = Registry.get_component("stage_controller")
 diaf = Registry.get_component("diaf_controller")
 eels = Registry.get_component("eels_spec_controller")
+orsay_controller = HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
 all = HardwareSource.HardwareSourceManager().get_all_instrument_ids()
 
 print(cam)
 print(scan)
 print(stage)
 print(diaf)
+print(orsay_controller)
 
 #Acessing the DEBUG_IO in OpenScan
 probe_pos = open_scan.scan_device.scan_engine.debug_io.probe_offset
