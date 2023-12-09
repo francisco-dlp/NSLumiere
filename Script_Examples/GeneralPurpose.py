@@ -15,16 +15,36 @@ stage = Registry.get_component("stage_controller")
 diaf = Registry.get_component("diaf_controller")
 eels = Registry.get_component("eels_spec_controller")
 orsay_controller = HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
+main_controller = Registry.get_component("stem_controller")
 all = HardwareSource.HardwareSourceManager().get_all_instrument_ids()
 
-print(cam)
-print(scan)
-print(stage)
-print(diaf)
-print(orsay_controller)
+# print('GETTING THE MAIN CONTROLLER AND CHECK THE SCAN CONTROLLER ASSOCIATED')
+main_controller = Registry.get_component("stem_controller")
+#print(main_controller)
+#print(main_controller.scan_controller)
+#print(main_controller.scan_controller.hardware_source_id)
+#
+# print("GETTING SUPERSCAN AND IT AS THE SCAN CONTROLLER OF THE AUTOSTEM OBJECT")
+# superscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("superscan")
+# main_controller.set_scan_controller(superscan)
+#
+# print("NOW EVERYTHING WORKS")
+
+#for component in Registry.get_components_by_type("scan_hardware_source"):
+#    print(f'{component.hardware_source_id}: {component.scan_device.scan_device_is_secondary=}')
+
+for component in Registry.get_components_by_type("scan_hardware_source"):
+    print(component.hardware_source_id)
+    print(component.scan_device.scan_device_is_secondary)
+#            scan_hardware_source = typing.cast("scan_base.ScanHardwareSource", component)
+            #if not scan_hardware_source.scan_device.scan_device_is_secondary:
+#                return scan_hardware_source
+#print(scan_hardware_source)
+
+#print(main_controller.scan_controller.hardware_source_id)
 
 #Acessing the DEBUG_IO in OpenScan
-probe_pos = open_scan.scan_device.scan_engine.debug_io.probe_offset
+#probe_pos = open_scan.scan_device.scan_engine.debug_io.probe_offset
 
 #print(superscan.is_playing)
 

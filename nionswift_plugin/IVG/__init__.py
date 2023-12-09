@@ -5,6 +5,7 @@ except ImportError:
 
 set_file = read_data.FileManager('global_settings')
 ORSAY_SCAN_ACTIVATED = set_file.settings["OrsayInstrument"]["orsay_scan"]["ACTIVATED"]
+IS_VG = set_file.settings["OrsayInstrument"]["orsay_scan"]["IS_VG"]
 OPEN_SCAN_ACTIVATED = set_file.settings["OrsayInstrument"]["open_scan"]["ACTIVATED"]
 
 from nion.utils import Registry
@@ -19,12 +20,14 @@ def run():
         from .scan import VGScanYves
         instrument = ivg_inst.ivgInstrument('orsay_controller')
         Registry.register_component(instrument, {"instrument_controller", "stem_controller"})
-        ivg_panel.run(instrument)
+        if IS_VG:
+            ivg_panel.run(instrument)
         VGScanYves.run(instrument)
 
     if bool(OPEN_SCAN_ACTIVATED):
         from .scan import OScanCesys
         instrument2 = ivg_inst.ivgInstrument('orsay_controller2')
         Registry.register_component(instrument2, {"instrument_controller", "stem_controller"})
-        ivg_panel.run(instrument2)
+        if IS_VG:
+            ivg_panel.run(instrument2)
         OScanCesys.run(instrument2)
