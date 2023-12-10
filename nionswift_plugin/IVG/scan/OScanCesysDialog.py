@@ -5,7 +5,7 @@ from nion.swift.model import HardwareSource
 ACQUISITION_WINDOW = ['boxcar', 'triang', 'blackman', 'hamming', 'hann']
 KERNEL_LIST = ['None', 'Square', 'Triangular', 'Gaussian', 'Blackman', 'Custom', 'First pixel', 'Last pixel', 'Given pixel']
 SCAN_MODES = ['Normal', 'Serpentine', 'Random', 'Mini-scans', 'Lissajous', 'Sawtooth Lissajous']
-IMAGE_VIEW_MODES = ['Normal', 'Ordered', 'DAC-based', 'Inpainting']
+IMAGE_VIEW_MODES = ['Normal', 'Ordered', 'DAC-based', 'Low-pass filter', 'Inpainting']
 
 class Handler:
     def __init__(self):
@@ -20,6 +20,14 @@ class Handler:
     @imagedisplay.setter
     def imagedisplay(self, value):
         self.scan.imagedisplay = value
+
+    @property
+    def imagedisplay_filter_intensity(self):
+        return self.scan.imagedisplay_filter_intensity
+
+    @imagedisplay_filter_intensity.setter
+    def imagedisplay_filter_intensity(self, value):
+        self.scan.imagedisplay_filter_intensity = value
     @property
     def flyback_us(self):
         return self.scan.flyback_us
@@ -142,7 +150,11 @@ class View():
             items=IMAGE_VIEW_MODES,
             current_index='@binding(imagedisplay)',
             name='rastering_value', width='100')
-        self.imageshow_row = ui.create_row(self.imageshow_text, self.imageshow_value, ui.create_stretch())
+        self.image_filter_intensity_text = ui.create_label(name='image_filter_intensity_text', text='Filter intensity: ')
+        self.image_filter_intensity_value = ui.create_line_edit(name='image_filter_intensity_value', text='@binding(imagedisplay_filter_intensity)')
+        self.imageshow_row = ui.create_row(self.imageshow_text, self.imageshow_value, ui.create_spacing(10),
+                                           self.image_filter_intensity_text, self.image_filter_intensity_value,
+                                           ui.create_stretch())
 
         self.acquisition_parameters_group = ui.create_group(title='Acquisition parameters', content=ui.create_column(
             self.imageshow_row
