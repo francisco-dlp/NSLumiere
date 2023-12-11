@@ -50,6 +50,7 @@ class ScanEngine:
 
         #Settings
         self.__imagedisplay = None
+        self.__imagedisplay_filter_intensity = None
         self.__dsp_filter = None
         self.__external_trigger = None
         self.__flyback_us = None
@@ -65,6 +66,7 @@ class ScanEngine:
         self.__acquisition_window = None
 
         self.__imagedisplay = 0
+        self.__imagedisplay_filter_intensity = 25
         self.__adc_mode = 0
         self.dsp_filter = 0
         self.external_trigger = 0
@@ -72,8 +74,8 @@ class ScanEngine:
         self.rastering_mode = 0
         self.magboard_switches = '100100'
         self.offset_adc = 13000
-        self.lissajous_nx = 800
-        self.lissajous_ny = 799
+        self.lissajous_nx = 190.8
+        self.lissajous_ny = 190.5
         self.lissajous_phase = 0
         self.kernel_mode = 0
         self.given_pixel = 1
@@ -81,7 +83,7 @@ class ScanEngine:
         self.acquisition_window = 2
 
     def receive_total_frame(self, channel: int):
-        image = self.device.get_image(channel, imageType = IMAGE_VIEW_MODES[self.imagedisplay])
+        image = self.device.get_image(channel, imageType = IMAGE_VIEW_MODES[self.imagedisplay], low_pass_size=self.imagedisplay_filter_intensity)
         return image
 
     def get_frame_counter(self, channel: int):
@@ -109,6 +111,15 @@ class ScanEngine:
     def imagedisplay(self, value):
         if self.__imagedisplay != value:
             self.__imagedisplay = int(value)
+
+    @property
+    def imagedisplay_filter_intensity(self):
+        return self.__imagedisplay_filter_intensity
+
+    @imagedisplay_filter_intensity.setter
+    def imagedisplay_filter_intensity(self, value):
+        if self.__imagedisplay_filter_intensity != value:
+            self.__imagedisplay_filter_intensity = int(value)
     @property
     def flyback_us(self):
         return self.__flyback_us
