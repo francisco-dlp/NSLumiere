@@ -85,12 +85,6 @@ class CameraTask:
         self.__last_rows = 0
         self.__headers = False
         self.__orsay_task = "orsay" in camera_frame_parameters.as_dict().keys() and camera_frame_parameters.as_dict()["orsay"]
-        #
-        # look for camera data channel to display live spectra during synchronized acquisition.
-        #
-        hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            camera_device.camera_id)
-        self.__data_channel = hardware_source.data_channels[0]
 
     @property
     def xdata(self) -> typing.Optional[DataAndMetadata.DataAndMetadata]:
@@ -143,12 +137,24 @@ class CameraTask:
             self.__data = numpy.flip(self.__camera_device.spimimagedata, axis=2)
         else:
             self.__data = self.__camera_device.spimimagedata
-        self.__xdata = DataAndMetadata.new_data_and_metadata(self.__data, data_descriptor=self.__data_descriptor)
-        self.__xdata.metadata.setdefault("hardware_source", dict())["valid_rows"] = 0
+
+        #Adding metadata to the measurement
+        metadata = dict()
+        metadata['hardware_source'] = dict()
+        if self.__headers == False:
+           metadata["hardware_source"]["acquisition_header"] = self.__camera_device.acquisition_header
+           metadata["hardware_source"]["image_header"] = self.__camera_device.image_header
+           if self.__camera_device.isMedipix:
+               metadata["hardware_source"]["merlin"] = dict()
+               metadata["hardware_source"]["merlin"]["acquisition"] = self.__camera_device.acquisition_header
+               metadata["hardware_source"]["merlin"]["image"] = self.__camera_device.image_header
+        self.__xdata = DataAndMetadata.new_data_and_metadata(self.__data, data_descriptor=self.__data_descriptor, metadata=metadata)
+
+        #This call is for timepix3 only. Used to inform the correct scan size
         try:
             self.__camera_device.camera.set_scan_size(self.__scan_shape)
         except:
-            print(f'Could not set scan shape. This is normal in non-Timepix3 detectors.')
+            logging.info(f'Could not set scan shape. This is normal in non-Timepix3 detectors.')
         self.__camera_device.camera.startSpim(scan_size, 1,
                                               self.__camera_device.current_camera_settings.exposure_ms / 1000,
                                               self.__twoD)
@@ -164,7 +170,6 @@ class CameraTask:
         elapsed_time = time.time_ns() - self.__start_time
         wait_time = update_period - elapsed_time * 1e-9
         if wait_time > 0.001:
-            #print(f"waiting for {wait_time}")
             time.sleep(wait_time)
         self.__start_time = time.time_ns()
         if not self.__aborted:
@@ -173,18 +178,6 @@ class CameraTask:
             # if self.__last_rows != rows or self.__last_rows == self.__scan_shape[0]:
             self.__last_rows = rows
             print(f"valid rows {rows},  frame number {self.__camera_device.frame_number}/{self.__scan_count}")
-            self.__xdata.metadata["hardware_source"]["valid_rows"] = rows
-            self.__xdata.metadata["hardware_source"]["frame_number"] = self.__camera_device.frame_number
-            self.__xdata.metadata["hardware_source"]["integration_count"] = 1
-            if self.__headers == False:
-                #self.__xdata.metadata["hardware_source"]["acquisition_header"] = self.__camera_device.acquisition_header
-                #self.__xdata.metadata["hardware_source"]["image_header"] = self.__camera_device.image_header
-                if self.__camera_device.isMedipix:
-                    self.__xdata.metadata["hardware_source"]["merlin"] = dict()
-                    self.__xdata.metadata["hardware_source"]["merlin"][
-                        "acquisition"] = self.__camera_device.acquisition_header
-                    self.__xdata.metadata["hardware_source"]["merlin"]["image"] = self.__camera_device.image_header
-                self.__headers = True
             return is_complete, False, rows
         return True, True, 0
 
@@ -378,8 +371,9 @@ class CameraDevice(camera_base.CameraDevice):
                     if v_binned:
                         self.__hardware_settings['v_binning'] = int(bottom - top)
                         self.camera.setBinning(self.__hardware_settings['h_binning'], self.__hardware_settings['v_binning'])
-                self.__hardware_settings['area'] = dict_frame_parameters['area']
-                self.camera.setArea(self.__hardware_settings['area'])
+                else:
+                    self.__hardware_settings['area'] = dict_frame_parameters['area']
+                    self.camera.setArea(self.__hardware_settings['area'])
 
         if ("h_binning" in dict_frame_parameters) and ("v_binning" in dict_frame_parameters):
             # if hasattr(frame_parameters, "h_binning") and hasattr(frame_parameters, "v_binning"):
@@ -788,7 +782,7 @@ class CameraDevice(camera_base.CameraDevice):
         if self.camera_type == "eels":
             return {
                 "x_scale_control": "EELS_TV_eVperpixel",
-                "x_offset_control": "ZLPtare",
+                "x_offset_control": "KURO_EELS_eVOffset",
                 "x_units_value": "eV",
                 "y_scale_control": self.camera_type + "_y_scale",
                 "y_offset_control": self.camera_type + "_y_offset",
