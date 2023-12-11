@@ -74,8 +74,8 @@ class ScanEngine:
         self.rastering_mode = 0
         self.magboard_switches = '100100'
         self.offset_adc = 13000
-        self.lissajous_nx = 800
-        self.lissajous_ny = 799
+        self.lissajous_nx = 190.8
+        self.lissajous_ny = 190.5
         self.lissajous_phase = 0
         self.kernel_mode = 0
         self.given_pixel = 1

@@ -176,9 +176,9 @@ class View():
                                                    name='rastering_value', width='100')
         self.rastering_row = ui.create_row(self.rastering_text, self.rastering_value, ui.create_stretch())
 
-        self.lissajous_nx_text = ui.create_label(name='lissajous_text', text="Liss. nx: ")
+        self.lissajous_nx_text = ui.create_label(name='lissajous_text', text="Liss. X (Hz): ")
         self.lissajous_nx_value = ui.create_line_edit(name='lissajous_value: ', width=45, text='@binding(lissajous_nx)')
-        self.lissajous_ny_text = ui.create_label(name='lissajous_text', text="Liss. ny: ")
+        self.lissajous_ny_text = ui.create_label(name='lissajous_text', text="Liss. Y: (Hz) ")
         self.lissajous_ny_value = ui.create_line_edit(name='lissajous_value: ', width=45, text='@binding(lissajous_ny)')
         self.lissajous_phase_text = ui.create_label(name='lissajous_phase_text', text="Lissajous phase: ")
         self.lissajous_phase_value = ui.create_line_edit(name='lissajous_phase_value: ', width=30,
