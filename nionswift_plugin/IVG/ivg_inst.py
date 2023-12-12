@@ -669,7 +669,7 @@ class ivgInstrument(stem_controller.STEMController):
             return True, self.__EIRE_Controls[s]
         elif s == "eels_y_offset":
             return True, 0
-        elif s == "ZLPtare":
+        elif s == "KURO_EELS_eVOffset":
             try:
                 return True, self.__EELSInstrument.ene_offset_edit_f + self.__EELSInstrument.tare_edit_f
             except AttributeError:
