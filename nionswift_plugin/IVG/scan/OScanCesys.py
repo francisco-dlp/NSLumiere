@@ -384,6 +384,7 @@ class Device(scan_base.ScanDevice):
             channel.data = numpy.zeros(tuple(size), numpy.float32)
         (self.__frame_number, new_frame) = self.scan_engine.get_frame_counter(0)
         self.__frame = Frame(self.__frame_number, channels, frame_parameters)
+        self.__frame.complete = new_frame
 
     def read_partial(self, frame_number, pixels_to_skip) -> (typing.Sequence[dict], bool, bool, tuple, int, int):
         """Read or continue reading a frame.
@@ -421,14 +422,13 @@ class Device(scan_base.ScanDevice):
             if data_array is not None:
                 data_elements.append(data_element)
 
-        current_frame.complete = True
         if current_frame.complete:
-            self.__frame = None
             if len(self.__buffer) > 0 and len(self.__buffer[-1]) != len(data_elements):
                 self.__buffer = list()
             self.__buffer.append(data_elements)
             while len(self.__buffer) > self.__sequence_buffer_size + self.__view_buffer_size:
                 del self.__buffer[self.__sequence_buffer_size]
+        self.__frame = None
 
         # return data_elements, complete, bad_frame, sub_area, frame_number, pixels_to_skip
         return data_elements, current_frame.complete, False, ((0, 0), data_array.shape), frame_number, 0
