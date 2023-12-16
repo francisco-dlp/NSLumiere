@@ -58,23 +58,21 @@ class EELS_Spectrometer(EELS_controller.EELSController):
                     logging.info('***EELS***: VSM value too high or negative. Current maximum value is 1000 V.')
             except ConnectionResetError:
                 logging.info('***EELS***: VSM could not be set. Please check if VSM is properly plugged.')
-            #scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
-            #if scan is not None:
-            #    scan.scan_device.orsayscan.drift_tube = float(val)
         else:
             if which=="dmx": which="al"
             if abs(val)<32767:
-                try:
-                    if val < 0:
-                        val = abs(val)
-                    else:
-                        val = 0xffff - val
-                    string = which + ' 0,' + hex(val)[2:6] + '\r'
-                    self.ser.write(string.encode())
-                    return self.ser.read(6)
-                except:
-                    logging.info(
-                        "***EELS SPECTROMETER***: Problem communicating over serial port. Easy check using Serial Port Monitor.")
+                if self.serial_success:
+                    try:
+                        if val < 0:
+                            val = abs(val)
+                        else:
+                            val = 0xffff - val
+                        string = which + ' 0,' + hex(val)[2:6] + '\r'
+                        self.ser.write(string.encode())
+                        return self.ser.read(6)
+                    except:
+                        logging.info(
+                            "***EELS SPECTROMETER***: Problem communicating over serial port. Easy check using Serial Port Monitor.")
             else:
                 logging.info("***EELS SPECTROMETER***: Attempt to write a value out of range.")
 

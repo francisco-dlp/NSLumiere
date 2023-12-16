@@ -10,9 +10,9 @@ if bool(ACTIVATED):
 
     from . import eels_spec_inst
     from . import eels_spec_panel
-    number = 12
-    names = ['fx', 'fy', 'sx', 'sy', 'dy', 'q1', 'q2', 'q3', 'q4', 'dx', 'dmx', 'off']
+    names = ['fx', 'fy', 'sx', 'sy', 'dy', 'q1', 'q2', 'q3', 'q4', 'dx', 'dmx', 'off',
+             'binding', 'binding_offset_dm', 'binding_offset_dmx']
     def run():
-        simpleInstrument=eels_spec_inst.EELS_SPEC_Device(nElem=12, ElemNames=names)
+        simpleInstrument=eels_spec_inst.EELS_SPEC_Device(nElem=len(names), ElemNames=names)
         Registry.register_component(simpleInstrument, {"eels_spec_controller"})
         eels_spec_panel.run(simpleInstrument)

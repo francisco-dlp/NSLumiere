@@ -1,10 +1,7 @@
 # standard libraries
-import json
-import os
 import logging
 
 from nion.utils import Event
-from nion.utils import Observable
 from nion.instrumentation.HardwareSource import Instrument
 
 try:
@@ -15,6 +12,7 @@ except ImportError:
 set_file = read_data.FileManager('global_settings')
 SERIAL_PORT = set_file.settings["EELS"]["COM"]
 LAST_HT = set_file.settings["global_settings"]["last_HT"]
+PROPORTIONAL = -1
 
 from . import eels_spec as spec
 
@@ -27,9 +25,9 @@ class EELS_SPEC_Device(Instrument):
         self.__eels_spec = spec.EELS_Spectrometer(SERIAL_PORT)
         self.is_vsm = self.__eels_spec.vsm_success
         self.is_spec = self.__eels_spec.serial_success
-        if not self.__eels_spec.success:
-            from . import eels_spec_vi as spec_vi
-            self.__eels_spec = spec_vi.EELS_Spectrometer()
+        #if not self.__eels_spec.success:
+        #    from . import eels_spec_vi as spec_vi
+        #    self.__eels_spec = spec_vi.EELS_Spectrometer()
 
         self.__elem = [0] * nElem
         self.__names = ElemNames
@@ -491,6 +489,57 @@ class EELS_SPEC_Device(Instrument):
         self.__eels_spec.locked_set_val(self.__elem[10], self.__names[10])
         self.property_changed_event.fire("dmx_slider_f")
         self.property_changed_event.fire("dmx_edit_f")
+
+    """
+    DM RATIO
+    """
+    @property
+    def dmr_slider_f(self):
+        return self.__elem[10]
+
+    @dmr_slider_f.setter
+    def dmr_slider_f(self, value):
+        self.__elem[10] = int(value)
+        if self.__elem[12]: #If binding == True
+            self.__elem[9] = int(self.__elem[13] + PROPORTIONAL * (int(value) - self.__elem[14]))
+            self.__eels_spec.locked_set_val(self.__elem[9], self.__names[9])
+        self.__eels_spec.locked_set_val(self.__elem[10], self.__names[10])
+        self.property_changed_event.fire("dx_slider_f")
+        self.property_changed_event.fire("dx_edit_f")
+        self.property_changed_event.fire("dmx_slider_f")
+        self.property_changed_event.fire("dmx_edit_f")
+        self.property_changed_event.fire("dmr_edit_f")
+        self.property_changed_event.fire("dmr_slider_f")
+
+    @property
+    def dmr_edit_f(self):
+        return str(self.__elem[10])
+
+    @dmr_edit_f.setter
+    def dmr_edit_f(self, value):
+        self.__elem[10] = int(value)
+        if self.__elem[12]: #If binding == True
+            self.__elem[9] = int(self.__elem[13] + PROPORTIONAL * (int(value) - self.__elem[14]))
+            self.__eels_spec.locked_set_val(self.__elem[9], self.__names[9])
+        self.__eels_spec.locked_set_val(self.__elem[10], self.__names[10])
+        self.property_changed_event.fire("dx_slider_f")
+        self.property_changed_event.fire("dx_edit_f")
+        self.property_changed_event.fire("dmx_slider_f")
+        self.property_changed_event.fire("dmx_edit_f")
+        self.property_changed_event.fire("dmr_edit_f")
+        self.property_changed_event.fire("dmr_slider_f")
+
+    @property
+    def dmr_binding_edit_f(self):
+        return self.__elem[12]
+
+    @dmr_binding_edit_f.setter
+    def dmr_binding_edit_f(self, value):
+        self.__elem[12] = value
+        self.__elem[13] = int(self.__elem[9])
+        self.__elem[14] = int(self.__elem[10])
+        self.property_changed_event.fire("dmr_binding_edit_f")
+
 
     """
     ENERGY OFFSET

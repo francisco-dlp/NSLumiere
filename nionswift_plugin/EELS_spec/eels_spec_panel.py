@@ -1,7 +1,5 @@
 # standard libraries
 import gettext
-import os
-import json
 
 # local libraries
 from nion.swift import Panel
@@ -21,16 +19,16 @@ class eels_spec_handler:
 
         self.event_loop = event_loop
         self.instrument = instrument
-        self.enabled = False
         self.property_changed_event_listener = self.instrument.property_changed_event.listen(self.prepare_widget_enable)
         self.reset_slider_listener = self.instrument.reset_slider.listen(self.reset_all)
 
     def init_handler(self):
-        self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id('VG_Lum_controller')
         vsm, ser = self.instrument.init_handler()
         self.event_loop.create_task(self.change_vsm(vsm))
         self.event_loop.create_task(self.change_ser(ser))
         self.release_all()
+        self.dmx_slider.enabled = False
+        self.dmx_value.enabled = False
 
     async def change_vsm(self, type):
         if type:
@@ -57,7 +55,7 @@ class eels_spec_handler:
                     setattr(widg, "enabled", enabled)
 
     def prepare_widget_enable(self, value):
-        self.event_loop.create_task(self.do_enable(True, []))
+        self.event_loop.create_task(self.do_enable(True, ['dmx_value', 'dmx_slider']))
 
     def save_spec(self, widget):
         self.instrument.save_spec_values()
@@ -73,13 +71,13 @@ class eels_spec_handler:
 
     def reset_all(self):
         for prop in [self.fx_slider, self.fy_slider, self.sx_slider, self.sy_slider, self.dy_slider, self.q1_slider, self.q2_slider, self.q3_slider, self.q4_slider,
-                     self.dx_slider, self.dmx_slider]:
+                     self.dx_slider, self.dmx_slider, self.dm_ratio_slider]:
             prop.maximum = 32767
             prop.minimum = -32767
 
     def release_all(self):
         for prop in [self.fx_slider, self.fy_slider, self.sx_slider, self.sy_slider, self.dy_slider, self.q1_slider, self.q2_slider, self.q3_slider, self.q4_slider,
-                     self.dx_slider, self.dmx_slider]:
+                     self.dx_slider, self.dmx_slider, self.dm_ratio_slider]:
             prop.maximum = prop.value + 2500
             prop.minimum = prop.value - 2500
 
@@ -230,6 +228,18 @@ class eels_spec_View:
         self.dmx_slider = ui.create_slider(name='dmx_slider', value='@binding(instrument.dmx_slider_f)', minimum=-32767,
                                            maximum=32767, on_slider_released='slider_release')
 
+        self.dm_ratio_label = ui.create_label(text='DMr: ', name='dm_ratio_label')
+        self.dm_ratio_value = ui.create_line_edit(name='dm_ratio_value', text='@binding(instrument.dmr_edit_f)', width=60)
+
+        self.dm_binding_label = ui.create_label(text='DM Binding: ', name='dm_binding_label')
+        self.dm_binding_value = ui.create_check_box(name='dm_binding_value',
+                                                    checked='@binding(instrument.dmr_binding_edit_f)')
+
+        self.dm_ratio_row = ui.create_row(self.dm_ratio_label, self.dm_ratio_value, ui.create_stretch(),
+                                          self.dm_binding_label, self.dm_binding_value)
+        self.dm_ratio_slider = ui.create_slider(name='dm_ratio_slider', value='@binding(instrument.dmr_slider_f)', minimum=-32767,
+                                           maximum=32767, on_slider_released='slider_release')
+
         # wobbler funcs second tab
         self.wobbler_combo_02 = ui.create_combo_box(name='wobbler_combo', items=['OFF', 'Q1', 'Q2', 'Q3', 'Q4', 'Dx', 'DMx'], current_index='@binding(instrument.dispersion_wobbler_f)')
         self.wobbler_int_02 = ui.create_line_edit(name='wobbler_int', width=50, text='@binding(instrument.dispersion_wobbler_int_f)')
@@ -246,6 +256,7 @@ class eels_spec_View:
             self.q4_row, self.q4_slider, \
             self.dx_row, self.dx_slider, \
             self.dmx_row, self.dmx_slider, \
+            self.dm_ratio_row, self.dm_ratio_slider, \
             self.wobbler_group_02, \
             self.pb_row))
 
