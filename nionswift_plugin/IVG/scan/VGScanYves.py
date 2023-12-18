@@ -104,6 +104,8 @@ class Device(scan_base.ScanDevice):
         self.__frame_parameters = copy.deepcopy(self.__profiles[0])
         self.flyback_pixels = 2
         self.__buffer = list()
+        self.__sequence_buffer_size = 0
+        self.__view_buffer_size = 20
         self.bottom_blanker = 0
 
         self.orsayscan = orsayScan(1, vg=bool(ORSAY_SCAN_IS_VG), efm03=bool(ORSAY_SCAN_EFM03))
@@ -435,7 +437,12 @@ class Device(scan_base.ScanDevice):
         self.has_data_event.clear()
 
         if current_frame.complete:
-            self.__frame = None
+            if len(self.__buffer) > 0 and len(self.__buffer[-1]) != len(data_elements):
+                self.__buffer = list()
+            self.__buffer.append(data_elements)
+            while len(self.__buffer) > self.__sequence_buffer_size + self.__view_buffer_size:
+                del self.__buffer[self.__sequence_buffer_size]
+        self.__frame = None
 
         #Stop by using the number of frames
         if self.__tpx3_spim and self.__tpx3_frameStop != 0 and self.__frame_number >= self.__tpx3_frameStop:
@@ -463,6 +470,25 @@ class Device(scan_base.ScanDevice):
 
         self.Spim_image_area = [size[0], size[1]]
         self.__spim = True
+
+    def set_sequence_buffer_size(self, buffer_size: int) -> None:
+        self.__sequence_buffer_size = buffer_size
+        self.__buffer = list()
+
+    def get_sequence_buffer_count(self) -> int:
+        return len(self.__buffer)
+
+    def pop_sequence_buffer_data(self) -> typing.List[typing.Dict[str, typing.Any]]:
+        self.__sequence_buffer_size -= 1
+        return self.__buffer.pop(0)
+
+    def get_buffer_data(self, start: int, count: int) -> typing.List[typing.List[typing.Dict[str, typing.Any]]]:
+        # print(f"get {start=} {count=} {len(self.__buffer)=}")
+        # time.sleep(0.1)
+        if start < 0:
+            return self.__buffer[start: start + count if count < -start else None]
+        else:
+            return self.__buffer[start: start + count]
 
     def calculate_flyback_pixels(self, frame_parameters: scan_base.ScanFrameParameters) -> int:
         return 0
