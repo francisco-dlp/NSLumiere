@@ -2,8 +2,7 @@
 import logging
 import time
 
-from nion.utils import Event
-from nion.utils import Observable
+from nion.utils import Event, Observable
 from nion.swift.model import HardwareSource
 try:
     from ..aux_files import read_data
@@ -151,6 +150,7 @@ class probeDevice(Observable.Observable):
     @probe_offset0_f.setter
     def probe_offset0_f(self, value):
         self.__probeOffset[0] = float(value)
+        read_data.InstrumentDictSetter("Probe", "CSH.u", self.__probeOffset[0] / 1e9)
         self.__lenses_ps.locked_set_val(self.__probeOffset, 'OBJ_ALIG')
         self.property_changed_event.fire('probe_offset0_f')
 
@@ -171,6 +171,7 @@ class probeDevice(Observable.Observable):
     @probe_offset2_f.setter
     def probe_offset2_f(self, value):
         self.__probeOffset[2] = float(value)
+        read_data.InstrumentDictSetter("Probe", "CSH.v", self.__probeOffset[2] / 1e9)
         self.__lenses_ps.locked_set_val(self.__probeOffset, 'OBJ_ALIG')
         self.property_changed_event.fire('probe_offset2_f')
 

@@ -117,9 +117,8 @@ class OptSpecDevice(Observable.Observable):
     """
 
     def upt_calibs(self):
-        self.__instrument.SetVal('Princeton_CL_nmperpixel',
-                                 self.dispersion_f * self.__cameraSize / self.__cameraPixels)
-        self.__instrument.SetVal('Princeton_CL_nmOffset', self.__wl - self.dispersion_f * self.__cameraSize / 2.)
+        read_data.InstrumentDictSetter("OptSpec", "Princeton_CL_nmperpixel", self.dispersion_f * self.__cameraSize / self.__cameraPixels)
+        read_data.InstrumentDictSetter("OptSpec", "Princeton_CL_nmOffset", self.__wl - self.dispersion_f * self.__cameraSize / 2.)
 
 
     def measure(self):

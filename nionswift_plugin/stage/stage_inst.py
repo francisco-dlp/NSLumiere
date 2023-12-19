@@ -1,10 +1,6 @@
 # standard libraries
-import json
-import logging
-import os
-import sys
+import logging, os, sys, shutil
 from pathlib import Path
-import shutil
 
 from nion.utils import Event
 from nion.utils import Observable
@@ -90,6 +86,7 @@ class stageDevice(Observable.Observable):
     def x_pos_edit_f(self, value):
         self.__x = float(value)/1e6
         self.__vgStage.stageGoTo_x(self.__x)
+        read_data.InstrumentDictSetter("Stage", "x_pos_f", self.__x)
         self.property_changed_event.fire('x_pos_edit_f')
 
     @property
@@ -100,6 +97,7 @@ class stageDevice(Observable.Observable):
     def y_pos_edit_f(self, value):
         self.__y = float(value)/1e6
         self.__vgStage.stageGoTo_y(self.__y)
+        read_data.InstrumentDictSetter("Stage", "y_pos_f", self.__y)
         self.property_changed_event.fire('y_pos_edit_f')
 
     @property
