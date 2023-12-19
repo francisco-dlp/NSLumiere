@@ -1,7 +1,7 @@
 # standard libraries
 import logging
 
-from nion.utils import Event
+from nion.utils import Event, Registry
 from nion.instrumentation.HardwareSource import Instrument
 
 try:
@@ -25,9 +25,6 @@ class EELS_SPEC_Device(Instrument):
         self.__eels_spec = spec.EELS_Spectrometer(SERIAL_PORT)
         self.is_vsm = self.__eels_spec.vsm_success
         self.is_spec = self.__eels_spec.serial_success
-        #if not self.__eels_spec.success:
-        #    from . import eels_spec_vi as spec_vi
-        #    self.__eels_spec = spec_vi.EELS_Spectrometer()
 
         self.__elem = [0] * nElem
         self.__names = ElemNames
@@ -120,6 +117,8 @@ class EELS_SPEC_Device(Instrument):
     @range_f.setter
     def range_f(self, value):
         self.__range = value
+        main_controller = Registry.get_component("stem_controller")
+        main_controller.SetVal("EELS_TV_eVperpixel", self.__range)
         self.property_changed_event.fire('range_f')
 
     @property
@@ -552,6 +551,8 @@ class EELS_SPEC_Device(Instrument):
     def ene_offset_f(self, value):
         self.__elem[11] = value / 4.095
         self.__eels_spec.locked_set_val(self.__elem[11], self.__names[11])
+        main_controller = Registry.get_component("stem_controller")
+        main_controller.SetVal("KURO_EELS_eVOffset", int(self.__elem[11] * 4.095) + self.__zlpTare)
         self.property_changed_event.fire('ene_offset_f')
         self.property_changed_event.fire('ene_offset_edit_f')
 

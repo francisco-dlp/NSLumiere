@@ -41,12 +41,23 @@ class Control():
     def __init__(self):
         pass
 
-class Control2D():
+class InstrumentControl():
     def __init__(self):
-        pass
+        self.controls = dict()
 
     def __getattr__(self, name):
         return self[name]
+
+    def update_control(self, key, value):
+        self.controls[key] = value
+
+    def get_control(self, key):
+        try:
+            return [True, self.controls[key]]
+        except:
+            logging.info(f'**InstrumentControl***: Could not found controller value {key}. Creating default value as 1.')
+            self.update_control(key, 1)
+            return [True, self.controls[key]]
 
 
 class ivgInstrument(stem_controller.STEMController):
@@ -66,6 +77,8 @@ class ivgInstrument(stem_controller.STEMController):
         self.spim_over = Event.Event()
 
         self.__set_file = read_data.FileManager('global_settings')
+
+        self.controls = InstrumentControl()
 
         self.__blanked = False
         self.__scan_context = stem_controller.ScanContext()
@@ -115,26 +128,26 @@ class ivgInstrument(stem_controller.STEMController):
         self.__calib = [0.0019320, -0.0044940, -0.0043035, -0.0016495]  # DAC/nm
         self.__csh = [0., 0.]
 
-        self.__calibration_controls = {
-            "x_scale_control": "Princeton_CL_nmperpixel",
-            "x_offset_control": "Princeton_CL_nmOffset",
-            "x_units_value": "nm",
-            "y_scale_control": "Princeton_CL_radsperpixel",
-            "y_units_value": "rad",
-            "intensity_units_value": "Counts",
-            "counts_per_electron_control": "Princeton_CL_CountsPerElectron"
-        }
-
-        # Optical spectrometer values
-        self.__EIRE_Controls = dict()
-        self.__EIRE_Controls["eire_x_scale"] = 1
-        self.__EIRE_Controls["eire_x_offset"] = 0
-        self.__EIRE_Controls["eire_x_units"] = 'nm'
-        self.__EIRE_Controls["eire_y_scale"] = 1
-        self.__EIRE_Controls["eire_y_units"] = 'rad'
-        self.__EIRE_Controls["eire_y_offset"] = 0
-        self.__EIRE_Controls["intensity_units_value"] = 'Counts'
-        self.__EIRE_Controls["counts_per_electron_control"] = 0
+        # self.__calibration_controls = {
+        #     "x_scale_control": "Princeton_CL_nmperpixel",
+        #     "x_offset_control": "Princeton_CL_nmOffset",
+        #     "x_units_value": "nm",
+        #     "y_scale_control": "Princeton_CL_radsperpixel",
+        #     "y_units_value": "rad",
+        #     "intensity_units_value": "Counts",
+        #     "counts_per_electron_control": "Princeton_CL_CountsPerElectron"
+        # }
+        #
+        # # Optical spectrometer values
+        # self.__EIRE_Controls = dict()
+        # self.__EIRE_Controls["eire_x_scale"] = 1
+        # self.__EIRE_Controls["eire_x_offset"] = 0
+        # self.__EIRE_Controls["eire_x_units"] = 'nm'
+        # self.__EIRE_Controls["eire_y_scale"] = 1
+        # self.__EIRE_Controls["eire_y_units"] = 'rad'
+        # self.__EIRE_Controls["eire_y_offset"] = 0
+        # self.__EIRE_Controls["intensity_units_value"] = 'Counts'
+        # self.__EIRE_Controls["counts_per_electron_control"] = 0
 
         #Checking if auto_stem is here. This is to control ChromaTEM
         AUTOSTEM_CONTROLLER_ID = "autostem_controller"
@@ -604,35 +617,39 @@ class ivgInstrument(stem_controller.STEMController):
         self.stage_periodic()
 
     def SetVal(self, s, val):
-        if s in self.__EIRE_Controls.keys():
-            if s == 'eire_x_scale':
-                val = val * 2e2
-            self.__EIRE_Controls[s] = val
-        elif s == 'DriftRate.u':
-            self.__driftRate[0] = val
-        elif s == 'DriftRate.v':
-            self.__driftRate[1] = val
-        elif s == "CSH.u":
-            self.__csh[0] = val #in nanometers
-            self.__lensInstrument.probe_offset0_f = int(val * 1e9)
-        elif s == "CSH.v":
-            self.__csh[1] = val #in nanometers
-            self.__lensInstrument.probe_offset2_f = int(val * 1e9)
-        elif s == "DriftCorrectionUpdateInterval":
-            self.__driftCorrectionUpdateInterval = val
-        elif s == "DriftMeasureTime":
-            self.__driftMeasureTime = val
-        elif s == "DriftTimeConstant":
-            self.__driftTimeConstant = val
-        elif s == "MaxShifterRange":
-            self.__maxShifterRange = val
-        elif s == "DiftAutoStopThreshold":
-            self.__diftAutoStopThreshold = val
-        elif s == "ResetShiftersToOpposite":
-            self.__resetShiftersToOpposite = val
+        if self.__isChromaTEM:
+            self.__instrument.SetVal(s, val)
         else:
-            logging.info(f'**IVG***: Could not found controller {s} with value {val} in SetVal.')
-        return True
+            self.controls.update_control(s, val)
+        # if s in self.__EIRE_Controls.keys():
+        #     if s == 'eire_x_scale':
+        #         val = val * 2e2
+        #     self.__EIRE_Controls[s] = val
+        # elif s == 'DriftRate.u':
+        #     self.__driftRate[0] = val
+        # elif s == 'DriftRate.v':
+        #     self.__driftRate[1] = val
+        # elif s == "CSH.u":
+        #     self.__csh[0] = val #in nanometers
+        #     self.__lensInstrument.probe_offset0_f = int(val * 1e9)
+        # elif s == "CSH.v":
+        #     self.__csh[1] = val #in nanometers
+        #     self.__lensInstrument.probe_offset2_f = int(val * 1e9)
+        # elif s == "DriftCorrectionUpdateInterval":
+        #     self.__driftCorrectionUpdateInterval = val
+        # elif s == "DriftMeasureTime":
+        #     self.__driftMeasureTime = val
+        # elif s == "DriftTimeConstant":
+        #     self.__driftTimeConstant = val
+        # elif s == "MaxShifterRange":
+        #     self.__maxShifterRange = val
+        # elif s == "DiftAutoStopThreshold":
+        #     self.__diftAutoStopThreshold = val
+        # elif s == "ResetShiftersToOpposite":
+        #     self.__resetShiftersToOpposite = val
+        # else:
+        #     logging.info(f'**IVG***: Could not found controller {s} with value {val} in SetVal.')
+        # return True
 
     # def InformControl(self, s, val):
     #     if s=='DriftRate.u':
@@ -665,53 +682,55 @@ class ivgInstrument(stem_controller.STEMController):
     def TryGetVal(self, s: str) -> (bool, float):
         if self.__isChromaTEM:
             return self.__instrument.TryGetVal(s)
-        if s in self.__EIRE_Controls.keys():
-            return True, self.__EIRE_Controls[s]
-        elif s == "eels_y_offset":
-            return True, 0
-        elif s == "KURO_EELS_eVOffset":
-            try:
-                return True, self.__EELSInstrument.ene_offset_edit_f + self.__EELSInstrument.tare_edit_f
-            except AttributeError:
-                return True, 0
-        elif s == "eels_y_scale":
-            return True, 1
-        elif s == "EELS_TV_eVperpixel":
-            try:
-                return True, self.__EELSInstrument.range_f
-            except AttributeError:
-                return True, 1
-        elif s == "Princeton_CL_nmOffset":
-            return True, 1
-        elif s == "Princeton_CL_nmperpixel":
-            return True, 1
-        elif s == "Princeton_CL_radsperpixel":
-            return True, 1
-        elif s == "CSH.u":
-            return True, self.__lensInstrument.probe_offset0_f / 1e9
-        elif s == "CSH.v":
-            return True, self.__lensInstrument.probe_offset2_f / 1e9
-        elif s == "DriftCompensation.u":
-            return True, self.__driftCompensation[0]
-        elif s == "DriftCompensation.v":
-            return True, self.__driftCompensation[1]
-        elif s == "DriftCorrectionUpdateInterval":
-            return True, self.__driftCorrectionUpdateInterval
-        elif s == "DriftMeasureTime":
-            return True, self.__driftMeasureTime
-        elif s == "DriftCcorrThreshold":
-            return True, 0.1
-        elif s == "DriftTimeConstant":
-            return True, self.__driftTimeConstant
-        elif s == "MaxShifterRange":
-            return True, self.__maxShifterRange
-        elif s == "DiftAutoStopThreshold":
-            return True, self.__diftAutoStopThreshold
-        elif s == "ResetShiftersToOpposite":
-            return True, self.__resetShiftersToOpposite
         else:
-            logging.info(f'**IVG***: Could not found controller value {s} in TryGetVal.')
-            return True, 1
+            return self.controls.get_control(s)
+        # if s in self.__EIRE_Controls.keys():
+        #     return True, self.__EIRE_Controls[s]
+        # elif s == "eels_y_offset":
+        #     return True, 0
+        # elif s == "KURO_EELS_eVOffset":
+        #     try:
+        #         return True, self.__EELSInstrument.ene_offset_edit_f + self.__EELSInstrument.tare_edit_f
+        #     except AttributeError:
+        #         return True, 0
+        # elif s == "eels_y_scale":
+        #     return True, 1
+        # elif s == "EELS_TV_eVperpixel":
+        #     try:
+        #         return True, self.__EELSInstrument.range_f
+        #     except AttributeError:
+        #         return True, 1
+        # elif s == "Princeton_CL_nmOffset":
+        #     return True, 1
+        # elif s == "Princeton_CL_nmperpixel":
+        #     return True, 1
+        # elif s == "Princeton_CL_radsperpixel":
+        #     return True, 1
+        # elif s == "CSH.u":
+        #     return True, self.__lensInstrument.probe_offset0_f / 1e9
+        # elif s == "CSH.v":
+        #     return True, self.__lensInstrument.probe_offset2_f / 1e9
+        # elif s == "DriftCompensation.u":
+        #     return True, self.__driftCompensation[0]
+        # elif s == "DriftCompensation.v":
+        #     return True, self.__driftCompensation[1]
+        # elif s == "DriftCorrectionUpdateInterval":
+        #     return True, self.__driftCorrectionUpdateInterval
+        # elif s == "DriftMeasureTime":
+        #     return True, self.__driftMeasureTime
+        # elif s == "DriftCcorrThreshold":
+        #     return True, 0.1
+        # elif s == "DriftTimeConstant":
+        #     return True, self.__driftTimeConstant
+        # elif s == "MaxShifterRange":
+        #     return True, self.__maxShifterRange
+        # elif s == "DiftAutoStopThreshold":
+        #     return True, self.__diftAutoStopThreshold
+        # elif s == "ResetShiftersToOpposite":
+        #     return True, self.__resetShiftersToOpposite
+        # else:
+        #     logging.info(f'**IVG***: Could not found controller value {s} in TryGetVal.')
+        #     return True, 1
 
     @property
     def is_blanked(self) -> bool:
