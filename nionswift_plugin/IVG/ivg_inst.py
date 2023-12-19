@@ -44,12 +44,19 @@ class Control():
 class InstrumentControl():
     def __init__(self):
         self.controls = dict()
+        self.detailed_controls = dict()
 
     def __getattr__(self, name):
         return self[name]
 
-    def update_control(self, key, value):
+    def update_control(self, key: str, value):
         self.controls[key] = value
+
+    def update_control_detailed(self, type: str, key: str, value):
+        self.controls[key] = value
+        if type not in self.detailed_controls.keys():
+            self.detailed_controls[type] = dict()
+        self.detailed_controls[type][key] = value
 
     def get_control(self, key):
         try:
@@ -59,11 +66,17 @@ class InstrumentControl():
             self.update_control(key, 1)
             return [True, self.controls[key]]
 
+    def as_dict(self):
+        return self.controls
+
+    def as_dict_detailed(self):
+        return self.detailed_controls
+
 
 class ivgInstrument(stem_controller.STEMController):
     def __init__(self, instrument_id: str):
         super().__init__()
-        self.priority = 20
+        self.priority = 25
         self.instrument_id = instrument_id
         self.__scan_controller = None
         self.property_changed_event = Event.Event()
@@ -600,7 +613,7 @@ class ivgInstrument(stem_controller.STEMController):
            Be aware that these properties may be used far into the future so take care when designing additions and
            discuss/review with team members.
         """
-        return self.controls.controls
+        return self.controls.as_dict()
 
     def change_stage_position(self, *, dy: int = None, dx: int = None):
         if self.__isChromaTEM:
