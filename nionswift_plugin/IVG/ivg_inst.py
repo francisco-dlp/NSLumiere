@@ -600,10 +600,7 @@ class ivgInstrument(stem_controller.STEMController):
            Be aware that these properties may be used far into the future so take care when designing additions and
            discuss/review with team members.
         """
-        return {
-            "high_tension": 100,
-            "defocus": 60,
-        }
+        return self.controls.controls
 
     def change_stage_position(self, *, dy: int = None, dx: int = None):
         if self.__isChromaTEM:

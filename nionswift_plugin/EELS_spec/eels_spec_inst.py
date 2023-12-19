@@ -118,7 +118,8 @@ class EELS_SPEC_Device(Instrument):
     def range_f(self, value):
         self.__range = value
         main_controller = Registry.get_component("stem_controller")
-        main_controller.SetVal("EELS_TV_eVperpixel", self.__range)
+        if main_controller is not None:
+            main_controller.SetVal("EELS_TV_eVperpixel", self.__range)
         self.property_changed_event.fire('range_f')
 
     @property
@@ -552,7 +553,8 @@ class EELS_SPEC_Device(Instrument):
         self.__elem[11] = value / 4.095
         self.__eels_spec.locked_set_val(self.__elem[11], self.__names[11])
         main_controller = Registry.get_component("stem_controller")
-        main_controller.SetVal("KURO_EELS_eVOffset", int(self.__elem[11] * 4.095) + self.__zlpTare)
+        if main_controller is not None:
+            main_controller.SetVal("KURO_EELS_eVOffset", int(self.__elem[11] * 4.095) + self.__zlpTare)
         self.property_changed_event.fire('ene_offset_f')
         self.property_changed_event.fire('ene_offset_edit_f')
 
