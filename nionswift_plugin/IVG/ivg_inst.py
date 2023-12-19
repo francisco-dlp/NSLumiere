@@ -681,6 +681,12 @@ class ivgInstrument(stem_controller.STEMController):
                 return True, self.__EELSInstrument.range_f
             except AttributeError:
                 return True, 1
+        elif s == "Princeton_CL_nmOffset":
+            return True, 1
+        elif s == "Princeton_CL_nmperpixel":
+            return True, 1
+        elif s == "Princeton_CL_radsperpixel":
+            return True, 1
         elif s == "CSH.u":
             return True, self.__lensInstrument.probe_offset0_f / 1e9
         elif s == "CSH.v":
