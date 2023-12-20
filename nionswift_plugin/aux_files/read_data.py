@@ -4,7 +4,10 @@ from nion.utils import Registry
 def InstrumentDictSetter(type, name, value):
     main_controller = Registry.get_component("stem_controller")
     if main_controller:
-        main_controller.SetVal(name, value)
+        try:
+            main_controller.SetValDetailed(type, name, value)
+        except AttributeError:
+            main_controller.SetVal(name, value)
 
 class FileManager:
     def __init__(self, filename):

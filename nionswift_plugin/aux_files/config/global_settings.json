@@ -28,6 +28,11 @@
   },
   "lenses": {
     "COM": "COM99",
+    "DISPLACEMENT_ANGLE_REFERENCE": 316,
+    "DISPLACEMENT_ARRAY": [
+      2343.2,
+      2421.8
+    ],
     "ACTIVATED": 1
   },
   "mirror": {
@@ -44,6 +49,7 @@
   },
   "stage": {
     "DEBUG": 1,
+    "REFERENCE_ANGLE": 22.5,
     "ACTIVATED": 1
   }
 }

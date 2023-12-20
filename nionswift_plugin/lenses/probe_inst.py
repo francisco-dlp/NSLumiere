@@ -23,9 +23,6 @@ class probeDevice(Observable.Observable):
         self.busy_event = Event.Event()
 
         self.__lenses_ps = lens_ps.Lenses(SERIAL_PORT)
-        if not self.__lenses_ps.success:
-            from . import lens_ps_vi
-            self.__lenses_ps = lens_ps_vi.Lenses()
 
         self.__data = read_data.FileManager('lenses_settings')
         self.__EHT = LAST_HT
@@ -56,7 +53,7 @@ class probeDevice(Observable.Observable):
             self.c2_edit_f = self.__data.settings[self.__EHT]['c2']
             self.obj_stigmateur0_f = self.__data.settings[self.__EHT]["obj_stig_00"]
             self.obj_stigmateur1_f = self.__data.settings[self.__EHT]["obj_stig_01"]
-            self.gun_stimateur0_f = self.__data.settings[self.__EHT]["gun_stig_02"]
+            self.gun_stigmateur0_f = self.__data.settings[self.__EHT]["gun_stig_02"]
             self.gun_stigmateur1_f = self.__data.settings[self.__EHT]["gun_stig_03"]
         except:
             logging.info('***LENSES***: No saved values.')
@@ -77,7 +74,7 @@ class probeDevice(Observable.Observable):
         self.__data.settings[self.__EHT]['c2'] = self.c2_edit_f
         self.__data.settings[self.__EHT]["obj_stig_00"] = self.obj_stigmateur0_f
         self.__data.settings[self.__EHT]["obj_stig_01"] = self.obj_stigmateur1_f
-        self.__data.settings[self.__EHT]["gun_stig_02"] = self.gun_stimateur0_f
+        self.__data.settings[self.__EHT]["gun_stig_02"] = self.gun_stigmateur0_f
         self.__data.settings[self.__EHT]["gun_stig_03"] = self.gun_stigmateur1_f
 
         self.__data.save_locally()
@@ -130,6 +127,7 @@ class probeDevice(Observable.Observable):
     @obj_stigmateur0_f.setter
     def obj_stigmateur0_f(self, value):
         self.__objStig[0] = value
+        read_data.InstrumentDictSetter("Probe", "obj_stigmateur0_f", value)
         self.__lenses_ps.locked_set_val(self.__objStig, 'OBJ_STIG')
         self.property_changed_event.fire('obj_stigmateur0_f')
 
@@ -140,6 +138,7 @@ class probeDevice(Observable.Observable):
     @obj_stigmateur1_f.setter
     def obj_stigmateur1_f(self, value):
         self.__objStig[1] = value
+        read_data.InstrumentDictSetter("Probe", "obj_stigmateur1_f", value)
         self.__lenses_ps.locked_set_val(self.__objStig, 'OBJ_STIG')
         self.property_changed_event.fire('obj_stigmateur1_f')
 
@@ -161,6 +160,7 @@ class probeDevice(Observable.Observable):
     @probe_offset1_f.setter
     def probe_offset1_f(self, value):
         self.__probeOffset[1] = float(value)
+        read_data.InstrumentDictSetter("Probe", "probe_offset1_f", self.__probeOffset[1] / 1e9)
         self.__lenses_ps.locked_set_val(self.__probeOffset, 'OBJ_ALIG')
         self.property_changed_event.fire('probe_offset1_f')
 
@@ -182,6 +182,7 @@ class probeDevice(Observable.Observable):
     @probe_offset3_f.setter
     def probe_offset3_f(self, value):
         self.__probeOffset[3] = float(value)
+        read_data.InstrumentDictSetter("Probe", "probe_offset3_f", self.__probeOffset[3] / 1e9)
         self.__lenses_ps.locked_set_val(self.__probeOffset, 'OBJ_ALIG')
         self.property_changed_event.fire('probe_offset3_f')
 
@@ -358,6 +359,7 @@ class probeDevice(Observable.Observable):
     @gun_stigmateur0_f.setter
     def gun_stigmateur0_f(self, value):
         self.__gunStig[0] = value
+        read_data.InstrumentDictSetter("Probe", "gun_stigmateur0_f", value)
         self.__lenses_ps.locked_set_val(self.__gunStig, 'GUN_STIG')
         self.property_changed_event.fire('gun_stigmateur0_f')
 
@@ -368,5 +370,6 @@ class probeDevice(Observable.Observable):
     @gun_stigmateur1_f.setter
     def gun_stigmateur1_f(self, value):
         self.__gunStig[1] = value
+        read_data.InstrumentDictSetter("Probe", "gun_stigmateur1_f", value)
         self.__lenses_ps.locked_set_val(self.__gunStig, 'GUN_STIG')
         self.property_changed_event.fire('gun_stigmateur1_f')

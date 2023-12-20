@@ -82,15 +82,11 @@ class ivgInstrument(stem_controller.STEMController):
         self.property_changed_event = Event.Event()
         self.communicating_event = Event.Event()
         self.busy_event = Event.Event()
-
         self.append_data = Event.Event()
         self.stage_event = Event.Event()
 
-        self.cam_spim_over = Event.Event()
-        self.spim_over = Event.Event()
 
         self.__set_file = read_data.FileManager('global_settings')
-
         self.controls = InstrumentControl()
 
         self.__blanked = False
@@ -98,10 +94,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__probe_position = None
         self.__live_probe_position = None
         self.__fov = 4.0 #Begin fov as 4.0 microns
-        self.__is_subscan = [False, 1, 1]
-        self.__spim_time = 0.
-        self.__obj_stig = [0, 0]
-        self.__gun_stig = [0, 0]
         self.__haadf_gain = 250
         self.__bf_gain = 250
 
@@ -111,6 +103,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__stand = False
         self.__stage_moving = [False, False] #x and y stage moving
         self.__stage_thread = threading.Thread(target=self.stage_periodic_start, args=(),)
+        self.__x_real_pos = self.__y_real_pos = 0.0
 
         self.__objWarning = False
         self.__obj_temp = self.__amb_temp
@@ -118,49 +111,8 @@ class ivgInstrument(stem_controller.STEMController):
         self.__c1_vol = self.__c1_res = self.__c2_vol = self.__c2_res = 0.0
 
 
-        self.__x_real_pos = self.__y_real_pos = 0.0
 
         self.__loop_index = 0
-
-        ## spim properties attributes START
-        self.__spim_type = 0
-        self.__spim_trigger = 0
-        self.__spim_xpix = 64
-        self.__spim_ypix = 64
-        self.__spim_sampling = [0, 0]
-        ## spim properties attributes END
-
-        self.__driftCorrectionUpdateInterval = 1
-        self.__driftMeasureTime = 10
-        self.__driftTimeConstant = 2400
-        self.__maxShifterRange = 100
-        self.__diftAutoStopThreshold = 2
-        self.__resetShiftersToOpposite = False
-        self.__driftRate = [0, 0]
-        self.__driftCompensation = [1e-9, 1e-9]
-        self.__calib = [0.0019320, -0.0044940, -0.0043035, -0.0016495]  # DAC/nm
-        self.__csh = [0., 0.]
-
-        # self.__calibration_controls = {
-        #     "x_scale_control": "Princeton_CL_nmperpixel",
-        #     "x_offset_control": "Princeton_CL_nmOffset",
-        #     "x_units_value": "nm",
-        #     "y_scale_control": "Princeton_CL_radsperpixel",
-        #     "y_units_value": "rad",
-        #     "intensity_units_value": "Counts",
-        #     "counts_per_electron_control": "Princeton_CL_CountsPerElectron"
-        # }
-        #
-        # # Optical spectrometer values
-        # self.__EIRE_Controls = dict()
-        # self.__EIRE_Controls["eire_x_scale"] = 1
-        # self.__EIRE_Controls["eire_x_offset"] = 0
-        # self.__EIRE_Controls["eire_x_units"] = 'nm'
-        # self.__EIRE_Controls["eire_y_scale"] = 1
-        # self.__EIRE_Controls["eire_y_units"] = 'rad'
-        # self.__EIRE_Controls["eire_y_offset"] = 0
-        # self.__EIRE_Controls["intensity_units_value"] = 'Counts'
-        # self.__EIRE_Controls["counts_per_electron_control"] = 0
 
         #Checking if auto_stem is here. This is to control ChromaTEM
         AUTOSTEM_CONTROLLER_ID = "autostem_controller"
@@ -189,11 +141,6 @@ class ivgInstrument(stem_controller.STEMController):
         self.__EELSInstrument = Registry.get_component("eels_spec_controller")
         self.__AperInstrument = Registry.get_component("diaf_controller")
         self.__StageInstrument = Registry.get_component("stage_controller")
-        self.__OrsayScanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            "orsay_scan_device")
-
-        self.__EIRE = "orsay_camera_eire"
-        self.__EELS = "orsay_camera_eels"
 
         if SLOW_PERIODIC: self.periodic()
 
@@ -206,14 +153,12 @@ class ivgInstrument(stem_controller.STEMController):
         # backwards compatibility, with reverse logic.
         for component in Registry.get_components_by_type("scan_hardware_source"):
             scan_hardware_source = typing.cast("scan_base.ScanHardwareSource", component)
-            if self.instrument_id == "orsay_controller" \
-                    and scan_hardware_source.hardware_source_id == "orsay_scan_device":
+            if scan_hardware_source.hardware_source_id == "open_scan_device":
                 self.__scan_controller = scan_hardware_source
                 return scan_hardware_source
-            if self.instrument_id == "orsay_controller2" \
-                    and scan_hardware_source.hardware_source_id == "open_scan_device":
+            if self.__scan_controller is None and scan_hardware_source.hardware_source_id == "orsay_scan_device":
                 self.__scan_controller = scan_hardware_source
-                return scan_hardware_source
+        return self.__scan_controller
 
     def stage_periodic(self):
         if not self.__stage_thread.is_alive():
@@ -356,6 +301,7 @@ class ivgInstrument(stem_controller.STEMController):
     @property
     def gun_vac_f(self):
         self.__gun_vac = self.__gun_gauge.query()
+        read_data.InstrumentDictSetter("Vaccum", "gun_vac_f", self.__gun_vac)
         return str('{:.2E}'.format(self.__gun_vac)) + ' Torr'
 
     @property
@@ -481,100 +427,6 @@ class ivgInstrument(stem_controller.STEMController):
             self.__y_real_pos = -1.e-5
         return '{:.3f}'.format(self.__y_real_pos * 1e6)
 
-    ## spim_panel Properties START ##
-
-    @property
-    def spim_type_f(self):
-        return self.__spim_type
-
-    @spim_type_f.setter
-    def spim_type_f(self, value):
-        self.__spim_type = value
-
-    @property
-    def spim_trigger_f(self):
-        return self.__spim_trigger
-
-    @spim_trigger_f.setter
-    def spim_trigger_f(self, value):
-        self.__spim_trigger = value
-        self.property_changed_event.fire('spim_time_f')
-
-    @property
-    def spim_xpix_f(self):
-        return self.__spim_xpix
-
-    @spim_xpix_f.setter
-    def spim_xpix_f(self, value):
-        try:
-            isinstance(int(value), int)
-            self.__spim_xpix = int(value)
-        except ValueError:
-            logging.info('***SPIM***: Please put an integer number')
-        self.property_changed_event.fire('spim_xpix_f')
-        self.property_changed_event.fire('spim_sampling_f')
-        self.property_changed_event.fire('spim_time_f')
-
-    @property
-    def spim_ypix_f(self):
-        return self.__spim_ypix
-
-    @spim_ypix_f.setter
-    def spim_ypix_f(self, value):
-        try:
-            isinstance(int(value), int)
-            self.__spim_ypix = int(value)
-
-        except ValueError:
-            logging.info('***SPIM***: Please put an integer number')
-        self.property_changed_event.fire('spim_ypix_f')
-        self.property_changed_event.fire('spim_sampling_f')
-        self.property_changed_event.fire('spim_time_f')
-
-    @property
-    def is_subscan_f(self):
-        return str(self.__is_subscan[0])
-
-    @is_subscan_f.setter
-    def is_subscan_f(self, value):
-        self.__is_subscan = value
-
-        self.property_changed_event.fire('is_subscan_f')
-        self.property_changed_event.fire('spim_sampling_f')
-        self.property_changed_event.fire('spim_time_f')
-
-    @property
-    def spim_sampling_f(self):
-        self.__spim_sampling = (self.__fov / self.__spim_xpix * 1e3, self.__fov / self.__spim_ypix * 1e3) if not \
-        self.__is_subscan[0] else (self.__fov * self.__is_subscan[1] / self.__spim_xpix * 1e3,
-                                   self.__fov * self.__is_subscan[2] / self.__spim_ypix * 1e3)
-        self.__spim_sampling = [float("%.2f" % member) for member in self.__spim_sampling]
-        return self.__spim_sampling
-
-    @property
-    def spim_time_f(self):
-        try:
-            if self.__spim_trigger == 0:
-                now_cam = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            self.__EELS)
-            elif self.__spim_trigger == 1:
-                now_cam = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            self.__EIRE)
-            elif self.__spim_trigger == 2:
-                now_cam = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            self.__EELS)
-                logging.info(
-                    '***IVG***: Both measurement not yet implemented. Please check back later. Using EELS instead.')
-
-            self.__spim_time = format(((
-                                                   now_cam.camera.current_camera_settings.exposure_ms / 1000. + now_cam.camera.readoutTime) * self.__spim_xpix * self.__spim_ypix / 60),
-                                      '.2f')
-            return self.__spim_time
-        except AttributeError:
-            return 'None'
-
-    ## spim_panel Properties END ##
-
     @property
     def live_probe_position(self):
         return self.__live_probe_position
@@ -613,18 +465,24 @@ class ivgInstrument(stem_controller.STEMController):
            Be aware that these properties may be used far into the future so take care when designing additions and
            discuss/review with team members.
         """
-        return self.controls.as_dict()
+        return self.controls.as_dict_detailed()
 
     def change_stage_position(self, *, dy: int = None, dx: int = None):
         if self.__isChromaTEM:
             self.__instrument.change_stage_position(dy=dy, dx=dx)
-        angle = self.__OrsayScanInstrument.scan_device.scan_rotation
-        angle = angle - 22.5
-        new_dx = dx*numpy.cos(numpy.radians(angle)) - dy*numpy.sin(numpy.radians(angle))
-        new_dy = dx*numpy.sin(numpy.radians(angle)) + dy*numpy.cos(numpy.radians(angle))
-        self.__StageInstrument.x_pos_edit_f = float(self.__StageInstrument.x_pos_edit_f) + 1.0 * new_dx * 1e6
-        self.__StageInstrument.y_pos_edit_f = float(self.__StageInstrument.y_pos_edit_f) - 1.0 * new_dy * 1e6
-        self.stage_periodic()
+        else:
+            scan = self.scan_controller
+            STAGE_REFERENCE_ANGLE = float(self.__set_file.settings["stage"]["REFERENCE_ANGLE"])
+            angle = scan.scan_device.scan_rotation
+            angle = angle - STAGE_REFERENCE_ANGLE
+            new_dx = dx*numpy.cos(numpy.radians(angle)) - dy*numpy.sin(numpy.radians(angle))
+            new_dy = dx*numpy.sin(numpy.radians(angle)) + dy*numpy.cos(numpy.radians(angle))
+            self.__StageInstrument.x_pos_edit_f = float(self.__StageInstrument.x_pos_edit_f) + 1.0 * new_dx * 1e6
+            self.__StageInstrument.y_pos_edit_f = float(self.__StageInstrument.y_pos_edit_f) - 1.0 * new_dy * 1e6
+            self.stage_periodic()
+
+    def SetValDetailed(self, type, s, val):
+        self.controls.update_control_detailed(type, s, val)
 
     def SetVal(self, s, val):
         if self.__isChromaTEM:
