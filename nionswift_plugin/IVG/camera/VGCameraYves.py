@@ -213,8 +213,6 @@ class CameraDevice(camera_base.CameraDevice):
         self.stop_acquitisition_event = Event.Event()
         self.current_event = Event.Event()
 
-
-
         # register data locker for focus acquisition
         if manufacturer != 4 and manufacturer != 6:
             self.fnlock = orsaycamera.DATALOCKFUNC(self.__data_locker)
@@ -284,9 +282,7 @@ class CameraDevice(camera_base.CameraDevice):
 
         self.__processing = None
 
-
         self.__acqon = False
-        self.__acqspimon = False
         self.__x_pix_spim = 30
         self.__y_pix_spim = 30
 
@@ -523,7 +519,7 @@ class CameraDevice(camera_base.CameraDevice):
             hardware_source.stop_playing()
 
     def __spectrum_data_locker(self, gene, data_type, sx) -> None:
-        if self.__acqon and self.__acqspimon and (self.current_camera_settings.exposure_ms >= 10):
+        if self.__acqon and (self.current_camera_settings.exposure_ms >= 10):
             sx[0] = self.sizex
             data_type[0] = self.__numpy_to_orsay_type(self.imagedata)
             return self.imagedata_ptr.value
@@ -594,35 +590,6 @@ class CameraDevice(camera_base.CameraDevice):
             if self.current_camera_settings.as_dict()['acquisition_mode'] == "1D-Chrono-Live":
                 self.camera.setSpimMode(1)
 
-        #elif "Focus" in self.current_camera_settings.as_dict()['acquisition_mode'] and self.__acqspimon:
-        #    self.sizey = self.__x_pix_spim
-        #    self.sizez = self.__y_pix_spim
-        #    self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype=numpy.float32)
-        #    self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
-        #    self.camera.stopFocus()
-        #    self.camera.startSpim(self.__x_pix_spim * self.__y_pix_spim, 1,
-        #                          self.current_camera_settings.as_dict()['exposure_ms'] / 1000.,
-        #                          self.current_camera_settings.as_dict()['acquisition_mode'] == "2D-Chrono")
-        #    self.instrument.warn_Scan_instrument_spim(True, self.__x_pix_spim,
-        #                                              self.__y_pix_spim)  # This must finish before calling the rest
-            #self.camera.resumeSpim(4)
-
-        elif "Spim" in self.current_camera_settings.as_dict()['acquisition_mode']:
-            self.camera.resumeSpim(4)  # stop eof
-            self.__acqspimon = True
-            print(f"resumed")
-
-            # self.sizey = self.__x_pix_spim
-            # self.sizez = self.__y_pix_spim
-            # self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype=numpy.float32)
-            # self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
-            # self.camera.stopFocus()
-            # self.camera.startSpim(self.__x_pix_spim * self.__y_pix_spim, 1,
-            #                       self.current_camera_settings.exposure_ms / 1000.,
-            #                       self.current_camera_settings.acquisition_mode == "2D-Chrono")
-            # self.instrument.warn_Scan_instrument_spim(True, self.__x_pix_spim,
-            #                                           self.__y_pix_spim)  # This must finish before calling the rest
-            # self.camera.resumeSpim(4)
 
         elif "Event Hyperspec" in self.current_camera_settings.as_dict()['acquisition_mode']:
             self.camera.stopFocus()
@@ -650,11 +617,10 @@ class CameraDevice(camera_base.CameraDevice):
             self.camera.stopFocus()
             self.__acqon = False
         if "Chrono" in self.current_camera_settings.as_dict()['acquisition_mode'] \
-                or ("Focus" in self.current_camera_settings.as_dict()['acquisition_mode'] and self.__acqspimon) \
+                or ("Focus" in self.current_camera_settings.as_dict()['acquisition_mode']) \
                 or "Event Hyperspec" in self.current_camera_settings.as_dict()['acquisition_mode']:
             self.camera.stopSpim(True)
             self.__acqon = False
-            self.__acqspimon = False
             logging.info('***CAMERA***: Spim stopped. Handling...')
 
     def acquire_image(self) -> dict:
@@ -703,44 +669,6 @@ class CameraDevice(camera_base.CameraDevice):
             properties["merlin"]["acquisition"] = self.acquisition_header
             properties["merlin"]["acquisition"] = self.image_header
 
-        # elif "Focus" in acquisition_mode and self.__acqspimon:
-        #     self.has_spim_data_event.wait(1.0)
-        #     self.has_spim_data_event.clear()
-        #     spnb = self.frame_number
-        #     y0 = int(spnb / 10)
-        #     x0 = int(spnb - y0 * 10)
-        #     self.acquire_data = self.spimimagedata
-        #     collection_dimensions = 2
-        #     datum_dimensions = 1
-        #
-        # elif "SpimTP" in acquisition_mode:
-        #     self.has_spim_data_event.wait(1.0)
-        #     self.acquire_data = self.spimimagedata
-        #     collection_dimensions = 2
-        #     datum_dimensions = 1
-        #     self.has_spim_data_event.clear()
-        #
-        # else:  # Cumul and Focus
-        #     self.has_data_event.wait(1.0)  # wait until True
-        #     self.has_data_event.clear()  # Puts back false
-        #     self.acquire_data = self.imagedata
-        #     if self.acquire_data.shape[0] == 1:  # fully binned
-        #         collection_dimensions = 1
-        #         datum_dimensions = 1
-        #         if self.current_camera_settings.as_dict()['flipped']:
-        #             self.acquire_data = numpy.flip(self.acquire_data[0], 0)
-        #     else:  # not binned
-        #         collection_dimensions = 0
-        #         datum_dimensions = 2
-        #
-        # properties = dict()
-        # properties["frame_number"] = self.frame_number
-        # properties["acquisition_mode"] = acquisition_mode
-        # properties["frame_parameters"] = dict(self.current_camera_settings.as_dict())
-        # calibration_controls = copy.deepcopy(self.calibration_controls)
-
-        # if self.frame_number>=self.current_camera_settings.spectra_count and acquisition_mode=='Cumul':
-        #    self.stop_acquitisition_event.fire("")
 
         return {"data": self.acquire_data, "collection_dimension_count": collection_dimensions,
                 "datum_dimension_count": datum_dimensions, "calibration_controls": calibration_controls,
