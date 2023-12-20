@@ -1,11 +1,4 @@
-import json
-import requests
-import threading
-import logging
-import socket
-import numpy
-import struct
-import select
+import json, time, requests, threading, logging, socket, numpy, struct, select
 from numba import jit
 
 from nion.swift.model import HardwareSource
@@ -239,7 +232,6 @@ class TimePix3():
         else:
             self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
             if self.__instrument is not None:
-                print(self.__instrument)
                 logging.info("***TPX3***: orsay_controller is found.")
             else:
                 logging.info(f"***TPX3***: No controller is found. Will reattempt with the controller {STANDARD_CONTROLLER}")
@@ -668,6 +660,7 @@ class TimePix3():
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
+            scanInstrument.stop_playing()
             if self.__isChromaTEM:
                 scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy superscan line
                 scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
@@ -725,6 +718,7 @@ class TimePix3():
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
+            scanInstrument.stop_playing()
             if self.__isChromaTEM:
                 scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy superscan line
                 scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
@@ -1306,7 +1300,7 @@ class TimePix3():
 
             if not self.__isPlaying or not scanInstrument.is_playing:
                 self.stopTimepix3Measurement()
-                logging.info('***TP3***: Finishing SPIM.')
+                logging.info('***TP3***: Scanning is halted. Finishing SPIM.')
                 return
         return
 
@@ -1352,8 +1346,11 @@ class TimePix3():
         if self.__isChromaTEM:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "superscan")
-            #scanInstrument.start_playing()
             logging.info(f'***TPX3***: Superscan is activated. Using it as a scanning source.')
+        else:
+            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+        #scanInstrument.start_playing()
 
         while True:
             try:
@@ -1386,8 +1383,9 @@ class TimePix3():
                 logging.info("***TP3***: Socket reseted. Closing connection.")
                 return
 
-            if not self.__isPlaying:
-                logging.info('***TP3***: Finishing SPIM.')
+            if not self.__isPlaying or not scanInstrument.is_playing:
+                self.stopTimepix3Measurement()
+                logging.info('***TP3***: Scanning is halted. Finishing SPIM.')
                 return
         return
 
