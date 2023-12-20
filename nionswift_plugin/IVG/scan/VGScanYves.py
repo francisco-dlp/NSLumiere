@@ -190,18 +190,6 @@ class Device(scan_base.ScanDevice):
 
     def __get_channels(self) -> typing.List[Channel]:
         channels = [Channel(0, "ADF", ORSAY_SCAN_IS_VG), Channel(1, "BF", False)]
-        abs_path = os.path.abspath('C:\ProgramData\Microscope\Orsay_cameras_list.json')
-        try:
-            with open(abs_path) as savfile:
-                cameras = json.load(savfile)
-        except FileNotFoundError:
-            abs_path = os.path.join(os.path.dirname(__file__), '../../aux_files/config/Orsay_cameras_list.json')
-            with open(abs_path) as savfile:
-                cameras = json.load(savfile)
-        for camera in cameras:
-            if camera["manufacturer"] == 4:
-                channels.append(Channel(2, "TPX3", False))
-                channels.append(Channel(3, "4D_TPX3", False))
         return channels
 
     def __get_initial_profiles(self) -> typing.List[scan_base.ScanFrameParameters]:
