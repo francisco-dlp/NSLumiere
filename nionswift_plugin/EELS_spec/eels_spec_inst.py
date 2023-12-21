@@ -12,7 +12,7 @@ except ImportError:
 set_file = read_data.FileManager('global_settings')
 SERIAL_PORT = set_file.settings["EELS"]["COM"]
 LAST_HT = set_file.settings["global_settings"]["last_HT"]
-PROPORTIONAL = -1
+PROPORTIONAL = -0.25
 
 from . import eels_spec as spec
 
@@ -79,6 +79,7 @@ class EELS_SPEC_Device(Instrument):
         self.q4_slider_f = int(self.__eels_file.settings[self.__EHT][value]['q4'])
         self.dx_slider_f = int(self.__eels_file.settings[self.__EHT][value]['dx'])
         self.dmx_slider_f = int(self.__eels_file.settings[self.__EHT][value]['dmx'])
+        self.dmr_slider_f = int(self.__eels_file.settings[self.__EHT][value]['dmx'])
 
         self.__eels_file.settings['last'] = self.__dispIndex
         self.__eels_file.save_locally()
