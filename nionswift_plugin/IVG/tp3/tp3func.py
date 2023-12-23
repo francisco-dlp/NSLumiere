@@ -2,6 +2,7 @@ import json, time, requests, threading, logging, socket, numpy, struct, select
 from numba import jit
 
 from nion.swift.model import HardwareSource
+from nion.utils import Registry
 
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
@@ -36,6 +37,7 @@ FRAME_4DMASKED = 3
 EVENT_HYPERSPEC = 2
 EVENT_HYPERSPEC_COINC = 12
 EVENT_4DRAW = 13
+EVENT_LIST_SCAN = 14
 #Modes in which the detector is in frame-based acquisition
 FRAME_BASED = 10
 HYPERSPEC_FRAME_BASED = 11
@@ -220,23 +222,6 @@ class TimePix3():
         self.__isReady = threading.Event()
         self.sendmessage = message
 
-        # Checking if auto_stem is here. This is to control ChromaTEM
-        AUTOSTEM_CONTROLLER_ID = "autostem_controller"
-        self.__isChromaTEM = False
-        autostem = HardwareSource.HardwareSourceManager().get_instrument_by_id(AUTOSTEM_CONTROLLER_ID)
-        if autostem != None:
-            tuning_manager = autostem.tuning_manager
-            self.__instrument = tuning_manager.instrument_controller
-            self.__isChromaTEM = True
-            logging.info("***TPX3***: autostem_controller is found.")
-        else:
-            self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
-            if self.__instrument is not None:
-                logging.info("***TPX3***: orsay_controller is found.")
-            else:
-                logging.info(f"***TPX3***: No controller is found. Will reattempt with the controller {STANDARD_CONTROLLER}")
-
-
         if not simul:
             try:
                 initial_status_code = self.status_code()
@@ -257,6 +242,21 @@ class TimePix3():
                 logging.info('***TP3***: Problem initializing Timepix3. Cannot load files.')
         else:
             logging.info('***TP3***: Timepix3 in simulation mode.')
+
+    def get_controller(self):
+        return Registry.get_component("stem_controller")
+
+    def set_hyperspec_output(self):
+        has_superscan = self.get_controller().scan_controller.hardware_source_id == "superscan"
+        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+                "orsay_scan_device")
+        try:
+            if has_superscan:
+                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy Superscan input line.
+            else:
+                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start.
+        except:
+            logging.info("***TPX3***: Could not set the correct hyperspec output")
 
     def request_get(self, url):
         if not self.__simul:
@@ -657,25 +657,11 @@ class TimePix3():
          This function must be called when you want to have a SPIM as a Scan Channel.
          """
         self.__isReady.clear() # Clearing the Event so synchronization can occur properly later on
-        try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            if scanInstrument.is_playing:
-                scanInstrument.stop_playing()
-                time.sleep(0.5)
-            if self.__isChromaTEM:
-                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy superscan line
-                scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                    "superscan")
-                if scanInstrument.is_playing:
-                    scanInstrument.stop_playing()
-                    time.sleep(0.5)
-            else:
-                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-                scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  # Top2 bottom blanker
-            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
-        except AttributeError:
-            logging.info("***TP3***: Could not set TDC to spim acquisition.")
+        scanInstrument = self.get_controller().scan_controller
+        if scanInstrument.is_playing:
+            scanInstrument.stop_playing()
+            time.sleep(0.5)
+        self.set_hyperspec_output()
         port = 8088
 
         # Setting the configurations
@@ -718,26 +704,12 @@ class TimePix3():
         """
          This function must be called when you want to have a SPIM as a Scan Channel.
          """
-        self.__isReady.clear() # Clearing the Event so synchronization can occur properly later on
-        try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            if scanInstrument.is_playing:
-                scanInstrument.stop_playing()
-                time.sleep(0.5)
-            if self.__isChromaTEM:
-                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy superscan line
-                scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                    "superscan")
-                if scanInstrument.is_playing:
-                    scanInstrument.stop_playing()
-                    time.sleep(0.5)
-            else:
-                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-                scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  # Top2 bottom blanker
-            # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
-        except AttributeError:
-            logging.info("***TP3***: Could not set TDC to spim acquisition.")
+        self.__isReady.clear()  # Clearing the Event so synchronization can occur properly later on
+        scanInstrument = self.get_controller().scan_controller
+        if scanInstrument.is_playing:
+            scanInstrument.stop_playing()
+            time.sleep(0.5)
+        self.set_hyperspec_output()
         port = 8088
 
         # Setting the configurations
@@ -1011,59 +983,33 @@ class TimePix3():
     def save_locally_routine(self):
         logging.info(
             '***TP3***: Save locally is activated. No socket will be open. Line start and line 05 is sent to TDC.')
-        try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            if self.__isChromaTEM:
-                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy superscan line
-            else:
-                scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy line 05
-        except AttributeError:
-            logging.info("***TP3***: Could not set TDC to spim acquisition.")
+        self.set_hyperspec_output()
 
 
     def set_scan_size(self, value: (int, int)):
         self.__detector_config.scan_sizey, self.__detector_config.scan_sizex = value
 
     def get_scan_size(self):
-        try:
-            if self.__isChromaTEM:
-                scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                    "superscan")
-            else:
-                scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                    "orsay_scan_device")
-            if scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size:
-                x_size = int(scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size[1])
-                y_size = int(scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size[0])
-            else:
-                x_size = int(scanInstrument.scan_device.current_frame_parameters.size[1])
-                y_size = int(scanInstrument.scan_device.current_frame_parameters.size[0])
-        except AttributeError:
-            logging.info("***TP3***: Could not grab scan parameters. Sending (64, 64) to TP3.")
-            x_size = 64
-            y_size = 64
+        scanInstrument = self.get_controller().scan_controller
+        if scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size:
+            x_size = int(scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size[1])
+            y_size = int(scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size[0])
+        else:
+            x_size = int(scanInstrument.scan_device.current_frame_parameters.size[1])
+            y_size = int(scanInstrument.scan_device.current_frame_parameters.size[0])
         return x_size, y_size
 
     def get_scan_pixel_time(self):
-        if self.__isChromaTEM:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "superscan")
-        else:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-        return scanInstrument.scan_device.current_frame_parameters.pixel_time_us
+        return self.get_controller().scan_controller.scan_device.current_frame_parameters.pixel_time_us
 
     def get_detector_eels_dispersion(self):
-        if self.__instrument is None:
-            self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id(STANDARD_CONTROLLER)
-        return self.__instrument.TryGetVal("EELS_TV_eVperpixel")[1]
+        #if self.__instrument is None:
+        #    self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id(STANDARD_CONTROLLER)
+        #return self.__instrument.TryGetVal("EELS_TV_eVperpixel")[1]
+        return self.get_controller().TryGetVal("EELS_TV_eVperpixel")[1]
 
     def get_detector_eels_offset(self):
-        if self.__instrument is None:
-            self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id(STANDARD_CONTROLLER)
-        return self.__instrument.TryGetVal("ZLPtare")[1]
+        return self.get_controller().TryGetVal("KURO_EELS_eVOffset")[1]
 
     def acquire_streamed_frame(self, port, message):
         """
@@ -1265,13 +1211,7 @@ class TimePix3():
         logging.info(f"Creating data type as {dt} and array shape with {self.__data.shape} for the acquisition.")
 
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
-        if self.__isChromaTEM:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "superscan")
-            logging.info(f'***TPX3***: Superscan is activated. Using it as a scanning source.')
-        else:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
+        scanInstrument = self.get_controller().scan_controller
         total_frames = self.getAccumulateNumber()
         logging.info(f'***TPX3***: Number of frames to be acquired is {total_frames}.')
         scanInstrument.set_sequence_buffer_size(total_frames)
@@ -1357,14 +1297,11 @@ class TimePix3():
         client.send(config_bytes)
 
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
-        if self.__isChromaTEM:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "superscan")
-            logging.info(f'***TPX3***: Superscan is activated. Using it as a scanning source.')
-        else:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-        #scanInstrument.start_playing()
+        scanInstrument = self.get_controller().scan_controller
+        total_frames = self.getAccumulateNumber()
+        logging.info(f'***TPX3***: Number of frames to be acquired is {total_frames}.')
+        scanInstrument.set_sequence_buffer_size(total_frames)
+        scanInstrument.start_sequence_mode(scanInstrument.get_current_frame_parameters(), total_frames)
 
         while True:
             try:

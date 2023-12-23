@@ -357,6 +357,7 @@ class Device(scan_base.ScanDevice):
         """Called just before and during acquisition.
         Device should use these parameters for new acquisition; and update to these parameters during acquisition.
         """
+        self.__frame_parameters = copy.deepcopy(frame_parameters)
         (x, y) = frame_parameters.as_dict()['pixel_size']
         pixel_time = frame_parameters.as_dict()['pixel_time_us']
         fov_nm = frame_parameters.as_dict()['fov_nm']
