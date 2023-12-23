@@ -506,7 +506,7 @@ class TimePix3():
         self.__accumulation = count
 
     def getAccumulateNumber(self):
-        pass
+        return int(self.__accumulation)
 
     def setSpimMode(self, mode):
         pass
@@ -537,8 +537,8 @@ class TimePix3():
         if self.__port == 3:
             self.__detector_config.mode = 8
         self.__detector_config.bitdepth = 32
-        self.__detector_config.sizex = int(self.__accumulation)
-        self.__detector_config.sizey = int(self.__accumulation)
+        self.__detector_config.sizex = self.getAccumulateNumber()
+        self.__detector_config.sizey = self.getAccumulateNumber()
         self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.tdelay = int(self.__delay)
@@ -583,8 +583,8 @@ class TimePix3():
         if self.__port == 3:
             self.__detector_config.mode = 8
         self.__detector_config.bitdepth = 32
-        self.__detector_config.sizex = int(self.__accumulation)
-        self.__detector_config.sizey = int(self.__accumulation)
+        self.__detector_config.sizex = self.getAccumulateNumber()
+        self.__detector_config.sizey = self.getAccumulateNumber()
         self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.tdelay = int(self.__delay)
@@ -627,8 +627,8 @@ class TimePix3():
         if self.__port == 3:
             self.__detector_config.mode = 8
         self.__detector_config.bitdepth = 32
-        self.__detector_config.sizex = int(self.__accumulation)
-        self.__detector_config.sizey = int(self.__accumulation)
+        self.__detector_config.sizex = self.getAccumulateNumber()
+        self.__detector_config.sizey = self.getAccumulateNumber()
         #You should call the function set_scan_size with the correct tuple. The total number of specimage is not enough
         #in the current implementation
         #self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
@@ -660,12 +660,16 @@ class TimePix3():
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            scanInstrument.stop_playing()
+            if scanInstrument.is_playing:
+                scanInstrument.stop_playing()
+                time.sleep(0.5)
             if self.__isChromaTEM:
                 scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy superscan line
                 scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                     "superscan")
-                scanInstrument.stop_playing()
+                if scanInstrument.is_playing:
+                    scanInstrument.stop_playing()
+                    time.sleep(0.5)
             else:
                 scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
                 scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  # Top2 bottom blanker
@@ -718,12 +722,16 @@ class TimePix3():
         try:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-            scanInstrument.stop_playing()
+            if scanInstrument.is_playing:
+                scanInstrument.stop_playing()
+                time.sleep(0.5)
             if self.__isChromaTEM:
                 scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy superscan line
                 scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                     "superscan")
-                scanInstrument.stop_playing()
+                if scanInstrument.is_playing:
+                    scanInstrument.stop_playing()
+                    time.sleep(0.5)
             else:
                 scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
                 scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  # Top2 bottom blanker
@@ -1264,8 +1272,10 @@ class TimePix3():
         else:
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-        #scanInstrument.start_playing()
-
+        total_frames = self.getAccumulateNumber()
+        logging.info(f'***TPX3***: Number of frames to be acquired is {total_frames}.')
+        scanInstrument.set_sequence_buffer_size(total_frames)
+        scanInstrument.start_sequence_mode(scanInstrument.get_current_frame_parameters(), total_frames)
 
         while True:
             try:
@@ -1301,6 +1311,10 @@ class TimePix3():
             if not self.__isPlaying or not scanInstrument.is_playing:
                 self.stopTimepix3Measurement()
                 logging.info('***TP3***: Scanning is halted. Finishing SPIM.')
+                return
+            if scanInstrument.get_sequence_buffer_count() >= total_frames:
+                scanInstrument.stop_playing()
+                logging.info('***TP3***: Buffer complete. Halting scan.')
                 return
         return
 

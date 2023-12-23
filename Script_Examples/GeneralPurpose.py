@@ -20,6 +20,10 @@ all = HardwareSource.HardwareSourceManager().get_all_instrument_ids()
 
 # print('GETTING THE MAIN CONTROLLER AND CHECK THE SCAN CONTROLLER ASSOCIATED')
 main_controller = Registry.get_component("stem_controller")
+
+frames = scan.grab_buffer(10)
+for frame in frames:
+    print(frame)
 #print(main_controller)
 #print(main_controller.scan_controller)
 #print(main_controller.scan_controller.hardware_source_id)

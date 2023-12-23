@@ -603,11 +603,11 @@ class Device(scan_base.ScanDevice):
             self.has_data_event.set()
             self.__line_number = rect[1] + rect[3]
 
-    def open_configuration_interface(self, api_broker) -> None:
-        """Open settings dialog, if any."""
-        api = api_broker.get_api(version="1", ui_version="1")
-        document_controller = api.application.document_controllers[0]._document_controller
-        myConfig = ConfigDialog(document_controller)
+def open_configuration_interface(api_broker) -> None:
+    """Open settings dialog, if any."""
+    api = api_broker.get_api(version="1", ui_version="1")
+    document_controller = api.application.document_controllers[0]._document_controller
+    ConfigDialog(document_controller)
 
 class ScanModule(scan_base.ScanModule):
     def __init__(self, instrument: ivg_inst.ivgInstrument) -> None:
@@ -619,7 +619,8 @@ class ScanModule(scan_base.ScanModule):
             scan_base.ScanSettingsMode(_("Slow"), "slow", scan_base.ScanFrameParameters(pixel_size=(512, 512), pixel_time_us=1, fov_nm=25)),
             scan_base.ScanSettingsMode(_("Record"), "record", scan_base.ScanFrameParameters(pixel_size=(1024, 1024), pixel_time_us=1, fov_nm=25))
         )
-        self.settings = scan_base.ScanSettings(scan_modes, lambda d: scan_base.ScanFrameParameters(d), 0, 2)
+        self.settings = scan_base.ScanSettings(scan_modes, lambda d: scan_base.ScanFrameParameters(d), 0, 2,
+                                               open_configuration_dialog_fn=open_configuration_interface)
 
 
 def run(instrument: ivg_inst.ivgInstrument) -> None:
