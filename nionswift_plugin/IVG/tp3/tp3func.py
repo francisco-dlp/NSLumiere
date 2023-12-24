@@ -150,7 +150,7 @@ class Timepix3Configurations():
                 return (SPEC_SIZE_Y, SPEC_SIZE)
         elif self.mode == FRAME_4DMASKED:
             return (self.scan_sizey, self.scan_sizex, NUMBER_OF_MASKS)
-        elif self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC:
+        elif self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC or self.mode == EVENT_LIST_SCAN:
             return (self.scan_sizey, self.scan_sizex, SPIM_SIZE)
         elif self.mode == HYPERSPEC_FRAME_BASED: #Frame based measurement
             return (self.scan_sizey, self.scan_sizex, SPEC_SIZE)
@@ -172,7 +172,7 @@ class Timepix3Configurations():
     def get_data(self):
         data_depth = self.get_data_receive_type()
         array_size = self._get_array_size()
-        if self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC:
+        if self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC or self.mode == EVENT_LIST_SCAN:
             max_val = max(self.scan_sizex, self.scan_sizey)
             if max_val <= 64:
                 self.data = numpy.zeros(array_size, dtype=numpy.uint32)
@@ -610,14 +610,6 @@ class TimePix3():
         """
         self.__frame_based = True
         self.set_exposure_time(dwelltime)
-        try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            #scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=dwelltime, on_time=0.0000001)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0, period=dwelltime, on_time=0.0000001) #OFF
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
-        except AttributeError:
-            logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
         port = 8088
 
         # Setting the configurations
@@ -676,6 +668,8 @@ class TimePix3():
             self.__detector_config.mode = 12
         elif self.__subMode == 2: #Event-based using raw 4D data
             self.__detector_config.mode = 13
+        if scanInstrument.hardware_source_id == "open_scan_device":
+            self.__detector_config.mode = 14
         self.__detector_config.is_cumul = False
         if self.__port == 3:
             self.__detector_config.mode = 8
@@ -1216,6 +1210,11 @@ class TimePix3():
         logging.info(f'***TPX3***: Number of frames to be acquired is {total_frames}.')
         scanInstrument.set_sequence_buffer_size(total_frames)
         scanInstrument.start_sequence_mode(scanInstrument.get_current_frame_parameters(), total_frames)
+
+        #If its a list scan, you should inform the value
+        if scanInstrument.hardware_source_id == "open_scan_device":
+            array_to_send = scanInstrument.scan_device.scan_engine.get_ordered_array().astype('uint32')
+            client.sendall(array_to_send)
 
         while True:
             try:

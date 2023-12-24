@@ -128,7 +128,7 @@ class EELS_SPEC_Device(Instrument):
     @note_f.setter
     def note_f(self, value):
         self.__note=value
-        read_data.InstrumentDictSetter("EELS", "EELS_note_f", self.__note)
+        read_data.InstrumentDictSetter("EELS", "note_f", self.__note)
         self.property_changed_event.fire('note_f')
 
     @property
@@ -211,7 +211,7 @@ class EELS_SPEC_Device(Instrument):
     def fx_slider_f(self, value):
         self.__elem[0] = value
         self.__eels_spec.locked_set_val(self.__elem[0], self.__names[0])
-        read_data.InstrumentDictSetter("EELS", "EELS_fx_f", self.__elem[0])
+        read_data.InstrumentDictSetter("EELS", "fx_f", self.__elem[0])
         self.property_changed_event.fire("fx_slider_f")
         self.property_changed_event.fire("fx_edit_f")
 
@@ -223,7 +223,7 @@ class EELS_SPEC_Device(Instrument):
     def fx_edit_f(self, value):
         self.__elem[0] = int(value)
         self.__eels_spec.locked_set_val(self.__elem[0], self.__names[0])
-        read_data.InstrumentDictSetter("EELS", "EELS_fx_f", self.__elem[0])
+        read_data.InstrumentDictSetter("EELS", "fx_f", self.__elem[0])
         self.property_changed_event.fire("fx_slider_f")
         self.property_changed_event.fire("fx_edit_f")
 
@@ -238,7 +238,7 @@ class EELS_SPEC_Device(Instrument):
     def fy_slider_f(self, value):
         self.__elem[1] = value
         self.__eels_spec.locked_set_val(self.__elem[1], self.__names[1])
-        read_data.InstrumentDictSetter("EELS", "EELS_fy_f", self.__elem[1])
+        read_data.InstrumentDictSetter("EELS", "fy_f", self.__elem[1])
         self.property_changed_event.fire("fy_slider_f")
         self.property_changed_event.fire("fy_edit_f")
 
@@ -250,7 +250,7 @@ class EELS_SPEC_Device(Instrument):
     def fy_edit_f(self, value):
         self.__elem[1] = int(value)
         self.__eels_spec.locked_set_val(self.__elem[1], self.__names[1])
-        read_data.InstrumentDictSetter("EELS", "EELS_fy_f", self.__elem[1])
+        read_data.InstrumentDictSetter("EELS", "fy_f", self.__elem[1])
         self.property_changed_event.fire("fy_slider_f")
         self.property_changed_event.fire("fy_edit_f")
 
@@ -265,7 +265,7 @@ class EELS_SPEC_Device(Instrument):
     def sx_slider_f(self, value):
         self.__elem[2] = value
         self.__eels_spec.locked_set_val(self.__elem[2], self.__names[2])
-        read_data.InstrumentDictSetter("EELS", "EELS_sx_f", self.__elem[2])
+        read_data.InstrumentDictSetter("EELS", "sx_f", self.__elem[2])
         self.property_changed_event.fire("sx_slider_f")
         self.property_changed_event.fire("sx_edit_f")
 
@@ -277,7 +277,7 @@ class EELS_SPEC_Device(Instrument):
     def sx_edit_f(self, value):
         self.__elem[2] = int(value)
         self.__eels_spec.locked_set_val(self.__elem[2], self.__names[2])
-        read_data.InstrumentDictSetter("EELS", "EELS_sx_f", self.__elem[2])
+        read_data.InstrumentDictSetter("EELS", "sx_f", self.__elem[2])
         self.property_changed_event.fire("sx_slider_f")
         self.property_changed_event.fire("sx_edit_f")
 
@@ -292,7 +292,7 @@ class EELS_SPEC_Device(Instrument):
     def sy_slider_f(self, value):
         self.__elem[3] = value
         self.__eels_spec.locked_set_val(self.__elem[3], self.__names[3])
-        read_data.InstrumentDictSetter("EELS", "EELS_sy_f", self.__elem[3])
+        read_data.InstrumentDictSetter("EELS", "sy_f", self.__elem[3])
         self.property_changed_event.fire("sy_slider_f")
         self.property_changed_event.fire("sy_edit_f")
 
@@ -304,7 +304,7 @@ class EELS_SPEC_Device(Instrument):
     def sy_edit_f(self, value):
         self.__elem[3] = int(value)
         self.__eels_spec.locked_set_val(self.__elem[3], self.__names[3])
-        read_data.InstrumentDictSetter("EELS", "EELS_sy_f", self.__elem[3])
+        read_data.InstrumentDictSetter("EELS", "sy_f", self.__elem[3])
         self.property_changed_event.fire("sy_slider_f")
         self.property_changed_event.fire("sy_edit_f")
 
@@ -319,7 +319,7 @@ class EELS_SPEC_Device(Instrument):
     def dy_slider_f(self, value):
         self.__elem[4] = value
         self.__eels_spec.locked_set_val(self.__elem[4], self.__names[4])
-        read_data.InstrumentDictSetter("EELS", "EELS_dy_f", self.__elem[4])
+        read_data.InstrumentDictSetter("EELS", "dy_f", self.__elem[4])
         self.property_changed_event.fire("dy_slider_f")
         self.property_changed_event.fire("dy_edit_f")
 
@@ -331,7 +331,7 @@ class EELS_SPEC_Device(Instrument):
     def dy_edit_f(self, value):
         self.__elem[4] = int(value)
         self.__eels_spec.locked_set_val(self.__elem[4], self.__names[4])
-        read_data.InstrumentDictSetter("EELS", "EELS_dy_f", self.__elem[4])
+        read_data.InstrumentDictSetter("EELS", "dy_f", self.__elem[4])
         self.property_changed_event.fire("dy_slider_f")
         self.property_changed_event.fire("dy_edit_f")
 
@@ -347,7 +347,7 @@ class EELS_SPEC_Device(Instrument):
     def tare_edit_f(self, value):
         try:
             self.__zlpTare = float(value)
-            read_data.InstrumentDictSetter("EELS", "EELS_zlptare", self.__zlpTare)
+            read_data.InstrumentDictSetter("EELS", "zlptare", self.__zlpTare)
             read_data.InstrumentDictSetter("EELS", "KURO_EELS_eVOffset", int(self.__elem[11] * 4.095) + self.__zlpTare)
         except:
             logging.info('***EELS SPEC***: ZLP tare must be float.')
@@ -363,7 +363,7 @@ class EELS_SPEC_Device(Instrument):
     def q1_slider_f(self, value):
         self.__elem[5] = value
         self.__eels_spec.locked_set_val(self.__elem[5], self.__names[5])
-        read_data.InstrumentDictSetter("EELS", "EELS_q1_f", self.__elem[5])
+        read_data.InstrumentDictSetter("EELS", "q1_f", self.__elem[5])
         self.property_changed_event.fire("q1_slider_f")
         self.property_changed_event.fire("q1_edit_f")
 
@@ -375,7 +375,7 @@ class EELS_SPEC_Device(Instrument):
     def q1_edit_f(self, value):
         self.__elem[5] = int(value)
         self.__eels_spec.locked_set_val(self.__elem[5], self.__names[5])
-        read_data.InstrumentDictSetter("EELS", "EELS_q1_f", self.__elem[5])
+        read_data.InstrumentDictSetter("EELS", "q1_f", self.__elem[5])
         self.property_changed_event.fire("q1_slider_f")
         self.property_changed_event.fire("q1_edit_f")
 
@@ -390,7 +390,7 @@ class EELS_SPEC_Device(Instrument):
     def q2_slider_f(self, value):
         self.__elem[6] = value
         self.__eels_spec.locked_set_val(self.__elem[6], self.__names[6])
-        read_data.InstrumentDictSetter("EELS", "EELS_q2_f", self.__elem[6])
+        read_data.InstrumentDictSetter("EELS", "q2_f", self.__elem[6])
         self.property_changed_event.fire("q2_slider_f")
         self.property_changed_event.fire("q2_edit_f")
 
@@ -402,7 +402,7 @@ class EELS_SPEC_Device(Instrument):
     def q2_edit_f(self, value):
         self.__elem[6] = int(value)
         self.__eels_spec.locked_set_val(self.__elem[6], self.__names[6])
-        read_data.InstrumentDictSetter("EELS", "EELS_q2_f", self.__elem[6])
+        read_data.InstrumentDictSetter("EELS", "q2_f", self.__elem[6])
         self.property_changed_event.fire("q2_slider_f")
         self.property_changed_event.fire("q2_edit_f")
 
@@ -417,7 +417,7 @@ class EELS_SPEC_Device(Instrument):
     def q3_slider_f(self, value):
         self.__elem[7] = value
         self.__eels_spec.locked_set_val(self.__elem[7], self.__names[7])
-        read_data.InstrumentDictSetter("EELS", "EELS_q3_f", self.__elem[7])
+        read_data.InstrumentDictSetter("EELS", "q3_f", self.__elem[7])
         self.property_changed_event.fire("q3_slider_f")
         self.property_changed_event.fire("q3_edit_f")
 
@@ -429,7 +429,7 @@ class EELS_SPEC_Device(Instrument):
     def q3_edit_f(self, value):
         self.__elem[7] = int(value)
         self.__eels_spec.locked_set_val(self.__elem[7], self.__names[7])
-        read_data.InstrumentDictSetter("EELS", "EELS_q3_f", self.__elem[7])
+        read_data.InstrumentDictSetter("EELS", "q3_f", self.__elem[7])
         self.property_changed_event.fire("q3_slider_f")
         self.property_changed_event.fire("q3_edit_f")
 
@@ -444,7 +444,7 @@ class EELS_SPEC_Device(Instrument):
     def q4_slider_f(self, value):
         self.__elem[8] = value
         self.__eels_spec.locked_set_val(self.__elem[8], self.__names[8])
-        read_data.InstrumentDictSetter("EELS", "EELS_q4_f", self.__elem[8])
+        read_data.InstrumentDictSetter("EELS", "q4_f", self.__elem[8])
         self.property_changed_event.fire("q4_slider_f")
         self.property_changed_event.fire("q4_edit_f")
 
@@ -456,7 +456,7 @@ class EELS_SPEC_Device(Instrument):
     def q4_edit_f(self, value):
         self.__elem[8] = int(value)
         self.__eels_spec.locked_set_val(self.__elem[8], self.__names[8])
-        read_data.InstrumentDictSetter("EELS", "EELS_q4_f", self.__elem[8])
+        read_data.InstrumentDictSetter("EELS", "q4_f", self.__elem[8])
         self.property_changed_event.fire("q4_slider_f")
         self.property_changed_event.fire("q4_edit_f")
 
@@ -471,7 +471,7 @@ class EELS_SPEC_Device(Instrument):
     def dx_slider_f(self, value):
         self.__elem[9] = value
         self.__eels_spec.locked_set_val(self.__elem[9], self.__names[9])
-        read_data.InstrumentDictSetter("EELS", "EELS_dx_f", self.__elem[9])
+        read_data.InstrumentDictSetter("EELS", "dx_f", self.__elem[9])
         self.property_changed_event.fire("dx_slider_f")
         self.property_changed_event.fire("dx_edit_f")
 
@@ -483,7 +483,7 @@ class EELS_SPEC_Device(Instrument):
     def dx_edit_f(self, value):
         self.__elem[9] = int(value)
         self.__eels_spec.locked_set_val(self.__elem[9], self.__names[9])
-        read_data.InstrumentDictSetter("EELS", "EELS_dx_f", self.__elem[9])
+        read_data.InstrumentDictSetter("EELS", "dx_f", self.__elem[9])
         self.property_changed_event.fire("dx_slider_f")
         self.property_changed_event.fire("dx_edit_f")
 
@@ -498,7 +498,7 @@ class EELS_SPEC_Device(Instrument):
     def dmx_slider_f(self, value):
         self.__elem[10] = value
         self.__eels_spec.locked_set_val(self.__elem[10], self.__names[10])
-        read_data.InstrumentDictSetter("EELS", "EELS_dmx_f", self.__elem[10])
+        read_data.InstrumentDictSetter("EELS", "dmx_f", self.__elem[10])
         self.property_changed_event.fire("dmx_slider_f")
         self.property_changed_event.fire("dmx_edit_f")
 
@@ -510,7 +510,7 @@ class EELS_SPEC_Device(Instrument):
     def dmx_edit_f(self, value):
         self.__elem[10] = int(value)
         self.__eels_spec.locked_set_val(self.__elem[10], self.__names[10])
-        read_data.InstrumentDictSetter("EELS", "EELS_dmx_f", self.__elem[10])
+        read_data.InstrumentDictSetter("EELS", "dmx_f", self.__elem[10])
         self.property_changed_event.fire("dmx_slider_f")
         self.property_changed_event.fire("dmx_edit_f")
 
@@ -527,9 +527,9 @@ class EELS_SPEC_Device(Instrument):
         if self.__elem[12]: #If binding == True
             self.__elem[9] = int(self.__elem[13] + PROPORTIONAL * (int(value) - self.__elem[14]))
             self.__eels_spec.locked_set_val(self.__elem[9], self.__names[9])
-            read_data.InstrumentDictSetter("EELS", "EELS_dx_f", self.__elem[9])
+            read_data.InstrumentDictSetter("EELS", "dx_f", self.__elem[9])
         self.__eels_spec.locked_set_val(self.__elem[10], self.__names[10])
-        read_data.InstrumentDictSetter("EELS", "EELS_dmx_f", self.__elem[10])
+        read_data.InstrumentDictSetter("EELS", "dmx_f", self.__elem[10])
         self.property_changed_event.fire("dx_slider_f")
         self.property_changed_event.fire("dx_edit_f")
         self.property_changed_event.fire("dmx_slider_f")
@@ -547,9 +547,9 @@ class EELS_SPEC_Device(Instrument):
         if self.__elem[12]: #If binding == True
             self.__elem[9] = int(self.__elem[13] + PROPORTIONAL * (int(value) - self.__elem[14]))
             self.__eels_spec.locked_set_val(self.__elem[9], self.__names[9])
-            read_data.InstrumentDictSetter("EELS", "EELS_dx_f", self.__elem[9])
+            read_data.InstrumentDictSetter("EELS", "dx_f", self.__elem[9])
         self.__eels_spec.locked_set_val(self.__elem[10], self.__names[10])
-        read_data.InstrumentDictSetter("EELS", "EELS_dmx_f", self.__elem[10])
+        read_data.InstrumentDictSetter("EELS", "dmx_f", self.__elem[10])
         self.property_changed_event.fire("dx_slider_f")
         self.property_changed_event.fire("dx_edit_f")
         self.property_changed_event.fire("dmx_slider_f")
@@ -592,7 +592,7 @@ class EELS_SPEC_Device(Instrument):
     def ene_offset_edit_f(self, value):
         self.__elem[11] = float(value)
         self.__eels_spec.locked_set_val(self.__elem[11], self.__names[11])
-        read_data.InstrumentDictSetter("EELS", "EELS_ene_offset_f", self.__elem[11])
+        read_data.InstrumentDictSetter("EELS", "KURO_EELS_eVOffset", int(self.__elem[11] * 4.095) + self.__zlpTare)
         self.property_changed_event.fire('ene_offset_f')
         self.property_changed_event.fire('ene_offset_edit_f')
 

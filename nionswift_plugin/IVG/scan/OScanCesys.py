@@ -89,6 +89,9 @@ class ScanEngine:
     def get_frame_counter(self, channel: int):
         return self.device.get_frame_counter(channel)
 
+    def get_ordered_array(self):
+        return self.device.get_ordered_array()
+
     def set_frame_parameters(self, x, y, pixel_us, fov_nm):
         self.device.change_scan_parameters(x, y, pixel_us, self.__flyback_us, fov_nm, SCAN_MODES[self.rastering_mode],
                                            lissajous_nx = self.lissajous_nx,
