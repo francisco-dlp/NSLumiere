@@ -27,6 +27,7 @@ PIXEL_THRESHOLD_FILES = ['eq-accos-03_00.dacs', 'eq-accos-03_01.dacs', 'eq-accos
                          'eq-accos-03_03.dacs', 'eq-accos-03_04.dacs', 'eq-accos-03_05.dacs',
                          'eq-accos-03_06.dacs', 'eq-accos-03_07.dacs']
 BUFFER_SIZE = 64000
+NUMBER_OF_MASKS = 4
 
 #Modes that we receive a frame
 FRAME = 0
@@ -55,78 +56,110 @@ class Response():
         self.text = '***TP3***: This is simul mode.'
 
 
-SAVE_FILE = False
-NUMBER_OF_MASKS = 4
-STANDARD_CONTROLLER = "orsay_controller"
+
+
+
+class Timepix3Metadata():
+    def __init__(self):
+        self.metadata = dict()
+
+        self.metadata["bin"] = False
+        self.metadata["bytedepth"] = 0
+        self.metadata["cumul"] = False
+        self.metadata["mode"] = 0
+        self.metadata["xspim_size"] = 0
+        self.metadata["yspim_size"] = 0
+        self.metadata["xscan_size"] = 0
+        self.metadata["yscan_size"] = 0
+        self.metadata["spimoverscanx"] = 0
+        self.metadata["spimoverscany"] = 0
+        self.metadata["pixel_time"] = 0
+        self.metadata["time_delay"] = 0
+        self.metadata["time_width"] = 0
+        self.metadata["save_locally"] = False
+        self.metadata["sup0"] = 0.0
+        self.metadata["sup1"] = 0.0
 
 class Timepix3Configurations():
+
     def __init__(self):
-        self.soft_binning = None
-        self.bitdepth = None
-        self.is_cumul = None
+        self.settings = Timepix3Metadata()
+
+        self.bin = None
+        self.bytedepth = None
+        self.cumul = None
         self.mode = None
-        self.sizex = None
-        self.sizey = None
-        self.scan_sizex = None
-        self.scan_sizey = None
+        self.xspim_size = None
+        self.yspim_size = None
+        self.xscan_size = None
+        self.yscan_size = None
         self.pixel_time = None
-        self.tdelay = None
-        self.twidth = None
+        self.time_delay = None
+        self.time_width = None
         self.time_resolved = None
         self.frame_based = None
         self.save_locally = None
-        self.eels_offset = None
-        self.eels_dispersion = None
+        self.sup0 = None
+        self.sup1 = None
 
         self.data = None
 
+    def __setattr__(self, key, value):
+        try:
+            if key in self.settings.metadata.keys():
+                self.settings.metadata[key] = value
+        except AttributeError:
+            pass
+        super(Timepix3Configurations, self).__setattr__(key, value)
+
     def create_configuration_bytes(self):
-        config_bytes = b''
-
-        if self.soft_binning:
-            config_bytes += b'\x01'
-        else:
-            config_bytes += b'\x00'
-
-        if self.bitdepth == 32:
-            config_bytes += b'\x02'
-        elif self.bitdepth == 16:
-            config_bytes += b'\x01'
-        elif self.bitdepth == 8:
-            config_bytes += b'\x00'
-        elif self.bitdepth == 64:
-            config_bytes += b'\x04'
-
-        if self.is_cumul:
-            config_bytes += b'\x01'
-        else:
-            config_bytes += b'\x00'
-
-        config_bytes += bytes([self.mode])
-
-        config_bytes += struct.pack("<H", self.sizex)
-        config_bytes += struct.pack("<H", self.sizey)
-
-        config_bytes += struct.pack("<H", self.scan_sizex)
-        config_bytes += struct.pack("<H", self.scan_sizey)
-
-        config_bytes += struct.pack("<I", int(self.pixel_time * 1000 / 1.5625))
-
-        config_bytes += struct.pack("<H", self.tdelay)  # BE. See https://docs.python.org/3/library/struct.html
-        config_bytes += struct.pack("<H", self.twidth)  # BE. See https://docs.python.org/3/library/struct.html
-
-        if self.save_locally:
-            config_bytes += b'\x01'
-        else:
-            config_bytes += b'\x00'
-
-        config_bytes += struct.pack("<f", float(self.eels_dispersion))  # BE. See https://docs.python.org/3/library/struct.html
-        config_bytes += struct.pack("<f", float(self.eels_offset))  # BE. See https://docs.python.org/3/library/struct.html
-
-        bytes_length = len(config_bytes)
-        config_bytes += bytes(512 - bytes_length)
-
-        return config_bytes
+        return json.dumps(self.settings.metadata).encode()
+    #     config_bytes = b''
+    #
+    #     if self.bin:
+    #         config_bytes += b'\x01'
+    #     else:
+    #         config_bytes += b'\x00'
+    #
+    #     if self.bytedepth == 4:
+    #         config_bytes += b'\x02'
+    #     elif self.bytedepth == 2:
+    #         config_bytes += b'\x01'
+    #     elif self.bytedepth == 1:
+    #         config_bytes += b'\x00'
+    #     elif self.bytedepth == 8:
+    #         config_bytes += b'\x04'
+    #
+    #     if self.cumul:
+    #         config_bytes += b'\x01'
+    #     else:
+    #         config_bytes += b'\x00'
+    #
+    #     config_bytes += bytes([self.mode])
+    #
+    #     config_bytes += struct.pack("<H", self.xspim_size)
+    #     config_bytes += struct.pack("<H", self.yspim_size)
+    #
+    #     config_bytes += struct.pack("<H", self.xscan_size)
+    #     config_bytes += struct.pack("<H", self.yscan_size)
+    #
+    #     config_bytes += struct.pack("<I", int(self.pixel_time * 1000 / 1.5625))
+    #
+    #     config_bytes += struct.pack("<H", self.time_delay)  # BE. See https://docs.python.org/3/library/struct.html
+    #     config_bytes += struct.pack("<H", self.time_width)  # BE. See https://docs.python.org/3/library/struct.html
+    #
+    #     if self.save_locally:
+    #         config_bytes += b'\x01'
+    #     else:
+    #         config_bytes += b'\x00'
+    #
+    #     config_bytes += struct.pack("<f", float(self.sup1))  # BE. See https://docs.python.org/3/library/struct.html
+    #     config_bytes += struct.pack("<f", float(self.sup0))  # BE. See https://docs.python.org/3/library/struct.html
+    #
+    #     bytes_length = len(config_bytes)
+    #     config_bytes += bytes(512 - bytes_length)
+    #
+    #     return config_bytes
 
     def _get_array_size(self):
         shape = self.get_array_shape()
@@ -140,40 +173,40 @@ class Timepix3Configurations():
 
     def get_array_shape(self):
         if self.mode == FASTCHRONO:
-            return (self.sizex, SPEC_SIZE)
+            return (self.xspim_size, SPEC_SIZE)
         elif self.mode == COINC_CHRONO:
-            return (self.twidth * 2, SPEC_SIZE)
+            return (self.time_width * 2, SPEC_SIZE)
         elif self.mode == FRAME or self.mode == FRAME_BASED or self.mode == ISIBOX_SAVEALL:
-            if self.soft_binning:
+            if self.bin:
                 return (SPEC_SIZE)
             else:
                 return (SPEC_SIZE_Y, SPEC_SIZE)
         elif self.mode == FRAME_4DMASKED:
-            return (self.scan_sizey, self.scan_sizex, NUMBER_OF_MASKS)
+            return (self.yscan_size, self.xscan_size, NUMBER_OF_MASKS)
         elif self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC or self.mode == EVENT_LIST_SCAN:
-            return (self.scan_sizey, self.scan_sizex, SPIM_SIZE)
+            return (self.yscan_size, self.xscan_size, SPIM_SIZE)
         elif self.mode == HYPERSPEC_FRAME_BASED: #Frame based measurement
-            return (self.scan_sizey, self.scan_sizex, SPEC_SIZE)
+            return (self.yscan_size, self.xscan_size, SPEC_SIZE)
         elif self.mode == EVENT_4DRAW:
-            return (self.scan_sizey, self.scan_sizex, RAW4D_PIXELS_Y, RAW4D_PIXELS_X)
+            return (self.yscan_size, self.xscan_size, RAW4D_PIXELS_Y, RAW4D_PIXELS_X)
         else:
             raise TypeError(f"***TP3_CONFIG***: Attempted mode ({self.mode}) that is not configured in spimimage.")
 
     def get_data_receive_type(self):
-        if self.bitdepth == 8:
+        if self.bytedepth == 1:
             return numpy.dtype(numpy.uint8).newbyteorder('<')
-        elif self.bitdepth == 16:
+        elif self.bytedepth == 2:
             return numpy.dtype(numpy.uint16).newbyteorder('<')
-        elif self.bitdepth == 32:
+        elif self.bytedepth == 4:
             return numpy.dtype(numpy.uint32).newbyteorder('<')
-        elif self.bitdepth == 64:
+        elif self.bytedepth == 8:
             return numpy.dtype(numpy.uint64).newbyteorder('<')
 
     def get_data(self):
         data_depth = self.get_data_receive_type()
         array_size = self._get_array_size()
         if self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC or self.mode == EVENT_LIST_SCAN:
-            max_val = max(self.scan_sizex, self.scan_sizey)
+            max_val = max(self.xscan_size, self.yscan_size)
             if max_val <= 64:
                 self.data = numpy.zeros(array_size, dtype=numpy.uint32)
             elif max_val <= 1024:
@@ -531,21 +564,21 @@ class TimePix3():
         port = 8088
 
         #Setting the configurations
-        self.__detector_config.soft_binning = True if displaymode == '1d' else False
+        self.__detector_config.bin = True if displaymode == '1d' else False
         self.__detector_config.mode = 10 if self.__frame_based else 0
-        self.__detector_config.is_cumul = bool(accumulate)
+        self.__detector_config.cumul = bool(accumulate)
         if self.__port == 3:
             self.__detector_config.mode = 8
-        self.__detector_config.bitdepth = 32
-        self.__detector_config.sizex = self.getAccumulateNumber()
-        self.__detector_config.sizey = self.getAccumulateNumber()
-        self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
+        self.__detector_config.bytedepth = 4
+        self.__detector_config.xspim_size = self.getAccumulateNumber()
+        self.__detector_config.yspim_size = self.getAccumulateNumber()
+        self.__detector_config.xscan_size, self.__detector_config.yscan_size = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
-        self.__detector_config.tdelay = int(self.__delay)
-        self.__detector_config.twidth = int(self.__width)
+        self.__detector_config.time_delay = int(self.__delay)
+        self.__detector_config.time_width = int(self.__width)
         self.__detector_config.save_locally = (self.__port == 1)
-        self.__detector_config.eels_dispersion = self.get_detector_eels_dispersion()
-        self.__detector_config.eels_offset = self.get_detector_eels_offset()
+        self.__detector_config.sup1 = self.get_detector_eels_dispersion()
+        self.__detector_config.sup0 = self.get_detector_eels_offset()
 
         message = 1
         if self.getCCDStatus() == "DA_RECORDING":
@@ -577,21 +610,21 @@ class TimePix3():
         port = 8088
 
         # Setting the configurations
-        self.__detector_config.soft_binning = True if displaymode == '1d' else False
+        self.__detector_config.bin = True if displaymode == '1d' else False
         self.__detector_config.mode = 6 if mode == 0 else 7
-        self.__detector_config.is_cumul = False if mode == 0 else True
+        self.__detector_config.cumul = False if mode == 0 else True
         if self.__port == 3:
             self.__detector_config.mode = 8
-        self.__detector_config.bitdepth = 32
-        self.__detector_config.sizex = self.getAccumulateNumber()
-        self.__detector_config.sizey = self.getAccumulateNumber()
-        self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
+        self.__detector_config.bytedepth = 4
+        self.__detector_config.xspim_size = self.getAccumulateNumber()
+        self.__detector_config.yspim_size = self.getAccumulateNumber()
+        self.__detector_config.xscan_size, self.__detector_config.yscan_size = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
-        self.__detector_config.tdelay = int(self.__delay)
-        self.__detector_config.twidth = int(self.__width)
+        self.__detector_config.time_delay = int(self.__delay)
+        self.__detector_config.time_width = int(self.__width)
         self.__detector_config.save_locally = (self.__port == 1)
-        self.__detector_config.eels_dispersion = self.get_detector_eels_dispersion()
-        self.__detector_config.eels_offset = self.get_detector_eels_offset()
+        self.__detector_config.sup1 = self.get_detector_eels_dispersion()
+        self.__detector_config.sup0 = self.get_detector_eels_offset()
 
         message = 3
         if self.getCCDStatus() == "DA_RECORDING":
@@ -613,23 +646,23 @@ class TimePix3():
         port = 8088
 
         # Setting the configurations
-        self.__detector_config.soft_binning = not is2D
+        self.__detector_config.bin = not is2D
         self.__detector_config.mode = 11
-        self.__detector_config.is_cumul = False
+        self.__detector_config.cumul = False
         if self.__port == 3:
             self.__detector_config.mode = 8
-        self.__detector_config.bitdepth = 32
-        self.__detector_config.sizex = self.getAccumulateNumber()
-        self.__detector_config.sizey = self.getAccumulateNumber()
+        self.__detector_config.bytedepth = 4
+        self.__detector_config.xspim_size = self.getAccumulateNumber()
+        self.__detector_config.yspim_size = self.getAccumulateNumber()
         #You should call the function set_scan_size with the correct tuple. The total number of specimage is not enough
         #in the current implementation
         #self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
-        self.__detector_config.tdelay = int(self.__delay)
-        self.__detector_config.twidth = int(self.__width)
+        self.__detector_config.time_delay = int(self.__delay)
+        self.__detector_config.time_width = int(self.__width)
         self.__detector_config.save_locally = (self.__port == 1)
-        self.__detector_config.eels_dispersion = self.get_detector_eels_dispersion()
-        self.__detector_config.eels_offset = self.get_detector_eels_offset()
+        self.__detector_config.sup1 = self.get_detector_eels_dispersion()
+        self.__detector_config.sup0 = self.get_detector_eels_offset()
 
         message = 2
         if self.getCCDStatus() == "DA_RECORDING":
@@ -660,7 +693,7 @@ class TimePix3():
         if self.__port > 1: #This ensures we are streaming data and not saving locally
             self.setCurrentPort(0)
 
-        self.__detector_config.soft_binning = True
+        self.__detector_config.bin = True
         self.__detector_config.mode = 2
         if self.__subMode == 0: #Standard
             self.__detector_config.mode = 2
@@ -670,18 +703,18 @@ class TimePix3():
             self.__detector_config.mode = 13
         if scanInstrument.hardware_source_id == "open_scan_device":
             self.__detector_config.mode = 14
-        self.__detector_config.is_cumul = False
+        self.__detector_config.cumul = False
         if self.__port == 3:
             self.__detector_config.mode = 8
-        self.__detector_config.bitdepth = 64 if self.__subMode == 2 else 32
-        self.__detector_config.sizex, self.__detector_config.sizey = self.get_scan_size()
-        self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
+        self.__detector_config.bytedepth = 8 if self.__subMode == 2 else 4
+        self.__detector_config.xspim_size, self.__detector_config.yspim_size = self.get_scan_size()
+        self.__detector_config.xscan_size, self.__detector_config.yscan_size = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
-        self.__detector_config.tdelay = int(self.__delay)
-        self.__detector_config.twidth = int(self.__width)
+        self.__detector_config.time_delay = int(self.__delay)
+        self.__detector_config.time_width = int(self.__width)
         self.__detector_config.save_locally = (self.__port == 1)
-        self.__detector_config.eels_dispersion = self.get_detector_eels_dispersion()
-        self.__detector_config.eels_offset = self.get_detector_eels_offset()
+        self.__detector_config.sup1 = self.get_detector_eels_dispersion()
+        self.__detector_config.sup0 = self.get_detector_eels_offset()
 
         message = 2
         if self.getCCDStatus() == "DA_RECORDING":
@@ -710,20 +743,20 @@ class TimePix3():
         if self.__port > 1: #This ensures we are streaming data and not saving locally
             self.setCurrentPort(0)
 
-        self.__detector_config.soft_binning = True
+        self.__detector_config.bin = True
         self.__detector_config.mode = 3
-        self.__detector_config.is_cumul = False
+        self.__detector_config.cumul = False
         if self.__port == 3:
             self.__detector_config.mode = 8
-        self.__detector_config.bitdepth = 16
-        self.__detector_config.sizex, self.__detector_config.sizey = self.get_scan_size()
-        self.__detector_config.scan_sizex, self.__detector_config.scan_sizey = self.get_scan_size()
+        self.__detector_config.bytedepth = 2
+        self.__detector_config.xspim_size, self.__detector_config.yspim_size = self.get_scan_size()
+        self.__detector_config.xscan_size, self.__detector_config.yscan_size = self.get_scan_size()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
-        self.__detector_config.tdelay = int(self.__delay)
-        self.__detector_config.twidth = int(self.__width)
+        self.__detector_config.time_delay = int(self.__delay)
+        self.__detector_config.time_width = int(self.__width)
         self.__detector_config.save_locally = (self.__port == 1)
-        self.__detector_config.eels_dispersion = self.get_detector_eels_dispersion()
-        self.__detector_config.eels_offset = self.get_detector_eels_offset()
+        self.__detector_config.sup1 = self.get_detector_eels_dispersion()
+        self.__detector_config.sup0 = self.get_detector_eels_offset()
 
         message = 4
         if self.getCCDStatus() == "DA_RECORDING":
@@ -981,7 +1014,7 @@ class TimePix3():
 
 
     def set_scan_size(self, value: (int, int)):
-        self.__detector_config.scan_sizey, self.__detector_config.scan_sizex = value
+        self.__detector_config.yscan_size, self.__detector_config.xscan_size = value
 
     def get_scan_size(self):
         scanInstrument = self.get_controller().scan_controller
@@ -993,17 +1026,14 @@ class TimePix3():
             y_size = int(scanInstrument.scan_device.current_frame_parameters.size[0])
         return x_size, y_size
 
-    def get_scan_pixel_time(self):
-        return self.get_controller().scan_controller.scan_device.current_frame_parameters.pixel_time_us
+    def get_scan_pixel_time(self) -> int:
+        return int(self.get_controller().scan_controller.scan_device.current_frame_parameters.pixel_time_us * 1000 / 1.5625)
 
-    def get_detector_eels_dispersion(self):
-        #if self.__instrument is None:
-        #    self.__instrument = HardwareSource.HardwareSourceManager().get_instrument_by_id(STANDARD_CONTROLLER)
-        #return self.__instrument.TryGetVal("EELS_TV_eVperpixel")[1]
-        return self.get_controller().TryGetVal("EELS_TV_eVperpixel")[1]
+    def get_detector_eels_dispersion(self) -> float:
+        return float(self.get_controller().TryGetVal("EELS_TV_eVperpixel")[1])
 
-    def get_detector_eels_offset(self):
-        return self.get_controller().TryGetVal("KURO_EELS_eVOffset")[1]
+    def get_detector_eels_offset(self) -> float:
+        return float(self.get_controller().TryGetVal("KURO_EELS_eVOffset")[1])
 
     def acquire_streamed_frame(self, port, message):
         """
@@ -1143,9 +1173,9 @@ class TimePix3():
                             extra_pixels = int(number_of_channels / SPEC_SIZE)
                             self.__data[start_channel:start_channel + number_of_channels] = event_list[:]
                             #print(f'***TP3***: Acquiring hyperspecimage. Header is {header}. Start and number of channels is {start_channel} and {number_of_channels}. Number of pixels per call is {extra_pixels}.')
-                            self.__frame = min(cam_properties['frameNumber']+extra_pixels, self.__detector_config.scan_sizex * self.__detector_config.scan_sizey)
+                            self.__frame = min(cam_properties['frameNumber'] + extra_pixels, self.__detector_config.xscan_size * self.__detector_config.yscan_size)
                             self.sendmessage(2)
-                            if start_channel + number_of_channels >= self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPEC_SIZE:
+                            if start_channel + number_of_channels >= self.__detector_config.xscan_size * self.__detector_config.yscan_size * SPEC_SIZE:
                                 logging.info("***TP3***: Spim is over. Closing connection.")
                                 return
 
@@ -1312,14 +1342,14 @@ class TimePix3():
                         logging.info('***TP3***: No more packets received. Finishing SPIM.')
                         return
 
-                    how_many_more_bytes = self.__detector_config.scan_sizex * \
-                                          self.__detector_config.scan_sizey * \
+                    how_many_more_bytes = self.__detector_config.xscan_size * \
+                                          self.__detector_config.yscan_size * \
                                           NUMBER_OF_MASKS * 2 - len(packet_data)
                     while how_many_more_bytes != 0:
                         bytes_to_receive = min(BUFFER_SIZE, how_many_more_bytes)
                         packet_data += s.recv(bytes_to_receive)
-                        how_many_more_bytes = self.__detector_config.scan_sizex * \
-                                              self.__detector_config.scan_sizey * \
+                        how_many_more_bytes = self.__detector_config.xscan_size * \
+                                              self.__detector_config.yscan_size * \
                                               NUMBER_OF_MASKS * 2 - len(packet_data)
                     try:
                         event_list = numpy.frombuffer(packet_data, dtype=dt)
@@ -1345,7 +1375,7 @@ class TimePix3():
         self.__data[unique] += counts
 
     def get_current(self, frame_int, frame_number):
-        if self.__detector_config.is_cumul and frame_number:
+        if self.__detector_config.cumul and frame_number:
             eps = (numpy.sum(frame_int) / self.__expTime) / frame_number
         else:
             eps = numpy.sum(frame_int) / self.__expTime
@@ -1360,7 +1390,7 @@ class TimePix3():
         return self.__detector_config.create_reshaped_array()
 
     def create_spimimage_frame(self):
-        return (self.__frame, self.__data.reshape((self.__detector_config.scan_sizey, self.__detector_config.scan_sizex, SPEC_SIZE)))
+        return (self.__frame, self.__data.reshape((self.__detector_config.yscan_size, self.__detector_config.xscan_size, SPEC_SIZE)))
 
     def create_4dimage(self):
         return self.__detector_config.create_reshaped_array()
