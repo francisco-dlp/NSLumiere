@@ -71,8 +71,6 @@ class Timepix3Metadata():
         self.metadata["yspim_size"] = 0
         self.metadata["xscan_size"] = 0
         self.metadata["yscan_size"] = 0
-        self.metadata["spimoverscanx"] = 0
-        self.metadata["spimoverscany"] = 0
         self.metadata["pixel_time"] = 0
         self.metadata["time_delay"] = 0
         self.metadata["time_width"] = 0
@@ -708,7 +706,11 @@ class TimePix3():
             self.__detector_config.mode = 8
         self.__detector_config.bytedepth = 8 if self.__subMode == 2 else 4
         self.__detector_config.xspim_size, self.__detector_config.yspim_size = self.get_scan_size()
+        #self.__detector_config.xspim_size = self.__detector_config.xspim_size // 2
+        #self.__detector_config.yspim_size = self.__detector_config.yspim_size // 2
         self.__detector_config.xscan_size, self.__detector_config.yscan_size = self.get_scan_size()
+        #self.__detector_config.xscan_size = self.__detector_config.xscan_size // 2
+        #self.__detector_config.yscan_size = self.__detector_config.yscan_size // 2
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.time_delay = int(self.__delay)
         self.__detector_config.time_width = int(self.__width)
