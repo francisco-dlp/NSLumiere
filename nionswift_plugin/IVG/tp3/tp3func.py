@@ -7,9 +7,8 @@ from nion.utils import Registry
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
-ISI_CHANNELS = 200
-SPIM_SIZE = 1025 + 200
-RAW4D_PIXELS_X = 1024
+SPIM_SIZE = 1025
+RAW4D_PIXELS_X = 256
 RAW4D_PIXELS_Y = 256
 SPEC_SIZE = 1025
 SPEC_SIZE_ISI = 1025 + 200
@@ -180,13 +179,13 @@ class Timepix3Configurations():
             else:
                 return (SPEC_SIZE_Y, SPEC_SIZE)
         elif self.mode == FRAME_4DMASKED:
-            return (self.yscan_size, self.xscan_size, NUMBER_OF_MASKS)
+            return (self.yspim_size, self.xspim_size, NUMBER_OF_MASKS)
         elif self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC or self.mode == EVENT_LIST_SCAN:
-            return (self.yscan_size, self.xscan_size, SPIM_SIZE)
+            return (self.yspim_size, self.xspim_size, SPIM_SIZE)
         elif self.mode == HYPERSPEC_FRAME_BASED: #Frame based measurement
-            return (self.yscan_size, self.xscan_size, SPEC_SIZE)
+            return (self.yspim_size, self.xspim_size, SPEC_SIZE)
         elif self.mode == EVENT_4DRAW:
-            return (self.yscan_size, self.xscan_size, RAW4D_PIXELS_Y, RAW4D_PIXELS_X)
+            return (self.yspim_size, self.xspim_size, RAW4D_PIXELS_Y, RAW4D_PIXELS_X)
         else:
             raise TypeError(f"***TP3_CONFIG***: Attempted mode ({self.mode}) that is not configured in spimimage.")
 
@@ -204,7 +203,7 @@ class Timepix3Configurations():
         data_depth = self.get_data_receive_type()
         array_size = self._get_array_size()
         if self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC or self.mode == EVENT_LIST_SCAN:
-            max_val = max(self.xscan_size, self.yscan_size)
+            max_val = max(self.xspim_size, self.yspim_size)
             if max_val <= 64:
                 self.data = numpy.zeros(array_size, dtype=numpy.uint32)
             elif max_val <= 1024:
@@ -251,6 +250,7 @@ class TimePix3():
         self.__subMode = 0.
         self.__simul = simul
         self.__isReady = threading.Event()
+        self.__binning = [1, 1]
         self.sendmessage = message
 
         if not simul:
@@ -488,10 +488,10 @@ class TimePix3():
         return list(['Very low', 'Low', 'Medium', 'High', 'Very high'])
 
     def getBinning(self):
-        return (1, 1)
+        return self.__binning
 
     def setBinning(self, bx, by):
-        pass
+        self.__binning = [bx, by]
 
     def getImageSize(self):
         return (1025, 256)
@@ -706,11 +706,9 @@ class TimePix3():
             self.__detector_config.mode = 8
         self.__detector_config.bytedepth = 8 if self.__subMode == 2 else 4
         self.__detector_config.xspim_size, self.__detector_config.yspim_size = self.get_scan_size()
-        #self.__detector_config.xspim_size = self.__detector_config.xspim_size // 2
-        #self.__detector_config.yspim_size = self.__detector_config.yspim_size // 2
+        self.__detector_config.xspim_size = self.__detector_config.xspim_size // self.__binning[0]
+        self.__detector_config.yspim_size = self.__detector_config.yspim_size // self.__binning[0]
         self.__detector_config.xscan_size, self.__detector_config.yscan_size = self.get_scan_size()
-        #self.__detector_config.xscan_size = self.__detector_config.xscan_size // 2
-        #self.__detector_config.yscan_size = self.__detector_config.yscan_size // 2
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.time_delay = int(self.__delay)
         self.__detector_config.time_width = int(self.__width)
