@@ -61,6 +61,14 @@ class Handler:
         self.scan.dsp_filter = value
 
     @property
+    def video_delay(self):
+        return self.scan.video_delay
+
+    @video_delay.setter
+    def video_delay(self, value):
+        self.scan.video_delay = value
+
+    @property
     def adc_acquisition_mode(self):
         return self.scan.adc_acquisition_mode
 
@@ -209,6 +217,11 @@ class View():
                                                 name='filter_value', width = '100')
         self.filter_row = ui.create_row(self.filter_text, self.filter_value, ui.create_stretch())
 
+        self.video_delay_text = ui.create_label(name='video_delay_text', text="Video delay: ")
+        self.video_delay_value = ui.create_line_edit(text='@binding(video_delay)',
+                                                name='video_delay_value', width='100')
+        self.video_delay_row = ui.create_row(self.video_delay_text, self.video_delay_value, ui.create_stretch())
+
         self.acqusition_adc_text = ui.create_label(name='acqusition_adc_text', text="ADC type: ")
         self.acquisition_adc_value = ui.create_combo_box(items=['FIR', 'Pixel counter', 'IIR', 'Multip.', 'Kernel'],
                                                 current_index='@binding(adc_acquisition_mode)',
@@ -227,7 +240,7 @@ class View():
                                             self.window_text, self.window_value)
 
         self.adc_parameters_group = ui.create_group(title='ADC parameters', content=ui.create_column(
-            self.filter_row, self.acquisition_adc_row, self.kernel_mode_row, self.adc_filter_row
+            self.filter_row, self.video_delay_row, self.acquisition_adc_row, self.kernel_mode_row, self.adc_filter_row
         ))
 
         #Hardware settings

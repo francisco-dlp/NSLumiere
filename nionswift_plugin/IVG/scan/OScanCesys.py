@@ -52,6 +52,7 @@ class ScanEngine:
         self.__imagedisplay = None
         self.__imagedisplay_filter_intensity = None
         self.__dsp_filter = None
+        self.__video_delay = None
         self.__external_trigger = None
         self.__flyback_us = None
         self.__rastering_mode = None
@@ -69,6 +70,7 @@ class ScanEngine:
         self.__imagedisplay_filter_intensity = 25
         self.__adc_mode = 0
         self.dsp_filter = 0
+        self.video_delay = 0
         self.external_trigger = 0
         self.flyback_us = 0
         self.rastering_mode = 0
@@ -160,6 +162,16 @@ class ScanEngine:
         if self.__dsp_filter != value:
             self.__dsp_filter = value
             self.device.change_video_parameters(value)
+
+    @property
+    def video_delay(self):
+        return self.__video_delay
+
+    @video_delay.setter
+    def video_delay(self, value):
+        if self.__video_delay != int(value):
+            self.__video_delay = int(value)
+            self.device.set_video_delay(int(value))
 
     @property
     def rastering_mode(self):
