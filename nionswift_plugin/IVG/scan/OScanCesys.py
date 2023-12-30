@@ -10,6 +10,8 @@ from nionswift_plugin.IVG.scan.OScanCesysDialog import ConfigDialog
 from FPGAControl import FPGAConfig
 from ...aux_files import read_data
 
+from .OScanCesysDialog import KERNEL_LIST, ACQUISITION_WINDOW, SCAN_MODES, IMAGE_VIEW_MODES
+
 _ = gettext.gettext
 
 set_file = read_data.FileManager('global_settings')
@@ -17,7 +19,6 @@ OPEN_SCAN_IS_VG = set_file.settings["OrsayInstrument"]["open_scan"]["IS_VG"]
 OPEN_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["open_scan"]["EFM03"]
 OPEN_SCAN_BITSTREAM = set_file.settings["OrsayInstrument"]["open_scan"]["BITSTREAM_FILE"]
 
-from .OScanCesysDialog import KERNEL_LIST, ACQUISITION_WINDOW, SCAN_MODES, IMAGE_VIEW_MODES
 
 def getlibname():
     if sys.platform.startswith('win'):
@@ -25,6 +26,7 @@ def getlibname():
     else:
         libname = os.path.join(os.path.dirname(__file__), "../../aux_files/DLLs/")
     return libname
+
 
 class ScanEngine:
     def __init__(self):
@@ -42,7 +44,6 @@ class ScanEngine:
             self.device = FPGAConfig.ScanDevice(self.debug_io, 128, 128, 100, 0)
             logging.warning(f'Could not found the library libudk3-1.5.1.so. You should probably use '
                             f'export LD_LIBRARY_PATH='+getlibname())
-
 
         self.__x = None
         self.__y = None
@@ -85,7 +86,7 @@ class ScanEngine:
         self.acquisition_window = 2
 
     def receive_total_frame(self, channel: int):
-        image = self.device.get_image(channel, imageType = IMAGE_VIEW_MODES[self.imagedisplay], low_pass_size=self.imagedisplay_filter_intensity)
+        image = self.device.get_image(channel, imageType=IMAGE_VIEW_MODES[self.imagedisplay], low_pass_size=self.imagedisplay_filter_intensity)
         return image
 
     def get_frame_counter(self, channel: int):
@@ -96,10 +97,11 @@ class ScanEngine:
 
     def set_frame_parameters(self, x, y, pixel_us, fov_nm):
         self.device.change_scan_parameters(x, y, pixel_us, self.__flyback_us, fov_nm, SCAN_MODES[self.rastering_mode],
-                                           lissajous_nx = self.lissajous_nx,
+                                           lissajous_nx=self.lissajous_nx,
                                            lissajous_ny=self.lissajous_ny,
-                                           lissajous_phase = self.lissajous_phase,
-                                           kernelMode = KERNEL_LIST[self.kernel_mode],
+                                           lissajous_phase=self.lissajous_phase,
+                                           subimages=2,
+                                           kernelMode=KERNEL_LIST[self.kernel_mode],
                                            givenPixel=self.__given_pixel,
                                            acquisitionCutoff=self.acquisition_cutoff,
                                            acquisitionWindow=self.acquisition_window
@@ -151,7 +153,7 @@ class ScanEngine:
     def adc_acquisition_mode(self, value):
         if self.__adc_mode != value:
             self.__adc_mode = value
-            self.device.change_video_acquisition_mode(value)
+            self.device.set_acquisition_mode(value)
 
     @property
     def dsp_filter(self):
@@ -161,7 +163,7 @@ class ScanEngine:
     def dsp_filter(self, value):
         if self.__dsp_filter != value:
             self.__dsp_filter = value
-            self.device.change_video_parameters(value)
+            self.device.set_iir_bitshift_value(value)
 
     @property
     def video_delay(self):
@@ -243,10 +245,10 @@ class ScanEngine:
     def acquisition_cutoff(self, value):
         if self.__acquisition_cutoff != value:
             self.__acquisition_cutoff = value
-            self.device.change_adc_kernel(kernelMode = KERNEL_LIST[self.__kernel_mode],
+            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.__kernel_mode],
                                           givenPixel=self.__given_pixel,
-                                          acquisitionCutoff = self.__acquisition_cutoff,
-                                          acquisitionWindow = self.__acquisition_window)
+                                          acquisitionCutoff=self.__acquisition_cutoff,
+                                          acquisitionWindow=self.__acquisition_window)
 
     @property
     def acquisition_window(self):
@@ -280,6 +282,7 @@ class ScanEngine:
         if self.__offset_adc != value:
             self.__offset_adc = int(value)
             self.device.change_offset_adc(self.__offset_adc)
+
 
 class Channel:
     def __init__(self, channel_id: int, name: str, enabled: bool):
