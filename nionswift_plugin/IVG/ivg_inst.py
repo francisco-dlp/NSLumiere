@@ -85,11 +85,11 @@ class ivgInstrument(stem_controller.STEMController):
         self.append_data = Event.Event()
         self.stage_event = Event.Event()
 
-
         self.__set_file = read_data.FileManager('global_settings')
         self.controls = InstrumentControl()
 
         self.__blanked = False
+        self.__running = True
         self.__scan_context = stem_controller.ScanContext()
         self.__probe_position = None
         self.__live_probe_position = None
@@ -174,6 +174,9 @@ class ivgInstrument(stem_controller.STEMController):
             counter += 1
         self.__stage_thread = threading.Thread(target=self.stage_periodic_start, args=(),)
 
+    def close(self):
+        self.__running = False
+
     def periodic(self):
         self.property_changed_event.fire('roa_val_f')
         self.property_changed_event.fire('voa_val_f')
@@ -201,9 +204,7 @@ class ivgInstrument(stem_controller.STEMController):
         except:
             pass
         self.__thread = threading.Timer(TIME_SLOW_PERIODIC, self.periodic, args=(), )
-        check = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            "orsay_scan_device")
-        if not self.__thread.is_alive() and check is not None:
+        if not self.__thread.is_alive() and self.__running:
             self.__thread.start()
 
     def estimate_temp(self):

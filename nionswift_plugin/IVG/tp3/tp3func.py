@@ -4,6 +4,8 @@ from numba import jit
 from nion.swift.model import HardwareSource
 from nion.utils import Registry
 
+from ...aux_files import read_data
+
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
@@ -74,6 +76,10 @@ class Timepix3Metadata():
         self.metadata["time_delay"] = 0
         self.metadata["time_width"] = 0
         self.metadata["save_locally"] = False
+        self.metadata["pixel_mask"] = 0
+        self.metadata["threshold"] = 0
+        self.metadata["bias_voltage"] = 0
+        self.metadata["destination_port"] = 0
         self.metadata["sup0"] = 0.0
         self.metadata["sup1"] = 0.0
 
@@ -96,6 +102,10 @@ class Timepix3Configurations():
         self.time_resolved = None
         self.frame_based = None
         self.save_locally = None
+        self.pixel_mask = None
+        self.threshold = None
+        self.bias_voltage = None
+        self.destination_port = None
         self.sup0 = None
         self.sup1 = None
 
@@ -105,6 +115,7 @@ class Timepix3Configurations():
         try:
             if key in self.settings.metadata.keys():
                 self.settings.metadata[key] = value
+                read_data.InstrumentDictSetter("Timepix3", key, value)
         except AttributeError:
             pass
         super(Timepix3Configurations, self).__setattr__(key, value)
@@ -253,6 +264,13 @@ class TimePix3():
         self.__binning = [1, 1]
         self.sendmessage = message
 
+        # Loading bpc and dacs
+        bpcFile = PIXEL_MASK_PATH + PIXEL_MASK_FILES[0]
+        dacsFile = PIXEL_THRESHOLD_PATH + PIXEL_THRESHOLD_FILES[0]
+        self.cam_init(bpcFile, dacsFile)
+        self.acq_init()
+        self.set_destination(self.__port)
+
         if not simul:
             try:
                 initial_status_code = self.status_code()
@@ -261,12 +279,6 @@ class TimePix3():
                 else:
                     logging.info(f'***TP3***: Problem initializing Timepix3. Bad status code: {initial_status_code}.')
 
-                # Loading bpc and dacs
-                bpcFile = PIXEL_MASK_PATH + PIXEL_MASK_FILES[0]
-                dacsFile = PIXEL_THRESHOLD_PATH + PIXEL_THRESHOLD_FILES[0]
-                self.cam_init(bpcFile, dacsFile)
-                self.acq_init()
-                self.set_destination(self.__port)
                 logging.info(f'***TP3***: Current detector configuration is {self.get_config()}.')
                 self.success = True
             except:
@@ -338,6 +350,7 @@ class TimePix3():
         logging.info(f'***TP3***: Response of loading dacs file: ' + data)
 
     def set_pixel_mask(self, which):
+        self.__detector_config.pixel_mask = which
         if which < 8:
             bpcFile = PIXEL_MASK_PATH + PIXEL_MASK_FILES[which]
         else:
@@ -349,6 +362,7 @@ class TimePix3():
         logging.info(f'***TP3***: Response of loading binary pixel configuration file (from set_pixel): ' + data)
 
     def set_threshold(self, which):
+        self.__detector_config.threshold = which
         if which < 8:
             dacsFile = PIXEL_THRESHOLD_PATH + PIXEL_THRESHOLD_FILES[which]
         else:
@@ -395,6 +409,7 @@ class TimePix3():
         logging.info(f'Response of updating Detector Configuration (exposure time to {value}): ' + data)
 
     def acq_init(self, ntrig=9999999):
+        self.__detector_config.bias_voltage = BIAS_VOLTAGE
         """
         Initialization of detector. Standard value is 99999 triggers in continuous mode (a single trigger).
         """
@@ -416,6 +431,7 @@ class TimePix3():
         logging.info('Response of updating Detector Configuration: ' + data)
 
     def set_destination(self, port):
+        self.__detector_config.destination_port = port
         """
         Sets the destination of the data. Data modes in ports are also defined here. Note that you always have
         data flown in port 8088 and 8089 but only one client at a time.
@@ -852,7 +868,7 @@ class TimePix3():
         pass
 
     def getCurrentSpeed(self, cameraport):
-        return 0
+        return 999
 
     def getAllPortsParams(self):
         return None
@@ -864,7 +880,7 @@ class TimePix3():
         pass
 
     def getGain(self, cameraport):
-        return 0
+        return 999
 
     def getGainName(self, cameraport, gain):
         pass
@@ -885,7 +901,7 @@ class TimePix3():
         if self.__port is not None:
             return self.__port
         else:
-            return 0
+            return 999
 
     def setCurrentPort(self, cameraport):
         self.__port = cameraport

@@ -269,7 +269,7 @@ class CameraDevice(camera_base.CameraDevice):
             "flipped": False,
             "timeDelay": 0,
             "timeWidth": 0,
-            "tp3mode": 1,
+            "tp3mode": 0,
             "chips_config": 15,
             "gaps_mode": 0,
         })
