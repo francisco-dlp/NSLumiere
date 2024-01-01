@@ -69,6 +69,14 @@ class Handler:
         self.scan.video_delay = value
 
     @property
+    def pause_sampling(self):
+        return self.scan.pause_sampling
+
+    @pause_sampling.setter
+    def pause_sampling(self, value):
+        self.scan.pause_sampling = value
+
+    @property
     def adc_acquisition_mode(self):
         return self.scan.adc_acquisition_mode
 
@@ -99,6 +107,14 @@ class Handler:
     @rastering_mode.setter
     def rastering_mode(self, value):
         self.scan.rastering_mode = value
+
+    @property
+    def mini_scan(self):
+        return self.scan.mini_scan
+
+    @mini_scan.setter
+    def mini_scan(self, value):
+        self.scan.mini_scan = value
 
     @property
     def lissajous_nx(self):
@@ -182,7 +198,10 @@ class View():
         self.rastering_value = ui.create_combo_box(items=SCAN_MODES,
                                                    current_index='@binding(rastering_mode)',
                                                    name='rastering_value', width='100')
-        self.rastering_row = ui.create_row(self.rastering_text, self.rastering_value, ui.create_stretch())
+        self.mini_scan_text = ui.create_label(name='mini_scan_text', text="Mini-scans: ")
+        self.mini_scan_value = ui.create_line_edit(name='mini_scan_value', text='@binding(mini_scan)', width='100')
+        self.rastering_row = ui.create_row(self.rastering_text, self.rastering_value, ui.create_stretch(),
+                                           self.mini_scan_text, self.mini_scan_value)
 
         self.lissajous_nx_text = ui.create_label(name='lissajous_text', text="Liss. X (Hz): ")
         self.lissajous_nx_value = ui.create_line_edit(name='lissajous_value: ', width=45, text='@binding(lissajous_nx)')
@@ -220,7 +239,8 @@ class View():
         self.video_delay_text = ui.create_label(name='video_delay_text', text="Video delay: ")
         self.video_delay_value = ui.create_line_edit(text='@binding(video_delay)',
                                                 name='video_delay_value', width='100')
-        self.video_delay_row = ui.create_row(self.video_delay_text, self.video_delay_value, ui.create_stretch())
+        self.enable_pause_sampling = ui.create_check_box(name='enable_pause_sampling', text="Pause Sampling", checked='@binding(pause_sampling)')
+        self.video_delay_row = ui.create_row(self.video_delay_text, self.video_delay_value, ui.create_stretch(), self.enable_pause_sampling)
 
         self.acqusition_adc_text = ui.create_label(name='acqusition_adc_text', text="ADC type: ")
         self.acquisition_adc_value = ui.create_combo_box(items=['FIR', 'Pixel counter', 'IIR', 'Multip.', 'Kernel'],

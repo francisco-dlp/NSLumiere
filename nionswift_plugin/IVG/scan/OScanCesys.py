@@ -54,9 +54,11 @@ class ScanEngine:
         self.__imagedisplay_filter_intensity = None
         self.__dsp_filter = None
         self.__video_delay = None
+        self.__pause_sampling = None
         self.__external_trigger = None
         self.__flyback_us = None
         self.__rastering_mode = None
+        self.__mini_scan = None
         self.__magboard_switches = None
         self.__offset_adc = None
         self.__lissajous_phase = None
@@ -72,9 +74,11 @@ class ScanEngine:
         self.__adc_mode = 0
         self.dsp_filter = 0
         self.video_delay = 0
+        self.pause_sampling = False
         self.external_trigger = 0
         self.flyback_us = 0
         self.rastering_mode = 0
+        self.mini_scan = 2
         self.magboard_switches = '100100'
         self.offset_adc = 13000
         self.lissajous_nx = 190.8
@@ -100,7 +104,7 @@ class ScanEngine:
                                            lissajous_nx=self.lissajous_nx,
                                            lissajous_ny=self.lissajous_ny,
                                            lissajous_phase=self.lissajous_phase,
-                                           subimages=2,
+                                           subimages=self.__mini_scan,
                                            kernelMode=KERNEL_LIST[self.kernel_mode],
                                            givenPixel=self.__given_pixel,
                                            acquisitionCutoff=self.acquisition_cutoff,
@@ -176,6 +180,16 @@ class ScanEngine:
             self.device.set_video_delay(int(value))
 
     @property
+    def pause_sampling(self):
+        return self.__pause_sampling
+
+    @pause_sampling.setter
+    def pause_sampling(self, value):
+        if self.__pause_sampling != value:
+            self.__pause_sampling = value
+            self.device.enable_pause_sampling(value)
+
+    @property
     def rastering_mode(self):
         return self.__rastering_mode
 
@@ -183,6 +197,15 @@ class ScanEngine:
     def rastering_mode(self, value):
         if self.__rastering_mode != value:
             self.__rastering_mode = value
+
+    @property
+    def mini_scan(self):
+        return self.__mini_scan
+
+    @mini_scan.setter
+    def mini_scan(self, value):
+        if self.__mini_scan != int(value):
+            self.__mini_scan = int(value)
 
     @property
     def lissajous_nx(self):
@@ -321,8 +344,6 @@ class Device(scan_base.ScanDevice):
         self.__rotation = 0.
         self.__is_scanning = False
         self.on_device_state_changed = None
-        self.__profiles = self.__get_initial_profiles()
-        self.__frame_parameters = copy.deepcopy(self.__profiles[0])
         self.flyback_pixels = 0
         self.__buffer = list()
         self.__sequence_buffer_size = 0
@@ -360,13 +381,6 @@ class Device(scan_base.ScanDevice):
         profiles.append(scan_base.ScanFrameParameters({"size": (128, 128), "pixel_time_us": 1, "fov_nm": 100.}))
         profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 1, "fov_nm": 100.}))
         return profiles
-
-    def get_profile_frame_parameters(self, profile_index: int) -> scan_base.ScanFrameParameters:
-        return copy.deepcopy(self.__profiles[profile_index])
-
-    def set_profile_frame_parameters(self, profile_index: int, frame_parameters: scan_base.ScanFrameParameters) -> None:
-        """Set the acquisition parameters for the give profile_index (0, 1, 2)."""
-        self.__profiles[profile_index] = copy.deepcopy(frame_parameters)
 
     def get_channel_name(self, channel_index: int) -> str:
         return self.__channels[channel_index].name
