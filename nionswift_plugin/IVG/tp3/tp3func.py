@@ -86,7 +86,7 @@ class Timepix3Metadata():
 class Timepix3Configurations():
 
     def __init__(self):
-        self.settings = Timepix3Metadata()
+        self.settings = dict()
 
         self.bin = None
         self.bytedepth = None
@@ -109,19 +109,16 @@ class Timepix3Configurations():
         self.sup0 = None
         self.sup1 = None
 
-        self.data = None
-
     def __setattr__(self, key, value):
         try:
-            if key in self.settings.metadata.keys():
-                self.settings.metadata[key] = value
-                read_data.InstrumentDictSetter("Timepix3", key, value)
+            self.settings[key] = value
+            read_data.InstrumentDictSetter("Timepix3", key, value)
         except AttributeError:
             pass
         super(Timepix3Configurations, self).__setattr__(key, value)
 
     def create_configuration_bytes(self):
-        return json.dumps(self.settings.metadata).encode()
+        return json.dumps(self.settings).encode()
     #     config_bytes = b''
     #
     #     if self.bin:
@@ -169,7 +166,7 @@ class Timepix3Configurations():
     #
     #     return config_bytes
 
-    def _get_array_size(self):
+    def get_array_size(self):
         shape = self.get_array_shape()
         array_size = 1
         try:
@@ -210,29 +207,59 @@ class Timepix3Configurations():
         elif self.bytedepth == 8:
             return numpy.dtype(numpy.uint64).newbyteorder('<')
 
-    def get_data(self):
-        data_depth = self.get_data_receive_type()
-        array_size = self._get_array_size()
-        if self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC or self.mode == EVENT_LIST_SCAN:
-            max_val = max(self.xspim_size, self.yspim_size)
+    # def get_data(self):
+    #     data_depth = self.get_data_receive_type()
+    #     array_size = self._get_array_size()
+    #     if self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC or self.mode == EVENT_LIST_SCAN:
+    #         max_val = max(self.xspim_size, self.yspim_size)
+    #         if max_val <= 64:
+    #             self.data = numpy.zeros(array_size, dtype=numpy.uint32)
+    #         elif max_val <= 1024:
+    #             self.data = numpy.zeros(array_size, dtype=numpy.uint16)
+    #         else:
+    #             self.data = numpy.zeros(array_size, dtype=numpy.uint8)
+    #     elif self.mode == EVENT_4DRAW:
+    #         self.data = numpy.zeros(array_size, dtype=numpy.uint8)
+    #     elif self.mode == FRAME or self.mode == FRAME_BASED \
+    #             or self.mode == FRAME_4DMASKED or self.mode == FASTCHRONO \
+    #             or self.mode == COINC_CHRONO or self.mode == HYPERSPEC_FRAME_BASED or self.mode == ISIBOX_SAVEALL:
+    #         self.data = numpy.zeros(array_size, dtype=data_depth)
+    #     else:
+    #         raise TypeError("***TP3_CONFIG***: Attempted mode ({self.mode}) that is not configured in get_data.")
+    #     return self.data
+    #
+    # def create_reshaped_array(self):
+    #     shape = self.get_array_shape()
+    #     return self.data.reshape(shape)
+
+
+class Timepix3DataManager():
+    def __init__(self):
+        self.data = None
+
+    def get_data(self, config: Timepix3Configurations):
+        data_depth = config.get_data_receive_type()
+        array_size = config.get_array_size()
+        if config.mode == EVENT_HYPERSPEC or config.mode == EVENT_HYPERSPEC_COINC or config.mode == EVENT_LIST_SCAN:
+            max_val = max(config.xspim_size, config.yspim_size)
             if max_val <= 64:
                 self.data = numpy.zeros(array_size, dtype=numpy.uint32)
             elif max_val <= 1024:
                 self.data = numpy.zeros(array_size, dtype=numpy.uint16)
             else:
                 self.data = numpy.zeros(array_size, dtype=numpy.uint8)
-        elif self.mode == EVENT_4DRAW:
+        elif config.mode == EVENT_4DRAW:
             self.data = numpy.zeros(array_size, dtype=numpy.uint8)
-        elif self.mode == FRAME or self.mode == FRAME_BASED \
-                or self.mode == FRAME_4DMASKED or self.mode == FASTCHRONO \
-                or self.mode == COINC_CHRONO or self.mode == HYPERSPEC_FRAME_BASED or self.mode == ISIBOX_SAVEALL:
+        elif config.mode == FRAME or config.mode == FRAME_BASED \
+                or config.mode == FRAME_4DMASKED or config.mode == FASTCHRONO \
+                or config.mode == COINC_CHRONO or config.mode == HYPERSPEC_FRAME_BASED or config.mode == ISIBOX_SAVEALL:
             self.data = numpy.zeros(array_size, dtype=data_depth)
         else:
             raise TypeError("***TP3_CONFIG***: Attempted mode ({self.mode}) that is not configured in get_data.")
         return self.data
 
-    def create_reshaped_array(self):
-        shape = self.get_array_shape()
+    def create_reshaped_array(self, config: Timepix3Configurations):
+        shape = config.get_array_shape()
         return self.data.reshape(shape)
 
 class TimePix3():
@@ -250,6 +277,7 @@ class TimePix3():
         self.__frame = 0
         self.__spimData = None
         self.__detector_config = Timepix3Configurations()
+        self.__data_manager = Timepix3DataManager()
 
         self.__frame_based = False
         self.__isPlaying = False
@@ -1098,7 +1126,7 @@ class TimePix3():
         cam_properties = dict()
 
         dt = self.__detector_config.get_data_receive_type()
-        self.__data = self.__detector_config.get_data()
+        self.__data = self.__data_manager.get_data(self.__detector_config)
         self.__frame = 0
 
         #Frame_based spectral image
@@ -1245,7 +1273,7 @@ class TimePix3():
             return False
 
         dt = self.__detector_config.get_data_receive_type()
-        self.__data = self.__detector_config.get_data()
+        self.__data = self.__data_manager.get_data(self.__detector_config)
         client.send(config_bytes)
 
         logging.info(f"Creating data type as {dt} and array shape with {self.__data.shape} for the acquisition.")
@@ -1338,7 +1366,7 @@ class TimePix3():
             return False
 
         dt = self.__detector_config.get_data_receive_type()
-        self.__data = self.__detector_config.get_data()
+        self.__data = self.__data_manager.get_data(self.__detector_config)
         client.send(config_bytes)
 
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
@@ -1399,14 +1427,13 @@ class TimePix3():
         return cur_pa
 
     def create_specimage(self):
-        return self.__detector_config.create_reshaped_array()
+        return self.__data_manager.create_reshaped_array(self.__detector_config)
 
     def create_spimimage(self):
-        #return self.__detector_config.create_spimimage()
-        return self.__detector_config.create_reshaped_array()
+        return self.__data_manager.create_reshaped_array(self.__detector_config)
 
     def create_spimimage_frame(self):
         return (self.__frame, self.__data.reshape((self.__detector_config.yscan_size, self.__detector_config.xscan_size, SPEC_SIZE)))
 
     def create_4dimage(self):
-        return self.__detector_config.create_reshaped_array()
+        return self.__data_manager.create_reshaped_array(self.__detector_config)
