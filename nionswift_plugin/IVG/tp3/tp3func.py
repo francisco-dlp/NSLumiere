@@ -56,33 +56,6 @@ class Response():
     def __init__(self):
         self.text = '***TP3***: This is simul mode.'
 
-
-
-
-
-class Timepix3Metadata():
-    def __init__(self):
-        self.metadata = dict()
-
-        self.metadata["bin"] = False
-        self.metadata["bytedepth"] = 0
-        self.metadata["cumul"] = False
-        self.metadata["mode"] = 0
-        self.metadata["xspim_size"] = 0
-        self.metadata["yspim_size"] = 0
-        self.metadata["xscan_size"] = 0
-        self.metadata["yscan_size"] = 0
-        self.metadata["pixel_time"] = 0
-        self.metadata["time_delay"] = 0
-        self.metadata["time_width"] = 0
-        self.metadata["save_locally"] = False
-        self.metadata["pixel_mask"] = 0
-        self.metadata["threshold"] = 0
-        self.metadata["bias_voltage"] = 0
-        self.metadata["destination_port"] = 0
-        self.metadata["sup0"] = 0.0
-        self.metadata["sup1"] = 0.0
-
 class Timepix3Configurations():
 
     def __init__(self):
@@ -119,52 +92,6 @@ class Timepix3Configurations():
 
     def create_configuration_bytes(self):
         return json.dumps(self.settings).encode()
-    #     config_bytes = b''
-    #
-    #     if self.bin:
-    #         config_bytes += b'\x01'
-    #     else:
-    #         config_bytes += b'\x00'
-    #
-    #     if self.bytedepth == 4:
-    #         config_bytes += b'\x02'
-    #     elif self.bytedepth == 2:
-    #         config_bytes += b'\x01'
-    #     elif self.bytedepth == 1:
-    #         config_bytes += b'\x00'
-    #     elif self.bytedepth == 8:
-    #         config_bytes += b'\x04'
-    #
-    #     if self.cumul:
-    #         config_bytes += b'\x01'
-    #     else:
-    #         config_bytes += b'\x00'
-    #
-    #     config_bytes += bytes([self.mode])
-    #
-    #     config_bytes += struct.pack("<H", self.xspim_size)
-    #     config_bytes += struct.pack("<H", self.yspim_size)
-    #
-    #     config_bytes += struct.pack("<H", self.xscan_size)
-    #     config_bytes += struct.pack("<H", self.yscan_size)
-    #
-    #     config_bytes += struct.pack("<I", int(self.pixel_time * 1000 / 1.5625))
-    #
-    #     config_bytes += struct.pack("<H", self.time_delay)  # BE. See https://docs.python.org/3/library/struct.html
-    #     config_bytes += struct.pack("<H", self.time_width)  # BE. See https://docs.python.org/3/library/struct.html
-    #
-    #     if self.save_locally:
-    #         config_bytes += b'\x01'
-    #     else:
-    #         config_bytes += b'\x00'
-    #
-    #     config_bytes += struct.pack("<f", float(self.sup1))  # BE. See https://docs.python.org/3/library/struct.html
-    #     config_bytes += struct.pack("<f", float(self.sup0))  # BE. See https://docs.python.org/3/library/struct.html
-    #
-    #     bytes_length = len(config_bytes)
-    #     config_bytes += bytes(512 - bytes_length)
-    #
-    #     return config_bytes
 
     def get_array_size(self):
         shape = self.get_array_shape()
@@ -206,31 +133,6 @@ class Timepix3Configurations():
             return numpy.dtype(numpy.uint32).newbyteorder('<')
         elif self.bytedepth == 8:
             return numpy.dtype(numpy.uint64).newbyteorder('<')
-
-    # def get_data(self):
-    #     data_depth = self.get_data_receive_type()
-    #     array_size = self._get_array_size()
-    #     if self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC or self.mode == EVENT_LIST_SCAN:
-    #         max_val = max(self.xspim_size, self.yspim_size)
-    #         if max_val <= 64:
-    #             self.data = numpy.zeros(array_size, dtype=numpy.uint32)
-    #         elif max_val <= 1024:
-    #             self.data = numpy.zeros(array_size, dtype=numpy.uint16)
-    #         else:
-    #             self.data = numpy.zeros(array_size, dtype=numpy.uint8)
-    #     elif self.mode == EVENT_4DRAW:
-    #         self.data = numpy.zeros(array_size, dtype=numpy.uint8)
-    #     elif self.mode == FRAME or self.mode == FRAME_BASED \
-    #             or self.mode == FRAME_4DMASKED or self.mode == FASTCHRONO \
-    #             or self.mode == COINC_CHRONO or self.mode == HYPERSPEC_FRAME_BASED or self.mode == ISIBOX_SAVEALL:
-    #         self.data = numpy.zeros(array_size, dtype=data_depth)
-    #     else:
-    #         raise TypeError("***TP3_CONFIG***: Attempted mode ({self.mode}) that is not configured in get_data.")
-    #     return self.data
-    #
-    # def create_reshaped_array(self):
-    #     shape = self.get_array_shape()
-    #     return self.data.reshape(shape)
 
 
 class Timepix3DataManager():
