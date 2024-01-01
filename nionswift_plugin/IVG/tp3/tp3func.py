@@ -52,11 +52,11 @@ def update_spim_numba(array, event_list):
     for val in event_list:
         array[val] += 1
 
-class Response():
+class Response:
     def __init__(self):
         self.text = '***TP3***: This is simul mode.'
 
-class Timepix3Configurations():
+class Timepix3Configurations:
 
     def __init__(self):
         self.settings = dict()
@@ -73,9 +73,9 @@ class Timepix3Configurations():
         self.time_delay = None
         self.time_width = None
         self.time_resolved = None
-        self.frame_based = None
         self.save_locally = None
         self.pixel_mask = None
+        self.video_time = 0
         self.threshold = None
         self.bias_voltage = None
         self.destination_port = None
@@ -105,22 +105,22 @@ class Timepix3Configurations():
 
     def get_array_shape(self):
         if self.mode == FASTCHRONO:
-            return (self.xspim_size, SPEC_SIZE)
+            return self.xspim_size, SPEC_SIZE
         elif self.mode == COINC_CHRONO:
-            return (self.time_width * 2, SPEC_SIZE)
+            return self.time_width * 2, SPEC_SIZE
         elif self.mode == FRAME or self.mode == FRAME_BASED or self.mode == ISIBOX_SAVEALL:
             if self.bin:
-                return (SPEC_SIZE)
+                return SPEC_SIZE
             else:
-                return (SPEC_SIZE_Y, SPEC_SIZE)
+                return SPEC_SIZE_Y, SPEC_SIZE
         elif self.mode == FRAME_4DMASKED:
-            return (self.yspim_size, self.xspim_size, NUMBER_OF_MASKS)
+            return self.yspim_size, self.xspim_size, NUMBER_OF_MASKS
         elif self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC or self.mode == EVENT_LIST_SCAN:
-            return (self.yspim_size, self.xspim_size, SPIM_SIZE)
+            return self.yspim_size, self.xspim_size, SPIM_SIZE
         elif self.mode == HYPERSPEC_FRAME_BASED: #Frame based measurement
-            return (self.yspim_size, self.xspim_size, SPEC_SIZE)
+            return self.yspim_size, self.xspim_size, SPEC_SIZE
         elif self.mode == EVENT_4DRAW:
-            return (self.yspim_size, self.xspim_size, RAW4D_PIXELS_Y, RAW4D_PIXELS_X)
+            return self.yspim_size, self.xspim_size, RAW4D_PIXELS_Y, RAW4D_PIXELS_X
         else:
             raise TypeError(f"***TP3_CONFIG***: Attempted mode ({self.mode}) that is not configured in spimimage.")
 
@@ -135,7 +135,7 @@ class Timepix3Configurations():
             return numpy.dtype(numpy.uint64).newbyteorder('<')
 
 
-class Timepix3DataManager():
+class Timepix3DataManager:
     def __init__(self):
         self.data = None
 
@@ -484,6 +484,9 @@ class TimePix3():
 
     def getAccumulateNumber(self):
         return int(self.__accumulation)
+
+    def set_video_delay(self, value):
+        self.__detector_config.video_time = int(value)
 
     def setSpimMode(self, mode):
         pass

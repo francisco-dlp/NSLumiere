@@ -5,6 +5,7 @@ import copy, math, gettext, numpy, typing, time, threading, logging, os, sys
 from nion.utils import Registry
 from nion.utils import Geometry
 from nion.instrumentation import scan_base, stem_controller
+from nion.instrumentation import HardwareSource
 
 from nionswift_plugin.IVG.scan.OScanCesysDialog import ConfigDialog
 from FPGAControl import FPGAConfig
@@ -178,6 +179,12 @@ class ScanEngine:
         if self.__video_delay != int(value):
             self.__video_delay = int(value)
             self.device.set_video_delay(int(value))
+            #If timepix3 is present, we should try to set the metadata of this value
+            cam = HardwareSource.HardwareSourceManager()\
+                .get_hardware_source_for_hardware_source_id("orsay_camera_timepix3")
+            if cam is not None:
+                cam.camera.camera.set_video_delay(value)
+
 
     @property
     def pause_sampling(self):
