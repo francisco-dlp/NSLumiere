@@ -486,7 +486,7 @@ class TimePix3():
         return int(self.__accumulation)
 
     def set_video_delay(self, value):
-        value_in_640mhz = value / 100 * 640
+        value_in_640mhz = int(value) / 100 * 640
         self.__detector_config.video_time = int(value_in_640mhz)
 
     def setSpimMode(self, mode):
