@@ -53,6 +53,8 @@ class ScanEngine:
         #Settings
         self.__imagedisplay = None
         self.__imagedisplay_filter_intensity = None
+        self.__adc_mode = None
+        self.__duty_cycle = None
         self.__dsp_filter = None
         self.__video_delay = None
         self.__pause_sampling = None
@@ -70,9 +72,10 @@ class ScanEngine:
         self.__acquisition_cutoff = None
         self.__acquisition_window = None
 
-        self.__imagedisplay = 0
-        self.__imagedisplay_filter_intensity = 25
-        self.__adc_mode = 0
+        self.imagedisplay = 0
+        self.imagedisplay_filter_intensity = 25
+        self.adc_acquisition_mode = 0
+        self.duty_cycle = 100
         self.dsp_filter = 0
         self.video_delay = 0
         self.pause_sampling = False
@@ -105,9 +108,10 @@ class ScanEngine:
                                            lissajous_nx=self.lissajous_nx,
                                            lissajous_ny=self.lissajous_ny,
                                            lissajous_phase=self.lissajous_phase,
-                                           subimages=self.__mini_scan,
+                                           subimages=self.mini_scan,
                                            kernelMode=KERNEL_LIST[self.kernel_mode],
                                            givenPixel=self.__given_pixel,
+                                           dutyCycle=self.duty_cycle,
                                            acquisitionCutoff=self.acquisition_cutoff,
                                            acquisitionWindow=self.acquisition_window
                                            )
@@ -132,6 +136,7 @@ class ScanEngine:
     def imagedisplay_filter_intensity(self, value):
         if self.__imagedisplay_filter_intensity != value:
             self.__imagedisplay_filter_intensity = int(value)
+
     @property
     def flyback_us(self):
         return self.__flyback_us
@@ -159,6 +164,15 @@ class ScanEngine:
         if self.__adc_mode != value:
             self.__adc_mode = value
             self.device.set_acquisition_mode(value)
+
+    @property
+    def duty_cycle(self):
+        return self.__duty_cycle
+
+    @duty_cycle.setter
+    def duty_cycle(self, value):
+        if self.__duty_cycle != int(value):
+            self.__duty_cycle = int(value)
 
     @property
     def dsp_filter(self):

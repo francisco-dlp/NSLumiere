@@ -7,163 +7,207 @@ KERNEL_LIST = ['None', 'Square', 'Triangular', 'Gaussian', 'Blackman', 'Custom',
 SCAN_MODES = ['Normal', 'Serpentine', 'Random', 'Mini-scans', 'Lissajous', 'Sawtooth Lissajous']
 IMAGE_VIEW_MODES = ['Normal', 'Ordered', 'DAC-based', 'Low-pass filter', 'Inpainting']
 
+def function_creator(name: str):
+    def func(self):
+        return getattr(self.scan, name)
+    def func2(self, value):
+        return setattr(self.scan, name, value)
+    return func, func2
+
 class Handler:
     def __init__(self):
         self.property_changed_event = Event.Event()
         scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("open_scan_device")
         self.scan = scan.scan_device.scan_engine
 
-    @property
-    def imagedisplay(self):
-        return self.scan.imagedisplay
+    f1, f2 = function_creator("imagedisplay")
+    imagedisplay = property(f1, f2)
+    f1, f2 = function_creator("imagedisplay_filter_intensity")
+    imagedisplay_filter_intensity = property(f1, f2)
+    f1, f2 = function_creator("flyback_us")
+    flyback_us = property(f1, f2)
+    f1, f2 = function_creator("kernel_mode")
+    kernel_mode = property(f1, f2)
+    f1, f2 = function_creator("given_pixel")
+    given_pixel = property(f1, f2)
+    f1, f2 = function_creator("dsp_filter")
+    dsp_filter = property(f1, f2)
+    f1, f2 = function_creator("video_delay")
+    video_delay = property(f1, f2)
+    f1, f2 = function_creator("pause_sampling")
+    pause_sampling = property(f1, f2)
+    f1, f2 = function_creator("adc_acquisition_mode")
+    adc_acquisition_mode = property(f1, f2)
+    f1, f2 = function_creator("acquisition_cutoff")
+    acquisition_cutoff = property(f1, f2)
+    f1, f2 = function_creator("acquisition_window")
+    acquisition_window = property(f1, f2)
+    f1, f2 = function_creator("rastering_mode")
+    rastering_mode = property(f1, f2)
+    f1, f2 = function_creator("mini_scan")
+    mini_scan = property(f1, f2)
+    f1, f2 = function_creator("lissajous_nx")
+    lissajous_nx = property(f1, f2)
+    f1, f2 = function_creator("lissajous_ny")
+    lissajous_ny = property(f1, f2)
+    f1, f2 = function_creator("lissajous_phase")
+    lissajous_phase = property(f1, f2)
+    f1, f2 = function_creator("external_trigger")
+    external_trigger = property(f1, f2)
+    f1, f2 = function_creator("magboard_switches")
+    magboard_switches = property(f1, f2)
+    f1, f2 = function_creator("offset_adc")
+    offset_adc = property(f1, f2)
+    f1, f2 = function_creator("duty_cycle")
+    duty_cycle = property(f1, f2)
 
-    @imagedisplay.setter
-    def imagedisplay(self, value):
-        self.scan.imagedisplay = value
+    #@property
+    #def imagedisplay(self):
+    #    return getattr(self.scan, "imagedisplay")#self.scan.imagedisplay
+    #
+    # @imagedisplay.setter
+    # def imagedisplay(self, value):
+    #     self.scan.imagedisplay = value
+    # @property
+    # def imagedisplay_filter_intensity(self):
+    #     return self.scan.imagedisplay_filter_intensity
+    #
+    # @imagedisplay_filter_intensity.setter
+    # def imagedisplay_filter_intensity(self, value):
+    #     self.scan.imagedisplay_filter_intensity = value
+    # @property
+    # def flyback_us(self):
+    #     return self.scan.flyback_us
+    #
+    # @flyback_us.setter
+    # def flyback_us(self, value):
+    #     self.scan.flyback_us = value
+    # @property
+    # def kernel_mode(self):
+    #     return self.scan.kernel_mode
+    #
+    # @kernel_mode.setter
+    # def kernel_mode(self, value):
+    #     self.scan.kernel_mode = value
+    # @property
+    # def given_pixel(self):
+    #     return self.scan.given_pixel
+    #
+    # @given_pixel.setter
+    # def given_pixel(self, value):
+    #     self.scan.given_pixel = value
+    # @property
+    # def dsp_filter(self):
+    #     return self.scan.dsp_filter
+    #
+    # @dsp_filter.setter
+    # def dsp_filter(self, value):
+    #     self.scan.dsp_filter = value
+    #
+    # @property
+    # def video_delay(self):
+    #     return self.scan.video_delay
+    #
+    # @video_delay.setter
+    # def video_delay(self, value):
+    #     self.scan.video_delay = value
+    #
+    # @property
+    # def pause_sampling(self):
+    #     return self.scan.pause_sampling
+    #
+    # @pause_sampling.setter
+    # def pause_sampling(self, value):
+    #     self.scan.pause_sampling = value
+    #
+    # @property
+    # def adc_acquisition_mode(self):
+    #     return self.scan.adc_acquisition_mode
+    #
+    # @adc_acquisition_mode.setter
+    # def adc_acquisition_mode(self, value):
+    #     self.scan.adc_acquisition_mode = value
+    #
+    # @property
+    # def acquisition_cutoff(self):
+    #     return self.scan.acquisition_cutoff
+    #
+    # @acquisition_cutoff.setter
+    # def acquisition_cutoff(self, value):
+    #     self.scan.acquisition_cutoff = value
+    #
+    # @property
+    # def acquisition_window(self):
+    #     return self.scan.acquisition_window
+    #
+    # @acquisition_window.setter
+    # def acquisition_window(self, value):
+    #     self.scan.acquisition_window = value
+    #
+    # @property
+    # def rastering_mode(self):
+    #     return self.scan.rastering_mode
+    #
+    # @rastering_mode.setter
+    # def rastering_mode(self, value):
+    #     self.scan.rastering_mode = value
+    #
+    # @property
+    # def mini_scan(self):
+    #     return self.scan.mini_scan
+    #
+    # @mini_scan.setter
+    # def mini_scan(self, value):
+    #     self.scan.mini_scan = value
+    #
+    # @property
+    # def lissajous_nx(self):
+    #     return self.scan.lissajous_nx
+    #
+    # @lissajous_nx.setter
+    # def lissajous_nx(self, value):
+    #     self.scan.lissajous_nx = value
+    #
+    # @property
+    # def lissajous_ny(self):
+    #     return self.scan.lissajous_ny
+    #
+    # @lissajous_ny.setter
+    # def lissajous_ny(self, value):
+    #     self.scan.lissajous_ny = value
+    #
+    # @property
+    # def lissajous_phase(self):
+    #     return self.scan.lissajous_phase
+    #
+    # @lissajous_phase.setter
+    # def lissajous_phase(self, value):
+    #     self.scan.lissajous_phase = value
 
-    @property
-    def imagedisplay_filter_intensity(self):
-        return self.scan.imagedisplay_filter_intensity
-
-    @imagedisplay_filter_intensity.setter
-    def imagedisplay_filter_intensity(self, value):
-        self.scan.imagedisplay_filter_intensity = value
-    @property
-    def flyback_us(self):
-        return self.scan.flyback_us
-
-    @flyback_us.setter
-    def flyback_us(self, value):
-        self.scan.flyback_us = value
-
-    @property
-    def kernel_mode(self):
-        return self.scan.kernel_mode
-
-    @kernel_mode.setter
-    def kernel_mode(self, value):
-        self.scan.kernel_mode = value
-
-    @property
-    def given_pixel(self):
-        return self.scan.given_pixel
-
-    @given_pixel.setter
-    def given_pixel(self, value):
-        self.scan.given_pixel = value
-
-    @property
-    def dsp_filter(self):
-        return self.scan.dsp_filter
-
-    @dsp_filter.setter
-    def dsp_filter(self, value):
-        self.scan.dsp_filter = value
-
-    @property
-    def video_delay(self):
-        return self.scan.video_delay
-
-    @video_delay.setter
-    def video_delay(self, value):
-        self.scan.video_delay = value
-
-    @property
-    def pause_sampling(self):
-        return self.scan.pause_sampling
-
-    @pause_sampling.setter
-    def pause_sampling(self, value):
-        self.scan.pause_sampling = value
-
-    @property
-    def adc_acquisition_mode(self):
-        return self.scan.adc_acquisition_mode
-
-    @adc_acquisition_mode.setter
-    def adc_acquisition_mode(self, value):
-        self.scan.adc_acquisition_mode = value
-
-    @property
-    def acquisition_cutoff(self):
-        return self.scan.acquisition_cutoff
-
-    @acquisition_cutoff.setter
-    def acquisition_cutoff(self, value):
-        self.scan.acquisition_cutoff = value
-
-    @property
-    def acquisition_window(self):
-        return self.scan.acquisition_window
-
-    @acquisition_window.setter
-    def acquisition_window(self, value):
-        self.scan.acquisition_window = value
-
-    @property
-    def rastering_mode(self):
-        return self.scan.rastering_mode
-
-    @rastering_mode.setter
-    def rastering_mode(self, value):
-        self.scan.rastering_mode = value
-
-    @property
-    def mini_scan(self):
-        return self.scan.mini_scan
-
-    @mini_scan.setter
-    def mini_scan(self, value):
-        self.scan.mini_scan = value
-
-    @property
-    def lissajous_nx(self):
-        return self.scan.lissajous_nx
-
-    @lissajous_nx.setter
-    def lissajous_nx(self, value):
-        self.scan.lissajous_nx = value
-
-    @property
-    def lissajous_ny(self):
-        return self.scan.lissajous_ny
-
-    @lissajous_ny.setter
-    def lissajous_ny(self, value):
-        self.scan.lissajous_ny = value
-
-    @property
-    def lissajous_phase(self):
-        return self.scan.lissajous_phase
-
-    @lissajous_phase.setter
-    def lissajous_phase(self, value):
-        self.scan.lissajous_phase = value
-
-    @property
-    def external_trigger(self):
-        return self.scan.external_trigger
-
-    @external_trigger.setter
-    def external_trigger(self, value):
-        if value == True or value == False:
-            self.scan.external_trigger = int(value)
-
-    @property
-    def magswitches(self):
-        return self.scan.magboard_switches
-
-    @magswitches.setter
-    def magswitches(self, value):
-        self.scan.magboard_switches = value
-
-    @property
-    def offset_adc(self):
-        return self.scan.offset_adc
-
-    @offset_adc.setter
-    def offset_adc(self, value):
-        self.scan.offset_adc = value
+    # @property
+    # def external_trigger(self):
+    #     return self.scan.external_trigger
+    #
+    # @external_trigger.setter
+    # def external_trigger(self, value):
+    #     if value == True or value == False:
+    #         self.scan.external_trigger = int(value)
+    #
+    # @property
+    # def magboard_switches(self):
+    #     return self.scan.magboard_switches
+    #
+    # @magswitches.setter
+    # def magboard_switches(self, value):
+    #     self.scan.magboard_switches = value
+    #
+    # @property
+    # def offset_adc(self):
+    #     return self.scan.offset_adc
+    #
+    # @offset_adc.setter
+    # def offset_adc(self, value):
+    #     self.scan.offset_adc = value
 
 class View():
     def __init__(self):
@@ -246,8 +290,13 @@ class View():
         self.acquisition_adc_value = ui.create_combo_box(items=['FIR', 'Pixel counter', 'IIR', 'Multip.', 'Kernel'],
                                                 current_index='@binding(adc_acquisition_mode)',
                                                 name='acquisition_adc_value', width='100')
+        self.duty_cycle_label = ui.create_label(name='duty_cycle_label', text="Duty cycle: ")
+        self.duty_cycle_value = ui.create_line_edit(text='@binding(duty_cycle)',
+                                                         name='duty_cycle_value', width='100')
 
-        self.acquisition_adc_row = ui.create_row(self.acqusition_adc_text, self.acquisition_adc_value, ui.create_stretch())
+        self.acquisition_adc_row = ui.create_row(self.acqusition_adc_text, self.acquisition_adc_value,
+                                                 ui.create_stretch(),
+                                                 self.duty_cycle_label, self.duty_cycle_value)
 
         self.cutoff_text = ui.create_label(name='cutoff_text', text='Cutoff (KHz): ')
         self.cutoff_value = ui.create_line_edit(name='cutoff_value', text='@binding(acquisition_cutoff)')
@@ -265,7 +314,7 @@ class View():
 
         #Hardware settings
         self.magswitches_text = ui.create_label(name='magswitches_text', text="Mag. Switches: ")
-        self.magswitches_value = ui.create_line_edit(name='magswitches_value: ', text='@binding(magswitches)')
+        self.magswitches_value = ui.create_line_edit(name='magswitches_value: ', text='@binding(magboard_switches)')
         self.magswitches_row = ui.create_row(self.magswitches_text, self.magswitches_value,
                                                   ui.create_stretch())
 
