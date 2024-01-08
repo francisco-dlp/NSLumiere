@@ -7,22 +7,17 @@ import threading
 import typing
 import time
 import json
-import os
 from enum import Enum
 import logging
 from ctypes import c_uint64, c_int32
 
 # local libraries
-
-from nion.swift.model import PlugInManager
 from nion.swift.model import HardwareSource
 from nion.utils import Registry
-
 from nion.instrumentation import camera_base
 from nion.data import DataAndMetadata
 from nion.instrumentation.camera_base import CameraFrameParameters
 
-from nionswift_plugin.IVG import ivg_inst
 try:
     from ..aux_files import read_data
 except ImportError:
