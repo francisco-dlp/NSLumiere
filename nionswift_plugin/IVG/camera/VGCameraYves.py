@@ -142,8 +142,6 @@ class CameraTask:
         metadata = dict()
         metadata['hardware_source'] = dict()
         if self.__headers == False:
-           metadata["hardware_source"]["acquisition_header"] = self.__camera_device.acquisition_header
-           metadata["hardware_source"]["image_header"] = self.__camera_device.image_header
            if self.__camera_device.isMedipix:
                metadata["hardware_source"]["merlin"] = dict()
                metadata["hardware_source"]["merlin"]["acquisition"] = self.__camera_device.acquisition_header
@@ -189,6 +187,13 @@ class CameraDevice(camera_base.CameraDevice):
         self.camera_type = type
         self.camera_name = name
         self.camera_model = model
+
+        self.isKURO = model.find("KURO") >= 0
+        self.isNewton = model.find("Newton") >= 0
+        self.isProEM = model.find("ProEM") >= 0
+        self.isMedipix = model.find("Merlin") >= 0
+        self.isTimepix = model.find("CheeTah") >= 0
+
         if manufacturer == 4: #Timepix3
             from nionswift_plugin.IVG.tp3 import tp3func
             self.camera_callback = tp3func.SENDMYMESSAGEFUNC(self.sendMessageFactory())
@@ -225,12 +230,18 @@ class CameraDevice(camera_base.CameraDevice):
         self.has_data_event = threading.Event()
 
         # register data locker for SPIM acquisition
-        if manufacturer != 4 and manufacturer != 6:
+        if manufacturer != 4 and manufacturer != 6: #We dont do this for TPX3 and QD
             self.fnspimlock = orsaycamera.SPIMLOCKFUNC(self.__spim_data_locker)
             self.camera.registerSpimDataLocker(self.fnspimlock)
-            #self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
-            self.fnspimunlockA = orsaycamera.SPIMUNLOCKFUNCA(self.__spim_data_unlockerA)
-            self.camera.registerSpimDataUnlockerA(self.fnspimunlockA)
+
+            #Some cameras use the old or the new unlocker!
+            if self.isNewton:
+                self.fnspimunlock = orsaycamera.SPIMUNLOCKFUNC(self.__spim_data_unlocker)
+                self.camera.registerSpimDataUnlocker(self.fnspimunlock)
+            else:
+                self.fnspimunlockA = orsaycamera.SPIMUNLOCKFUNCA(self.__spim_data_unlockerA)
+                self.camera.registerSpimDataUnlockerA(self.fnspimunlockA)
+
             self.fnspectrumlock = orsaycamera.SPECTLOCKFUNC(self.__spectrum_data_locker)
             self.camera.registerSpectrumDataLocker(self.fnspectrumlock)
             self.fnspectrumunlock = orsaycamera.SPECTUNLOCKFUNC(self.__spectrum_data_unlocker)
@@ -242,11 +253,6 @@ class CameraDevice(camera_base.CameraDevice):
         self.__cumul_on = False
         bx, by = self.camera.getBinning()
         port = self.camera.getCurrentPort()
-
-        self.isKURO = model.find("KURO") >= 0
-        self.isProEM = model.find("ProEM") >= 0
-        self.isMedipix = model.find("Merlin") >= 0
-        self.isTimepix = model.find("CheeTah") >= 0
 
         d = dict()
         d.update({
