@@ -96,6 +96,7 @@ class ivgInstrument(stem_controller.STEMController):
         self.__fov = 4.0 #Begin fov as 4.0 microns
         self.__haadf_gain = 250
         self.__bf_gain = 250
+        self.__csh = [None, None]
 
         self.__EHT = self.__set_file.settings["global_settings"]["last_HT"]
         self.__obj_res_ref = OBJECTIVE_RESISTANCE
