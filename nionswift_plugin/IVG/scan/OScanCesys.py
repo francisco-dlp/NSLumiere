@@ -108,6 +108,8 @@ class ScanEngine:
         pixel_time = frame_parameters.as_dict()['pixel_time_us']
         fov_nm = frame_parameters.as_dict()['fov_nm']
         rotation_rad = frame_parameters.as_dict().get('rotation_rad', 0.0)
+        subscan_fractional_size = frame_parameters.as_dict().get('subscan_fractional_size')
+        subscan_fractional_center = frame_parameters.as_dict().get('subscan_fractional_center')
 
         self.device.change_scan_parameters(x, y, pixel_time, self.__flyback_us, fov_nm, SCAN_MODES[self.rastering_mode],
                                            rotation_rad = rotation_rad,
@@ -119,7 +121,9 @@ class ScanEngine:
                                            givenPixel=self.__given_pixel,
                                            dutyCycle=self.duty_cycle,
                                            acquisitionCutoff=self.acquisition_cutoff,
-                                           acquisitionWindow=self.acquisition_window
+                                           acquisitionWindow=self.acquisition_window,
+                                           subscan_fractional_size=subscan_fractional_size,
+                                           subscan_fractional_center=subscan_fractional_center
                                            )
 
     def set_probe_position(self, x, y):
