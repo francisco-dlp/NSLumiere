@@ -103,8 +103,14 @@ class ScanEngine:
     def get_ordered_array(self):
         return self.device.get_ordered_array()
 
-    def set_frame_parameters(self, x, y, pixel_us, fov_nm):
-        self.device.change_scan_parameters(x, y, pixel_us, self.__flyback_us, fov_nm, SCAN_MODES[self.rastering_mode],
+    def set_frame_parameters(self, frame_parameters: scan_base.ScanFrameParameters):
+        (x, y) = frame_parameters.as_dict()['pixel_size']
+        pixel_time = frame_parameters.as_dict()['pixel_time_us']
+        fov_nm = frame_parameters.as_dict()['fov_nm']
+        rotation_rad = frame_parameters.as_dict().get('rotation_rad', 0.0)
+
+        self.device.change_scan_parameters(x, y, pixel_time, self.__flyback_us, fov_nm, SCAN_MODES[self.rastering_mode],
+                                           rotation_rad = rotation_rad,
                                            lissajous_nx=self.lissajous_nx,
                                            lissajous_ny=self.lissajous_ny,
                                            lissajous_phase=self.lissajous_phase,
@@ -411,10 +417,7 @@ class Device(scan_base.ScanDevice):
         Device should use these parameters for new acquisition; and update to these parameters during acquisition.
         """
         self.__frame_parameters = copy.deepcopy(frame_parameters)
-        (x, y) = frame_parameters.as_dict()['pixel_size']
-        pixel_time = frame_parameters.as_dict()['pixel_time_us']
-        fov_nm = frame_parameters.as_dict()['fov_nm']
-        self.scan_engine.set_frame_parameters(x, y, pixel_time, fov_nm)
+        self.scan_engine.set_frame_parameters(frame_parameters)
 
     def save_frame_parameters(self) -> None:
         """Called when shutting down. Save frame parameters to persistent storage."""

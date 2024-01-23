@@ -6,6 +6,7 @@ ACQUISITION_WINDOW = ['boxcar', 'triang', 'blackman', 'hamming', 'hann']
 KERNEL_LIST = ['None', 'Square', 'Triangular', 'Gaussian', 'Blackman', 'Custom', 'First pixel', 'Last pixel', 'Given pixel']
 SCAN_MODES = ['Normal', 'Serpentine', 'Random', 'Mini-scans', 'Lissajous', 'Sawtooth Lissajous']
 IMAGE_VIEW_MODES = ['Normal', 'Ordered', 'DAC-based', 'Low-pass filter', 'Inpainting']
+ADC_READOUT_MODES = ['FIR', 'Pixel counter', 'IIR', 'Multip.', 'Kernel']
 
 def function_creator(name: str):
     def func(self):
@@ -287,7 +288,7 @@ class View():
         self.video_delay_row = ui.create_row(self.video_delay_text, self.video_delay_value, ui.create_stretch(), self.enable_pause_sampling)
 
         self.acqusition_adc_text = ui.create_label(name='acqusition_adc_text', text="ADC type: ")
-        self.acquisition_adc_value = ui.create_combo_box(items=['FIR', 'Pixel counter', 'IIR', 'Multip.', 'Kernel'],
+        self.acquisition_adc_value = ui.create_combo_box(items=ADC_READOUT_MODES,
                                                 current_index='@binding(adc_acquisition_mode)',
                                                 name='acquisition_adc_value', width='100')
         self.duty_cycle_label = ui.create_label(name='duty_cycle_label', text="Duty cycle: ")
