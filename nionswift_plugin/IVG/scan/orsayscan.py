@@ -419,6 +419,16 @@ class orsayScan(object):
             raise Exception("Failed to get orsayscan image size")
         return int(sx.value), int(sy.value)
 
+    @property
+    def Image_area(self):
+        return self.__scan_area
+
+    @Image_area.setter
+    def Image_area(self, value):
+        self.__scan_area = value
+        self.setImageArea(self.__scan_area[0], self.__scan_area[1], self.__scan_area[2], self.__scan_area[3],
+                          self.__scan_area[4], self.__scan_area[5])
+
     def setImageArea(self, sizex : int, sizey : int, startx : int, endx : int, starty : int, endy : int) -> bool:
         """
         Définit une aire pour le balayage.
