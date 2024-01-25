@@ -19,7 +19,7 @@ set_file = read_data.FileManager('global_settings')
 ORSAY_SCAN_IS_VG = set_file.settings["OrsayInstrument"]["orsay_scan"]["IS_VG"]
 ORSAY_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["orsay_scan"]["EFM03"]
 CROP_SUBSCAN = True
-DEBUG = True
+DEBUG = False
 
 # set the calibrations for this image. does not touch metadata.
 def test_update_scan_data_element(data_element, scan_frame_parameters, data_shape, channel_name, channel_id,
@@ -129,6 +129,8 @@ class Device(scan_base.ScanDevice):
         self.flyback_pixels = 2
         self.__buffer = list()
         self.__sequence_buffer_size = 0
+        self.__timeout = 0.25
+        self.__last_time = time.time()
         self.__view_buffer_size = 20
         self.bottom_blanker = 0
 
@@ -165,16 +167,8 @@ class Device(scan_base.ScanDevice):
         self.__tpx3_calib = dict()
         self.__tpx3_frameStop = 0
 
-        # self.p0 = 512
-        # self.p1 = 512
-        # self.p2 = 0
-        # self.p3 = 512
-        # self.p4 = 0
-        # self.p5 = 512
         self.orsayscan.Image_area = [512, 512, 0, 512, 0, 512]
         self.spimscan.Image_area = [128, 128, 0, 512, 0, 512]
-        #self.Image_area = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
-        #self.set_spim_pixels = [self.p0, self.p1, self.p2, self.p3, self.p4, self.p5]
         self.scan_rotation = 0.0
         self.orsayscan.setScanScale(0, 5.0, 5.0)
 
@@ -185,6 +179,13 @@ class Device(scan_base.ScanDevice):
         ######
 
         self.scan = self.orsayscan
+
+    def timeout(function):
+        def wrapper(self, *args):
+            if time.time() - self.__last_time > self.__timeout:
+                function(self, *args)
+                self.__last_time = time.time()
+        return wrapper
 
     def close(self):
         pass
@@ -236,6 +237,7 @@ class Device(scan_base.ScanDevice):
     def get_channel_name(self, channel_index: int) -> str:
         return self.__channels[channel_index].name
 
+    @timeout
     def set_frame_parameters(self, frame_parameters: scan_base.ScanFrameParameters) -> None:
         """Called just before and during acquisition.
         Device should use these parameters for new acquisition; and update to these parameters during acquisition.
@@ -318,7 +320,6 @@ class Device(scan_base.ScanDevice):
                 self.__tpx3_camera.camera.camera._TimePix3__isReady.wait(5.0)
                 self.__tpx3_data = self.__tpx3_camera.camera.camera.create_4dimage() #Getting the reference
                 time.sleep(0.5)  # Timepix has already a socket connected. Wait until it is definitely reading data
-
 
     def stop_timepix3(self):
         if self.__tpx3_spim or self.__tpx3_4d: #only stop if this was on
@@ -413,6 +414,7 @@ class Device(scan_base.ScanDevice):
         frame_parameters = current_frame.frame_parameters
         scan_area = self.spimscan.Image_area if self.__spim else self.orsayscan.Image_area
 
+        #If its spim, the line_number is given by the sampling. If its not the spim, the value of the roi is used.
         if (self.__line_number == scan_area[1] and self.__spim) or \
                 ((self.__line_number == scan_area[5] and not self.__spim)):
             current_frame.complete = True
