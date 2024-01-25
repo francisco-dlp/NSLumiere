@@ -18,8 +18,8 @@ _ = gettext.gettext
 set_file = read_data.FileManager('global_settings')
 ORSAY_SCAN_IS_VG = set_file.settings["OrsayInstrument"]["orsay_scan"]["IS_VG"]
 ORSAY_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["orsay_scan"]["EFM03"]
-SHOW_RELATIVE_SUBSCAN = False
-DEBUG = False
+CROP_SUBSCAN = True
+DEBUG = True
 
 # set the calibrations for this image. does not touch metadata.
 def test_update_scan_data_element(data_element, scan_frame_parameters, data_shape, channel_name, channel_id,
@@ -413,7 +413,8 @@ class Device(scan_base.ScanDevice):
         frame_parameters = current_frame.frame_parameters
         scan_area = self.spimscan.Image_area if self.__spim else self.orsayscan.Image_area
 
-        if self.__line_number == scan_area[1]:
+        if (self.__line_number == scan_area[1] and self.__spim) or \
+                ((self.__line_number == scan_area[5] and not self.__spim)):
             current_frame.complete = True
             sub_area = ((0, 0), (self.__scan_size[1], self.__scan_size[0]))
             pixels_to_skip = 0
@@ -427,6 +428,13 @@ class Device(scan_base.ScanDevice):
 
         data_elements = list()
         sxy = scan_area[1] * scan_area[0]
+        if CROP_SUBSCAN and not self.__spim:
+            offsety = [scan_area[2], scan_area[3]]
+            offsetx = [scan_area[4], scan_area[5]]
+        else:
+            offsety = [0, scan_area[0]]
+            offsetx = [0, scan_area[1]]
+
 
         for channel in current_frame.channels:
             data_element = dict()
@@ -461,10 +469,10 @@ class Device(scan_base.ScanDevice):
                 data_element["properties"] = properties
                 if data_array is not None:
                     data_elements.append(data_element)
-
             else:
                 data_array = self.imagedata[channel.channel_id * sxy: (channel.channel_id + 1) * sxy]
                 data_array = data_array.reshape(scan_area[1], scan_area[0]).astype('float32')
+                data_array = data_array[offsetx[0]:offsetx[1], offsety[0]:offsety[1]]
                 data_element["data"] = data_array
                 properties = current_frame.frame_parameters.as_dict()
                 properties['sub_area'] = ((0, 0), data_array.shape)
@@ -476,17 +484,16 @@ class Device(scan_base.ScanDevice):
                 if data_array is not None:
                     data_elements.append(data_element)
 
-
         bad_frame = False
         self.has_data_event.clear()
 
         if current_frame.complete:
-            # if len(self.__buffer) > 0 and len(self.__buffer[-1]) != len(data_elements):
-            #     self.__buffer = list()
-            # self.__buffer.append(data_elements)
-            # while len(self.__buffer) > self.__sequence_buffer_size + self.__view_buffer_size:
-            #     del self.__buffer[self.__sequence_buffer_size]
-            self.__frame = None
+            if len(self.__buffer) > 0 and len(self.__buffer[-1]) != len(data_elements):
+                self.__buffer = list()
+            self.__buffer.append(data_elements)
+            while len(self.__buffer) > self.__sequence_buffer_size + self.__view_buffer_size:
+                del self.__buffer[self.__sequence_buffer_size]
+        self.__frame = None
 
         #Stop by using the number of frames
         if self.__tpx3_spim and self.__tpx3_frameStop != 0 and self.__frame_number >= self.__tpx3_frameStop:
@@ -498,17 +505,6 @@ class Device(scan_base.ScanDevice):
 
     #This one is called in scan_base
     def prepare_synchronized_scan(self, scan_frame_parameters: scan_base.ScanFrameParameters, *, camera_exposure_ms, **kwargs) -> None:
-        scan_frame_parameters.set_parameter("pixel_time_us", min(5120000, int(1000 * camera_exposure_ms * 0.75)))
-        scan_frame_parameters.set_parameter("external_clock_wait_time_ms",
-                                            20000)  # int(camera_frame_parameters["exposure_ms"] * 1.5)
-        scan_frame_parameters.set_parameter("external_clock_mode", 1)
-
-        if scan_frame_parameters.subscan_pixel_size:
-            size = scan_frame_parameters.subscan_pixel_size
-        else:
-            size = scan_frame_parameters.size
-
-        self.Spim_image_area = [size[0], size[1]]
         self.__spim = True
 
     def set_sequence_buffer_size(self, buffer_size: int) -> None:
@@ -573,32 +569,6 @@ class Device(scan_base.ScanDevice):
     def scan_rotation(self, value):
         self.__rotation = value*180/numpy.pi
         self.orsayscan.setScanRotation(self.__rotation)
-
-    # @property
-    # def Image_area(self):
-    #     return self.__scan_area
-    #
-    # @Image_area.setter
-    # def Image_area(self, value):
-    #     self.__scan_area = value
-    #     if DEBUG:
-    #         print(f'setting normal {self.__spim_pixels} and {self.__scan_area}')
-    #     self.orsayscan.setImageArea(self.__scan_area[0], self.__scan_area[1], self.__scan_area[2], self.__scan_area[3],
-    #                                 self.__scan_area[4], self.__scan_area[5])
-    #     self.imagedata = numpy.zeros((self.__sizez * (self.__scan_area[0]), (self.__scan_area[1])), dtype=numpy.int16)
-    #     self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
-
-    # @property
-    # def Spim_image_area(self):
-    #     return self.__spim_pixels
-    #
-    # @Spim_image_area.setter
-    # def Spim_image_area(self, value):
-    #     self.__spim_pixels = value
-    #     if DEBUG:
-    #         print(f'setting spim {self.__spim_pixels} and {self.__scan_area}')
-    #     self.spimscan.setImageArea(self.__spim_pixels[0], self.__spim_pixels[1], self.__scan_area[2], self.__scan_area[3],
-    #                                 self.__scan_area[4], self.__scan_area[5])
 
     @property
     def probe_pos(self):
