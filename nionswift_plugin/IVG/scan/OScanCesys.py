@@ -53,7 +53,7 @@ class ScanEngine:
         #Settings
         self.__imagedisplay = None
         self.__imagedisplay_filter_intensity = None
-        self.__adc_mode = None
+        self.__adc_acquisition_mode = None
         self.__duty_cycle = None
         self.__dsp_filter = None
         self.__video_delay = None
@@ -74,7 +74,7 @@ class ScanEngine:
 
         self.imagedisplay = 0
         self.imagedisplay_filter_intensity = 25
-        self.adc_acquisition_mode = 0
+        self.adc_acquisition_mode = 5
         self.duty_cycle = 100
         self.dsp_filter = 0
         self.video_delay = 0
@@ -100,10 +100,14 @@ class ScanEngine:
     def get_frame_counter(self, channel: int):
         return self.device.get_frame_counter(channel)
 
+    def get_dma_status_idle(self):
+        return self.device.get_dma_status_idle()
+
     def get_ordered_array(self):
         return self.device.get_ordered_array()
 
     def set_frame_parameters(self, frame_parameters: scan_base.ScanFrameParameters):
+        is_synchronized_scan = frame_parameters.get_parameter("external_clock_mode", 0)
         (y, x) = frame_parameters.as_dict()['pixel_size']
         pixel_time = frame_parameters.as_dict()['pixel_time_us']
         fov_nm = frame_parameters.as_dict()['fov_nm']
@@ -112,7 +116,7 @@ class ScanEngine:
         subscan_fractional_center = frame_parameters.as_dict().get('subscan_fractional_center')
         subscan_pixel_size = frame_parameters.as_dict().get('subscan_pixel_size')
 
-        self.device.change_scan_parameters(x, y, pixel_time, self.__flyback_us, fov_nm, SCAN_MODES[self.rastering_mode],
+        self.device.change_scan_parameters(x, y, pixel_time, self.__flyback_us, fov_nm, is_synchronized_scan, SCAN_MODES[self.rastering_mode],
                                            rotation_rad = rotation_rad,
                                            lissajous_nx=self.lissajous_nx,
                                            lissajous_ny=self.lissajous_ny,
@@ -169,12 +173,12 @@ class ScanEngine:
 
     @property
     def adc_acquisition_mode(self):
-        return self.__adc_mode
+        return self.__adc_acquisition_mode
 
     @adc_acquisition_mode.setter
     def adc_acquisition_mode(self, value):
-        if self.__adc_mode != value:
-            self.__adc_mode = value
+        if self.__adc_acquisition_mode != value:
+            self.__adc_acquisition_mode = value
             self.device.set_acquisition_mode(value)
 
     @property
@@ -445,9 +449,10 @@ class Device(scan_base.ScanDevice):
             frame_parameters.subscan_pixel_size if frame_parameters.subscan_pixel_size else frame_parameters.size)
         for channel in channels:
             channel.data = numpy.zeros(tuple(size), numpy.float32)
-        (self.__frame_number, new_frame) = self.scan_engine.get_frame_counter(0)
+        is_synchronized_scan = frame_parameters.get_parameter("external_clock_mode", 0) != 0
+        self.__frame_number = self.scan_engine.get_frame_counter(0)
+        self.__start_frame = self.__frame_number
         self.__frame = Frame(self.__frame_number, channels, frame_parameters)
-        self.__frame.complete = new_frame
 
     def read_partial(self, frame_number, pixels_to_skip) -> (typing.Sequence[dict], bool, bool, tuple, int, int):
         """Read or continue reading a frame.
@@ -468,7 +473,13 @@ class Device(scan_base.ScanDevice):
 
         current_frame = self.__frame  # this is from Frame Class defined above
         assert current_frame is not None
-        frame_number = current_frame.frame_number
+        #frame_number = current_frame.frame_number
+        is_synchronized_scan = current_frame.frame_parameters.get_parameter("external_clock_mode", 0) != 0
+        current_frame.complete = self.__frame_number > self.__start_frame if not is_synchronized_scan else self.scan_engine.get_dma_status_idle()[0] == 2
+        self.__frame_number = self.scan_engine.get_frame_counter(0)
+
+        #print(f"{current_frame.complete} and {self.__frame_number} and {self.__start_frame} and {self.scan_engine.get_dma_status_idle()}")
+
 
         data_elements = list()
 
@@ -491,15 +502,16 @@ class Device(scan_base.ScanDevice):
             self.__buffer.append(data_elements)
             while len(self.__buffer) > self.__sequence_buffer_size + self.__view_buffer_size:
                 del self.__buffer[self.__sequence_buffer_size]
-        self.__frame = None
+            self.__frame = None
 
         # return data_elements, complete, bad_frame, sub_area, frame_number, pixels_to_skip
-        return data_elements, current_frame.complete, False, ((0, 0), data_array.shape), frame_number, 0
+        return data_elements, current_frame.complete, False, ((0, 0), data_array.shape), self.__frame_number, 0
 
     # This one is called in scan_base
     def prepare_synchronized_scan(self, scan_frame_parameters: scan_base.ScanFrameParameters, *, camera_exposure_ms,
                                   **kwargs) -> None:
-        pass
+        #scan_frame_parameters.set_parameter("pixel_time_us", int(1000 * camera_exposure_ms))
+        scan_frame_parameters.set_parameter("external_clock_mode", 1)
 
     def set_sequence_buffer_size(self, buffer_size: int) -> None:
         self.__sequence_buffer_size = buffer_size
