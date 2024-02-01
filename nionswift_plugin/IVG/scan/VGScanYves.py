@@ -347,13 +347,6 @@ class Device(scan_base.ScanDevice):
             else:
                 scan = self.orsayscan
 
-            # Selecting the proper imagedata
-            self.__scan_size = scan.getImageSize()
-            self.__sizez = scan.GetInputs()[0]
-            size_summed = self.__sizez * self.__scan_size[1] * self.__scan_size[0]
-            self.imagedata = numpy.zeros(size_summed, dtype=int)
-            self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
-
             if DEBUG:
                 print(f'Sizez is {self.__sizez} and scan_size is {self.__scan_size}. Image area: {scan.Image_area} and'
                       f' {self.__spim_pixels} and the shape of imagedata is {self.imagedata.shape}')
@@ -577,6 +570,7 @@ class Device(scan_base.ScanDevice):
         return self.__probe_position
 
     @probe_pos.setter
+    @timeout
     def probe_pos(self, value):
         self.__probe_position = value
         #This is a very strange behavior of geometry class. Very misleading. Value is a tuple like
