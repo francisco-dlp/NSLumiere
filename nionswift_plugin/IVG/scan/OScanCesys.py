@@ -19,7 +19,7 @@ set_file = read_data.FileManager('global_settings')
 OPEN_SCAN_IS_VG = set_file.settings["OrsayInstrument"]["open_scan"]["IS_VG"]
 OPEN_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["open_scan"]["EFM03"]
 OPEN_SCAN_BITSTREAM = set_file.settings["OrsayInstrument"]["open_scan"]["BITSTREAM_FILE"]
-
+DEBUG = False
 
 def getlibname():
     if sys.platform.startswith('win'):
@@ -97,8 +97,8 @@ class ScanEngine:
         image = self.device.get_image(channel, imageType=IMAGE_VIEW_MODES[self.imagedisplay], low_pass_size=self.imagedisplay_filter_intensity)
         return image
 
-    def get_frame_counter(self, channel: int):
-        return self.device.get_frame_counter(channel)
+    def get_frame_counter(self):
+        return self.device.get_frame_counter()
 
     def get_dma_status_idle(self):
         return self.device.get_dma_status_idle()
@@ -433,6 +433,13 @@ class Device(scan_base.ScanDevice):
         """Called when shutting down. Save frame parameters to persistent storage."""
         pass
 
+    def get_current_image_size(self, frame_parameters: scan_base.ScanFrameParameters) -> tuple:
+        value = frame_parameters.get_parameter("subscan_pixel_size", None)
+        if value == None:
+            value = frame_parameters.as_dict()["pixel_size"]
+        return value
+
+
     def start_frame(self, is_continuous: bool) -> int:
         """Start acquiring. Return the frame number."""
         if not self.__is_scanning:
@@ -450,7 +457,7 @@ class Device(scan_base.ScanDevice):
         for channel in channels:
             channel.data = numpy.zeros(tuple(size), numpy.float32)
         is_synchronized_scan = frame_parameters.get_parameter("external_clock_mode", 0) != 0
-        self.__frame_number = self.scan_engine.get_frame_counter(0)
+        self.__frame_number = self.scan_engine.get_frame_counter()
         self.__start_frame = self.__frame_number
         self.__frame = Frame(self.__frame_number, channels, frame_parameters)
 
@@ -474,12 +481,25 @@ class Device(scan_base.ScanDevice):
         current_frame = self.__frame  # this is from Frame Class defined above
         assert current_frame is not None
         #frame_number = current_frame.frame_number
+        self.__frame_number = self.scan_engine.get_frame_counter()
         is_synchronized_scan = current_frame.frame_parameters.get_parameter("external_clock_mode", 0) != 0
-        current_frame.complete = self.__frame_number > self.__start_frame if not is_synchronized_scan else self.scan_engine.get_dma_status_idle()[0] == 2
-        self.__frame_number = self.scan_engine.get_frame_counter(0)
+        #current_frame.complete = self.__frame_number > self.__start_frame if not is_synchronized_scan else self.scan_engine.get_dma_status_idle()[0] == 2
+        if is_synchronized_scan:
+            current_frame.complete = self.scan_engine.get_dma_status_idle()[0] == 2
+            if current_frame.complete:
+                sub_area = ((0, 0), self.get_current_image_size(current_frame.frame_parameters))
+            else:
+                (x, y) = self.get_current_image_size(current_frame.frame_parameters)
+                lines = self.scan_engine.device.get_pixel_counter() // y
+                sub_area = ((0, 0), (lines, y))
+        else:
+            current_frame.complete = self.__frame_number != self.__start_frame
+            sub_area = ((0, 0), self.get_current_image_size(current_frame.frame_parameters))
 
-        #print(f"{current_frame.complete} and {self.__frame_number} and {self.__start_frame} and {self.scan_engine.get_dma_status_idle()}")
-
+        if DEBUG:
+            print(f"{current_frame.complete} and {self.scan_engine.device.get_pixel_counter()} and {self.__frame_number} and {self.__start_frame} "
+              f"and {self.scan_engine.get_dma_status_idle()} and {self.scan_engine.device.get_bd_status_cmplt()} "
+              f"and {self.get_current_image_size(current_frame.frame_parameters)}")
 
         data_elements = list()
 
@@ -505,7 +525,7 @@ class Device(scan_base.ScanDevice):
             self.__frame = None
 
         # return data_elements, complete, bad_frame, sub_area, frame_number, pixels_to_skip
-        return data_elements, current_frame.complete, False, ((0, 0), data_array.shape), self.__frame_number, 0
+        return data_elements, current_frame.complete, False, sub_area, self.__frame_number, 0
 
     # This one is called in scan_base
     def prepare_synchronized_scan(self, scan_frame_parameters: scan_base.ScanFrameParameters, *, camera_exposure_ms,
