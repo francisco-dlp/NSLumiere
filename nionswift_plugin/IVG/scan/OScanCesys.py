@@ -97,15 +97,6 @@ class ScanEngine:
         image = self.device.get_image(channel, imageType=IMAGE_VIEW_MODES[self.imagedisplay], low_pass_size=self.imagedisplay_filter_intensity)
         return image
 
-    def get_frame_counter(self):
-        return self.device.get_frame_counter()
-
-    def get_dma_status_idle(self):
-        return self.device.get_dma_status_idle()
-
-    def get_ordered_array(self):
-        return self.device.get_ordered_array()
-
     def set_frame_parameters(self, frame_parameters: scan_base.ScanFrameParameters):
         is_synchronized_scan = frame_parameters.get_parameter("external_clock_mode", 0)
         (y, x) = frame_parameters.as_dict()['pixel_size']
@@ -214,7 +205,6 @@ class ScanEngine:
                 .get_hardware_source_for_hardware_source_id("orsay_camera_timepix3")
             if cam is not None:
                 cam.camera.camera.set_video_delay(value)
-
 
     @property
     def pause_sampling(self):
@@ -361,9 +351,6 @@ class Frame:
         self.frame_parameters = frame_parameters
         self.complete = False
         self.bad = False
-        self.data_count = 0
-        self.start_time = time.time()
-        self.scan_data = None
 
 
 class Device(scan_base.ScanDevice):
@@ -408,7 +395,7 @@ class Device(scan_base.ScanDevice):
             self.__is_scanning = False
 
     def __get_channels(self) -> typing.List[Channel]:
-        channels = [Channel(0, "ListScan", True), Channel(1, "BF", False), Channel(2, "ADF", True)]
+        channels = [Channel(0, "ListScan", False), Channel(1, "BF", False), Channel(2, "ADF", True)]
         return channels
 
     def __get_initial_profiles(self) -> typing.List[scan_base.ScanFrameParameters]:
@@ -457,7 +444,7 @@ class Device(scan_base.ScanDevice):
         for channel in channels:
             channel.data = numpy.zeros(tuple(size), numpy.float32)
         is_synchronized_scan = frame_parameters.get_parameter("external_clock_mode", 0) != 0
-        self.__frame_number = self.scan_engine.get_frame_counter()
+        self.__frame_number = self.scan_engine.device.get_frame_counter()
         self.__start_frame = self.__frame_number
         self.__frame = Frame(self.__frame_number, channels, frame_parameters)
 
@@ -481,11 +468,10 @@ class Device(scan_base.ScanDevice):
         current_frame = self.__frame  # this is from Frame Class defined above
         assert current_frame is not None
         #frame_number = current_frame.frame_number
-        self.__frame_number = self.scan_engine.get_frame_counter()
+        self.__frame_number = self.scan_engine.device.get_frame_counter()
         is_synchronized_scan = current_frame.frame_parameters.get_parameter("external_clock_mode", 0) != 0
-        #current_frame.complete = self.__frame_number > self.__start_frame if not is_synchronized_scan else self.scan_engine.get_dma_status_idle()[0] == 2
         if is_synchronized_scan:
-            current_frame.complete = self.scan_engine.get_dma_status_idle()[0] == 2
+            current_frame.complete = self.scan_engine.device.get_dma_status_idle()[0] == 2
             if current_frame.complete:
                 sub_area = ((0, 0), self.get_current_image_size(current_frame.frame_parameters))
             else:
@@ -498,7 +484,7 @@ class Device(scan_base.ScanDevice):
 
         if DEBUG:
             print(f"{current_frame.complete} and {self.scan_engine.device.get_pixel_counter()} and {self.__frame_number} and {self.__start_frame} "
-              f"and {self.scan_engine.get_dma_status_idle()} and {self.scan_engine.device.get_bd_status_cmplt()} "
+              f"and {self.scan_engine.device.get_dma_status_idle()} and {self.scan_engine.device.get_bd_status_cmplt()} "
               f"and {self.get_current_image_size(current_frame.frame_parameters)}")
 
         data_elements = list()
