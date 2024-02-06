@@ -4,6 +4,7 @@ import copy, math, gettext, numpy, typing, time, threading, logging, os, sys
 # local libraries
 from nion.utils import Registry
 from nion.utils import Geometry
+from nion.utils import Event
 from nion.instrumentation import scan_base, stem_controller
 from nion.instrumentation import HardwareSource
 
@@ -31,6 +32,7 @@ def getlibname():
 
 class ScanEngine:
     def __init__(self):
+        self.property_changed_event = Event.Event()
         try:
             self.debug_io = None
             io_system = FPGAConfig.CesysDevice(getlibname().encode(),
@@ -71,6 +73,14 @@ class ScanEngine:
         self.__given_pixel = None
         self.__acquisition_cutoff = None
         self.__acquisition_window = None
+        self.__input1_mux = None
+        self.__input2_mux = None
+
+        self.__output_mux_type = [None] * 8
+        self.__output_mux_freq = [None] * 8
+        self.__output_mux_input = [None] * 8
+        self.__output_mux_input_div = [None] * 8
+        self.__output_mux_delay = [None] * 8
 
         self.imagedisplay = 0
         self.imagedisplay_filter_intensity = 25
@@ -92,6 +102,38 @@ class ScanEngine:
         self.given_pixel = 1
         self.acquisition_cutoff = 500
         self.acquisition_window = 2
+        self.input1_mux = 2
+        self.input2_mux = 3
+        #O1TTL
+        self.output1_mux_type = 1
+        self.output1_mux_freq = 1000
+        self.output1_mux_input = 0
+        self.output1_mux_input_div = 0
+        self.output1_mux_delay = 0
+        #O2TTL
+        self.output2_mux_type = 3
+        self.output2_mux_freq = 1000
+        self.output2_mux_input = 0
+        self.output2_mux_input_div = 0
+        self.output2_mux_delay = 0
+        #O3TTL
+        self.output3_mux_type = 0
+        self.output3_mux_freq = 1000
+        self.output3_mux_input = 0
+        self.output3_mux_input_div = 0
+        self.output3_mux_delay = 0
+        #O4TTL
+        self.output4_mux_type = 0
+        self.output4_mux_freq = 1000
+        self.output4_mux_input = 0
+        self.output4_mux_input_div = 0
+        self.output4_mux_delay = 0
+        #EXT_TRIGGER
+        self.output5_mux_type = 6
+        self.output5_mux_freq = 1000
+        self.output5_mux_input = 0
+        self.output5_mux_input_div = 0
+        self.output5_mux_delay = 0
 
     def receive_total_frame(self, channel: int):
         image = self.device.get_image(channel, imageType=IMAGE_VIEW_MODES[self.imagedisplay], low_pass_size=self.imagedisplay_filter_intensity)
@@ -134,6 +176,7 @@ class ScanEngine:
     def imagedisplay(self, value):
         if self.__imagedisplay != value:
             self.__imagedisplay = int(value)
+        self.property_changed_event.fire("imagedisplay")
 
     @property
     def imagedisplay_filter_intensity(self):
@@ -143,6 +186,7 @@ class ScanEngine:
     def imagedisplay_filter_intensity(self, value):
         if self.__imagedisplay_filter_intensity != value:
             self.__imagedisplay_filter_intensity = int(value)
+        self.property_changed_event.fire("imagedisplay_filter_intensity")
 
     @property
     def flyback_us(self):
@@ -152,6 +196,7 @@ class ScanEngine:
     def flyback_us(self, value):
         if self.__flyback_us != value:
             self.__flyback_us = int(value)
+        self.property_changed_event.fire("flyback_us")
 
     @property
     def external_trigger(self):
@@ -161,6 +206,7 @@ class ScanEngine:
     def external_trigger(self, value):
         if self.__external_trigger != value:
             self.__external_trigger = value
+        self.property_changed_event.fire("external_trigger")
 
     @property
     def adc_acquisition_mode(self):
@@ -171,6 +217,7 @@ class ScanEngine:
         if self.__adc_acquisition_mode != value:
             self.__adc_acquisition_mode = value
             self.device.set_acquisition_mode(value)
+        self.property_changed_event.fire("adc_acquisition_mode")
 
     @property
     def duty_cycle(self):
@@ -180,6 +227,7 @@ class ScanEngine:
     def duty_cycle(self, value):
         if self.__duty_cycle != int(value):
             self.__duty_cycle = int(value)
+        self.property_changed_event.fire("duty_cycle")
 
     @property
     def dsp_filter(self):
@@ -190,6 +238,7 @@ class ScanEngine:
         if self.__dsp_filter != value:
             self.__dsp_filter = value
             self.device.set_iir_bitshift_value(value)
+        self.property_changed_event.fire("dsp_filter")
 
     @property
     def video_delay(self):
@@ -205,6 +254,7 @@ class ScanEngine:
                 .get_hardware_source_for_hardware_source_id("orsay_camera_timepix3")
             if cam is not None:
                 cam.camera.camera.set_video_delay(value)
+        self.property_changed_event.fire("video_delay")
 
     @property
     def pause_sampling(self):
@@ -215,6 +265,7 @@ class ScanEngine:
         if self.__pause_sampling != value:
             self.__pause_sampling = value
             self.device.enable_pause_sampling(value)
+        self.property_changed_event.fire("pause_sampling")
 
     @property
     def rastering_mode(self):
@@ -224,6 +275,7 @@ class ScanEngine:
     def rastering_mode(self, value):
         if self.__rastering_mode != value:
             self.__rastering_mode = value
+        self.property_changed_event.fire("rastering_mode")
 
     @property
     def mini_scan(self):
@@ -233,6 +285,7 @@ class ScanEngine:
     def mini_scan(self, value):
         if self.__mini_scan != int(value):
             self.__mini_scan = int(value)
+        self.property_changed_event.fire("mini_scan")
 
     @property
     def lissajous_nx(self):
@@ -242,6 +295,7 @@ class ScanEngine:
     def lissajous_nx(self, value):
         if self.__lissajous_nx != value:
             self.__lissajous_nx = value
+        self.property_changed_event.fire("lissajous_nx")
 
     @property
     def lissajous_ny(self):
@@ -251,6 +305,7 @@ class ScanEngine:
     def lissajous_ny(self, value):
         if self.__lissajous_ny != value:
             self.__lissajous_ny = value
+        self.property_changed_event.fire("lissajous_ny")
 
     @property
     def lissajous_phase(self):
@@ -260,6 +315,7 @@ class ScanEngine:
     def lissajous_phase(self, value):
         if self.__lissajous_phase != value:
             self.__lissajous_phase = value
+        self.property_changed_event.fire("lissajous_phase")
 
     @property
     def kernel_mode(self):
@@ -273,6 +329,7 @@ class ScanEngine:
                                           givenPixel=self.__given_pixel,
                                           acquisitionCutoff=self.__acquisition_cutoff,
                                           acquisitionWindow=self.__acquisition_window)
+        self.property_changed_event.fire("kernel_mode")
 
     @property
     def given_pixel(self):
@@ -286,6 +343,7 @@ class ScanEngine:
                                           givenPixel=self.__given_pixel,
                                           acquisitionCutoff=self.__acquisition_cutoff,
                                           acquisitionWindow=self.__acquisition_window)
+        self.property_changed_event.fire("given_pixel")
 
     @property
     def acquisition_cutoff(self):
@@ -299,6 +357,7 @@ class ScanEngine:
                                           givenPixel=self.__given_pixel,
                                           acquisitionCutoff=self.__acquisition_cutoff,
                                           acquisitionWindow=self.__acquisition_window)
+        self.property_changed_event.fire("acquisition_cutoff")
 
     @property
     def acquisition_window(self):
@@ -312,6 +371,7 @@ class ScanEngine:
                                           givenPixel=self.__given_pixel,
                                           acquisitionCutoff=self.__acquisition_cutoff,
                                           acquisitionWindow=self.__acquisition_window)
+        self.property_changed_event.fire("acquisition_window")
 
     @property
     def magboard_switches(self):
@@ -322,6 +382,7 @@ class ScanEngine:
         if self.__magboard_switches != value:
             self.__magboard_switches = value
             self.device.change_magnification_switches(self.__magboard_switches)
+        self.property_changed_event.fire("magboard_switches")
 
     @property
     def offset_adc(self):
@@ -332,6 +393,141 @@ class ScanEngine:
         if self.__offset_adc != value:
             self.__offset_adc = int(value)
             self.device.change_offset_adc(self.__offset_adc)
+        self.property_changed_event.fire("offset_adc")
+
+    @property
+    def input1_mux(self):
+        return self.__input1_mux
+
+    @input1_mux.setter
+    def input1_mux(self, value):
+        if self.__input1_mux != int(value):
+            self.__input1_mux = int(value)
+            self.device.set_input_mux(0, int(value))
+        self.property_changed_event.fire("input1_mux")
+
+    @property
+    def input2_mux(self):
+        return self.__input2_mux
+
+    @input2_mux.setter
+    def input2_mux(self, value):
+        if self.__input2_mux != int(value):
+            self.__input2_mux = int(value)
+            self.device.set_input_mux(1, int(value))
+        self.property_changed_event.fire("input2_mux")
+
+
+
+    """
+    Creating the functions for the output multiplexer. I have used the property function for efficiency
+    """
+    def get_output1_mux_type(channel):
+        def wrapper(self):
+            return self.__output_mux_type[channel]
+        return wrapper
+
+    def set_output_mux_type(channel):
+        def wrapper(self, value):
+            if self.__output_mux_type[channel] != int(value):
+                self.__output_mux_type[channel] = int(value)
+                self.device.set_output_mux(channel, self.__output_mux_type[channel],
+                                           self.__output_mux_freq[channel],
+                                           self.__output_mux_input[channel], self.__output_mux_input_div[channel],
+                                           self.__output_mux_delay[channel])
+        return wrapper
+
+    def get_output_mux_freq(channel):
+        def wrapper(self):
+            return self.__output_mux_freq[channel]
+        return wrapper
+
+    def set_output_mux_freq(channel):
+        def wrapper(self, value):
+            if self.__output_mux_freq[channel] != float(value):
+                self.__output_mux_freq[channel] = float(value)
+                self.device.set_output_mux(channel, self.__output_mux_type[channel],
+                                           self.__output_mux_freq[channel],
+                                           self.__output_mux_input[channel], self.__output_mux_input_div[channel],
+                                           self.__output_mux_delay[channel])
+        return wrapper
+
+    def get_output_mux_delay(channel):
+        def wrapper(self):
+            return self.__output_mux_delay[channel]
+        return wrapper
+
+    def set_output_mux_delay(channel):
+        def wrapper(self, value):
+            if self.__output_mux_delay[channel] != int(value):
+                self.__output_mux_delay[channel] = int(value)
+                self.device.set_output_mux(channel, self.__output_mux_type[channel],
+                                           self.__output_mux_freq[channel],
+                                           self.__output_mux_input[channel], self.__output_mux_input_div[channel],
+                                           self.__output_mux_delay[channel])
+        return wrapper
+
+    def get_output_mux_input(channel):
+        def wrapper(self):
+            return self.__output_mux_input[channel]
+        return wrapper
+
+    def set_output_mux_input(channel):
+        def wrapper(self, value):
+            if self.__output_mux_input[channel] != int(value):
+                self.__output_mux_input[channel] = int(value)
+                self.device.set_output_mux(channel, self.__output_mux_type[channel],
+                                           self.__output_mux_freq[channel],
+                                           self.__output_mux_input[channel], self.__output_mux_input_div[channel],
+                                           self.__output_mux_delay[channel])
+        return wrapper
+
+    def get_output_mux_input_div(channel):
+        def wrapper(self):
+            return self.__output_mux_input_div[channel]
+        return wrapper
+
+    def set_output_mux_input_div(channel):
+        def wrapper(self, value):
+            if self.__output_mux_input_div[channel] != int(value):
+                self.__output_mux_input_div[channel] = int(value)
+                self.device.set_output_mux(channel, self.__output_mux_type[channel],
+                                           self.__output_mux_freq[channel],
+                                           self.__output_mux_input[channel], self.__output_mux_input_div[channel],
+                                           self.__output_mux_delay[channel])
+        return wrapper
+
+    output1_mux_type = property(get_output1_mux_type(0), set_output_mux_type(0))
+    output1_mux_freq = property(get_output_mux_freq(0), set_output_mux_freq(0))
+    output1_mux_input = property(get_output_mux_input(0), set_output_mux_input(0))
+    output1_mux_input_div = property(get_output_mux_input_div(0), set_output_mux_input_div(0))
+    output1_mux_delay = property(get_output_mux_delay(0), set_output_mux_delay(0))
+
+    output2_mux_type = property(get_output1_mux_type(1), set_output_mux_type(1))
+    output2_mux_freq = property(get_output_mux_freq(1), set_output_mux_freq(1))
+    output2_mux_input = property(get_output_mux_input(1), set_output_mux_input(1))
+    output2_mux_input_div = property(get_output_mux_input_div(1), set_output_mux_input_div(1))
+    output2_mux_delay = property(get_output_mux_delay(1), set_output_mux_delay(1))
+
+    output3_mux_type = property(get_output1_mux_type(2), set_output_mux_type(2))
+    output3_mux_freq = property(get_output_mux_freq(2), set_output_mux_freq(2))
+    output3_mux_input = property(get_output_mux_input(2), set_output_mux_input(2))
+    output3_mux_input_div = property(get_output_mux_input_div(2), set_output_mux_input_div(2))
+    output3_mux_delay = property(get_output_mux_delay(2), set_output_mux_delay(2))
+
+    output4_mux_type = property(get_output1_mux_type(3), set_output_mux_type(3))
+    output4_mux_freq = property(get_output_mux_freq(3), set_output_mux_freq(3))
+    output4_mux_input = property(get_output_mux_input(3), set_output_mux_input(3))
+    output4_mux_input_div = property(get_output_mux_input_div(3), set_output_mux_input_div(3))
+    output4_mux_delay = property(get_output_mux_delay(3), set_output_mux_delay(3))
+
+    output5_mux_type = property(get_output1_mux_type(4), set_output_mux_type(4))
+    output5_mux_freq = property(get_output_mux_freq(4), set_output_mux_freq(4))
+    output5_mux_input = property(get_output_mux_input(4), set_output_mux_input(4))
+    output5_mux_input_div = property(get_output_mux_input_div(4), set_output_mux_input_div(4))
+    output5_mux_delay = property(get_output_mux_delay(4), set_output_mux_delay(4))
+
+
 
 
 class Channel:
