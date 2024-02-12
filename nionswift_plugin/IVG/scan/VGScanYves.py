@@ -192,6 +192,8 @@ class Device(scan_base.ScanDevice):
 
     def stop(self) -> None:
         """Stop acquiring."""
+        if DEBUG:
+            logging.info("Stop the probe.")
         self.__spim = False
         if self.__is_tpx3_running:
             self.__is_tpx3_running = False
@@ -207,6 +209,8 @@ class Device(scan_base.ScanDevice):
 
     def cancel(self) -> None:
         """Cancel acquisition (immediate)."""
+        if DEBUG:
+            logging.info("Cancel the probe.")
         self.__spim = False
         if self.__is_tpx3_running:
             self.__is_tpx3_running = False
@@ -237,11 +241,12 @@ class Device(scan_base.ScanDevice):
     def get_channel_name(self, channel_index: int) -> str:
         return self.__channels[channel_index].name
 
-    @timeout
     def set_frame_parameters(self, frame_parameters: scan_base.ScanFrameParameters) -> None:
         """Called just before and during acquisition.
         Device should use these parameters for new acquisition; and update to these parameters during acquisition.
         """
+        if DEBUG:
+            logging.info(f'frame parameters are {frame_parameters.as_dict()} Is it a spim: {self.__spim}.')
         self.__frame_parameters = copy.deepcopy(frame_parameters)
         if self.field_of_view != frame_parameters.fov_nm:
             self.field_of_view = frame_parameters.fov_nm
@@ -287,12 +292,12 @@ class Device(scan_base.ScanDevice):
                 p3, p5 = p0, p1
             scan.Image_area = [p0, p1, 0, p3, 0, p5]
 
-        if p0 != p00 or p1 != p10:
-            self.__scan_size = (p0, p1)
-            self.__sizez = scan.GetInputs()[0]
-            size_summed = self.__sizez * self.__scan_size[1] * self.__scan_size[0]
-            self.imagedata = numpy.zeros(size_summed, dtype=int)
-            self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
+        #Setting the array and the pointer all the time is safer
+        self.__scan_size = (p0, p1)
+        self.__sizez = scan.GetInputs()[0]
+        size_summed = self.__sizez * self.__scan_size[1] * self.__scan_size[0]
+        self.imagedata = numpy.zeros(size_summed, dtype=int)
+        self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
 
         if DEBUG:
             print(f'Is spim: {self.__spim}. Value set is {scan.Image_area}')
@@ -344,12 +349,15 @@ class Device(scan_base.ScanDevice):
             if self.__spim:
                 self.spimscan.setScanClock(4)
                 scan = self.spimscan
+                self.__line_number = 0 #Force that line number is zero
             else:
                 scan = self.orsayscan
 
             if DEBUG:
-                print(f'Sizez is {self.__sizez} and scan_size is {self.__scan_size}. Image area: {scan.Image_area} and'
+                print(f'Starting frame. Is spim: {self.__spim}. Sizez is {self.__sizez} and scan_size is {self.__scan_size}. Image area: {scan.Image_area} and'
                       f' {self.__spim_pixels} and the shape of imagedata is {self.imagedata.shape}')
+                print(
+                    f'Starting frame. Frame parameters: {self.__frame_parameters.as_dict()}.')
 
             should_start = False
             if not self.__spim:
@@ -405,25 +413,30 @@ class Device(scan_base.ScanDevice):
         current_frame = self.__frame  # this is from Frame Class defined above
         assert current_frame is not None
         frame_parameters = current_frame.frame_parameters
-        scan_area = self.spimscan.Image_area if self.__spim else self.orsayscan.Image_area
+        is_synchronized_scan = current_frame.frame_parameters.get_parameter("external_clock_mode", 0) != 0
+        scan_area = self.spimscan.Image_area if is_synchronized_scan else self.orsayscan.Image_area
 
         #If its spim, the line_number is given by the sampling. If its not the spim, the value of the roi is used.
-        if (self.__line_number == scan_area[1] and self.__spim) or \
-                ((self.__line_number == scan_area[5] and not self.__spim)):
+        if (self.__line_number == scan_area[1] and is_synchronized_scan) or \
+                (self.__line_number == scan_area[5] and not is_synchronized_scan):
             current_frame.complete = True
             sub_area = ((0, 0), (self.__scan_size[1], self.__scan_size[0]))
             pixels_to_skip = 0
+
         else:
             sub_area = ((0, 0), (self.__line_number, self.__scan_size[0]))
             pixels_to_skip = self.__line_number * self.__scan_size[1]
 
         if DEBUG:
-            print(f'Line number is {self.__line_number} and scan area is {scan_area}.'
+            print(f'Reading partially. Is spim: {is_synchronized_scan}. Line number is {self.__line_number} and scan area is {scan_area}.'
                   f'Complete: {current_frame.complete}. sub_area is {sub_area}.')
+            print(
+                f'Reading partially. Frame parameters: {frame_parameters.as_dict()}.')
+
 
         data_elements = list()
         sxy = scan_area[1] * scan_area[0]
-        if CROP_SUBSCAN and not self.__spim:
+        if CROP_SUBSCAN and not is_synchronized_scan:
             offsety = [scan_area[2], scan_area[3]]
             offsetx = [scan_area[4], scan_area[5]]
         else:
@@ -501,6 +514,7 @@ class Device(scan_base.ScanDevice):
     #This one is called in scan_base
     def prepare_synchronized_scan(self, scan_frame_parameters: scan_base.ScanFrameParameters, *, camera_exposure_ms, **kwargs) -> None:
         self.__spim = True
+        scan_frame_parameters.set_parameter("external_clock_mode", 1)
 
     def set_sequence_buffer_size(self, buffer_size: int) -> None:
         self.__sequence_buffer_size = buffer_size
