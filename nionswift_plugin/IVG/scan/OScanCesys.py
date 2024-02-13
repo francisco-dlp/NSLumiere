@@ -65,7 +65,7 @@ class ScanEngine:
         self.__rastering_mode = None
         self.__mini_scan = None
         self.__magboard_switches = None
-        self.__offset_adc = None
+        self.__offset_adc = [None] * 4
         self.__lissajous_phase = None
         self.__lissajous_nx = None
         self.__lissajous_ny = None
@@ -75,6 +75,8 @@ class ScanEngine:
         self.__acquisition_window = None
         self.__input1_mux = None
         self.__input2_mux = None
+        self.__routex_mux = None
+        self.__routey_mux = None
 
         self.__output_mux_type = [None] * 8
         self.__output_mux_freq = [None] * 8
@@ -94,7 +96,7 @@ class ScanEngine:
         self.rastering_mode = 0
         self.mini_scan = 2
         self.magboard_switches = '100100'
-        self.offset_adc = 13000
+        self.offset_adc0 = self.offset_adc1 = self.offset_adc2 = self.offset_adc3 = 0
         self.lissajous_nx = 190.8
         self.lissajous_ny = 190.5
         self.lissajous_phase = 0
@@ -104,6 +106,8 @@ class ScanEngine:
         self.acquisition_window = 2
         self.input1_mux = 2
         self.input2_mux = 3
+        self.routex_mux = 0
+        self.routey_mux = 0
         #O1TTL
         self.output1_mux_type = 1
         self.output1_mux_freq = 1000
@@ -385,15 +389,44 @@ class ScanEngine:
         self.property_changed_event.fire("magboard_switches")
 
     @property
-    def offset_adc(self):
-        return self.__offset_adc
+    def offset_adc0(self):
+        return self.__offset_adc[0]
 
-    @offset_adc.setter
-    def offset_adc(self, value):
-        if self.__offset_adc != value:
-            self.__offset_adc = int(value)
-            self.device.change_offset_adc(self.__offset_adc)
-        self.property_changed_event.fire("offset_adc")
+    @offset_adc0.setter
+    def offset_adc0(self, value):
+        self.__offset_adc[0] = float(value)
+        self.device.change_offset_adc('001', self.__offset_adc[0], True)
+        self.property_changed_event.fire("offset_adc0")
+
+    @property
+    def offset_adc1(self):
+        return self.__offset_adc[1]
+
+    @offset_adc1.setter
+    def offset_adc1(self, value):
+        self.__offset_adc[1] = float(value)
+        self.device.change_offset_adc('000', self.__offset_adc[1], True)
+        self.property_changed_event.fire("offset_adc1")
+
+    @property
+    def offset_adc2(self):
+        return self.__offset_adc[2]
+
+    @offset_adc2.setter
+    def offset_adc2(self, value):
+        self.__offset_adc[2] = float(value)
+        self.device.change_offset_adc('011', self.__offset_adc[2], False)
+        self.property_changed_event.fire("offset_adc2")
+
+    @property
+    def offset_adc3(self):
+        return self.__offset_adc[3]
+
+    @offset_adc3.setter
+    def offset_adc3(self, value):
+        self.__offset_adc[3] = float(value)
+        self.device.change_offset_adc('010', self.__offset_adc[3], False)
+        self.property_changed_event.fire("offset_adc3")
 
     @property
     def input1_mux(self):
@@ -416,6 +449,28 @@ class ScanEngine:
             self.__input2_mux = int(value)
             self.device.set_input_mux(1, int(value))
         self.property_changed_event.fire("input2_mux")
+
+    @property
+    def routex_mux(self):
+        return self.__routex_mux
+
+    @routex_mux.setter
+    def routex_mux(self, value):
+        if self.__routex_mux != int(value):
+            self.__routex_mux = int(value)
+            self.device.set_route_mux(0, int(value))
+        self.property_changed_event.fire("routex_mux")
+
+    @property
+    def routey_mux(self):
+        return self.__routey_mux
+
+    @routey_mux.setter
+    def routey_mux(self, value):
+        if self.__routey_mux != int(value):
+            self.__routey_mux = int(value)
+            self.device.set_route_mux(1, int(value))
+        self.property_changed_event.fire("routey_mux")
 
 
 
