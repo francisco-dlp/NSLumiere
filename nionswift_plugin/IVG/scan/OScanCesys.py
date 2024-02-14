@@ -76,7 +76,11 @@ class ScanEngine:
         self.__input1_mux = None
         self.__input2_mux = None
         self.__routex_mux = None
+        self.__routex_mux_intensity = None
+        self.__routex_mux_averages = None
         self.__routey_mux = None
+        self.__routey_mux_intensity = None
+        self.__routey_mux_averages = None
 
         self.__output_mux_type = [None] * 8
         self.__output_mux_freq = [None] * 8
@@ -107,7 +111,11 @@ class ScanEngine:
         self.input1_mux = 2
         self.input2_mux = 3
         self.routex_mux = 0
+        self.routex_mux_intensity = 0
+        self.routex_mux_averages = 0
         self.routey_mux = 0
+        self.routey_mux_intensity = 0
+        self.routey_mux_averages = 0
         #O1TTL
         self.output1_mux_type = 1
         self.output1_mux_freq = 1000
@@ -458,8 +466,30 @@ class ScanEngine:
     def routex_mux(self, value):
         if self.__routex_mux != int(value):
             self.__routex_mux = int(value)
-            self.device.set_route_mux(0, int(value))
+            self.device.set_route_mux(0, self.__routex_mux, self.__routex_mux_intensity, self.__routex_mux_averages)
         self.property_changed_event.fire("routex_mux")
+
+    @property
+    def routex_mux_intensity(self):
+        return self.__routex_mux_intensity
+
+    @routex_mux_intensity.setter
+    def routex_mux_intensity(self, value):
+        if self.__routex_mux_intensity != int(value):
+            self.__routex_mux_intensity = int(value)
+            self.device.set_route_mux(0, self.__routex_mux, self.__routex_mux_intensity, self.__routex_mux_averages)
+        self.property_changed_event.fire("routex_mux_intensity")
+
+    @property
+    def routex_mux_averages(self):
+        return self.__routex_mux_averages
+
+    @routex_mux_averages.setter
+    def routex_mux_averages(self, value):
+        if self.__routex_mux_averages != int(value):
+            self.__routex_mux_averages = int(value)
+            self.device.set_route_mux(0, self.__routex_mux, self.__routex_mux_intensity, self.__routex_mux_averages)
+        self.property_changed_event.fire("routex_mux_averages")
 
     @property
     def routey_mux(self):
@@ -469,8 +499,30 @@ class ScanEngine:
     def routey_mux(self, value):
         if self.__routey_mux != int(value):
             self.__routey_mux = int(value)
-            self.device.set_route_mux(1, int(value))
+            self.device.set_route_mux(1, self.__routey_mux, self.__routey_mux_intensity, self.__routey_mux_averages)
         self.property_changed_event.fire("routey_mux")
+
+    @property
+    def routey_mux_intensity(self):
+        return self.__routey_mux_intensity
+
+    @routey_mux_intensity.setter
+    def routey_mux_intensity(self, value):
+        if self.__routey_mux_intensity != int(value):
+            self.__routey_mux_intensity = int(value)
+            self.device.set_route_mux(1, self.__routey_mux, self.__routey_mux_intensity, self.__routey_mux_averages)
+        self.property_changed_event.fire("routey_mux_intensity")
+
+    @property
+    def routey_mux_averages(self):
+        return self.__routey_mux_averages
+
+    @routey_mux_averages.setter
+    def routey_mux_averages(self, value):
+        if self.__routey_mux_averages != int(value):
+            self.__routey_mux_averages = int(value)
+            self.device.set_route_mux(1, self.__routey_mux, self.__routey_mux_intensity, self.__routey_mux_averages)
+        self.property_changed_event.fire("routey_mux_averages")
 
 
 

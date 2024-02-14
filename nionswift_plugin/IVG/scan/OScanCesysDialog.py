@@ -168,20 +168,43 @@ class View():
         self.inputx2_value = ui.create_radio_button(text='ADC2', value=2, group_value='@binding(scan.routex_mux)')
         self.inputx3_value = ui.create_radio_button(text='ADC3', value=3, group_value='@binding(scan.routex_mux)')
         self.inputx4_value = ui.create_radio_button(text='ADC4', value=4, group_value='@binding(scan.routex_mux)')
+
+        self.inputx_intensity_label = ui.create_label(text='Intensity: ')
+        self.inputx_intensity = ui.create_line_edit(text='@binding(scan.routex_mux_intensity)', width=50)
+        self.inputx_intensity_row = ui.create_row(self.inputx_intensity_label, self.inputx_intensity, ui.create_stretch())
+
+        self.inputx_avg_label = ui.create_label(text='Averages: ')
+        self.inputx_avg = ui.create_line_edit(text='@binding(scan.routex_mux_averages)', width=50)
+        self.inputx_avg_row = ui.create_row(self.inputx_avg_label, self.inputx_avg,
+                                                  ui.create_stretch())
+
         self.inputx_row = ui.create_row(self.inputx_label, self.inputx0_value, self.inputx1_value, self.inputx2_value,
                                         self.inputx3_value, self.inputx4_value, ui.create_stretch())
+        self.inputx_group = ui.create_group(name='Route X', content=ui.create_column(self.inputx_row, self.inputx_intensity_row, self.inputx_avg_row))
 
-        self.inputy_label = ui.create_label(text='Route to T: ')
+        self.inputy_label = ui.create_label(text='Route to Y: ')
         self.inputy0_value = ui.create_radio_button(text='None', value=0, group_value='@binding(scan.routey_mux)')
         self.inputy1_value = ui.create_radio_button(text='ADC1', value=1, group_value='@binding(scan.routey_mux)')
         self.inputy2_value = ui.create_radio_button(text='ADC2', value=2, group_value='@binding(scan.routey_mux)')
         self.inputy3_value = ui.create_radio_button(text='ADC3', value=3, group_value='@binding(scan.routey_mux)')
         self.inputy4_value = ui.create_radio_button(text='ADC4', value=4, group_value='@binding(scan.routey_mux)')
+
+        self.inputy_intensity_label = ui.create_label(text='Intensity: ')
+        self.inputy_intensity = ui.create_line_edit(text='@binding(scan.routey_mux_intensity)', width=50)
+        self.inputy_intensity_row = ui.create_row(self.inputy_intensity_label, self.inputy_intensity,
+                                                  ui.create_stretch())
+
+        self.inputy_avg_label = ui.create_label(text='Averages: ')
+        self.inputy_avg = ui.create_line_edit(text='@binding(scan.routey_mux_averages)', width=50)
+        self.inputy_avg_row = ui.create_row(self.inputy_avg_label, self.inputy_avg,
+                                            ui.create_stretch())
+
         self.inputy_row = ui.create_row(self.inputy_label, self.inputy0_value, self.inputy1_value, self.inputy2_value,
                                         self.inputy3_value, self.inputy4_value, ui.create_stretch())
+        self.inputy_group = ui.create_group(name='Route Y', content=ui.create_column(self.inputy_row, self.inputy_intensity_row, self.inputy_avg_row))
 
         self.second_tab = ui.create_tab(label='Input MUX', content=ui.create_column(
-            self.input1_row, self.input2_row, self.inputx_row, self.inputy_row, ui.create_stretch()))
+            self.input1_row, self.input2_row, self.inputx_group, self.inputy_group, ui.create_stretch()))
 
         #THIRD TAB (Output multiplexing)
         def create_output_mux(name: str, channel: str):
