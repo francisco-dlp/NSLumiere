@@ -132,13 +132,32 @@ class View():
         self.offset_adc1_value = ui.create_line_edit(text='@binding(scan.offset_adc1)', width=50)
         self.offset_adc2_value = ui.create_line_edit(text='@binding(scan.offset_adc2)', width=50)
         self.offset_adc3_value = ui.create_line_edit(text='@binding(scan.offset_adc3)', width=50)
-
         self.offset_adc_row = ui.create_row(self.offset_adc_text, self.offset_adc0_value, self.offset_adc1_value,
                                             self.offset_adc2_value, self.offset_adc3_value,
                                              ui.create_stretch())
 
+        self.multiblock_text = ui.create_label(text="Ext. Multiblock: ")
+        self.multiblock0_value = ui.create_line_edit(text='@binding(scan.multiblock0)', width=40)
+        self.multiblock1_value = ui.create_line_edit(text='@binding(scan.multiblock1)', width=40)
+        self.multiblock2_value = ui.create_line_edit(text='@binding(scan.multiblock2)', width=40)
+        self.multiblock3_value = ui.create_line_edit(text='@binding(scan.multiblock3)', width=40)
+        self.multiblock_row = ui.create_row(self.multiblock_text, self.multiblock0_value, self.multiblock1_value,
+                                            self.multiblock2_value, self.multiblock3_value,
+                                            ui.create_stretch())
+
+        self.mag_multiblock_text = ui.create_label(text="MAG Multiblock: ")
+        self.mag_multiblock0_value = ui.create_line_edit(text='@binding(scan.mag_multiblock0)', width=30)
+        self.mag_multiblock1_value = ui.create_line_edit(text='@binding(scan.mag_multiblock1)', width=30)
+        self.mag_multiblock2_value = ui.create_line_edit(text='@binding(scan.mag_multiblock2)', width=30)
+        self.mag_multiblock3_value = ui.create_line_edit(text='@binding(scan.mag_multiblock3)', width=30)
+        self.mag_multiblock4_value = ui.create_line_edit(text='@binding(scan.mag_multiblock4)', width=30)
+        self.mag_multiblock5_value = ui.create_line_edit(text='@binding(scan.mag_multiblock5)', width=30)
+        self.mag_multiblock_row = ui.create_row(self.mag_multiblock_text, self.mag_multiblock0_value, self.mag_multiblock1_value,
+                                            self.mag_multiblock2_value, self.mag_multiblock3_value, self.mag_multiblock4_value,
+                                                self.mag_multiblock5_value, ui.create_stretch())
+
         self.hardware_settings_group = ui.create_group(title='Hardware settings', content=ui.create_column(
-            self.magswitches_row, self.offset_adc_row
+            self.magswitches_row, self.offset_adc_row, self.multiblock_row, self.mag_multiblock_row
         ))
 
         self.first_tab = ui.create_tab(label="General Parameters", content=ui.create_column(

@@ -66,6 +66,8 @@ class ScanEngine:
         self.__mini_scan = None
         self.__magboard_switches = None
         self.__offset_adc = [None] * 4
+        self.__multiblock = [None] * 4
+        self.__mag_multiblock = [None] * 6
         self.__lissajous_phase = None
         self.__lissajous_nx = None
         self.__lissajous_ny = None
@@ -101,6 +103,9 @@ class ScanEngine:
         self.mini_scan = 2
         self.magboard_switches = '100100'
         self.offset_adc0 = self.offset_adc1 = self.offset_adc2 = self.offset_adc3 = 0
+        self.multiblock0 = self.multiblock1 = self.multiblock2 = self.multiblock3 = 1.0
+        self.mag_multiblock0 = self.mag_multiblock1 = self.mag_multiblock2 = self.mag_multiblock3  = 1.0
+        self.mag_multiblock4 = self.mag_multiblock5 = 0.0
         self.lissajous_nx = 190.8
         self.lissajous_ny = 190.5
         self.lissajous_phase = 0
@@ -404,7 +409,6 @@ class ScanEngine:
     def offset_adc0(self, value):
         self.__offset_adc[0] = float(value)
         self.device.change_offset_adc('001', self.__offset_adc[0], True)
-        self.property_changed_event.fire("offset_adc0")
 
     @property
     def offset_adc1(self):
@@ -414,7 +418,6 @@ class ScanEngine:
     def offset_adc1(self, value):
         self.__offset_adc[1] = float(value)
         self.device.change_offset_adc('000', self.__offset_adc[1], True)
-        self.property_changed_event.fire("offset_adc1")
 
     @property
     def offset_adc2(self):
@@ -424,7 +427,6 @@ class ScanEngine:
     def offset_adc2(self, value):
         self.__offset_adc[2] = float(value)
         self.device.change_offset_adc('011', self.__offset_adc[2], False)
-        self.property_changed_event.fire("offset_adc2")
 
     @property
     def offset_adc3(self):
@@ -434,7 +436,97 @@ class ScanEngine:
     def offset_adc3(self, value):
         self.__offset_adc[3] = float(value)
         self.device.change_offset_adc('010', self.__offset_adc[3], False)
-        self.property_changed_event.fire("offset_adc3")
+
+    @property
+    def multiblock0(self):
+        return self.__multiblock[0]
+
+    @multiblock0.setter
+    def multiblock0(self, value):
+        self.__multiblock[0] = float(value)
+        self.device.change_external_calibration(self.__multiblock)
+
+    @property
+    def multiblock1(self):
+        return self.__multiblock[1]
+
+    @multiblock1.setter
+    def multiblock1(self, value):
+        self.__multiblock[1] = float(value)
+        self.device.change_external_calibration(self.__multiblock)
+
+    @property
+    def multiblock2(self):
+        return self.__multiblock[2]
+
+    @multiblock2.setter
+    def multiblock2(self, value):
+        self.__multiblock[2] = float(value)
+        self.device.change_external_calibration(self.__multiblock)
+
+    @property
+    def multiblock3(self):
+        return self.__multiblock[3]
+
+    @multiblock3.setter
+    def multiblock3(self, value):
+        self.__multiblock[3] = float(value)
+        self.device.change_external_calibration(self.__multiblock)
+
+    @property
+    def mag_multiblock0(self):
+        return self.__mag_multiblock[0]
+
+    @mag_multiblock0.setter
+    def mag_multiblock0(self, value):
+        self.__mag_multiblock[0] = float(value)
+        self.device.change_magnification_calibration(self.__mag_multiblock)
+
+    @property
+    def mag_multiblock1(self):
+        return self.__mag_multiblock[1]
+
+    @mag_multiblock1.setter
+    def mag_multiblock1(self, value):
+        self.__mag_multiblock[1] = float(value)
+        self.device.change_magnification_calibration(self.__mag_multiblock)
+
+    @property
+    def mag_multiblock2(self):
+        return self.__mag_multiblock[2]
+
+    @mag_multiblock2.setter
+    def mag_multiblock2(self, value):
+        self.__mag_multiblock[2] = float(value)
+        self.device.change_magnification_calibration(self.__mag_multiblock)
+
+    @property
+    def mag_multiblock3(self):
+        return self.__mag_multiblock[3]
+
+    @mag_multiblock3.setter
+    def mag_multiblock3(self, value):
+        self.__mag_multiblock[3] = float(value)
+        self.device.change_magnification_calibration(self.__mag_multiblock)
+
+    @property
+    def mag_multiblock4(self):
+        return self.__mag_multiblock[4]
+
+    @mag_multiblock4.setter
+    def mag_multiblock4(self, value):
+        self.__mag_multiblock[4] = float(value)
+        self.device.change_magnification_calibration(self.__mag_multiblock)
+
+    @property
+    def mag_multiblock5(self):
+        return self.__mag_multiblock[5]
+
+    @mag_multiblock5.setter
+    def mag_multiblock5(self, value):
+        self.__mag_multiblock[5] = float(value)
+        self.device.change_magnification_calibration(self.__mag_multiblock)
+
 
     @property
     def input1_mux(self):
