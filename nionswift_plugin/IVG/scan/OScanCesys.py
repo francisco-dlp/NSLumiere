@@ -54,28 +54,8 @@ class ScanEngine:
 
         #Settings
         self.argument_controller = dict()
-        self.__imagedisplay: int = 0
-        self.__imagedisplay_filter_intensity: int = 25
-        self.__adc_acquisition_mode: int = 5
-        self.__duty_cycle: int = 100
-        self.__dsp_filter: int = 0
-        self.__video_delay: int = 0
-        self.__pause_sampling: bool = False
-        self.__external_trigger: int = 0
-        #self.__flyback_us: int = 0
-        self.__rastering_mode: int = 0
-        self.__mini_scan = None
         self.__magboard_switches = None
-        self.__offset_adc = [None] * 4
-        self.__multiblock = [1.0] * 4
         self.__mag_multiblock = [None] * 6
-        self.__lissajous_phase = None
-        self.__lissajous_nx = None
-        self.__lissajous_ny = None
-        self.__kernel_mode = None
-        self.__given_pixel = None
-        self.__acquisition_cutoff = None
-        self.__acquisition_window = None
         self.__input1_mux = None
         self.__input2_mux = None
         self.__routex_mux = None
@@ -174,7 +154,7 @@ class ScanEngine:
                                            lissajous_phase=self.lissajous_phase,
                                            subimages=self.mini_scan,
                                            kernelMode=KERNEL_LIST[self.kernel_mode],
-                                           givenPixel=self.__given_pixel,
+                                           givenPixel=self.given_pixel,
                                            dutyCycle=self.duty_cycle,
                                            acquisitionCutoff=self.acquisition_cutoff,
                                            acquisitionWindow=self.acquisition_window,
@@ -188,307 +168,364 @@ class ScanEngine:
 
     @property
     def imagedisplay(self):
-        return self.__imagedisplay
+        if self.argument_controller.get('imagedisplay') == None:
+            self.argument_controller.update(imagedisplay=0)  # default
+        return self.argument_controller.get('imagedisplay')
 
     @imagedisplay.setter
     def imagedisplay(self, value):
-        if self.__imagedisplay != value:
-            self.__imagedisplay = int(value)
-        self.property_changed_event.fire("imagedisplay")
+        self.argument_controller.update(imagedisplay=int(value))
 
     @property
     def imagedisplay_filter_intensity(self):
-        return self.__imagedisplay_filter_intensity
+        if self.argument_controller.get('imagedisplay_filter_intensity') == None:
+            self.argument_controller.update(imagedisplay_filter_intensity=0)  # default
+        return self.argument_controller.get('imagedisplay_filter_intensity')
 
     @imagedisplay_filter_intensity.setter
     def imagedisplay_filter_intensity(self, value):
-        if self.__imagedisplay_filter_intensity != value:
-            self.__imagedisplay_filter_intensity = int(value)
-        self.property_changed_event.fire("imagedisplay_filter_intensity")
+        self.argument_controller.update(imagedisplay_filter_intensity=int(value))
 
     @property
     def flyback_us(self):
         if self.argument_controller.get('flyback_us') == None:
             self.argument_controller.update(flyback_us=0)  # default
         return self.argument_controller.get('flyback_us')
-        #return self.__flyback_us
 
     @flyback_us.setter
     def flyback_us(self, value):
         self.argument_controller.update(flyback_us=int(value))
-        # if self.__flyback_us != value:
-        #     self.__flyback_us = int(value)
-        self.property_changed_event.fire("flyback_us")
 
     @property
     def external_trigger(self):
-        return self.__external_trigger
+        if self.argument_controller.get('external_trigger') == None:
+            self.argument_controller.update(external_trigger=0)  # default
+        return self.argument_controller.get('external_trigger')
 
     @external_trigger.setter
     def external_trigger(self, value):
-        if self.__external_trigger != value:
-            self.__external_trigger = value
-        self.property_changed_event.fire("external_trigger")
+        self.argument_controller.update(external_trigger=int(value))
 
     @property
     def duty_cycle(self):
-        return self.__duty_cycle
+        if self.argument_controller.get('duty_cycle') == None:
+            self.argument_controller.update(duty_cycle=0)  # default
+        return self.argument_controller.get('duty_cycle')
 
     @duty_cycle.setter
     def duty_cycle(self, value):
-        if self.__duty_cycle != int(value):
-            self.__duty_cycle = int(value)
-        self.property_changed_event.fire("duty_cycle")
+        self.argument_controller.update(duty_cycle=int(value))
 
     @property
     def dsp_filter(self):
-        return self.__dsp_filter
+        if self.argument_controller.get('dsp_filter') == None:
+            self.argument_controller.update(dsp_filter=0)  # default
+        return self.argument_controller.get('dsp_filter')
 
     @dsp_filter.setter
     def dsp_filter(self, value):
-        if self.__dsp_filter != value:
-            self.__dsp_filter = value
-            #self.device.set_iir_bitshift_value(value)
-            self.device.set_video_configuration(self.__dsp_filter, self.__video_delay, self.__pause_sampling,
-            self.__adc_acquisition_mode)
-        self.property_changed_event.fire("dsp_filter")
+        self.argument_controller.update(dsp_filter=int(value))
+        variables = [self.argument_controller.get('dsp_filter'), self.argument_controller.get('video_delay'),
+                     self.argument_controller.get('pause_sampling'), self.argument_controller.get('adc_acquisition_mode')]
+        if not any(x is None for x in variables):
+            self.device.set_video_configuration(*variables)
 
     @property
     def video_delay(self):
-        return self.__video_delay
+        if self.argument_controller.get('video_delay') == None:
+            self.argument_controller.update(video_delay=0)  # default
+        return self.argument_controller.get('video_delay')
 
     @video_delay.setter
     def video_delay(self, value):
-        if self.__video_delay != int(value):
-            self.__video_delay = int(value)
-            #self.device.set_video_delay(int(value))
-            self.device.set_video_configuration(self.__dsp_filter, self.__video_delay, self.__pause_sampling,
-                                                self.__adc_acquisition_mode)
-            #If timepix3 is present, we should try to set the metadata of this value
-            cam = HardwareSource.HardwareSourceManager()\
-                .get_hardware_source_for_hardware_source_id("orsay_camera_timepix3")
-            if cam is not None:
-                cam.camera.camera.set_video_delay(value)
-        self.property_changed_event.fire("video_delay")
+        self.argument_controller.update(video_delay=int(value))
+        variables = [self.argument_controller.get('dsp_filter'), self.argument_controller.get('video_delay'),
+                     self.argument_controller.get('pause_sampling'),
+                     self.argument_controller.get('adc_acquisition_mode')]
+        if not any(x is None for x in variables):
+            self.device.set_video_configuration(*variables)
+        #If timepix3 is present, we should try to set the metadata of this value
+        cam = HardwareSource.HardwareSourceManager()\
+            .get_hardware_source_for_hardware_source_id("orsay_camera_timepix3")
+        if cam is not None:
+            cam.camera.camera.set_video_delay(value)
+
 
     @property
     def pause_sampling(self):
-        return self.__pause_sampling
+        if self.argument_controller.get('pause_sampling') == None:
+            self.argument_controller.update(pause_sampling=0)  # default
+        return self.argument_controller.get('pause_sampling')
 
     @pause_sampling.setter
     def pause_sampling(self, value):
-        if self.__pause_sampling != value:
-            self.__pause_sampling = value
-            #self.device.enable_pause_sampling(value)
-            self.device.set_video_configuration(self.__dsp_filter, self.__video_delay, self.__pause_sampling,
-                                                self.__adc_acquisition_mode)
-        self.property_changed_event.fire("pause_sampling")
+        self.argument_controller.update(pause_sampling=int(value))
+        variables = [self.argument_controller.get('dsp_filter'), self.argument_controller.get('video_delay'),
+                     self.argument_controller.get('pause_sampling'),
+                     self.argument_controller.get('adc_acquisition_mode')]
+        if not any(x is None for x in variables):
+            self.device.set_video_configuration(*variables)
+
 
     @property
     def adc_acquisition_mode(self):
-        return self.__adc_acquisition_mode
+        if self.argument_controller.get('adc_acquisition_mode') == None:
+            self.argument_controller.update(adc_acquisition_mode=0)  # default
+        return self.argument_controller.get('adc_acquisition_mode')
 
     @adc_acquisition_mode.setter
     def adc_acquisition_mode(self, value):
-        if self.__adc_acquisition_mode != value:
-            self.__adc_acquisition_mode = value
-            #self.device.set_acquisition_mode(value)
-            self.device.set_video_configuration(self.__dsp_filter, self.__video_delay, self.__pause_sampling,
-                                                self.__adc_acquisition_mode)
-        self.property_changed_event.fire("adc_acquisition_mode")
+        self.argument_controller.update(adc_acquisition_mode=int(value))
+        variables = [self.argument_controller.get('dsp_filter'), self.argument_controller.get('video_delay'),
+                     self.argument_controller.get('pause_sampling'),
+                     self.argument_controller.get('adc_acquisition_mode')]
+        if not any(x is None for x in variables):
+            self.device.set_video_configuration(*variables)
 
     @property
     def rastering_mode(self):
-        return self.__rastering_mode
+        if self.argument_controller.get('rastering_mode') == None:
+            self.argument_controller.update(rastering_mode=0)  # default
+        return self.argument_controller.get('rastering_mode')
 
     @rastering_mode.setter
     def rastering_mode(self, value):
-        if self.__rastering_mode != value:
-            self.__rastering_mode = value
-        self.property_changed_event.fire("rastering_mode")
+        self.argument_controller.update(rastering_mode=int(value))
 
     @property
     def mini_scan(self):
-        return self.__mini_scan
+        if self.argument_controller.get('mini_scan') == None:
+            self.argument_controller.update(mini_scan=0)  # default
+        return self.argument_controller.get('mini_scan')
 
     @mini_scan.setter
     def mini_scan(self, value):
-        if self.__mini_scan != int(value):
-            self.__mini_scan = int(value)
-        self.property_changed_event.fire("mini_scan")
+        self.argument_controller.update(mini_scan=int(value))
 
     @property
     def lissajous_nx(self):
-        return self.__lissajous_nx
+        if self.argument_controller.get('lissajous_nx') == None:
+            self.argument_controller.update(lissajous_nx=0)  # default
+        return self.argument_controller.get('lissajous_nx')
 
     @lissajous_nx.setter
     def lissajous_nx(self, value):
-        if self.__lissajous_nx != value:
-            self.__lissajous_nx = value
-        self.property_changed_event.fire("lissajous_nx")
+        self.argument_controller.update(lissajous_nx=float(value))
 
     @property
     def lissajous_ny(self):
-        return self.__lissajous_ny
+        if self.argument_controller.get('lissajous_ny') == None:
+            self.argument_controller.update(lissajous_ny=0)  # default
+        return self.argument_controller.get('lissajous_ny')
 
     @lissajous_ny.setter
     def lissajous_ny(self, value):
-        if self.__lissajous_ny != value:
-            self.__lissajous_ny = value
-        self.property_changed_event.fire("lissajous_ny")
+        self.argument_controller.update(lissajous_ny=float(value))
 
     @property
     def lissajous_phase(self):
-        return self.__lissajous_phase
+        if self.argument_controller.get('lissajous_phase') == None:
+            self.argument_controller.update(lissajous_phase=0)  # default
+        return self.argument_controller.get('lissajous_phase')
 
     @lissajous_phase.setter
     def lissajous_phase(self, value):
-        if self.__lissajous_phase != value:
-            self.__lissajous_phase = value
-        self.property_changed_event.fire("lissajous_phase")
+        self.argument_controller.update(lissajous_phase=float(value))
 
     @property
     def kernel_mode(self):
-        return self.__kernel_mode
+        if self.argument_controller.get('kernel_mode') == None:
+            self.argument_controller.update(kernel_mode=0)  # default
+        return self.argument_controller.get('kernel_mode')
 
     @kernel_mode.setter
     def kernel_mode(self, value):
-        if self.__kernel_mode != value:
-            self.__kernel_mode = value
-            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.__kernel_mode],
-                                          givenPixel=self.__given_pixel,
-                                          acquisitionCutoff=self.__acquisition_cutoff,
-                                          acquisitionWindow=self.__acquisition_window)
-        self.property_changed_event.fire("kernel_mode")
+        self.argument_controller.update(kernel_mode=int(value))
+        variables = [self.argument_controller.get('kernel_mode'), self.argument_controller.get('given_pixel'),
+                     self.argument_controller.get('acquisition_cutoff'),
+                     self.argument_controller.get('acquisition_window')]
+        if not any(x is None for x in variables):
+            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
+                                          givenPixel=self.argument_controller.get('given_pixel'),
+                                          acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
+                                          acquisitionWindow=self.argument_controller.get('acquisition_window'))
 
     @property
     def given_pixel(self):
-        return self.__given_pixel
+        if self.argument_controller.get('given_pixel') == None:
+            self.argument_controller.update(given_pixel=0)  # default
+        return self.argument_controller.get('given_pixel')
 
     @given_pixel.setter
     def given_pixel(self, value):
-        if self.__given_pixel != value:
-            self.__given_pixel = value
-            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.__kernel_mode],
-                                          givenPixel=self.__given_pixel,
-                                          acquisitionCutoff=self.__acquisition_cutoff,
-                                          acquisitionWindow=self.__acquisition_window)
-        self.property_changed_event.fire("given_pixel")
+        self.argument_controller.update(given_pixel=int(value))
+        variables = [self.argument_controller.get('kernel_mode'), self.argument_controller.get('given_pixel'),
+                     self.argument_controller.get('acquisition_cutoff'),
+                     self.argument_controller.get('acquisition_window')]
+        if not any(x is None for x in variables):
+            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
+                                          givenPixel=self.argument_controller.get('given_pixel'),
+                                          acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
+                                          acquisitionWindow=self.argument_controller.get('acquisition_window'))
 
     @property
     def acquisition_cutoff(self):
-        return self.__acquisition_cutoff
+        if self.argument_controller.get('acquisition_cutoff') == None:
+            self.argument_controller.update(acquisition_cutoff=0)  # default
+        return self.argument_controller.get('acquisition_cutoff')
 
     @acquisition_cutoff.setter
     def acquisition_cutoff(self, value):
-        if self.__acquisition_cutoff != value:
-            self.__acquisition_cutoff = value
-            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.__kernel_mode],
-                                          givenPixel=self.__given_pixel,
-                                          acquisitionCutoff=self.__acquisition_cutoff,
-                                          acquisitionWindow=self.__acquisition_window)
-        self.property_changed_event.fire("acquisition_cutoff")
+        self.argument_controller.update(acquisition_cutoff=int(value))
+        variables = [self.argument_controller.get('kernel_mode'), self.argument_controller.get('given_pixel'),
+                     self.argument_controller.get('acquisition_cutoff'),
+                     self.argument_controller.get('acquisition_window')]
+        if not any(x is None for x in variables):
+            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
+                                          givenPixel=self.argument_controller.get('given_pixel'),
+                                          acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
+                                          acquisitionWindow=self.argument_controller.get('acquisition_window'))
 
     @property
     def acquisition_window(self):
-        return self.__acquisition_window
+        if self.argument_controller.get('acquisition_window') == None:
+            self.argument_controller.update(acquisition_window=0)  # default
+        return self.argument_controller.get('acquisition_window')
 
     @acquisition_window.setter
     def acquisition_window(self, value):
-        if self.__acquisition_window != value:
-            self.__acquisition_window = value
-            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.__kernel_mode],
-                                          givenPixel=self.__given_pixel,
-                                          acquisitionCutoff=self.__acquisition_cutoff,
-                                          acquisitionWindow=self.__acquisition_window)
-        self.property_changed_event.fire("acquisition_window")
+        self.argument_controller.update(acquisition_window=int(value))
+        variables = [self.argument_controller.get('kernel_mode'), self.argument_controller.get('given_pixel'),
+                     self.argument_controller.get('acquisition_cutoff'),
+                     self.argument_controller.get('acquisition_window')]
+        if not any(x is None for x in variables):
+            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
+                                          givenPixel=self.argument_controller.get('given_pixel'),
+                                          acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
+                                          acquisitionWindow=self.argument_controller.get('acquisition_window'))
 
     @property
     def magboard_switches(self):
-        return self.__magboard_switches
+        if self.argument_controller.get('magboard_switches') == None:
+            self.argument_controller.update(magboard_switches=0)  # default
+        return self.argument_controller.get('magboard_switches')
 
     @magboard_switches.setter
     def magboard_switches(self, value):
-        if self.__magboard_switches != value:
-            self.__magboard_switches = value
-            self.device.change_magnification_switches(self.__magboard_switches)
-        self.property_changed_event.fire("magboard_switches")
+        self.argument_controller.update(magboard_switches=str(value))
+        self.device.change_magnification_switches(str(value))
 
     @property
     def offset_adc0(self):
-        return self.__offset_adc[0]
+        if self.argument_controller.get('offset_adc0') == None:
+            self.argument_controller.update(offset_adc0=0)  # default
+        return self.argument_controller.get('offset_adc0')
 
     @offset_adc0.setter
     def offset_adc0(self, value):
-        self.__offset_adc[0] = float(value)
-        self.device.change_offset_adc('001', self.__offset_adc[0], True)
+        self.argument_controller.update(offset_adc0=float(value))
+        self.device.change_offset_adc('001', float(value), True)
 
     @property
     def offset_adc1(self):
-        return self.__offset_adc[1]
+        if self.argument_controller.get('offset_adc1') == None:
+            self.argument_controller.update(offset_adc1=0)  # default
+        return self.argument_controller.get('offset_adc1')
 
     @offset_adc1.setter
     def offset_adc1(self, value):
-        self.__offset_adc[1] = float(value)
-        self.device.change_offset_adc('000', self.__offset_adc[1], True)
+        self.argument_controller.update(offset_adc1=float(value))
+        self.device.change_offset_adc('000', float(value), True)
+        #self.__offset_adc[1] = float(value)
+        #self.device.change_offset_adc('000', self.__offset_adc[1], True)
 
     @property
     def offset_adc2(self):
-        return self.__offset_adc[2]
+        if self.argument_controller.get('offset_adc2') == None:
+            self.argument_controller.update(offset_adc2=0)  # default
+        return self.argument_controller.get('offset_adc2')
 
     @offset_adc2.setter
     def offset_adc2(self, value):
-        self.__offset_adc[2] = float(value)
-        self.device.change_offset_adc('011', self.__offset_adc[2], False)
+        self.argument_controller.update(offset_adc2=float(value))
+        self.device.change_offset_adc('011', float(value), False)
+        #self.__offset_adc[2] = float(value)
+        #self.device.change_offset_adc('011', self.__offset_adc[2], False)
 
     @property
     def offset_adc3(self):
-        return self.__offset_adc[3]
+        if self.argument_controller.get('offset_adc3') == None:
+            self.argument_controller.update(offset_adc3=0)  # default
+        return self.argument_controller.get('offset_adc3')
 
     @offset_adc3.setter
     def offset_adc3(self, value):
-        self.__offset_adc[3] = float(value)
-        self.device.change_offset_adc('010', self.__offset_adc[3], False)
+        self.argument_controller.update(offset_adc3=float(value))
+        self.device.change_offset_adc('010', float(value), False)
 
     @property
     def multiblock0(self):
-        return self.__multiblock[0]
+        if self.argument_controller.get('multiblock0') == None:
+            self.argument_controller.update(multiblock0=0)  # default
+        return self.argument_controller.get('multiblock0')
 
     @multiblock0.setter
     def multiblock0(self, value):
-        self.__multiblock[0] = float(value)
-        self.device.change_external_calibration(self.__multiblock)
-        self.device.change_external_values(65535)
+        self.argument_controller.update(multiblock0=float(value))
+        variables = [self.argument_controller.get('multiblock0'), self.argument_controller.get('multiblock1'),
+                     self.argument_controller.get('multiblock2'),
+                     self.argument_controller.get('multiblock3')]
+        if not any(x is None for x in variables):
+            self.device.change_external_calibration(variables)
+            self.device.change_external_values(65535)
 
     @property
     def multiblock1(self):
-        return self.__multiblock[1]
+        if self.argument_controller.get('multiblock1') == None:
+            self.argument_controller.update(multiblock1=0)  # default
+        return self.argument_controller.get('multiblock1')
 
     @multiblock1.setter
     def multiblock1(self, value):
-        self.__multiblock[1] = float(value)
-        self.device.change_external_calibration(self.__multiblock)
-        self.device.change_external_values(65535)
+        self.argument_controller.update(multiblock1=float(value))
+        variables = [self.argument_controller.get('multiblock0'), self.argument_controller.get('multiblock1'),
+                     self.argument_controller.get('multiblock2'),
+                     self.argument_controller.get('multiblock3')]
+        if not any(x is None for x in variables):
+            self.device.change_external_calibration(variables)
+            self.device.change_external_values(65535)
 
     @property
     def multiblock2(self):
-        return self.__multiblock[2]
+        if self.argument_controller.get('multiblock2') == None:
+            self.argument_controller.update(multiblock2=0)  # default
+        return self.argument_controller.get('multiblock2')
 
     @multiblock2.setter
     def multiblock2(self, value):
-        self.__multiblock[2] = float(value)
-        self.device.change_external_calibration(self.__multiblock)
-        self.device.change_external_values(65535)
+        self.argument_controller.update(multiblock2=float(value))
+        variables = [self.argument_controller.get('multiblock0'), self.argument_controller.get('multiblock1'),
+                     self.argument_controller.get('multiblock2'),
+                     self.argument_controller.get('multiblock3')]
+        if not any(x is None for x in variables):
+            self.device.change_external_calibration(variables)
+            self.device.change_external_values(65535)
 
     @property
     def multiblock3(self):
-        return self.__multiblock[3]
+        if self.argument_controller.get('multiblock3') == None:
+            self.argument_controller.update(multiblock3=0)  # default
+        return self.argument_controller.get('multiblock3')
 
     @multiblock3.setter
     def multiblock3(self, value):
-        self.__multiblock[3] = float(value)
-        self.device.change_external_calibration(self.__multiblock)
-        self.device.change_external_values(65535)
+        self.argument_controller.update(multiblock3=float(value))
+        variables = [self.argument_controller.get('multiblock0'), self.argument_controller.get('multiblock1'),
+                     self.argument_controller.get('multiblock2'),
+                     self.argument_controller.get('multiblock3')]
+        if not any(x is None for x in variables):
+            self.device.change_external_calibration(variables)
+            self.device.change_external_values(65535)
 
     @property
     def mag_multiblock0(self):
