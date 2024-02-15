@@ -53,20 +53,21 @@ class ScanEngine:
         self.__pixel_ratio = None
 
         #Settings
-        self.__imagedisplay = None
-        self.__imagedisplay_filter_intensity = None
-        self.__adc_acquisition_mode = None
-        self.__duty_cycle = None
-        self.__dsp_filter = None
-        self.__video_delay = None
-        self.__pause_sampling = None
-        self.__external_trigger = None
-        self.__flyback_us = None
-        self.__rastering_mode = None
+        self.argument_controller = dict()
+        self.__imagedisplay: int = 0
+        self.__imagedisplay_filter_intensity: int = 25
+        self.__adc_acquisition_mode: int = 5
+        self.__duty_cycle: int = 100
+        self.__dsp_filter: int = 0
+        self.__video_delay: int = 0
+        self.__pause_sampling: bool = False
+        self.__external_trigger: int = 0
+        #self.__flyback_us: int = 0
+        self.__rastering_mode: int = 0
         self.__mini_scan = None
         self.__magboard_switches = None
         self.__offset_adc = [None] * 4
-        self.__multiblock = [None] * 4
+        self.__multiblock = [1.0] * 4
         self.__mag_multiblock = [None] * 6
         self.__lissajous_phase = None
         self.__lissajous_nx = None
@@ -166,7 +167,7 @@ class ScanEngine:
         subscan_fractional_center = frame_parameters.as_dict().get('subscan_fractional_center')
         subscan_pixel_size = frame_parameters.as_dict().get('subscan_pixel_size')
 
-        self.device.change_scan_parameters(x, y, pixel_time, self.__flyback_us, fov_nm, is_synchronized_scan, SCAN_MODES[self.rastering_mode],
+        self.device.change_scan_parameters(x, y, pixel_time, self.flyback_us, fov_nm, is_synchronized_scan, SCAN_MODES[self.rastering_mode],
                                            rotation_rad = rotation_rad,
                                            lissajous_nx=self.lissajous_nx,
                                            lissajous_ny=self.lissajous_ny,
@@ -207,12 +208,16 @@ class ScanEngine:
 
     @property
     def flyback_us(self):
-        return self.__flyback_us
+        if self.argument_controller.get('flyback_us') == None:
+            self.argument_controller.update(flyback_us=0)  # default
+        return self.argument_controller.get('flyback_us')
+        #return self.__flyback_us
 
     @flyback_us.setter
     def flyback_us(self, value):
-        if self.__flyback_us != value:
-            self.__flyback_us = int(value)
+        self.argument_controller.update(flyback_us=int(value))
+        # if self.__flyback_us != value:
+        #     self.__flyback_us = int(value)
         self.property_changed_event.fire("flyback_us")
 
     @property
@@ -224,17 +229,6 @@ class ScanEngine:
         if self.__external_trigger != value:
             self.__external_trigger = value
         self.property_changed_event.fire("external_trigger")
-
-    @property
-    def adc_acquisition_mode(self):
-        return self.__adc_acquisition_mode
-
-    @adc_acquisition_mode.setter
-    def adc_acquisition_mode(self, value):
-        if self.__adc_acquisition_mode != value:
-            self.__adc_acquisition_mode = value
-            self.device.set_acquisition_mode(value)
-        self.property_changed_event.fire("adc_acquisition_mode")
 
     @property
     def duty_cycle(self):
@@ -254,7 +248,9 @@ class ScanEngine:
     def dsp_filter(self, value):
         if self.__dsp_filter != value:
             self.__dsp_filter = value
-            self.device.set_iir_bitshift_value(value)
+            #self.device.set_iir_bitshift_value(value)
+            self.device.set_video_configuration(self.__dsp_filter, self.__video_delay, self.__pause_sampling,
+            self.__adc_acquisition_mode)
         self.property_changed_event.fire("dsp_filter")
 
     @property
@@ -265,7 +261,9 @@ class ScanEngine:
     def video_delay(self, value):
         if self.__video_delay != int(value):
             self.__video_delay = int(value)
-            self.device.set_video_delay(int(value))
+            #self.device.set_video_delay(int(value))
+            self.device.set_video_configuration(self.__dsp_filter, self.__video_delay, self.__pause_sampling,
+                                                self.__adc_acquisition_mode)
             #If timepix3 is present, we should try to set the metadata of this value
             cam = HardwareSource.HardwareSourceManager()\
                 .get_hardware_source_for_hardware_source_id("orsay_camera_timepix3")
@@ -281,8 +279,23 @@ class ScanEngine:
     def pause_sampling(self, value):
         if self.__pause_sampling != value:
             self.__pause_sampling = value
-            self.device.enable_pause_sampling(value)
+            #self.device.enable_pause_sampling(value)
+            self.device.set_video_configuration(self.__dsp_filter, self.__video_delay, self.__pause_sampling,
+                                                self.__adc_acquisition_mode)
         self.property_changed_event.fire("pause_sampling")
+
+    @property
+    def adc_acquisition_mode(self):
+        return self.__adc_acquisition_mode
+
+    @adc_acquisition_mode.setter
+    def adc_acquisition_mode(self, value):
+        if self.__adc_acquisition_mode != value:
+            self.__adc_acquisition_mode = value
+            #self.device.set_acquisition_mode(value)
+            self.device.set_video_configuration(self.__dsp_filter, self.__video_delay, self.__pause_sampling,
+                                                self.__adc_acquisition_mode)
+        self.property_changed_event.fire("adc_acquisition_mode")
 
     @property
     def rastering_mode(self):
@@ -445,6 +458,7 @@ class ScanEngine:
     def multiblock0(self, value):
         self.__multiblock[0] = float(value)
         self.device.change_external_calibration(self.__multiblock)
+        self.device.change_external_values(65535)
 
     @property
     def multiblock1(self):
@@ -454,6 +468,7 @@ class ScanEngine:
     def multiblock1(self, value):
         self.__multiblock[1] = float(value)
         self.device.change_external_calibration(self.__multiblock)
+        self.device.change_external_values(65535)
 
     @property
     def multiblock2(self):
@@ -463,6 +478,7 @@ class ScanEngine:
     def multiblock2(self, value):
         self.__multiblock[2] = float(value)
         self.device.change_external_calibration(self.__multiblock)
+        self.device.change_external_values(65535)
 
     @property
     def multiblock3(self):
@@ -472,6 +488,7 @@ class ScanEngine:
     def multiblock3(self, value):
         self.__multiblock[3] = float(value)
         self.device.change_external_calibration(self.__multiblock)
+        self.device.change_external_values(65535)
 
     @property
     def mag_multiblock0(self):
