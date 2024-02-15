@@ -722,6 +722,7 @@ class TimePix3():
         status = self.getCCDStatus()
         resp = self.request_get(url=self.__serverURL + '/measurement/stop')
         return resp.text
+
     def stopFocus(self):
         """
         Stop acquisition. Finish listening put global isPlaying to False and wait client thread to finish properly using
@@ -1176,6 +1177,7 @@ class TimePix3():
             logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
             inputs.append(client)
         except ConnectionRefusedError:
+            self.stopTimepix3Measurement()
             return False
 
         dt = self.__detector_config.get_data_receive_type()
@@ -1187,6 +1189,7 @@ class TimePix3():
         self.__isReady.set() #This waits until spimData is created so scan can have access to it.
         scanInstrument = self.get_controller().scan_controller
         total_frames = self.getAccumulateNumber()
+        start = time.time()
         logging.info(f'***TPX3***: Number of frames to be acquired is {total_frames}.')
         scanInstrument.set_sequence_buffer_size(total_frames)
         scanInstrument.start_sequence_mode(scanInstrument.get_current_frame_parameters(), total_frames)
@@ -1203,6 +1206,7 @@ class TimePix3():
                     packet_data = s.recv(BUFFER_SIZE)
                     if len(packet_data) == 0:
                         logging.info('***TP3***: No more packets received. Finishing SPIM.')
+                        self.stopTimepix3Measurement()
                         return
 
                     #Checking if its a multiple of 8 bytes (64 bit)
@@ -1225,13 +1229,19 @@ class TimePix3():
 
             except ConnectionResetError:
                 logging.info("***TP3***: Socket reseted. Closing connection.")
+                self.stopTimepix3Measurement()
                 return
 
             if not self.__isPlaying or not scanInstrument.is_playing:
                 self.stopTimepix3Measurement()
                 logging.info('***TP3***: Scanning is halted. Finishing SPIM.')
                 return
-            if scanInstrument.get_sequence_buffer_count() >= total_frames:
+            read_frames = scanInstrument.get_sequence_buffer_count()
+            if time.time() - start > 5.0:
+                start = time.time()
+                logging.info(f'***TP3***: Number of scans performed is {read_frames} out of {total_frames}.')
+            if read_frames >= total_frames:
+                self.stopTimepix3Measurement()
                 scanInstrument.stop_playing()
                 logging.info('***TP3***: Buffer complete. Halting scan.')
                 return
