@@ -30,6 +30,16 @@ def getlibname():
     return libname
 
 
+class ArgumentController:
+    def __init__(self):
+        self.argument_controller = dict()
+
+    def get(self, keyname: str, value = None):
+        return self.argument_controller.get(keyname, value)
+
+    def update(self, **kwargs):
+        self.argument_controller.update(**kwargs)
+
 class ScanEngine:
     def __init__(self):
         self.property_changed_event = Event.Event()
@@ -53,23 +63,7 @@ class ScanEngine:
         self.__pixel_ratio = None
 
         #Settings
-        self.argument_controller = dict()
-        self.__magboard_switches = None
-        self.__mag_multiblock = [None] * 6
-        self.__input1_mux = None
-        self.__input2_mux = None
-        self.__routex_mux = None
-        self.__routex_mux_intensity = None
-        self.__routex_mux_averages = None
-        self.__routey_mux = None
-        self.__routey_mux_intensity = None
-        self.__routey_mux_averages = None
-
-        self.__output_mux_type = [None] * 8
-        self.__output_mux_freq = [None] * 8
-        self.__output_mux_input = [None] * 8
-        self.__output_mux_input_div = [None] * 8
-        self.__output_mux_delay = [None] * 8
+        self.argument_controller = ArgumentController()
 
         self.imagedisplay = 0
         self.imagedisplay_filter_intensity = 25
@@ -436,8 +430,6 @@ class ScanEngine:
     def offset_adc1(self, value):
         self.argument_controller.update(offset_adc1=float(value))
         self.device.change_offset_adc('000', float(value), True)
-        #self.__offset_adc[1] = float(value)
-        #self.device.change_offset_adc('000', self.__offset_adc[1], True)
 
     @property
     def offset_adc2(self):
@@ -449,8 +441,6 @@ class ScanEngine:
     def offset_adc2(self, value):
         self.argument_controller.update(offset_adc2=float(value))
         self.device.change_offset_adc('011', float(value), False)
-        #self.__offset_adc[2] = float(value)
-        #self.device.change_offset_adc('011', self.__offset_adc[2], False)
 
     @property
     def offset_adc3(self):
@@ -529,225 +519,316 @@ class ScanEngine:
 
     @property
     def mag_multiblock0(self):
-        return self.__mag_multiblock[0]
+        if self.argument_controller.get('mag_multiblock0') == None:
+            self.argument_controller.update(mag_multiblock0=0)  # default
+        return self.argument_controller.get('mag_multiblock0')
 
     @mag_multiblock0.setter
     def mag_multiblock0(self, value):
-        self.__mag_multiblock[0] = float(value)
-        self.device.change_magnification_calibration(self.__mag_multiblock)
+        self.argument_controller.update(mag_multiblock0=float(value))
+        variables = [self.argument_controller.get('mag_multiblock0'), self.argument_controller.get('mag_multiblock1'),
+                     self.argument_controller.get('mag_multiblock2'), self.argument_controller.get('mag_multiblock3'),
+                     self.argument_controller.get('mag_multiblock4'), self.argument_controller.get('mag_multiblock5')]
+        if not any(x is None for x in variables):
+            self.device.change_magnification_calibration(variables)
 
     @property
     def mag_multiblock1(self):
-        return self.__mag_multiblock[1]
+        if self.argument_controller.get('mag_multiblock1') == None:
+            self.argument_controller.update(mag_multiblock1=0)  # default
+        return self.argument_controller.get('mag_multiblock1')
 
     @mag_multiblock1.setter
     def mag_multiblock1(self, value):
-        self.__mag_multiblock[1] = float(value)
-        self.device.change_magnification_calibration(self.__mag_multiblock)
+        self.argument_controller.update(mag_multiblock1=float(value))
+        variables = [self.argument_controller.get('mag_multiblock0'), self.argument_controller.get('mag_multiblock1'),
+                     self.argument_controller.get('mag_multiblock2'), self.argument_controller.get('mag_multiblock3'),
+                     self.argument_controller.get('mag_multiblock4'), self.argument_controller.get('mag_multiblock5')]
+        if not any(x is None for x in variables):
+            self.device.change_magnification_calibration(variables)
 
     @property
     def mag_multiblock2(self):
-        return self.__mag_multiblock[2]
+        if self.argument_controller.get('mag_multiblock2') == None:
+            self.argument_controller.update(mag_multiblock2=0)  # default
+        return self.argument_controller.get('mag_multiblock2')
 
     @mag_multiblock2.setter
     def mag_multiblock2(self, value):
-        self.__mag_multiblock[2] = float(value)
-        self.device.change_magnification_calibration(self.__mag_multiblock)
+        self.argument_controller.update(mag_multiblock2=float(value))
+        variables = [self.argument_controller.get('mag_multiblock0'), self.argument_controller.get('mag_multiblock1'),
+                     self.argument_controller.get('mag_multiblock2'), self.argument_controller.get('mag_multiblock3'),
+                     self.argument_controller.get('mag_multiblock4'), self.argument_controller.get('mag_multiblock5')]
+        if not any(x is None for x in variables):
+            self.device.change_magnification_calibration(variables)
 
     @property
     def mag_multiblock3(self):
-        return self.__mag_multiblock[3]
+        if self.argument_controller.get('mag_multiblock3') == None:
+            self.argument_controller.update(mag_multiblock3=0)  # default
+        return self.argument_controller.get('mag_multiblock3')
 
     @mag_multiblock3.setter
     def mag_multiblock3(self, value):
-        self.__mag_multiblock[3] = float(value)
-        self.device.change_magnification_calibration(self.__mag_multiblock)
+        self.argument_controller.update(mag_multiblock3=float(value))
+        variables = [self.argument_controller.get('mag_multiblock0'), self.argument_controller.get('mag_multiblock1'),
+                     self.argument_controller.get('mag_multiblock2'), self.argument_controller.get('mag_multiblock3'),
+                     self.argument_controller.get('mag_multiblock4'), self.argument_controller.get('mag_multiblock5')]
+        if not any(x is None for x in variables):
+            self.device.change_magnification_calibration(variables)
 
     @property
     def mag_multiblock4(self):
-        return self.__mag_multiblock[4]
+        if self.argument_controller.get('mag_multiblock4') == None:
+            self.argument_controller.update(mag_multiblock4=0)  # default
+        return self.argument_controller.get('mag_multiblock4')
 
     @mag_multiblock4.setter
     def mag_multiblock4(self, value):
-        self.__mag_multiblock[4] = float(value)
-        self.device.change_magnification_calibration(self.__mag_multiblock)
+        self.argument_controller.update(mag_multiblock4=float(value))
+        variables = [self.argument_controller.get('mag_multiblock0'), self.argument_controller.get('mag_multiblock1'),
+                     self.argument_controller.get('mag_multiblock2'), self.argument_controller.get('mag_multiblock3'),
+                     self.argument_controller.get('mag_multiblock4'), self.argument_controller.get('mag_multiblock5')]
+        if not any(x is None for x in variables):
+            self.device.change_magnification_calibration(variables)
 
     @property
     def mag_multiblock5(self):
-        return self.__mag_multiblock[5]
+        if self.argument_controller.get('mag_multiblock5') == None:
+            self.argument_controller.update(mag_multiblock5=0)  # default
+        return self.argument_controller.get('mag_multiblock5')
 
     @mag_multiblock5.setter
     def mag_multiblock5(self, value):
-        self.__mag_multiblock[5] = float(value)
-        self.device.change_magnification_calibration(self.__mag_multiblock)
+        self.argument_controller.update(mag_multiblock5=float(value))
+        variables = [self.argument_controller.get('mag_multiblock0'), self.argument_controller.get('mag_multiblock1'),
+                     self.argument_controller.get('mag_multiblock2'), self.argument_controller.get('mag_multiblock3'),
+                     self.argument_controller.get('mag_multiblock4'), self.argument_controller.get('mag_multiblock5')]
+        if not any(x is None for x in variables):
+            self.device.change_magnification_calibration(variables)
 
 
     @property
     def input1_mux(self):
-        return self.__input1_mux
+        if self.argument_controller.get('input1_mux') == None:
+            self.argument_controller.update(input1_mux=0)  # default
+        return self.argument_controller.get('input1_mux')
 
     @input1_mux.setter
     def input1_mux(self, value):
-        if self.__input1_mux != int(value):
-            self.__input1_mux = int(value)
-            self.device.set_input_mux(0, int(value))
+        self.argument_controller.update(input1_mux=int(value))
+        self.device.set_input_mux(0, int(value))
         self.property_changed_event.fire("input1_mux")
 
     @property
     def input2_mux(self):
-        return self.__input2_mux
+        if self.argument_controller.get('input2_mux') == None:
+            self.argument_controller.update(input2_mux=0)  # default
+        return self.argument_controller.get('input2_mux')
 
     @input2_mux.setter
     def input2_mux(self, value):
-        if self.__input2_mux != int(value):
-            self.__input2_mux = int(value)
-            self.device.set_input_mux(1, int(value))
+        self.argument_controller.update(input2_mux=int(value))
+        self.device.set_input_mux(1, int(value))
         self.property_changed_event.fire("input2_mux")
 
     @property
     def routex_mux(self):
-        return self.__routex_mux
+        if self.argument_controller.get('routex_mux') == None:
+            self.argument_controller.update(routex_mux=0)  # default
+        return self.argument_controller.get('routex_mux')
 
     @routex_mux.setter
     def routex_mux(self, value):
-        if self.__routex_mux != int(value):
-            self.__routex_mux = int(value)
-            self.device.set_route_mux(0, self.__routex_mux, self.__routex_mux_intensity, self.__routex_mux_averages)
+        self.argument_controller.update(routex_mux=int(value))
+        variables = [0, self.argument_controller.get('routex_mux'), self.argument_controller.get('routex_mux_intensity'),
+                     self.argument_controller.get('routex_mux_averages')]
+        if not any(x is None for x in variables):
+            self.device.set_route_mux(*variables)
         self.property_changed_event.fire("routex_mux")
 
     @property
     def routex_mux_intensity(self):
-        return self.__routex_mux_intensity
+        if self.argument_controller.get('routex_mux_intensity') == None:
+            self.argument_controller.update(routex_mux_intensity=0)  # default
+        return self.argument_controller.get('routex_mux_intensity')
 
     @routex_mux_intensity.setter
     def routex_mux_intensity(self, value):
-        if self.__routex_mux_intensity != int(value):
-            self.__routex_mux_intensity = int(value)
-            self.device.set_route_mux(0, self.__routex_mux, self.__routex_mux_intensity, self.__routex_mux_averages)
+        self.argument_controller.update(routex_mux_intensity=int(value))
+        variables = [0, self.argument_controller.get('routex_mux'),
+                     self.argument_controller.get('routex_mux_intensity'),
+                     self.argument_controller.get('routex_mux_averages')]
+        if not any(x is None for x in variables):
+            self.device.set_route_mux(*variables)
         self.property_changed_event.fire("routex_mux_intensity")
 
     @property
     def routex_mux_averages(self):
-        return self.__routex_mux_averages
+        if self.argument_controller.get('routex_mux_averages') == None:
+            self.argument_controller.update(routex_mux_averages=0)  # default
+        return self.argument_controller.get('routex_mux_averages')
 
     @routex_mux_averages.setter
     def routex_mux_averages(self, value):
-        if self.__routex_mux_averages != int(value):
-            self.__routex_mux_averages = int(value)
-            self.device.set_route_mux(0, self.__routex_mux, self.__routex_mux_intensity, self.__routex_mux_averages)
+        self.argument_controller.update(routex_mux_averages=int(value))
+        variables = [0, self.argument_controller.get('routex_mux'),
+                     self.argument_controller.get('routex_mux_intensity'),
+                     self.argument_controller.get('routex_mux_averages')]
+        if not any(x is None for x in variables):
+            self.device.set_route_mux(*variables)
         self.property_changed_event.fire("routex_mux_averages")
 
     @property
     def routey_mux(self):
-        return self.__routey_mux
+        if self.argument_controller.get('routey_mux') == None:
+            self.argument_controller.update(routey_mux=0)  # default
+        return self.argument_controller.get('routey_mux')
 
     @routey_mux.setter
     def routey_mux(self, value):
-        if self.__routey_mux != int(value):
-            self.__routey_mux = int(value)
-            self.device.set_route_mux(1, self.__routey_mux, self.__routey_mux_intensity, self.__routey_mux_averages)
+        self.argument_controller.update(routey_mux=int(value))
+        variables = [1, self.argument_controller.get('routey_mux'),
+                     self.argument_controller.get('routey_mux_intensity'),
+                     self.argument_controller.get('routey_mux_averages')]
+        if not any(x is None for x in variables):
+            self.device.set_route_mux(*variables)
         self.property_changed_event.fire("routey_mux")
 
     @property
     def routey_mux_intensity(self):
-        return self.__routey_mux_intensity
+        if self.argument_controller.get('routey_mux_intensity') == None:
+            self.argument_controller.update(routey_mux_intensity=0)  # default
+        return self.argument_controller.get('routey_mux_intensity')
 
     @routey_mux_intensity.setter
     def routey_mux_intensity(self, value):
-        if self.__routey_mux_intensity != int(value):
-            self.__routey_mux_intensity = int(value)
-            self.device.set_route_mux(1, self.__routey_mux, self.__routey_mux_intensity, self.__routey_mux_averages)
+        self.argument_controller.update(routey_mux_intensity=int(value))
+        variables = [1, self.argument_controller.get('routey_mux'),
+                     self.argument_controller.get('routey_mux_intensity'),
+                     self.argument_controller.get('routey_mux_averages')]
+        if not any(x is None for x in variables):
+            self.device.set_route_mux(*variables)
         self.property_changed_event.fire("routey_mux_intensity")
 
     @property
     def routey_mux_averages(self):
-        return self.__routey_mux_averages
+        if self.argument_controller.get('multiblock3') == None:
+            self.argument_controller.update(routey_mux_averages=0)  # default
+        return self.argument_controller.get('routey_mux_averages')
 
     @routey_mux_averages.setter
     def routey_mux_averages(self, value):
-        if self.__routey_mux_averages != int(value):
-            self.__routey_mux_averages = int(value)
-            self.device.set_route_mux(1, self.__routey_mux, self.__routey_mux_intensity, self.__routey_mux_averages)
+        self.argument_controller.update(routey_mux_averages=int(value))
+        variables = [1, self.argument_controller.get('routey_mux'),
+                     self.argument_controller.get('routey_mux_intensity'),
+                     self.argument_controller.get('routey_mux_averages')]
+        if not any(x is None for x in variables):
+            self.device.set_route_mux(*variables)
         self.property_changed_event.fire("routey_mux_averages")
-
 
 
     """
     Creating the functions for the output multiplexer. I have used the property function for efficiency
     """
-    def get_output1_mux_type(channel):
+    def get_output1_mux_type(channel: int):
         def wrapper(self):
-            return self.__output_mux_type[channel]
+            if self.argument_controller.get('mux_output_type') == None:
+                self.argument_controller.update(mux_output_type=[0] * 8)  # default
+            return self.argument_controller.get('mux_output_type')[channel]
         return wrapper
 
-    def set_output_mux_type(channel):
+    def set_output_mux_type(channel: int):
         def wrapper(self, value):
-            if self.__output_mux_type[channel] != int(value):
-                self.__output_mux_type[channel] = int(value)
-                self.device.set_output_mux(channel, self.__output_mux_type[channel],
-                                           self.__output_mux_freq[channel],
-                                           self.__output_mux_input[channel], self.__output_mux_input_div[channel],
-                                           self.__output_mux_delay[channel])
+            temp_list = self.argument_controller.get('mux_output_type', [0] * 8)
+            temp_list[channel] = int(value)
+            self.argument_controller.update(mux_output_type=temp_list)
+            variables = [channel, self.argument_controller.get('mux_output_type', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_freq', [0] * 8)[channel],
+                         self.argument_controller.get('mu"x_output_input', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_input_div', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_delay', [0] * 8)[channel]]
+            self.device.set_output_mux(*variables)
         return wrapper
 
     def get_output_mux_freq(channel):
         def wrapper(self):
-            return self.__output_mux_freq[channel]
+            if self.argument_controller.get('mux_output_freq') == None:
+                self.argument_controller.update(mux_output_freq=[0] * 8)  # default
+            return self.argument_controller.get('mux_output_freq')[channel]
         return wrapper
 
     def set_output_mux_freq(channel):
         def wrapper(self, value):
-            if self.__output_mux_freq[channel] != float(value):
-                self.__output_mux_freq[channel] = float(value)
-                self.device.set_output_mux(channel, self.__output_mux_type[channel],
-                                           self.__output_mux_freq[channel],
-                                           self.__output_mux_input[channel], self.__output_mux_input_div[channel],
-                                           self.__output_mux_delay[channel])
+            temp_list = self.argument_controller.get('mux_output_freq',  [0] * 8)
+            temp_list[channel] = int(value)
+            self.argument_controller.update(mux_output_freq=temp_list)
+            variables = [channel, self.argument_controller.get('mux_output_type', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_freq', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_input', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_input_div', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_delay', [0] * 8)[channel]]
+            self.device.set_output_mux(*variables)
         return wrapper
 
     def get_output_mux_delay(channel):
         def wrapper(self):
-            return self.__output_mux_delay[channel]
+            if self.argument_controller.get('mux_output_delay') == None:
+                self.argument_controller.update(mux_output_delay=[0] * 8)  # default
+            return self.argument_controller.get('mux_output_delay')[channel]
         return wrapper
 
     def set_output_mux_delay(channel):
         def wrapper(self, value):
-            if self.__output_mux_delay[channel] != int(value):
-                self.__output_mux_delay[channel] = int(value)
-                self.device.set_output_mux(channel, self.__output_mux_type[channel],
-                                           self.__output_mux_freq[channel],
-                                           self.__output_mux_input[channel], self.__output_mux_input_div[channel],
-                                           self.__output_mux_delay[channel])
+            temp_list = self.argument_controller.get('mux_output_delay', [0] * 8)
+            temp_list[channel] = int(value)
+            self.argument_controller.update(mux_output_delay=temp_list)
+            variables = [channel, self.argument_controller.get('mux_output_type', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_freq', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_input', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_input_div', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_delay', [0] * 8)[channel]]
+            self.device.set_output_mux(*variables)
         return wrapper
 
     def get_output_mux_input(channel):
         def wrapper(self):
-            return self.__output_mux_input[channel]
+            if self.argument_controller.get('mux_output_input') == None:
+                self.argument_controller.update(mux_output_input=[0] * 8)  # default
+            return self.argument_controller.get('mux_output_input')[channel]
         return wrapper
 
     def set_output_mux_input(channel):
         def wrapper(self, value):
-            if self.__output_mux_input[channel] != int(value):
-                self.__output_mux_input[channel] = int(value)
-                self.device.set_output_mux(channel, self.__output_mux_type[channel],
-                                           self.__output_mux_freq[channel],
-                                           self.__output_mux_input[channel], self.__output_mux_input_div[channel],
-                                           self.__output_mux_delay[channel])
+            temp_list = self.argument_controller.get('mux_output_input', [0] * 8)
+            temp_list[channel] = int(value)
+            self.argument_controller.update(mux_output_input=temp_list)
+            variables = [channel, self.argument_controller.get('mux_output_type', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_freq', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_input', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_input_div', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_delay', [0] * 8)[channel]]
+            self.device.set_output_mux(*variables)
         return wrapper
 
     def get_output_mux_input_div(channel):
         def wrapper(self):
-            return self.__output_mux_input_div[channel]
+            if self.argument_controller.get('mux_output_input_div') == None:
+                self.argument_controller.update(mux_output_input_div=[0] * 8)  # default
+            return self.argument_controller.get('mux_output_input_div')[channel]
         return wrapper
 
     def set_output_mux_input_div(channel):
         def wrapper(self, value):
-            if self.__output_mux_input_div[channel] != int(value):
-                self.__output_mux_input_div[channel] = int(value)
-                self.device.set_output_mux(channel, self.__output_mux_type[channel],
-                                           self.__output_mux_freq[channel],
-                                           self.__output_mux_input[channel], self.__output_mux_input_div[channel],
-                                           self.__output_mux_delay[channel])
+            temp_list = self.argument_controller.get('mux_output_input_div', [0] * 8)
+            temp_list[channel] = int(value)
+            self.argument_controller.update(mux_output_input_div=temp_list)
+            variables = [channel, self.argument_controller.get('mux_output_type', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_freq', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_input', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_input_div', [0] * 8)[channel],
+                         self.argument_controller.get('mux_output_delay', [0] * 8)[channel]]
+            self.device.set_output_mux(*variables)
         return wrapper
 
     output1_mux_type = property(get_output1_mux_type(0), set_output_mux_type(0))
