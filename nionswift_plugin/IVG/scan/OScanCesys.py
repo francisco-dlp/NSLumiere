@@ -1,5 +1,5 @@
 # standard libraries
-import copy, math, gettext, numpy, typing, time, threading, logging, os, sys
+import copy, math, gettext, numpy, typing, time, threading, logging, os, sys, json
 
 # local libraries
 from nion.utils import Registry
@@ -32,13 +32,30 @@ def getlibname():
 
 class ArgumentController:
     def __init__(self):
-        self.argument_controller = dict()
+        try:
+            with open('data.json') as f:
+                self.argument_controller = json.load(f)
+        except FileNotFoundError:
+            self.argument_controller = dict()
+            with open('data.json', 'w') as f:
+                json.dump(self.argument_controller, f)
 
     def get(self, keyname: str, value = None):
         return self.argument_controller.get(keyname, value)
 
+    def keys(self):
+        return self.argument_controller.keys()
+
     def update(self, **kwargs):
         self.argument_controller.update(**kwargs)
+        self.write_to_json()
+
+    def write_to_json(self):
+        with open('data.json') as f:
+            data = json.load(f)
+        data.update(self.argument_controller)
+        with open('data.json', 'w') as f:
+            json.dump(data, f)
 
 class ScanEngine:
     def __init__(self):
@@ -65,67 +82,142 @@ class ScanEngine:
         #Settings
         self.argument_controller = ArgumentController()
 
-        self.imagedisplay = 0
-        self.imagedisplay_filter_intensity = 25
-        self.adc_acquisition_mode = 5
-        self.duty_cycle = 100
-        self.dsp_filter = 0
-        self.video_delay = 0
-        self.pause_sampling = False
-        self.external_trigger = 0
-        self.flyback_us = 0
-        self.rastering_mode = 0
-        self.mini_scan = 2
-        self.magboard_switches = '100100'
-        self.offset_adc0 = self.offset_adc1 = self.offset_adc2 = self.offset_adc3 = 0
-        self.multiblock0 = self.multiblock1 = self.multiblock2 = self.multiblock3 = 1.0
-        self.mag_multiblock0 = self.mag_multiblock1 = self.mag_multiblock2 = self.mag_multiblock3  = 1.0
-        self.mag_multiblock4 = self.mag_multiblock5 = 0.0
-        self.lissajous_nx = 190.8
-        self.lissajous_ny = 190.5
-        self.lissajous_phase = 0
-        self.kernel_mode = 0
-        self.given_pixel = 1
-        self.acquisition_cutoff = 500
-        self.acquisition_window = 2
-        self.input1_mux = 2
-        self.input2_mux = 3
-        self.routex_mux = 0
-        self.routex_mux_intensity = 0
-        self.routex_mux_averages = 0
-        self.routey_mux = 0
-        self.routey_mux_intensity = 0
-        self.routey_mux_averages = 0
-        #O1TTL
-        self.output1_mux_type = 1
-        self.output1_mux_freq = 1000
-        self.output1_mux_input = 0
-        self.output1_mux_input_div = 0
-        self.output1_mux_delay = 0
-        #O2TTL
-        self.output2_mux_type = 3
-        self.output2_mux_freq = 1000
-        self.output2_mux_input = 0
-        self.output2_mux_input_div = 0
-        self.output2_mux_delay = 0
-        #O3TTL
-        self.output3_mux_type = 0
-        self.output3_mux_freq = 1000
-        self.output3_mux_input = 0
-        self.output3_mux_input_div = 0
-        self.output3_mux_delay = 0
-        #O4TTL
-        self.output4_mux_type = 0
-        self.output4_mux_freq = 1000
-        self.output4_mux_input = 0
-        self.output4_mux_input_div = 0
-        self.output4_mux_delay = 0
-        #EXT_TRIGGER
-        self.output5_mux_type = 6
-        self.output5_mux_freq = 1000
-        self.output5_mux_input = 0
-        self.output5_mux_input_div = 0
-        self.output5_mux_delay = 0
+        for keys in self.argument_controller.keys():
+            setattr(self, keys, getattr(self, keys))
+
+        # setattr(self, 'imagedisplay', getattr(self, 'imagedisplay'))
+        # setattr(self, 'imagedisplay_filter_intensity', getattr(self, 'imagedisplay_filter_intensity'))
+        # self.adc_acquisition_mode = self.argument_controller.get('adc_acquisition_mode')
+        # self.duty_cycle = self.argument_controller.get('duty_cycle')
+        # self.dsp_filter = self.argument_controller.get('dsp_filter')
+        # self.video_delay = self.argument_controller.get('video_delay')
+        # self.pause_sampling = self.argument_controller.get('pause_sampling')
+        # self.external_trigger = self.argument_controller.get('external_trigger')
+        # self.flyback_us = self.argument_controller.get('flyback_us')
+        # self.rastering_mode = self.argument_controller.get('rastering_mode')
+        # self.mini_scan = self.argument_controller.get('mini_scan')
+        # self.magboard_switches = self.argument_controller.get('magboard_switches')
+        # self.offset_adc0 = self.argument_controller.get('offset_adc0')
+        # self.offset_adc1 = self.argument_controller.get('offset_adc1')
+        # self.offset_adc2 = self.argument_controller.get('offset_adc2')
+        # self.offset_adc3 = self.argument_controller.get('offset_adc3')
+        # self.multiblock0 = self.argument_controller.get('multiblock0')
+        # self.multiblock1 = self.argument_controller.get('multiblock1')
+        # self.multiblock2 = self.argument_controller.get('multiblock2')
+        # self.multiblock3 = self.argument_controller.get('multiblock3')
+        # self.mag_multiblock0 = self.argument_controller.get('mag_multiblock0')
+        # self.mag_multiblock1 = self.argument_controller.get('mag_multiblock1')
+        # self.mag_multiblock2 = self.argument_controller.get('mag_multiblock2')
+        # self.mag_multiblock3  = self.argument_controller.get('mag_multiblock3')
+        # self.mag_multiblock4 = self.argument_controller.get('mag_multiblock4')
+        # self.mag_multiblock5 = self.argument_controller.get('mag_multiblock5')
+        # self.lissajous_nx = self.argument_controller.get('lissajous_nx')
+        # self.lissajous_ny = self.argument_controller.get('lissajous_ny')
+        # self.lissajous_phase = self.argument_controller.get('lissajous_phase')
+        # self.kernel_mode = self.argument_controller.get('kernel_mode')
+        # self.given_pixel = self.argument_controller.get('given_pixel')
+        # self.acquisition_cutoff = self.argument_controller.get('acquisition_cutoff')
+        # self.acquisition_window = self.argument_controller.get('acquisition_window')
+        # self.input1_mux = self.argument_controller.get('input1_mux')
+        # self.input2_mux = self.argument_controller.get('input2_mux')
+        # self.routex_mux = self.argument_controller.get('routex_mux')
+        # self.routex_mux_intensity = self.argument_controller.get('routex_mux_intensity')
+        # self.routex_mux_averages = self.argument_controller.get('routex_mux_averages')
+        # self.routey_mux = self.argument_controller.get('routey_mux')
+        # self.routey_mux_intensity = self.argument_controller.get('routey_mux_intensity')
+        # self.routey_mux_averages = self.argument_controller.get('routey_mux_averages')
+        # #O1TTL
+        # self.output1_mux_type = self.argument_controller.get('mux_output_type')[0]
+        # self.output1_mux_freq = self.argument_controller.get('mux_output_freq')[0]
+        # self.output1_mux_input = self.argument_controller.get('mux_output_input')[0]
+        # self.output1_mux_input_div = self.argument_controller.get('mux_output_input_div')[0]
+        # self.output1_mux_delay = self.argument_controller.get('mux_output_delay')[0]
+        # #O2TTL
+        # self.output2_mux_type = self.argument_controller.get('mux_output_type')[1]
+        # self.output2_mux_freq = self.argument_controller.get('mux_output_freq')[1]
+        # self.output2_mux_input = self.argument_controller.get('mux_output_input')[1]
+        # self.output2_mux_input_div = self.argument_controller.get('mux_output_input_div')[1]
+        # self.output2_mux_delay = self.argument_controller.get('mux_output_delay')[1]
+        # #O3TTL
+        # self.output3_mux_type = self.argument_controller.get('mux_output_type')[2]
+        # self.output3_mux_freq = self.argument_controller.get('mux_output_freq')[2]
+        # self.output3_mux_input = self.argument_controller.get('mux_output_input')[2]
+        # self.output3_mux_input_div = self.argument_controller.get('mux_output_input_div')[2]
+        # self.output3_mux_delay = self.argument_controller.get('mux_output_delay')[2]
+        # #O4TTL
+        # self.output4_mux_type = self.argument_controller.get('mux_output_type')[3]
+        # self.output4_mux_freq = self.argument_controller.get('mux_output_freq')[3]
+        # self.output4_mux_input = self.argument_controller.get('mux_output_input')[3]
+        # self.output4_mux_input_div = self.argument_controller.get('mux_output_input_div')[3]
+        # self.output4_mux_delay = self.argument_controller.get('mux_output_delay')[3]
+        # #EXT_TRIGGER
+        # self.output5_mux_type = self.argument_controller.get('mux_output_type')[4]
+        # self.output5_mux_freq = self.argument_controller.get('mux_output_freq')[4]
+        # self.output5_mux_input = self.argument_controller.get('mux_output_input')[4]
+        # self.output5_mux_input_div = self.argument_controller.get('mux_output_input_div')[4]
+        # self.output5_mux_delay = self.argument_controller.get('mux_output_delay')[4]
+
+        # self.imagedisplay = 0
+        # self.imagedisplay_filter_intensity = 25
+        # self.adc_acquisition_mode = 5
+        # self.duty_cycle = 100
+        # self.dsp_filter = 0
+        # self.video_delay = 0
+        # self.pause_sampling = False
+        # self.external_trigger = 0
+        # self.flyback_us = 0
+        # self.rastering_mode = 0
+        # self.mini_scan = 2
+        # self.magboard_switches = '100100'
+        # self.offset_adc0 = self.offset_adc1 = self.offset_adc2 = self.offset_adc3 = 0
+        # self.multiblock0 = self.multiblock1 = self.multiblock2 = self.multiblock3 = 1.0
+        # self.mag_multiblock0 = self.mag_multiblock1 = self.mag_multiblock2 = self.mag_multiblock3  = 1.0
+        # self.mag_multiblock4 = self.mag_multiblock5 = 0.0
+        # self.lissajous_nx = 190.8
+        # self.lissajous_ny = 190.5
+        # self.lissajous_phase = 0
+        # self.kernel_mode = 0
+        # self.given_pixel = 1
+        # self.acquisition_cutoff = 500
+        # self.acquisition_window = 2
+        # self.input1_mux = 2
+        # self.input2_mux = 3
+        # self.routex_mux = 0
+        # self.routex_mux_intensity = 0
+        # self.routex_mux_averages = 0
+        # self.routey_mux = 0
+        # self.routey_mux_intensity = 0
+        # self.routey_mux_averages = 0
+        # #O1TTL
+        # self.output1_mux_type = 1
+        # self.output1_mux_freq = 1000
+        # self.output1_mux_input = 0
+        # self.output1_mux_input_div = 0
+        # self.output1_mux_delay = 0
+        # #O2TTL
+        # self.output2_mux_type = 3
+        # self.output2_mux_freq = 1000
+        # self.output2_mux_input = 0
+        # self.output2_mux_input_div = 0
+        # self.output2_mux_delay = 0
+        # #O3TTL
+        # self.output3_mux_type = 0
+        # self.output3_mux_freq = 1000
+        # self.output3_mux_input = 0
+        # self.output3_mux_input_div = 0
+        # self.output3_mux_delay = 0
+        # #O4TTL
+        # self.output4_mux_type = 0
+        # self.output4_mux_freq = 1000
+        # self.output4_mux_input = 0
+        # self.output4_mux_input_div = 0
+        # self.output4_mux_delay = 0
+        # #EXT_TRIGGER
+        # self.output5_mux_type = 6
+        # self.output5_mux_freq = 1000
+        # self.output5_mux_input = 0
+        # self.output5_mux_input_div = 0
+        # self.output5_mux_delay = 0
 
     def receive_total_frame(self, channel: int):
         image = self.device.get_image(channel, imageType=IMAGE_VIEW_MODES[self.imagedisplay], low_pass_size=self.imagedisplay_filter_intensity)
@@ -401,7 +493,7 @@ class ScanEngine:
     @property
     def magboard_switches(self):
         if self.argument_controller.get('magboard_switches') == None:
-            self.argument_controller.update(magboard_switches=0)  # default
+            self.argument_controller.update(magboard_switches='000000')  # default
         return self.argument_controller.get('magboard_switches')
 
     @magboard_switches.setter
@@ -713,7 +805,7 @@ class ScanEngine:
 
     @property
     def routey_mux_averages(self):
-        if self.argument_controller.get('multiblock3') == None:
+        if self.argument_controller.get('routey_mux_averages') == None:
             self.argument_controller.update(routey_mux_averages=0)  # default
         return self.argument_controller.get('routey_mux_averages')
 
@@ -726,6 +818,80 @@ class ScanEngine:
         if not any(x is None for x in variables):
             self.device.set_route_mux(*variables)
         self.property_changed_event.fire("routey_mux_averages")
+    @property
+    def mux_output_type(self):
+        if self.argument_controller.get('mux_output_type') == None:
+            self.argument_controller.update(mux_output_type=[0] * 8)  # default
+        return self.argument_controller.get('mux_output_type')
+
+    @mux_output_type.setter
+    def mux_output_type(self, value: list):
+        self.argument_controller.update(mux_output_type=value)
+        self.output1_mux_type = value[0]
+        self.output2_mux_type = value[1]
+        self.output3_mux_type = value[2]
+        self.output4_mux_type = value[3]
+        self.output5_mux_type = value[4]
+
+    @property
+    def mux_output_freq(self):
+        if self.argument_controller.get('mux_output_freq') == None:
+            self.argument_controller.update(mux_output_freq=[0] * 8)  # default
+        return self.argument_controller.get('mux_output_freq')
+
+    @mux_output_freq.setter
+    def mux_output_freq(self, value: list):
+        self.argument_controller.update(mux_output_freq=value)
+        self.output1_mux_freq = value[0]
+        self.output2_mux_freq = value[1]
+        self.output3_mux_freq = value[2]
+        self.output4_mux_freq = value[3]
+        self.output5_mux_freq = value[4]
+
+    @property
+    def mux_output_input(self):
+        if self.argument_controller.get('mux_output_input') == None:
+            self.argument_controller.update(mux_output_input=[0] * 8)  # default
+        return self.argument_controller.get('mux_output_input')
+
+    @mux_output_input.setter
+    def mux_output_input(self, value: list):
+        self.argument_controller.update(mux_output_input=value)
+        self.output1_mux_input = value[0]
+        self.output2_mux_input = value[1]
+        self.output3_mux_input = value[2]
+        self.output4_mux_input = value[3]
+        self.output5_mux_input = value[4]
+
+    @property
+    def mux_output_input_div(self):
+        if self.argument_controller.get('mux_output_input_div') == None:
+            self.argument_controller.update(mux_output_input_div=[0] * 8)  # default
+        return self.argument_controller.get('mux_output_input_div')
+
+    @mux_output_input_div.setter
+    def mux_output_input_div(self, value: list):
+        self.argument_controller.update(mux_output_input_div=value)
+        self.output1_mux_input_div = value[0]
+        self.output2_mux_input_div = value[1]
+        self.output3_mux_input_div = value[2]
+        self.output4_mux_input_div = value[3]
+        self.output5_mux_input_div = value[4]
+
+    @property
+    def mux_output_delay(self):
+        if self.argument_controller.get('mux_output_delay') == None:
+            self.argument_controller.update(mux_output_delay=[0] * 8)  # default
+        return self.argument_controller.get('mux_output_delay')
+
+    @mux_output_delay.setter
+    def mux_output_delay(self, value: list):
+        self.argument_controller.update(mux_output_delay=value)
+        self.output1_mux_delay = value[0]
+        self.output2_mux_delay = value[1]
+        self.output3_mux_delay = value[2]
+        self.output4_mux_delay = value[3]
+        self.output5_mux_delay = value[4]
 
 
     """
