@@ -20,6 +20,7 @@ set_file = read_data.FileManager('global_settings')
 OPEN_SCAN_IS_VG = set_file.settings["OrsayInstrument"]["open_scan"]["IS_VG"]
 OPEN_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["open_scan"]["EFM03"]
 OPEN_SCAN_BITSTREAM = set_file.settings["OrsayInstrument"]["open_scan"]["BITSTREAM_FILE"]
+FILENAME_JSON = 'opscan_persistent_data.json'
 DEBUG = False
 
 def getlibname():
@@ -33,11 +34,11 @@ def getlibname():
 class ArgumentController:
     def __init__(self):
         try:
-            with open('data.json') as f:
+            with open(FILENAME_JSON) as f:
                 self.argument_controller = json.load(f)
         except FileNotFoundError:
             self.argument_controller = dict()
-            with open('data.json', 'w') as f:
+            with open(FILENAME_JSON, 'w') as f:
                 json.dump(self.argument_controller, f)
 
     def get(self, keyname: str, value = None):
@@ -51,10 +52,10 @@ class ArgumentController:
         self.write_to_json()
 
     def write_to_json(self):
-        with open('data.json') as f:
+        with open(FILENAME_JSON) as f:
             data = json.load(f)
         data.update(self.argument_controller)
-        with open('data.json', 'w') as f:
+        with open(FILENAME_JSON, 'w') as f:
             json.dump(data, f)
 
 class ScanEngine:
