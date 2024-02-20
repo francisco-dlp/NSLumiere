@@ -312,10 +312,7 @@ class ScanEngine:
     @dsp_filter.setter
     def dsp_filter(self, value):
         self.argument_controller.update(dsp_filter=int(value))
-        variables = [self.argument_controller.get('dsp_filter'), self.argument_controller.get('video_delay'),
-                     self.argument_controller.get('pause_sampling'), self.argument_controller.get('adc_acquisition_mode')]
-        if not any(x is None for x in variables):
-            self.device.set_video_configuration(*variables)
+        self.device.change_video_parameters(dsp_filter=self.argument_controller.get('dsp_filter'))
 
     @property
     def video_delay(self):
@@ -326,11 +323,7 @@ class ScanEngine:
     @video_delay.setter
     def video_delay(self, value):
         self.argument_controller.update(video_delay=int(value))
-        variables = [self.argument_controller.get('dsp_filter'), self.argument_controller.get('video_delay'),
-                     self.argument_controller.get('pause_sampling'),
-                     self.argument_controller.get('adc_acquisition_mode')]
-        if not any(x is None for x in variables):
-            self.device.set_video_configuration(*variables)
+        self.device.change_video_parameters(video_delay=self.argument_controller.get('video_delay'))
         #If timepix3 is present, we should try to set the metadata of this value
         cam = HardwareSource.HardwareSourceManager()\
             .get_hardware_source_for_hardware_source_id("orsay_camera_timepix3")
@@ -347,11 +340,7 @@ class ScanEngine:
     @pause_sampling.setter
     def pause_sampling(self, value):
         self.argument_controller.update(pause_sampling=int(value))
-        variables = [self.argument_controller.get('dsp_filter'), self.argument_controller.get('video_delay'),
-                     self.argument_controller.get('pause_sampling'),
-                     self.argument_controller.get('adc_acquisition_mode')]
-        if not any(x is None for x in variables):
-            self.device.set_video_configuration(*variables)
+        self.device.change_video_parameters(pause_sampling=self.argument_controller.get('pause_sampling'))
 
 
     @property
@@ -363,11 +352,7 @@ class ScanEngine:
     @adc_acquisition_mode.setter
     def adc_acquisition_mode(self, value):
         self.argument_controller.update(adc_acquisition_mode=int(value))
-        variables = [self.argument_controller.get('dsp_filter'), self.argument_controller.get('video_delay'),
-                     self.argument_controller.get('pause_sampling'),
-                     self.argument_controller.get('adc_acquisition_mode')]
-        if not any(x is None for x in variables):
-            self.device.set_video_configuration(*variables)
+        self.device.change_video_parameters(adc_acquisition_mode=self.argument_controller.get('adc_acquisition_mode'))
 
     @property
     def rastering_mode(self):
@@ -428,14 +413,10 @@ class ScanEngine:
     @kernel_mode.setter
     def kernel_mode(self, value):
         self.argument_controller.update(kernel_mode=int(value))
-        variables = [self.argument_controller.get('kernel_mode'), self.argument_controller.get('given_pixel'),
-                     self.argument_controller.get('acquisition_cutoff'),
-                     self.argument_controller.get('acquisition_window')]
-        if not any(x is None for x in variables):
-            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
-                                          givenPixel=self.argument_controller.get('given_pixel'),
-                                          acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
-                                          acquisitionWindow=self.argument_controller.get('acquisition_window'))
+        self.device.change_video_parameters(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
+                                      givenPixel=self.argument_controller.get('given_pixel'),
+                                      acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
+                                      acquisitionWindow=self.argument_controller.get('acquisition_window'))
 
     @property
     def given_pixel(self):
@@ -446,14 +427,10 @@ class ScanEngine:
     @given_pixel.setter
     def given_pixel(self, value):
         self.argument_controller.update(given_pixel=int(value))
-        variables = [self.argument_controller.get('kernel_mode'), self.argument_controller.get('given_pixel'),
-                     self.argument_controller.get('acquisition_cutoff'),
-                     self.argument_controller.get('acquisition_window')]
-        if not any(x is None for x in variables):
-            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
-                                          givenPixel=self.argument_controller.get('given_pixel'),
-                                          acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
-                                          acquisitionWindow=self.argument_controller.get('acquisition_window'))
+        self.device.change_video_parameters(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
+                                      givenPixel=self.argument_controller.get('given_pixel'),
+                                      acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
+                                      acquisitionWindow=self.argument_controller.get('acquisition_window'))
 
     @property
     def acquisition_cutoff(self):
@@ -464,14 +441,14 @@ class ScanEngine:
     @acquisition_cutoff.setter
     def acquisition_cutoff(self, value):
         self.argument_controller.update(acquisition_cutoff=int(value))
-        variables = [self.argument_controller.get('kernel_mode'), self.argument_controller.get('given_pixel'),
-                     self.argument_controller.get('acquisition_cutoff'),
-                     self.argument_controller.get('acquisition_window')]
-        if not any(x is None for x in variables):
-            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
-                                          givenPixel=self.argument_controller.get('given_pixel'),
-                                          acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
-                                          acquisitionWindow=self.argument_controller.get('acquisition_window'))
+        #variables = [self.argument_controller.get('kernel_mode'), self.argument_controller.get('given_pixel'),
+        #             self.argument_controller.get('acquisition_cutoff'),
+        #             self.argument_controller.get('acquisition_window')]
+        #if not any(x is None for x in variables):
+        self.device.change_video_parameters(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
+                                      givenPixel=self.argument_controller.get('given_pixel'),
+                                      acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
+                                      acquisitionWindow=self.argument_controller.get('acquisition_window'))
 
     @property
     def acquisition_window(self):
@@ -482,14 +459,14 @@ class ScanEngine:
     @acquisition_window.setter
     def acquisition_window(self, value):
         self.argument_controller.update(acquisition_window=int(value))
-        variables = [self.argument_controller.get('kernel_mode'), self.argument_controller.get('given_pixel'),
-                     self.argument_controller.get('acquisition_cutoff'),
-                     self.argument_controller.get('acquisition_window')]
-        if not any(x is None for x in variables):
-            self.device.change_adc_kernel(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
-                                          givenPixel=self.argument_controller.get('given_pixel'),
-                                          acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
-                                          acquisitionWindow=self.argument_controller.get('acquisition_window'))
+        #variables = [self.argument_controller.get('kernel_mode'), self.argument_controller.get('given_pixel'),
+        #             self.argument_controller.get('acquisition_cutoff'),
+        #             self.argument_controller.get('acquisition_window')]
+        #if not any(x is None for x in variables):
+        self.device.change_video_parameters(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
+                                      givenPixel=self.argument_controller.get('given_pixel'),
+                                      acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
+                                      acquisitionWindow=self.argument_controller.get('acquisition_window'))
 
     @property
     def magboard_switches(self):
