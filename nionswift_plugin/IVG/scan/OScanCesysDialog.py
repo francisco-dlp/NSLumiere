@@ -132,8 +132,11 @@ class View():
         self.offset_adc1_value = ui.create_line_edit(text='@binding(scan.offset_adc1)', width=50)
         self.offset_adc2_value = ui.create_line_edit(text='@binding(scan.offset_adc2)', width=50)
         self.offset_adc3_value = ui.create_line_edit(text='@binding(scan.offset_adc3)', width=50)
+        self.offset_adc4_value = ui.create_line_edit(text='@binding(scan.offset_adc4)', width=50)
+        self.offset_adc5_value = ui.create_line_edit(text='@binding(scan.offset_adc5)', width=50)
         self.offset_adc_row = ui.create_row(self.offset_adc_text, self.offset_adc0_value, self.offset_adc1_value,
-                                            self.offset_adc2_value, self.offset_adc3_value,
+                                            self.offset_adc2_value, self.offset_adc3_value, self.offset_adc4_value,
+                                            self.offset_adc5_value,
                                              ui.create_stretch())
 
         self.multiblock_text = ui.create_label(text="Ext. Multiblock: ")
@@ -170,16 +173,24 @@ class View():
         self.input12_value = ui.create_radio_button(text='ADC2', value=1, group_value='@binding(scan.input1_mux)')
         self.input13_value = ui.create_radio_button(text='ADC3', value=2, group_value='@binding(scan.input1_mux)')
         self.input14_value = ui.create_radio_button(text='ADC4', value=3, group_value='@binding(scan.input1_mux)')
+        self.input15_value = ui.create_radio_button(text='ADC5', value=4, group_value='@binding(scan.input1_mux)')
+        self.input16_value = ui.create_radio_button(text='ADC6', value=5, group_value='@binding(scan.input1_mux)')
+        self.input17_value = ui.create_radio_button(text='Pulse1', value=6, group_value='@binding(scan.input1_mux)')
         self.input1_row=ui.create_row(self.input1_label, self.input11_value, self.input12_value, self.input13_value,
-                                      self.input14_value, ui.create_stretch())
+                                      self.input14_value, self.input15_value, self.input16_value,
+                                      self.input17_value, ui.create_stretch())
 
         self.input2_label = ui.create_label(text='Input 2: ')
         self.input21_value = ui.create_radio_button(text='ADC1', value=0, group_value='@binding(scan.input2_mux)')
         self.input22_value = ui.create_radio_button(text='ADC2', value=1, group_value='@binding(scan.input2_mux)')
         self.input23_value = ui.create_radio_button(text='ADC3', value=2, group_value='@binding(scan.input2_mux)')
         self.input24_value = ui.create_radio_button(text='ADC4', value=3, group_value='@binding(scan.input2_mux)')
+        self.input25_value = ui.create_radio_button(text='ADC5', value=4, group_value='@binding(scan.input2_mux)')
+        self.input26_value = ui.create_radio_button(text='ADC6', value=5, group_value='@binding(scan.input2_mux)')
+        self.input27_value = ui.create_radio_button(text='Pulse2', value=6, group_value='@binding(scan.input2_mux)')
         self.input2_row = ui.create_row(self.input2_label, self.input21_value, self.input22_value, self.input23_value,
-                                        self.input24_value, ui.create_stretch())
+                                        self.input24_value, self.input25_value, self.input26_value,
+                                      self.input27_value, ui.create_stretch())
 
         self.inputx_label = ui.create_label(text='Route to X: ')
         self.inputx0_value = ui.create_radio_button(text='None', value=0, group_value='@binding(scan.routex_mux)')
