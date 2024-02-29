@@ -12,7 +12,7 @@ from nionswift_plugin.IVG.scan.OScanCesysDialog import ConfigDialog
 from FPGAControl import FPGAConfig
 from ...aux_files import read_data
 
-from .OScanCesysDialog import KERNEL_LIST, ACQUISITION_WINDOW, SCAN_MODES, IMAGE_VIEW_MODES
+from .OScanCesysDialog import KERNEL_LIST, ACQUISITION_WINDOW, SCAN_MODES, IMAGE_VIEW_MODES, ADC_READOUT_MODES
 
 _ = gettext.gettext
 
@@ -243,6 +243,8 @@ class ScanEngine:
                                            lissajous_ny=self.lissajous_ny,
                                            lissajous_phase=self.lissajous_phase,
                                            subimages=self.mini_scan,
+                                           adc_acquisition_mode=self.adc_acquisition_mode,
+                                           adc_acquisition_mode_name=ADC_READOUT_MODES[self.adc_acquisition_mode],
                                            kernelMode=KERNEL_LIST[self.kernel_mode],
                                            givenPixel=self.given_pixel,
                                            dutyCycle=self.duty_cycle,
@@ -414,10 +416,12 @@ class ScanEngine:
     @kernel_mode.setter
     def kernel_mode(self, value):
         self.argument_controller.update(kernel_mode=int(value))
-        self.device.change_video_parameters(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
-                                            givenPixel=self.argument_controller.get('given_pixel'),
-                                            acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
-                                            acquisitionWindow=self.argument_controller.get('acquisition_window'))
+        self.device.change_video_parameters(adc_acquisition_mode=self.adc_acquisition_mode,
+                                            adc_acquisition_mode_name=ADC_READOUT_MODES[self.adc_acquisition_mode],
+                                            kernelMode=KERNEL_LIST[self.kernel_mode],
+                                            givenPixel=self.given_pixel,
+                                            acquisitionCutoff=self.acquisition_cutoff,
+                                            acquisitionWindow=self.acquisition_window)
 
     @property
     def given_pixel(self):
@@ -428,10 +432,12 @@ class ScanEngine:
     @given_pixel.setter
     def given_pixel(self, value):
         self.argument_controller.update(given_pixel=int(value))
-        self.device.change_video_parameters(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
-                                            givenPixel=self.argument_controller.get('given_pixel'),
-                                            acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
-                                            acquisitionWindow=self.argument_controller.get('acquisition_window'))
+        self.device.change_video_parameters(adc_acquisition_mode=self.adc_acquisition_mode,
+                                            adc_acquisition_mode_name=ADC_READOUT_MODES[self.adc_acquisition_mode],
+                                            kernelMode=KERNEL_LIST[self.kernel_mode],
+                                            givenPixel=self.given_pixel,
+                                            acquisitionCutoff=self.acquisition_cutoff,
+                                            acquisitionWindow=self.acquisition_window)
 
     @property
     def acquisition_cutoff(self):
@@ -442,10 +448,12 @@ class ScanEngine:
     @acquisition_cutoff.setter
     def acquisition_cutoff(self, value):
         self.argument_controller.update(acquisition_cutoff=int(value))
-        self.device.change_video_parameters(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
-                                            givenPixel=self.argument_controller.get('given_pixel'),
-                                            acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
-                                            acquisitionWindow=self.argument_controller.get('acquisition_window'))
+        self.device.change_video_parameters(adc_acquisition_mode=self.adc_acquisition_mode,
+                                            adc_acquisition_mode_name=ADC_READOUT_MODES[self.adc_acquisition_mode],
+                                            kernelMode=KERNEL_LIST[self.kernel_mode],
+                                            givenPixel=self.given_pixel,
+                                            acquisitionCutoff=self.acquisition_cutoff,
+                                            acquisitionWindow=self.acquisition_window)
 
     @property
     def acquisition_window(self):
@@ -456,10 +464,12 @@ class ScanEngine:
     @acquisition_window.setter
     def acquisition_window(self, value):
         self.argument_controller.update(acquisition_window=int(value))
-        self.device.change_video_parameters(kernelMode=KERNEL_LIST[self.argument_controller.get('kernel_mode')],
-                                            givenPixel=self.argument_controller.get('given_pixel'),
-                                            acquisitionCutoff=self.argument_controller.get('acquisition_cutoff'),
-                                            acquisitionWindow=self.argument_controller.get('acquisition_window'))
+        self.device.change_video_parameters(adc_acquisition_mode=self.adc_acquisition_mode,
+                                            adc_acquisition_mode_name=ADC_READOUT_MODES[self.adc_acquisition_mode],
+                                            kernelMode=KERNEL_LIST[self.kernel_mode],
+                                            givenPixel=self.given_pixel,
+                                            acquisitionCutoff=self.acquisition_cutoff,
+                                            acquisitionWindow=self.acquisition_window)
 
     @property
     def magboard_switches(self):
