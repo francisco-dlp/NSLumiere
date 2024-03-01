@@ -28,6 +28,7 @@
   },
   "lenses": {
     "COM": "COM99",
+    "COM_ALIM": "COM99",
     "DISPLACEMENT_ANGLE_REFERENCE": 316,
     "DISPLACEMENT_ARRAY": [
       2343.2,

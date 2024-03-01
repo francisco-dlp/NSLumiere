@@ -1,7 +1,5 @@
 # standard libraries
 import gettext
-import os
-import json
 
 from nion.swift import Panel
 from nion.swift import Workspace
@@ -26,7 +24,9 @@ class gainhandler:
 
     def init_handler(self):
         self.ivg = HardwareSource.HardwareSourceManager().get_instrument_by_id("VG_Lum_controller")
-        self.instrument.init_handler()
+        ser_lens, ser_alim = self.instrument.init_handler()
+        self.event_loop.create_task(self.change_ser_lens(ser_lens))
+        self.event_loop.create_task(self.change_ser_alim(ser_alim))
 
     async def do_enable(self, enabled=True, not_affected_widget_name_list=None):
         for var in self.__dict__:
@@ -34,6 +34,22 @@ class gainhandler:
                 if isinstance(getattr(self, var), UserInterface.Widget):
                     widg = getattr(self, var)
                     setattr(widg, "enabled", enabled)
+
+    async def change_ser_lens(self, type):
+        if type:
+            self.is_lens_serial.text = "Lens: ON"
+            self.is_lens_serial.text_color = "blue"
+        else:
+            self.is_lens_serial.text = "Lens: OFF"
+            self.is_lens_serial.text_color = "red"
+
+    async def change_ser_alim(self, type):
+        if type:
+            self.is_alim_serial.text = "Alim. Control: ON"
+            self.is_alim_serial.text_color = "blue"
+        else:
+            self.is_alim_serial.text = "Alim. Control: OFF"
+            self.is_alim_serial.text_color = "red"
 
     def prepare_widget_enable(self, value):
         self.event_loop.create_task(self.do_enable(True, []))
@@ -214,8 +230,6 @@ class gainView:
                                                      minimum=-280000, maximum=280000)
         self.probe_offset_reset = ui.create_push_button(text='Reset', name='probe_offset_reset', width = 100, on_clicked="probe_offset_reset_pb")
 
-
-
         self.probe_offset_column = ui.create_column(self.probe_offset0_row,
                                                     self.probe_offset1_row,
                                                     self.probe_offset2_row,
@@ -223,6 +237,10 @@ class gainView:
                                                     self.probe_offset_reset)
 
         self.probe_offset_group = ui.create_group(title='Probe Offset', content=self.probe_offset_column)
+
+        self.is_lens_serial = ui.create_label(name = "is_lens_serial", text="Lens: OFF")
+        self.is_alim_serial = ui.create_label(name="is_alim_serial", text="Alim. Control: OFF")
+        self.is_on = ui.create_row(self.is_lens_serial, ui.create_stretch(), self.is_alim_serial)
 
 
         self.objective_tab = ui.create_tab(label='Objective',
@@ -232,6 +250,7 @@ class gainView:
                                                                     self.wobbler_slider_frequency,
                                                                     self.astig_group,
                                                                     self.probe_offset_group,
+                                                                    self.is_on,
                                                                     self.pb_row))
 
         ## condensers ##
@@ -287,7 +306,22 @@ class gainView:
                                                                     self.cond_astig_group,
                                                                     self.pb_row))
 
-        self.tabs = ui.create_tabs(self.objective_tab, self.condenser_tab)
+        #Alim control tabs
+        groups = ['Group0', 'Group1', 'Group2']
+        tabs_groups = list()
+        dac_slider = dict()
+        j = 0
+        for group in groups:
+            dac_slider[group] = list()
+            for i in range(4):
+                dac_slider[group].append(ui.create_slider(name='dac'+str(i)+group+'_slider', value='@binding(instrument.dac'+str(i + 4 * j)+'_f)',
+                                                  minimum=-32768, maximum=32768))
+            tabs_groups.append(ui.create_group(title=group, content=ui.create_column(*dac_slider[group])))
+            j+=1
+        align_tab = ui.create_tab(label='Alignments', content=ui.create_column(*tabs_groups, self.pb_row))
+
+
+        self.tabs = ui.create_tabs(self.objective_tab, self.condenser_tab, align_tab)
 
         self.ui_view = ui.create_column(self.tabs)
 
