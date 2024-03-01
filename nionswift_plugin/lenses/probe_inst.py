@@ -392,8 +392,10 @@ class probeDevice(Observable.Observable):
     def dac_setter_wrapper(index):
         def setter(self, value):
             self.__dac[index] = value
-            dac_number = index % 4
-            group_number = index / 4
+            dac_number = int(index % 4)
+            group_number = int(index / 4)
+            value = int(value + 32768)
+            self.__controller_alim.set_val(group_number, dac_number, value)
             self.property_changed_event.fire('dac'+str(index)+'_f')
         return setter
 

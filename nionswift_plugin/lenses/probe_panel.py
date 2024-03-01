@@ -315,7 +315,7 @@ class gainView:
             dac_slider[group] = list()
             for i in range(4):
                 dac_slider[group].append(ui.create_slider(name='dac'+str(i)+group+'_slider', value='@binding(instrument.dac'+str(i + 4 * j)+'_f)',
-                                                  minimum=-32768, maximum=32768))
+                                                  minimum=-32768, maximum=32767))
             tabs_groups.append(ui.create_group(title=group, content=ui.create_column(*dac_slider[group])))
             j+=1
         align_tab = ui.create_tab(label='Alignments', content=ui.create_column(*tabs_groups, self.pb_row))
