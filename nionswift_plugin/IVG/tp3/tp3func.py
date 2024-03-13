@@ -1024,7 +1024,7 @@ class TimePix3():
         address = (ip, port)
         try:
             client.connect(address)
-            logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
+            logging.info(f'***TP3***: Both clients connected over {ip}:{port}. Acquiring streamed frame.')
             inputs.append(client)
         except ConnectionRefusedError:
             return False
@@ -1086,10 +1086,13 @@ class TimePix3():
                 for s in read:
                     if s == inputs[0]:
                         packet_data = s.recv(128)
-                        if packet_data == b'': return
+                        if packet_data == b'':
+                            logging.info("***TP3***: No data received. Closing connection.")
+                            return
                         while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
                             temp = s.recv(BUFFER_SIZE)
                             if temp == b'':
+                                logging.info("***TP3***: No data received. Closing connection.")
                                 return
                             else:
                                 packet_data += temp
@@ -1134,6 +1137,7 @@ class TimePix3():
                 logging.info("***TP3***: Socket reseted. Closing connection.")
                 return
             if not self.__isPlaying:
+                logging.info("***TP3***: Not playing. Closing connection.")
                 return
         return
 

@@ -584,7 +584,6 @@ class Device(scan_base.ScanDevice):
         return self.__probe_position
 
     @probe_pos.setter
-    @timeout
     def probe_pos(self, value):
         self.__probe_position = value
         #This is a very strange behavior of geometry class. Very misleading. Value is a tuple like
