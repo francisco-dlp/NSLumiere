@@ -30,7 +30,10 @@ class FileManager:
         logging.info(f'***READ DATA***: Data type of {self.filename} found at {self.abs_path}.')
 
     def save_locally(self):
-        abs_path = os.path.abspath('C:\\ProgramData\\Microscope\\' + self.filename + '.json')
+        if sys.platform.startswith('win'):
+            abs_path = os.path.abspath('C:\\ProgramData\\Microscope\\' + self.filename + '.json')
+        else:
+            abs_path = os.path.abspath('/srv/data/' + self.filename + '.json')
         with open(abs_path, 'w+') as json_file:
             json.dump(self.settings, json_file, indent=4)
 

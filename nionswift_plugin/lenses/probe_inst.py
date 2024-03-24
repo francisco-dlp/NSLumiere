@@ -11,8 +11,10 @@ except ImportError:
 
 set_file = read_data.FileManager('global_settings')
 SERIAL_PORT = set_file.settings["lenses"]["COM"]
+SERIAL_PORT_ALIM = set_file.settings["lenses"]["COM_ALIM"]
 LAST_HT = set_file.settings["global_settings"]["last_HT"]
 from . import lens_ps as lens_ps
+from . import controller_alim
 
 class probeDevice(Observable.Observable):
 
@@ -23,6 +25,9 @@ class probeDevice(Observable.Observable):
         self.busy_event = Event.Event()
 
         self.__lenses_ps = lens_ps.Lenses(SERIAL_PORT)
+        self.__controller_alim = controller_alim.ControllerAlim(SERIAL_PORT_ALIM)
+        self.is_lens = self.__lenses_ps.success
+        self.is_alim = self.__controller_alim.success
 
         self.__data = read_data.FileManager('lenses_settings')
         self.__EHT = LAST_HT
@@ -40,6 +45,7 @@ class probeDevice(Observable.Observable):
         self.__c2_wobbler = False
         self.wobbler_frequency_f = 2
         self.__wobbler_intensity = 0.02
+        self.__dac = [0] * 12
 
         self.probe_offset0_f = 0
         self.probe_offset1_f = 0
@@ -55,12 +61,16 @@ class probeDevice(Observable.Observable):
             self.obj_stigmateur1_f = self.__data.settings[self.__EHT]["obj_stig_01"]
             self.gun_stigmateur0_f = self.__data.settings[self.__EHT]["gun_stig_02"]
             self.gun_stigmateur1_f = self.__data.settings[self.__EHT]["gun_stig_03"]
+            dac_values = self.__data.settings[self.__EHT]['control_alim']
+            self.dac0_f, self.dac1_f, self.dac2_f, self.dac3_f, self.dac4_f, self.dac5_f, self.dac6_f, \
+                self.dac7_f, self.dac8_f, self.dac9_f, self.dac10_f, self.dac11_f = dac_values
         except:
-            logging.info('***LENSES***: No saved values.')
+           logging.info('***LENSES***: No saved values.')
 
         self.obj_global_f = True
         self.c1_global_f = True
         self.c2_global_f = True
+        return self.is_lens, self.is_alim
 
     def EHT_change(self, value):
         self.__EHT = value
@@ -76,7 +86,7 @@ class probeDevice(Observable.Observable):
         self.__data.settings[self.__EHT]["obj_stig_01"] = self.obj_stigmateur1_f
         self.__data.settings[self.__EHT]["gun_stig_02"] = self.gun_stigmateur0_f
         self.__data.settings[self.__EHT]["gun_stig_03"] = self.gun_stigmateur1_f
-
+        self.__data.settings[self.__EHT]["control_alim"] = self.__dac
         self.__data.save_locally()
 
     def get_values(self, which):
@@ -373,3 +383,33 @@ class probeDevice(Observable.Observable):
         read_data.InstrumentDictSetter("Probe", "gun_stigmateur1_f", value)
         self.__lenses_ps.locked_set_val(self.__gunStig, 'GUN_STIG')
         self.property_changed_event.fire('gun_stigmateur1_f')
+
+    def dac_getter_wrapper(index):
+        def getter(self):
+            return self.__dac[index]
+        return getter
+
+    def dac_setter_wrapper(index):
+        def setter(self, value):
+            self.__dac[index] = value
+            dac_number = int(index % 4)
+            group_number = int(index / 4)
+            value = value & 0xFFFF
+            self.__controller_alim.set_val(group_number, dac_number, value)
+            self.property_changed_event.fire('dac'+str(index)+'_f')
+        return setter
+
+    dac0_f = property(dac_getter_wrapper(0), dac_setter_wrapper(0))
+    dac1_f = property(dac_getter_wrapper(1), dac_setter_wrapper(1))
+    dac2_f = property(dac_getter_wrapper(2), dac_setter_wrapper(2))
+    dac3_f = property(dac_getter_wrapper(3), dac_setter_wrapper(3))
+
+    dac4_f = property(dac_getter_wrapper(4), dac_setter_wrapper(4))
+    dac5_f = property(dac_getter_wrapper(5), dac_setter_wrapper(5))
+    dac6_f = property(dac_getter_wrapper(6), dac_setter_wrapper(6))
+    dac7_f = property(dac_getter_wrapper(7), dac_setter_wrapper(7))
+
+    dac8_f = property(dac_getter_wrapper(8), dac_setter_wrapper(8))
+    dac9_f = property(dac_getter_wrapper(9), dac_setter_wrapper(9))
+    dac10_f = property(dac_getter_wrapper(10), dac_setter_wrapper(10))
+    dac11_f = property(dac_getter_wrapper(11), dac_setter_wrapper(11))
