@@ -22,6 +22,7 @@ OPEN_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["open_scan"]["EFM03"]
 OPEN_SCAN_BITSTREAM = set_file.settings["OrsayInstrument"]["open_scan"]["BITSTREAM_FILE"]
 FILENAME_JSON = 'opscan_persistent_data.json'
 DEBUG = False
+TIMEOUT_IS_SYNC = 1.0
 
 def getlibname():
     if sys.platform.startswith('win'):
@@ -1076,7 +1077,7 @@ class Device(scan_base.ScanDevice):
         self.__rotation = 0.
         self.__is_scanning = False
         self.on_device_state_changed = None
-        self.flyback_pixels = 0
+        self.flyback_pixels = 2
         self.__buffer = list()
         self.__sequence_buffer_size = 0
         self.__view_buffer_size = 20
@@ -1178,6 +1179,7 @@ class Device(scan_base.ScanDevice):
         self.__frame_number = self.scan_engine.device.get_frame_counter()
         is_synchronized_scan = current_frame.frame_parameters.get_parameter("external_clock_mode", 0) != 0
         if is_synchronized_scan:
+            time.sleep(TIMEOUT_IS_SYNC)
             current_frame.complete = self.scan_engine.device.get_dma_status_idle()[0] == 2
             if current_frame.complete:
                 sub_area = ((0, 0), self.get_current_image_size(current_frame.frame_parameters))
@@ -1246,6 +1248,9 @@ class Device(scan_base.ScanDevice):
         else:
             return self.__buffer[start: start + count]
 
+    def calculate_flyback_pixels(self, frame_parameters: scan_base.ScanFrameParameters) -> int:
+        return 0
+
     def set_channel_enabled(self, channel_index: int, enabled: bool) -> bool:
         assert 0 <= channel_index < self.channel_count
         self.__channels[channel_index].enabled = enabled
@@ -1276,11 +1281,8 @@ class Device(scan_base.ScanDevice):
 
     @property
     def scan_rotation(self):
-        return self.__rotation
-
-    @scan_rotation.setter
-    def scan_rotation(self, value):
-        self.__rotation = value * 180 / numpy.pi
+        frame_parameters = copy.deepcopy(self.__frame_parameters)
+        return frame_parameters.rotation_rad * 180.0 / numpy.pi
 
     @property
     def Image_area(self):
