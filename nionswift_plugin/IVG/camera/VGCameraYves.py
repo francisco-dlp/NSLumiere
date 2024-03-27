@@ -79,7 +79,6 @@ class CameraTask:
         self.__start_time = 0
         self.__last_rows = 0
         self.__headers = False
-        self.__orsay_task = "orsay" in camera_frame_parameters.as_dict().keys() and camera_frame_parameters.as_dict()["orsay"]
 
     @property
     def xdata(self) -> typing.Optional[DataAndMetadata.DataAndMetadata]:
@@ -116,13 +115,14 @@ class CameraTask:
         #             datatype = numpy.uint32
         if self.__twoD:
             self.sizez = scan_size
-            self.__camera_device.spimimagedata = numpy.zeros(
-                (self.__scan_shape[0], self.__scan_shape[1], self.sizey, self.sizex), dtype=datatype)
+            reshape_array = (self.__scan_shape[0], self.__scan_shape[1], self.sizey, self.sizex)
+            self.__camera_device.spimimagedata = numpy.zeros(reshape_array, dtype=datatype)
             camera_readout_shape = (self.sizey, self.sizex)
         else:
             self.sizey = scan_size
             self.sizez = 1
-            self.__camera_device.spimimagedata = numpy.zeros((self.__scan_shape[0], self.__scan_shape[1], self.sizex),
+            reshape_array = (self.__scan_shape[0], self.__scan_shape[1], self.sizex)
+            self.__camera_device.spimimagedata = numpy.zeros(reshape_array,
                                                              dtype=datatype)
             camera_readout_shape = (self.sizex,)
         print(f"Spim dimensions {self.sizex} {self.sizey} {self.sizez}")
@@ -133,14 +133,22 @@ class CameraTask:
         else:
             self.__data = self.__camera_device.spimimagedata
 
+        #This is for OpenScan only. It applies the mask so you can do any scan pattern without worrying
+        scan_controller = Registry.get_component("stem_controller").scan_controller
+        if scan_controller.scan_device.scan_device_id == "open_scan_device":
+            mask_array = scan_controller.scan_device.scan_engine.get_mask_array()
+            self.__data = self.__camera_device.spimimagedata.reshape(
+                (self.__scan_shape[0] * self.__scan_shape[0], self.sizex)
+            )[mask_array].reshape(reshape_array)
+
         #Adding metadata to the measurement
         metadata = dict()
         metadata['hardware_source'] = dict()
         if self.__headers == False:
-           if self.__camera_device.isMedipix:
-               metadata["hardware_source"]["merlin"] = dict()
-               metadata["hardware_source"]["merlin"]["acquisition"] = self.__camera_device.acquisition_header
-               metadata["hardware_source"]["merlin"]["image"] = self.__camera_device.image_header
+            if self.__camera_device.isMedipix:
+                metadata["hardware_source"]["merlin"] = dict()
+                metadata["hardware_source"]["merlin"]["acquisition"] = self.__camera_device.acquisition_header
+                metadata["hardware_source"]["merlin"]["image"] = self.__camera_device.image_header
         self.__xdata = DataAndMetadata.new_data_and_metadata(self.__data, data_descriptor=self.__data_descriptor, metadata=metadata)
 
         #This call is for timepix3 only. Used to inform the correct scan size

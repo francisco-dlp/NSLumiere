@@ -22,7 +22,7 @@ OPEN_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["open_scan"]["EFM03"]
 OPEN_SCAN_BITSTREAM = set_file.settings["OrsayInstrument"]["open_scan"]["BITSTREAM_FILE"]
 FILENAME_JSON = 'opscan_persistent_data.json'
 DEBUG = False
-TIMEOUT_IS_SYNC = 1.0
+TIMEOUT_IS_SYNC = 2.0
 
 def getlibname():
     if sys.platform.startswith('win'):
@@ -258,6 +258,9 @@ class ScanEngine:
 
     def set_probe_position(self, x, y):
         self.device.set_probe_position(x, y)
+
+    def get_mask_array(self):
+        return self.device.get_mask_array()
 
     @property
     def imagedisplay(self):
