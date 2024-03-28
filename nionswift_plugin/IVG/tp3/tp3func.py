@@ -525,9 +525,8 @@ class TimePix3():
         if self.__port == 3:
             self.__detector_config.mode = 8
         self.__detector_config.bytedepth = 4
-        self.__detector_config.xspim_size = self.getAccumulateNumber()
-        self.__detector_config.yspim_size = self.getAccumulateNumber()
-        self.__detector_config.xscan_size, self.__detector_config.yscan_size = self.get_scan_size()
+        self.__detector_config.xspim_size = self.__detector_config.xscan_size = self.getAccumulateNumber()
+        self.__detector_config.yspim_size = self.__detector_config.xscan_size = self.getAccumulateNumber()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.time_delay = int(self.__delay)
         self.__detector_config.time_width = int(self.__width)
@@ -571,9 +570,8 @@ class TimePix3():
         if self.__port == 3:
             self.__detector_config.mode = 8
         self.__detector_config.bytedepth = 4
-        self.__detector_config.xspim_size = self.getAccumulateNumber()
-        self.__detector_config.yspim_size = self.getAccumulateNumber()
-        self.__detector_config.xscan_size, self.__detector_config.yscan_size = self.get_scan_size()
+        self.__detector_config.xspim_size = self.__detector_config.xscan_size = self.getAccumulateNumber()
+        self.__detector_config.yspim_size = self.__detector_config.xscan_size = self.getAccumulateNumber()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.time_delay = int(self.__delay)
         self.__detector_config.time_width = int(self.__width)
@@ -637,10 +635,8 @@ class TimePix3():
          This function must be called when you want to have a SPIM as a Scan Channel.
          """
         self.__isReady.clear() # Clearing the Event so synchronization can occur properly later on
+        frame_parameters = self.get_scan_frame_parameters_and_abort()
         scanInstrument = self.get_controller().scan_controller
-        if scanInstrument.is_playing:
-            scanInstrument.stop_playing()
-            time.sleep(0.5)
         self.set_hyperspec_output()
         port = 8088
 
@@ -662,10 +658,10 @@ class TimePix3():
         if self.__port == 3:
             self.__detector_config.mode = 8
         self.__detector_config.bytedepth = 8 if self.__subMode == 2 else 4
-        self.__detector_config.xspim_size, self.__detector_config.yspim_size = self.get_scan_size()
+        self.__detector_config.xspim_size, self.__detector_config.yspim_size = self.get_scan_size(frame_parameters)
         self.__detector_config.xspim_size = self.__detector_config.xspim_size // self.__binning[0]
         self.__detector_config.yspim_size = self.__detector_config.yspim_size // self.__binning[0]
-        self.__detector_config.xscan_size, self.__detector_config.yscan_size = self.get_scan_size()
+        self.__detector_config.xscan_size, self.__detector_config.yscan_size = self.get_scan_size(frame_parameters)
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.time_delay = int(self.__delay)
         self.__detector_config.time_width = int(self.__width)
@@ -689,10 +685,8 @@ class TimePix3():
          This function must be called when you want to have a SPIM as a Scan Channel.
          """
         self.__isReady.clear()  # Clearing the Event so synchronization can occur properly later on
+        frame_parameters = self.get_scan_frame_parameters_and_abort()
         scanInstrument = self.get_controller().scan_controller
-        if scanInstrument.is_playing:
-            scanInstrument.stop_playing()
-            time.sleep(0.5)
         self.set_hyperspec_output()
         port = 8088
 
@@ -706,8 +700,8 @@ class TimePix3():
         if self.__port == 3:
             self.__detector_config.mode = 8
         self.__detector_config.bytedepth = 2
-        self.__detector_config.xspim_size, self.__detector_config.yspim_size = self.get_scan_size()
-        self.__detector_config.xscan_size, self.__detector_config.yscan_size = self.get_scan_size()
+        self.__detector_config.xspim_size, self.__detector_config.yspim_size = self.get_scan_size(frame_parameters)
+        self.__detector_config.xscan_size, self.__detector_config.yscan_size = self.get_scan_size(frame_parameters)
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.time_delay = int(self.__delay)
         self.__detector_config.time_width = int(self.__width)
@@ -976,14 +970,24 @@ class TimePix3():
     def set_scan_size(self, value: (int, int)):
         self.__detector_config.yscan_size, self.__detector_config.xscan_size = value
 
-    def get_scan_size(self):
+    def get_scan_frame_parameters_and_abort(self):
         scanInstrument = self.get_controller().scan_controller
-        if scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size:
-            x_size = int(scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size[1])
-            y_size = int(scanInstrument.scan_device.current_frame_parameters.subscan_pixel_size[0])
+        scanInstrument.start_playing()
+        time.sleep(0.5)
+        on_frame_parameters = scanInstrument.scan_device.current_frame_parameters
+        scanInstrument.stop_playing()
+        while scanInstrument.is_playing:
+            logging.info("***TP3***: Waiting for the scan to stop.")
+            time.sleep(0.1)
+        return on_frame_parameters
+
+    def get_scan_size(self, frame_parameters):
+        if frame_parameters.subscan_pixel_size:
+            x_size = int(frame_parameters.subscan_pixel_size[1])
+            y_size = int(frame_parameters.subscan_pixel_size[0])
         else:
-            x_size = int(scanInstrument.scan_device.current_frame_parameters.size[1])
-            y_size = int(scanInstrument.scan_device.current_frame_parameters.size[0])
+            x_size = int(frame_parameters.size[1])
+            y_size = int(frame_parameters.size[0])
         return x_size, y_size
 
     def get_scan_pixel_time(self) -> int:
@@ -1208,8 +1212,13 @@ class TimePix3():
         total_frames = self.getAccumulateNumber()
         start = time.time()
         logging.info(f'***TPX3***: Number of frames to be acquired is {total_frames}.')
-        scanInstrument.set_sequence_buffer_size(total_frames)
-        scanInstrument.start_sequence_mode(scanInstrument.get_current_frame_parameters(), total_frames)
+        try:
+            scanInstrument.set_sequence_buffer_size(total_frames)
+            scanInstrument.start_sequence_mode(scanInstrument.get_current_frame_parameters(), total_frames)
+        except AssertionError:
+            logging.info(f"***TPX3***: Could not set the buffer size on the scan device.")
+            self.stopTimepix3Measurement()
+            return
 
         #If its a list scan, you should inform the value
         if scanInstrument.hardware_source_id == "open_scan_device":

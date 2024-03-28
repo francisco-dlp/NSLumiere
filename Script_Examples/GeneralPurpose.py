@@ -18,15 +18,15 @@ orsay_controller = HardwareSource.HardwareSourceManager().get_instrument_by_id("
 main_controller = Registry.get_component("stem_controller")
 all = HardwareSource.HardwareSourceManager().get_all_instrument_ids()
 
-# print('GETTING THE MAIN CONTROLLER AND CHECK THE SCAN CONTROLLER ASSOCIATED')
-main_controller = Registry.get_component("stem_controller")
 
-frames = scan.grab_buffer(10)
-for frame in frames:
-    print(frame)
-#print(main_controller)
-#print(main_controller.scan_controller)
-#print(main_controller.scan_controller.hardware_source_id)
+print(main_controller)
+print(main_controller.scan_controller)
+print(main_controller.scan_controller.scan_device.current_frame_parameters.subscan_pixel_size)
+print(main_controller.scan_controller.scan_device.current_frame_parameters.as_dict())
+print(main_controller.scan_controller.scan_device.scan_device_id)
+#print(dir(main_controller.scan_controller.scan_device))
+#print(dir(main_controller.scan_controller))
+print(main_controller.scan_controller.scan_device.is_scanning)
 #
 # print("GETTING SUPERSCAN AND IT AS THE SCAN CONTROLLER OF THE AUTOSTEM OBJECT")
 # superscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("superscan")
