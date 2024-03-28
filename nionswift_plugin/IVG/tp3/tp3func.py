@@ -1102,6 +1102,7 @@ class TimePix3():
                             temp = s.recv(BUFFER_SIZE)
                             if temp == b'':
                                 logging.info("***TP3***: No data received. Closing connection.")
+                                self.stopTimepix3Measurement()
                                 return
                             else:
                                 packet_data += temp
@@ -1139,13 +1140,16 @@ class TimePix3():
                             self.__frame = min(cam_properties['frameNumber'] + extra_pixels, self.__detector_config.xscan_size * self.__detector_config.yscan_size)
                             self.sendmessage(2)
                             if start_channel + number_of_channels >= self.__detector_config.xscan_size * self.__detector_config.yscan_size * SPEC_SIZE:
+                                self.stopTimepix3Measurement()
                                 logging.info("***TP3***: Spim is over. Closing connection.")
                                 return
 
             except ConnectionResetError:
+                self.stopTimepix3Measurement()
                 logging.info("***TP3***: Socket reseted. Closing connection.")
                 return
             if not self.__isPlaying:
+                self.stopTimepix3Measurement()
                 logging.info("***TP3***: Not playing. Closing connection.")
                 return
         return
