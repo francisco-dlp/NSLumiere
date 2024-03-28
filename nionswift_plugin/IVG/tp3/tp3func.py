@@ -61,26 +61,26 @@ class Timepix3Configurations:
     def __init__(self):
         self.settings = dict()
 
-        self.bin = None
-        self.bytedepth = None
-        self.cumul = None
-        self.mode = None
-        self.xspim_size = None
-        self.yspim_size = None
-        self.xscan_size = None
-        self.yscan_size = None
-        self.pixel_time = None
-        self.time_delay = None
-        self.time_width = None
-        self.time_resolved = None
-        self.save_locally = None
-        self.pixel_mask = None
+        self.bin = False
+        self.bytedepth = 0
+        self.cumul = False
+        self.mode = 0
+        self.xspim_size = 0
+        self.yspim_size = 0
+        self.xscan_size = 0
+        self.yscan_size = 0
+        self.pixel_time = 0
+        self.time_delay = 0
+        self.time_width = 0
+        self.time_resolved = False
+        self.save_locally = False
+        self.pixel_mask = 0
         self.video_time = 0
-        self.threshold = None
-        self.bias_voltage = None
-        self.destination_port = None
-        self.sup0 = None
-        self.sup1 = None
+        self.threshold = 0
+        self.bias_voltage = 0
+        self.destination_port = 0
+        self.sup0 = 0.0
+        self.sup1 = 0.0
 
     def __setattr__(self, key, value):
         try:
@@ -118,7 +118,7 @@ class Timepix3Configurations:
         elif self.mode == EVENT_HYPERSPEC or self.mode == EVENT_HYPERSPEC_COINC or self.mode == EVENT_LIST_SCAN:
             return self.yspim_size, self.xspim_size, SPIM_SIZE
         elif self.mode == HYPERSPEC_FRAME_BASED: #Frame based measurement
-            return self.yspim_size, self.xspim_size, SPEC_SIZE
+            return self.yscan_size, self.xscan_size, SPEC_SIZE
         elif self.mode == EVENT_4DRAW:
             return self.yspim_size, self.xspim_size, RAW4D_PIXELS_Y, RAW4D_PIXELS_X
         else:
@@ -158,6 +158,7 @@ class Timepix3DataManager:
             self.data = numpy.zeros(array_size, dtype=data_depth)
         else:
             raise TypeError("***TP3_CONFIG***: Attempted mode ({self.mode}) that is not configured in get_data.")
+        logging.info(f"***TP3_CONFIG***: Returning data for acquisition with shape {self.data.shape}.")
         return self.data
 
     def create_reshaped_array(self, config: Timepix3Configurations):
@@ -185,7 +186,6 @@ class TimePix3():
         self.__isPlaying = False
         self.__accumulation = 0.
         self.__expTime = 1.0
-        self.__port = 0
         self.__delay = 0.
         self.__width = 0.
         self.__subMode = 0.
@@ -194,12 +194,16 @@ class TimePix3():
         self.__binning = [1, 1]
         self.sendmessage = message
 
+        self.__port = 0
+        self.__threshold = 0
+        self.__pixelmask = 0
+
         # Loading bpc and dacs
         bpcFile = PIXEL_MASK_PATH + PIXEL_MASK_FILES[0]
         dacsFile = PIXEL_THRESHOLD_PATH + PIXEL_THRESHOLD_FILES[0]
         self.cam_init(bpcFile, dacsFile)
         self.acq_init()
-        self.set_destination(self.__port)
+        self.set_destination()
 
         if not simul:
             try:
@@ -279,7 +283,8 @@ class TimePix3():
         data = resp.text
         logging.info(f'***TP3***: Response of loading dacs file: ' + data)
 
-    def set_pixel_mask(self, which):
+    def set_pixel_mask(self):
+        which = self.__pixelmask
         self.__detector_config.pixel_mask = which
         if which < 8:
             bpcFile = PIXEL_MASK_PATH + PIXEL_MASK_FILES[which]
@@ -291,7 +296,8 @@ class TimePix3():
         data = resp.text
         logging.info(f'***TP3***: Response of loading binary pixel configuration file (from set_pixel): ' + data)
 
-    def set_threshold(self, which):
+    def set_threshold(self):
+        which = self.__threshold
         self.__detector_config.threshold = which
         if which < 8:
             dacsFile = PIXEL_THRESHOLD_PATH + PIXEL_THRESHOLD_FILES[which]
@@ -360,7 +366,8 @@ class TimePix3():
         data = resp.text
         logging.info('Response of updating Detector Configuration: ' + data)
 
-    def set_destination(self, port):
+    def set_destination(self):
+        port = self.__port
         self.__detector_config.destination_port = port
         """
         Sets the destination of the data. Data modes in ports are also defined here. Note that you always have
@@ -809,7 +816,8 @@ class TimePix3():
         return None
 
     def setSpeed(self, cameraport, speed):
-        self.set_pixel_mask(speed)
+        self.__pixelmask = speed
+        self.set_pixel_mask()
 
     def getNumofGains(self, cameraport):
         pass
@@ -821,7 +829,8 @@ class TimePix3():
         pass
 
     def setGain(self, gain):
-        self.set_threshold(gain-1)
+        self.__threshold = gain - 1
+        self.set_threshold()
 
     def getReadoutTime(self):
         return 0
@@ -841,7 +850,7 @@ class TimePix3():
     def setCurrentPort(self, cameraport):
         self.__port = cameraport
         self.__frame_based = True if (self.__port == 4) else False
-        self.set_destination(cameraport)
+        self.set_destination()
 
     def getMultiplication(self):
         return [1]
