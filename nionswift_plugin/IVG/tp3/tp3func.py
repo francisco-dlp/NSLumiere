@@ -526,7 +526,7 @@ class TimePix3():
             self.__detector_config.mode = 8
         self.__detector_config.bytedepth = 4
         self.__detector_config.xspim_size = self.__detector_config.xscan_size = self.getAccumulateNumber()
-        self.__detector_config.yspim_size = self.__detector_config.xscan_size = self.getAccumulateNumber()
+        self.__detector_config.yspim_size = self.__detector_config.yscan_size = self.getAccumulateNumber()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.time_delay = int(self.__delay)
         self.__detector_config.time_width = int(self.__width)
@@ -571,7 +571,7 @@ class TimePix3():
             self.__detector_config.mode = 8
         self.__detector_config.bytedepth = 4
         self.__detector_config.xspim_size = self.__detector_config.xscan_size = self.getAccumulateNumber()
-        self.__detector_config.yspim_size = self.__detector_config.xscan_size = self.getAccumulateNumber()
+        self.__detector_config.yspim_size = self.__detector_config.yscan_size = self.getAccumulateNumber()
         self.__detector_config.pixel_time = self.get_scan_pixel_time()
         self.__detector_config.time_delay = int(self.__delay)
         self.__detector_config.time_width = int(self.__width)
