@@ -34,8 +34,8 @@ MAX_PTS = 5000
 TOTAL_TIME_FAST_PERIODIC = 5.0
 TIME_FAST_PERIODIC = 0.2
 
-from . import gun as gun
-from . import airlock as al
+#from . import gun as gun
+#from . import airlock as al
 
 class Control():
     def __init__(self):
@@ -127,15 +127,15 @@ class ivgInstrument(stem_controller.STEMController):
         except AttributeError:
             logging.info('**IVG***: Issue finding hardwareSource. If you are in a Nion microscope please fix this.')
 
-        self.__gun_gauge = gun.GunVacuum(SERIAL_PORT_GUN)
-        if not self.__gun_gauge.success:
-            from .virtual_instruments import gun_vi
-            self.__gun_gauge = gun_vi.GunVacuum()
-
-        self.__ll_gauge = al.AirLockVacuum(SERIAL_PORT_AIRLOCK)
-        if not self.__ll_gauge.success:
-            from .virtual_instruments import airlock_vi
-            self.__ll_gauge = airlock_vi.AirLockVacuum()
+        # self.__gun_gauge = gun.GunVacuum(SERIAL_PORT_GUN)
+        # if not self.__gun_gauge.success:
+        #     from .virtual_instruments import gun_vi
+        #     self.__gun_gauge = gun_vi.GunVacuum()
+        #
+        # self.__ll_gauge = al.AirLockVacuum(SERIAL_PORT_AIRLOCK)
+        # if not self.__ll_gauge.success:
+        #     from .virtual_instruments import airlock_vi
+        #     self.__ll_gauge = airlock_vi.AirLockVacuum()
 
     def init_handler(self):
         self.__lensInstrument = Registry.get_component("lenses_controller")
@@ -181,8 +181,8 @@ class ivgInstrument(stem_controller.STEMController):
     def periodic(self):
         self.property_changed_event.fire('roa_val_f')
         self.property_changed_event.fire('voa_val_f')
-        self.property_changed_event.fire('gun_vac_f')
-        self.property_changed_event.fire('LL_vac_f')
+        #self.property_changed_event.fire('gun_vac_f')
+        #self.property_changed_event.fire('LL_vac_f')
         self.property_changed_event.fire('obj_cur_f')
         self.property_changed_event.fire('c1_cur_f')
         self.property_changed_event.fire('c2_cur_f')
@@ -190,20 +190,20 @@ class ivgInstrument(stem_controller.STEMController):
         self.property_changed_event.fire('y_stage_f')
         self.property_changed_event.fire('thread_cts_f')
         self.estimate_temp()
-        try:
-            self.append_data.fire([self.__LL_vac, self.__gun_vac, self.__obj_temp], self.__loop_index)
-            self.__loop_index += 1
-            if self.__loop_index == MAX_PTS: self.__loop_index = 0
-            if self.__obj_temp > OBJECTIVE_MAX_TEMPERATURE and self.__obj_cur > 6.0:
-                if not self.__objWarning:
-                    self.__objWarning = True
-                else:
-                    self.shutdown_objective()
-                    self.__objWarning = False
-            else:
-                self.__objWarning = False
-        except:
-            pass
+        # try:
+        #     self.append_data.fire([self.__LL_vac, self.__gun_vac, self.__obj_temp], self.__loop_index)
+        #     self.__loop_index += 1
+        #     if self.__loop_index == MAX_PTS: self.__loop_index = 0
+        #     if self.__obj_temp > OBJECTIVE_MAX_TEMPERATURE and self.__obj_cur > 6.0:
+        #         if not self.__objWarning:
+        #             self.__objWarning = True
+        #         else:
+        #             self.shutdown_objective()
+        #             self.__objWarning = False
+        #     else:
+        #         self.__objWarning = False
+        # except:
+        #     pass
         self.__thread = threading.Timer(TIME_SLOW_PERIODIC, self.periodic, args=(), )
         if not self.__thread.is_alive() and self.__running:
             self.__thread.start()
@@ -300,16 +300,16 @@ class ivgInstrument(stem_controller.STEMController):
     def thread_cts_f(self):
         return int(threading.active_count())
 
-    @property
-    def gun_vac_f(self):
-        self.__gun_vac = self.__gun_gauge.query()
-        read_data.InstrumentDictSetter("Vaccum", "gun_vac_f", self.__gun_vac)
-        return str('{:.2E}'.format(self.__gun_vac)) + ' Torr'
-
-    @property
-    def LL_vac_f(self):
-        self.__LL_vac = self.__ll_gauge.query()
-        return str('{:.2E}'.format(self.__LL_vac)) + ' mBar'
+    # @property
+    # def gun_vac_f(self):
+    #     self.__gun_vac = self.__gun_gauge.query()
+    #     read_data.InstrumentDictSetter("Vaccum", "gun_vac_f", self.__gun_vac)
+    #     return str('{:.2E}'.format(self.__gun_vac)) + ' Torr'
+    #
+    # @property
+    # def LL_vac_f(self):
+    #     self.__LL_vac = self.__ll_gauge.query()
+    #     return str('{:.2E}'.format(self.__LL_vac)) + ' mBar'
 
     @property
     def obj_cur_f(self):

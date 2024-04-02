@@ -182,19 +182,6 @@ class ivgView:
         self.EHT_row=ui.create_row(self.EHT_label, self.EHT_combo_box, ui.create_spacing(25), self.stand_label, self.stand_value, ui.create_stretch(),
                                    self.thread_counter, self.thread_counter_value)
 
-        self.gun_label=ui.create_label(name='gun_label', text='Gun Vacuum: ')
-        self.gun_vac=ui.create_label(name='gun_vac', text='@binding(instrument.gun_vac_f)')
-        self.gun_pb=ui.create_push_button(name='gun_pb', text='Monitor', on_clicked='monitor_gun', width=100)
-        self.gun_row=ui.create_row(self.gun_label, self.gun_vac, ui.create_stretch(), self.gun_pb)
-
-
-        self.LL_label=ui.create_label(name='LL_label', text='AirLock Vacuum: ')
-        self.LL_vac=ui.create_label(name='LL_vac', text='@binding(instrument.LL_vac_f)')
-        self.LL_pb=ui.create_push_button(name='LL_pb', text='Monitor', on_clicked='monitor_air_lock', width=100)
-        self.LL_row=ui.create_row(self.LL_label, self.LL_vac, ui.create_stretch(), self.LL_pb)
-
-        self.vac_group=ui.create_group(title='Gauges: ', content=ui.create_column(self.gun_row, self.LL_row))
-
         self.obj_cur=ui.create_label(name='obj_cur', text='Current: ')
         self.obj_cur_value=ui.create_label(name='obj_cur_value', text='@binding(instrument.obj_cur_f)')
         self.obj_cur_row=ui.create_row(self.obj_cur, self.obj_cur_value, ui.create_stretch())
@@ -252,7 +239,7 @@ class ivgView:
 
         self.stage_group=ui.create_group(title='VG Stage', content=ui.create_column(self.x_stage_row, self.y_stage_row))
         
-        self.ui_view=ui.create_column(self.EHT_row, self.vac_group, self.obj_group, self.cond_group, self.aper_group, self.stage_group, spacing=5)
+        self.ui_view=ui.create_column(self.EHT_row, self.obj_group, self.cond_group, self.aper_group, self.stage_group, spacing=5)
 
 
 def create_spectro_panel(document_controller, panel_id, properties):
