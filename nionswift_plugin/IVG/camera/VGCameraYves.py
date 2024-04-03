@@ -137,9 +137,9 @@ class CameraTask:
         scan_controller = Registry.get_component("stem_controller").scan_controller
         if scan_controller.scan_device.scan_device_id == "open_scan_device":
             mask_array = scan_controller.scan_device.scan_engine.get_mask_array()
-            self.__data = self.__camera_device.spimimagedata.reshape(
-                (self.__scan_shape[0] * self.__scan_shape[0], self.sizex)
-            )[mask_array].reshape(reshape_array)
+            self.__data[:] = self.__camera_device.spimimagedata.reshape(
+                (self.__scan_shape[0] * self.__scan_shape[1], self.sizex)
+            )[mask_array, :].reshape(reshape_array)
 
         #Adding metadata to the measurement
         metadata = dict()
