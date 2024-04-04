@@ -1208,6 +1208,8 @@ class Device(scan_base.ScanDevice):
             data_element["data"] = data_array
             properties = current_frame.frame_parameters.as_dict()
             properties["center_x_nm"] = current_frame.frame_parameters.center_nm[1]
+            if is_synchronized_scan:
+                properties["decode_list"] = self.scan_engine.get_mask_array().tolist()
             properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
             properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
             properties["channel_id"] = channel.channel_id
