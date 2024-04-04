@@ -17,14 +17,18 @@ def run():
     VGCameraPanel.run()
 
     if bool(ORSAY_SCAN_ACTIVATED) or bool(OPEN_SCAN_ACTIVATED):
-        instrument = ivg_inst.ivgInstrument('orsay_controller')
+        instrument = ivg_inst.ivgInstrument('orsay_controller', 25)
         Registry.register_component(instrument, {"instrument_controller", "stem_controller"})
+    if bool(ORSAY_SCAN_ACTIVATED) and bool(OPEN_SCAN_ACTIVATED):
+        instrument_2 = ivg_inst.ivgInstrument('orsay_controller_2', 20)
+        Registry.register_component(instrument_2, {"instrument_controller", "stem_controller"})
+
 
     if bool(ORSAY_SCAN_ACTIVATED):
         from .scan import VGScanYves
         if IS_VG:
-            ivg_panel.run(instrument)
-        VGScanYves.run(instrument)
+            ivg_panel.run(instrument_2)
+        VGScanYves.run(instrument_2)
 
     if bool(OPEN_SCAN_ACTIVATED):
         from .scan import OScanCesys

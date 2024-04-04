@@ -84,6 +84,13 @@ class CameraTask:
     def xdata(self) -> typing.Optional[DataAndMetadata.DataAndMetadata]:
         return self.__xdata
 
+    def grab_decoded_array(self):
+        if self.__decode_array is not None:
+            temp = self.__data.reshape(
+                (self.__scan_shape[0] * self.__scan_shape[1], self.sizex))[self.__decode_array].reshape((self.__scan_shape[0], self.__scan_shape[1], self.sizex))
+            self.__xdata = DataAndMetadata.new_data_and_metadata(
+                temp, data_descriptor=self.__data_descriptor, metadata=self.__metadata)
+
     def prepare(self) -> None:
         # returns the full scan readout, including flyback pixels
         scan_size = int(numpy.product(self.__scan_shape))
@@ -136,20 +143,21 @@ class CameraTask:
         #This is for OpenScan only. It applies the mask so you can do any scan pattern without worrying
         scan_controller = Registry.get_component("stem_controller").scan_controller
         if scan_controller.scan_device.scan_device_id == "open_scan_device":
-            mask_array = scan_controller.scan_device.scan_engine.get_mask_array()
-            self.__data[:] = self.__camera_device.spimimagedata.reshape(
-                (self.__scan_shape[0] * self.__scan_shape[1], self.sizex)
-            )[mask_array, :].reshape(reshape_array)
+            self.__decode_array = scan_controller.scan_device.scan_engine.get_mask_array()
+        else:
+            self.__decode_array = numpy.zeros(0)
 
         #Adding metadata to the measurement
-        metadata = dict()
-        metadata['hardware_source'] = dict()
+        self.__metadata = dict()
+        self.__metadata['hardware_source'] = dict()
+        self.__metadata['hardware_source']['decode_list'] = self.__decode_array.tolist()
         if self.__headers == False:
             if self.__camera_device.isMedipix:
-                metadata["hardware_source"]["merlin"] = dict()
-                metadata["hardware_source"]["merlin"]["acquisition"] = self.__camera_device.acquisition_header
-                metadata["hardware_source"]["merlin"]["image"] = self.__camera_device.image_header
-        self.__xdata = DataAndMetadata.new_data_and_metadata(self.__data, data_descriptor=self.__data_descriptor, metadata=metadata)
+                self.__metadata["hardware_source"]["merlin"] = dict()
+                self.__metadata["hardware_source"]["merlin"]["acquisition"] = self.__camera_device.acquisition_header
+                self.__metadata["hardware_source"]["merlin"]["image"] = self.__camera_device.image_header
+        self.__xdata = DataAndMetadata.new_data_and_metadata(
+            self.__data, data_descriptor=self.__data_descriptor, metadata=self.__metadata)
 
         #This call is for timepix3 only. Used to inform the correct scan size
         try:

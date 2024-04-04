@@ -20,6 +20,7 @@ all = HardwareSource.HardwareSourceManager().get_all_instrument_ids()
 
 
 print(main_controller)
+print(main_controller.instrument_id)
 print(main_controller.scan_controller)
 print(main_controller.scan_controller.scan_device.current_frame_parameters.subscan_pixel_size)
 print(main_controller.scan_controller.scan_device.current_frame_parameters.as_dict())

@@ -74,9 +74,9 @@ class InstrumentControl():
 
 
 class ivgInstrument(stem_controller.STEMController):
-    def __init__(self, instrument_id: str):
+    def __init__(self, instrument_id: str, priority: int):
         super().__init__()
-        self.priority = 25
+        self.priority = priority
         self.instrument_id = instrument_id
         self.__scan_controller = None
         self.property_changed_event = Event.Event()
