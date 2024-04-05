@@ -85,7 +85,7 @@ class View():
 
         self.filter_text = ui.create_label(name='filter_text', text="IIR Filter: ")
         self.filter_value = ui.create_combo_box(items=['1', '2', '4', '8', '16', '32', '64'],
-                                                current_index='@binding(scan.dsp_filter)',
+                                                current_index='@binding(scan.iir_filter)',
                                                 name='filter_value', width = '100')
         self.filter_row = ui.create_row(self.filter_text, self.filter_value, ui.create_stretch())
 
