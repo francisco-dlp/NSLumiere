@@ -17,6 +17,7 @@ _ = gettext.gettext
 
 set_file = read_data.FileManager('global_settings')
 ORSAY_SCAN_IS_VG = set_file.settings["OrsayInstrument"]["orsay_scan"]["IS_VG"]
+ORSAY_SCAN_IS_USTEM = set_file.settings["OrsayInstrument"]["orsay_scan"]["IS_USTEM"]
 ORSAY_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["orsay_scan"]["EFM03"]
 CROP_SUBSCAN = True
 DEBUG = False
@@ -142,6 +143,8 @@ class Device(scan_base.ScanDevice):
         input_channels = [0, 1] if bool(ORSAY_SCAN_IS_VG) else [3, 2]
         self.orsayscan.SetInputs(input_channels)
         self.spimscan.SetInputs(input_channels)
+        if ORSAY_SCAN_IS_USTEM: #USTEM blanking should be properly set
+            self.orsayscan.SetBottomBlanking(0, 0)
 
         self.has_data_event = threading.Event()
 
@@ -636,11 +639,22 @@ class Device(scan_base.ScanDevice):
                 self.__line_number = rect[1] + rect[3]
             self.has_data_event.set()
 
-def open_configuration_interface(api_broker) -> None:
+def show_configuration_dialog(api_broker) -> None:
     """Open settings dialog, if any."""
     api = api_broker.get_api(version="1", ui_version="1")
     document_controller = api.application.document_controllers[0]._document_controller
-    ConfigDialog(document_controller)
+    myConfig = ConfigDialog(document_controller)
+
+class ScanSettings(scan_base.ScanSettings):
+
+    def __init__(self, scan_modes, frame_parameters_factory, current_settings_index=0, record_settings_index=0,
+                 open_configuration_dialog_fn=None) -> None:
+        super(ScanSettings, self).__init__(scan_modes, frame_parameters_factory, current_settings_index,
+                                           record_settings_index, open_configuration_dialog_fn)
+
+    def open_configuration_interface(self, api_broker: typing.Any) -> None:
+        if callable(self.__open_configuration_dialog_fn):
+            self.__open_configuration_dialog_fn(api_broker)
 
 class ScanModule(scan_base.ScanModule):
     def __init__(self, instrument: ivg_inst.ivgInstrument) -> None:
@@ -652,8 +666,8 @@ class ScanModule(scan_base.ScanModule):
             scan_base.ScanSettingsMode(_("Slow"), "slow", scan_base.ScanFrameParameters(pixel_size=(512, 512), pixel_time_us=1, fov_nm=25)),
             scan_base.ScanSettingsMode(_("Record"), "record", scan_base.ScanFrameParameters(pixel_size=(1024, 1024), pixel_time_us=1, fov_nm=25))
         )
-        self.settings = scan_base.ScanSettings(scan_modes, lambda d: scan_base.ScanFrameParameters(d), 0, 2,
-                                               open_configuration_dialog_fn=open_configuration_interface)
+        self.settings = ScanSettings(scan_modes, lambda d: scan_base.ScanFrameParameters(d), 0, 2,
+                                               open_configuration_dialog_fn=show_configuration_dialog)
 
 
 def run(instrument: ivg_inst.ivgInstrument) -> None:

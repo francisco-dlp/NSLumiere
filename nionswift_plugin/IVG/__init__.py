@@ -28,7 +28,10 @@ def run():
         from .scan import VGScanYves
         if IS_VG:
             ivg_panel.run(instrument_2)
-        VGScanYves.run(instrument_2)
+        if bool(ORSAY_SCAN_ACTIVATED) and bool(OPEN_SCAN_ACTIVATED):
+            VGScanYves.run(instrument_2)
+        else:
+            VGScanYves.run(instrument)
 
     if bool(OPEN_SCAN_ACTIVATED):
         from .scan import OScanCesys

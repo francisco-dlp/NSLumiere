@@ -9,6 +9,7 @@
     "orsay_scan": {
       "ACTIVATED": 1,
       "IS_VG": 1,
+      "IS_USTEM": 0,
       "EFM03": 1
     },
     "open_scan": {
