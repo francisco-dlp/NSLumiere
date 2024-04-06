@@ -827,7 +827,7 @@ class TimePix3():
         self.set_threshold()
 
     def getReadoutTime(self):
-        return 0
+        return 0.002
 
     def getNumofPorts(self):
         pass
