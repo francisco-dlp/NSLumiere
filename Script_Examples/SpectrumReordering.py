@@ -18,10 +18,13 @@ def script_main(api_broker):
     prod_data_shape = numpy.prod(data_shape)
     metadata = data_item.metadata
     title = data_item.title
+    scan_size = numpy.prod(metadata['scan']['scan_size'])
     try:
         decode_list = metadata['scan']['scan_device_properties']['decode_list']
     except KeyError:
+        #This is the camera data.
         decode_list = metadata['hardware_source']['decode_list']
+        decode_list = [(x - 1) % scan_size for x in decode_list]
     decode_list = numpy.array(decode_list, dtype='int')
 
     ### Getting a hyperspy object ###
@@ -31,7 +34,8 @@ def script_main(api_broker):
     """
     wrapper_data: OD.HspySignal1D = OD.HspySignal1D(data_item)
     hspy_data:  Signal1D = wrapper_data.hspy_gd
-    hspy_data.data = hspy_data.data.reshape((decode_list.size, prod_data_shape//decode_list.size))[decode_list].reshape(data_shape)
+    print(hspy_data.data.shape)
+    hspy_data.data = hspy_data.data.reshape((decode_list.size, prod_data_shape//decode_list.size))[decode_list, :].reshape(data_shape)
 
     ### Getting a calibrated DataItem back ###
     """
