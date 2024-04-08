@@ -26,8 +26,12 @@ def run():
 
     if bool(ORSAY_SCAN_ACTIVATED):
         from .scan import VGScanYves
+        #If both scans are up, we set orsay_scan to instrument_2.
         if IS_VG:
-            ivg_panel.run(instrument_2)
+            if bool(ORSAY_SCAN_ACTIVATED) and bool(OPEN_SCAN_ACTIVATED):
+                ivg_panel.run(instrument_2)
+            else:
+                ivg_panel.run(instrument)
         if bool(ORSAY_SCAN_ACTIVATED) and bool(OPEN_SCAN_ACTIVATED):
             VGScanYves.run(instrument_2)
         else:
