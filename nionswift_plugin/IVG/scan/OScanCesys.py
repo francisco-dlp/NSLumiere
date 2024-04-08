@@ -106,6 +106,7 @@ class ScanEngine:
         subscan_fractional_size = frame_parameters.as_dict().get('subscan_fractional_size')
         subscan_fractional_center = frame_parameters.as_dict().get('subscan_fractional_center')
         subscan_pixel_size = frame_parameters.as_dict().get('subscan_pixel_size')
+        frame_parameters.set_parameter('mode', SCAN_MODES[self.rastering_mode])
 
         self.device.change_scan_parameters(x, y, pixel_time, self.flyback_us, fov_nm, is_synchronized_scan,
                                            SCAN_MODES[self.rastering_mode],
@@ -980,13 +981,13 @@ class Device(scan_base.ScanDevice):
         channels = [Channel(0, "ListScan", False), Channel(1, "BF", False), Channel(2, "ADF", True)]
         return channels
 
-    def __get_initial_profiles(self) -> typing.List[scan_base.ScanFrameParameters]:
-        profiles = list()
-        profiles.append(scan_base.ScanFrameParameters(
-            {"size": (128, 128), "pixel_time_us": 0.5, "fov_nm": 4000., "rotation_rad": 0.393}))
-        profiles.append(scan_base.ScanFrameParameters({"size": (128, 128), "pixel_time_us": 1, "fov_nm": 100.}))
-        profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 1, "fov_nm": 100.}))
-        return profiles
+    # def __get_initial_profiles(self) -> typing.List[scan_base.ScanFrameParameters]:
+    #     profiles = list()
+    #     profiles.append(scan_base.ScanFrameParameters(
+    #         {"size": (128, 128), "pixel_time_us": 0.5, "fov_nm": 4000., "rotation_rad": 0.393}))
+    #     profiles.append(scan_base.ScanFrameParameters({"size": (128, 128), "pixel_time_us": 1, "fov_nm": 100.}))
+    #     profiles.append(scan_base.ScanFrameParameters({"size": (512, 512), "pixel_time_us": 1, "fov_nm": 100.}))
+    #     return profiles
 
     def get_channel_name(self, channel_index: int) -> str:
         return self.__channels[channel_index].name
@@ -995,8 +996,8 @@ class Device(scan_base.ScanDevice):
         """Called just before and during acquisition.
         Device should use these parameters for new acquisition; and update to these parameters during acquisition.
         """
-        self.__frame_parameters = copy.deepcopy(frame_parameters)
         self.scan_engine.set_frame_parameters(frame_parameters)
+        self.__frame_parameters = copy.deepcopy(frame_parameters)
 
     def save_frame_parameters(self) -> None:
         """Called when shutting down. Save frame parameters to persistent storage."""
