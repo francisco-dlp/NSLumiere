@@ -8,7 +8,7 @@ SCAN_MODES = ['Normal', 'Serpentine', 'Random', 'Mini-scans', 'MikesPath', 'Liss
 IMAGE_VIEW_MODES = ['Normal', 'Ordered', 'DAC-based', 'Low-pass filter', 'Inpainting']
 ADC_READOUT_MODES = ['FIR', 'Pixel counter', 'IIR', 'Multip.', 'Kernel', 'Fixed TAP']
 OUTPUT_TYPES_MUX = ['Pixel logic', 'Paused logic', 'New frame logic', 'Pulse out', 'I1TTL', 'I2TTL', 'I3TTL',
-                    'Clock divider', 'Input divider']
+                    'Clock divider', 'Input divider', 'OFF']
 OUTPUT_INPUT_TO_DIVIDE = ['I1TTL', 'I2TTL', 'I3TTL']
 
 class Handler:
