@@ -75,7 +75,11 @@ class Lenses(Lens_controller.LensesController):
         if which == 'OBJ_STIG':
             scan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("orsay_scan_device")
             if scan is not None:
-                scan.scan_device.orsayscan.ObjectiveStigmateur(val[0] / 1000., val[1] / 1000.)
+                angle = val[0] / 1000.0 * 180.0
+                intensity = val[1]
+                newx = intensity * numpy.cos(numpy.radians(angle))
+                newy = intensity * numpy.sin(numpy.radians(angle))
+                scan.scan_device.orsayscan.ObjectiveStigmateur(newx / 1000., newy / 1000.)
             else:
                 logging.info('***LENSES***: Could not find objetive stigmator.')
             return

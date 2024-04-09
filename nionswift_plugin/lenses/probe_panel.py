@@ -170,11 +170,11 @@ class gainView:
 
         self.obj_wobbler_row = ui.create_row(self.obj_wobbler_cb, self.wobbler_value)
 
-        self.astig0_label=ui.create_label(name='astig0_label', text='Astig 00: ')
+        self.astig0_label=ui.create_label(name='astig0_label', text='Astig 00 (Angle [-pi -> pi]): ')
         self.astig0_label_value = ui.create_label(name='astig0_label_value', text='@binding(instrument.obj_stigmateur0_f)')
         self.astig0_row = ui.create_row(self.astig0_label, self.astig0_label_value, ui.create_stretch())
         self.astig0_slider=ui.create_slider(name='astig0_slider', value='@binding(instrument.obj_stigmateur0_f)', minimum=-1000, maximum=1000)
-        self.astig1_label=ui.create_label(name='astig1_label', text='Astig 01: ')
+        self.astig1_label=ui.create_label(name='astig1_label', text='Astig 01 (Intensity): ')
         self.astig1_label_value = ui.create_label(name='astig1_label_value', text='@binding(instrument.obj_stigmateur1_f)')
         self.astig1_row = ui.create_row(self.astig1_label, self.astig1_label_value, ui.create_stretch())
         self.astig1_slider=ui.create_slider(name='astig1_slider', value='@binding(instrument.obj_stigmateur1_f)', minimum=-1000, maximum=1000)
