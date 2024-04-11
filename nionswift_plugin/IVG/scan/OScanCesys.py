@@ -114,6 +114,18 @@ class ScanEngine:
         subscan_fractional_center = frame_parameters.as_dict().get('subscan_fractional_center')
         subscan_pixel_size = frame_parameters.as_dict().get('subscan_pixel_size')
         frame_parameters.set_parameter('mode', SCAN_MODES[self.rastering_mode])
+        frame_parameters.set_parameter('lissajous_nx', self.lissajous_nx)
+        frame_parameters.set_parameter('lissajous_ny', self.lissajous_ny)
+        frame_parameters.set_parameter('lissajous_phase', self.lissajous_phase)
+        frame_parameters.set_parameter('subimages', self.mini_scan)
+        frame_parameters.set_parameter('adc_acquisition_mode', self.adc_acquisition_mode)
+        frame_parameters.set_parameter('adc_acquisition_mode_name', ADC_READOUT_MODES[self.adc_acquisition_mode])
+        frame_parameters.set_parameter('kernelMode', KERNEL_LIST[self.kernel_mode])
+        frame_parameters.set_parameter('givenPixel', self.given_pixel)
+        frame_parameters.set_parameter('dutyCycle', self.duty_cycle)
+        frame_parameters.set_parameter('acquisitionCutoff', self.acquisition_cutoff)
+        frame_parameters.set_parameter('acquisitionWindow', self.acquisition_window)
+        frame_parameters.set_parameter('imageType',IMAGE_VIEW_MODES[self.imagedisplay])
 
         self.device.change_scan_parameters(x, y, pixel_time, self.flyback_us, fov_nm, is_synchronized_scan,
                                            SCAN_MODES[self.rastering_mode],
