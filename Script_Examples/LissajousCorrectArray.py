@@ -29,6 +29,10 @@ def script_main(api_broker):
     prod_data_shape = numpy.prod(data_shape)
     metadata = data_item.metadata
     title = data_item.title
+    intensity_calibration = data_item.intensity_calibration
+    dimensional_calibration = data_item.dimensional_calibrations
+    dimensional_calibration_new = api.create_calibration(0.0, 1.0, 'us')
+    dimensional_calibration.insert(0, dimensional_calibration_new)
 
     #Getting relevant metadata
     xmax, ymax = metadata['scan']['scan_size']
@@ -52,7 +56,7 @@ def script_main(api_broker):
     # Getting the correct array
     initial_point = 0
     step = int(xmax * ymax / NUMBER_OF_IMAGES)
-    FullCompleteImage = numpy.zeros((xmax, ymax, NUMBER_OF_IMAGES) , dtype='int32')
+    FullCompleteImage = numpy.zeros((NUMBER_OF_IMAGES, xmax, ymax) , dtype='int32')
     for index in range(NUMBER_OF_IMAGES):
         print(f"Current image is {index}.")
         orderedArrayRaw = (y_flatten * (1 << DACX_BITDEPTH) + x_flatten)[initial_point + step * index : step * (index + 1)]
@@ -61,24 +65,13 @@ def script_main(api_broker):
         completeImage = rebin(numpy.reshape(completeImage, (1 << DACY_BITDEPTH, 1 << DACY_BITDEPTH)),
                               ((ymax, xmax))).astype('float32')
         completeImage = cv2.GaussianBlur(completeImage, (FILTER_INTENSITY, FILTER_INTENSITY), 0)
-        FullCompleteImage[:, :, index] = completeImage
-    temp_data_item = api.library.create_data_item_from_data(FullCompleteImage)
-    window.display_data_item(temp_data_item)
+        FullCompleteImage[index, :, :] = completeImage
+
+    data_descriptor = api.create_data_descriptor(is_sequence=True, collection_dimension_count=0,
+                                                 datum_dimension_count=2)
+    xdata = api.create_data_and_metadata(FullCompleteImage, intensity_calibration=intensity_calibration,
+                                         dimensional_calibrations=dimensional_calibration,
+                                         metadata=metadata, data_descriptor=data_descriptor)
+    api.library.create_data_item_from_data_and_metadata(xdata, "Processed_"+title)
 
 
-    # ### Getting a hyperspy object ###
-    # """
-    # wrapper data is the entire object. It has the Nionswift DataItem + the Hspy Object
-    # hspy_data is only the hspy data. You are going to modify/replace this data
-    # """
-    # wrapper_data: OD.HspySignal1D = OD.HspySignal1D(data_item)
-    # hspy_data:  Signal1D = wrapper_data.hspy_gd
-    # hspy_data.data = completeImage
-    #
-    # ### Getting a calibrated DataItem back ###
-    # """
-    # wrapper data is used to recover everything from the initial unmodified DataItem (metadata + caption + calibration, etc)
-    # """
-    # data_and_metadata = wrapper_data.get_data_and_metadata(hspy_data)
-    # new_data_item: API.DataItem = api.library.create_data_item_from_data_and_metadata(data_and_metadata, "LissajousCorrected_" + title)
-    # api.application.document_windows[0].display_data_item(new_data_item)
