@@ -33,6 +33,7 @@ def script_main(api_broker):
     dimensional_calibration = data_item.dimensional_calibrations
     dimensional_calibration_new = api.create_calibration(0.0, 1.0, 'us')
     dimensional_calibration.insert(0, dimensional_calibration_new)
+    mean = numpy.mean(data_item.data)
 
     #Getting relevant metadata
     xmax, ymax = metadata['scan']['scan_size']

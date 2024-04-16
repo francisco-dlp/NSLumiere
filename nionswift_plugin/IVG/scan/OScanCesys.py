@@ -126,6 +126,9 @@ class ScanEngine:
         frame_parameters.set_parameter('acquisitionCutoff', self.acquisition_cutoff)
         frame_parameters.set_parameter('acquisitionWindow', self.acquisition_window)
         frame_parameters.set_parameter('imageType',IMAGE_VIEW_MODES[self.imagedisplay])
+        frame_parameters.set_parameter('videoDelay', self.video_delay)
+        frame_parameters.set_parameter('magboard_switches', self.magboard_switches)
+
 
         self.device.change_scan_parameters(x, y, pixel_time, self.flyback_us, fov_nm, is_synchronized_scan,
                                            SCAN_MODES[self.rastering_mode],
