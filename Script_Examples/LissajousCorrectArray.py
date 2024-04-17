@@ -1,7 +1,6 @@
 from nion.typeshed import API_1_0 as API
 from nion.typeshed import UI_1_0 as UI
 from nion.typeshed import Interactive_1_0 as Interactive
-import nionswift_plugin.orsay_suite.orsay_data as OD
 import numpy
 import cv2
 

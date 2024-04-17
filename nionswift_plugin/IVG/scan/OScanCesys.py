@@ -104,6 +104,11 @@ class ScanEngine:
                                       low_pass_size=self.imagedisplay_filter_intensity)
         return image
 
+    def update_metadata_to_dict(self, metadata: dict):
+        metadata['videoDelay'] = self.video_delay
+        metadata['imageType'] = IMAGE_VIEW_MODES[self.imagedisplay]
+
+
     def set_frame_parameters(self, frame_parameters: scan_base.ScanFrameParameters):
         is_synchronized_scan = frame_parameters.get_parameter("external_clock_mode", 0)
         (y, x) = frame_parameters.as_dict()['pixel_size']
@@ -125,8 +130,6 @@ class ScanEngine:
         frame_parameters.set_parameter('dutyCycle', self.duty_cycle)
         frame_parameters.set_parameter('acquisitionCutoff', self.acquisition_cutoff)
         frame_parameters.set_parameter('acquisitionWindow', self.acquisition_window)
-        frame_parameters.set_parameter('imageType',IMAGE_VIEW_MODES[self.imagedisplay])
-        frame_parameters.set_parameter('videoDelay', self.video_delay)
         frame_parameters.set_parameter('magboard_switches', self.magboard_switches)
 
 
@@ -973,6 +976,10 @@ class Device(scan_base.ScanDevice):
             properties["center_y_nm"] = current_frame.frame_parameters.center_nm[0]
             properties["rotation_deg"] = math.degrees(current_frame.frame_parameters.rotation_rad)
             properties["channel_id"] = channel.channel_id
+
+            #Properties from scan_engine that must be updated in a frame_base
+            self.scan_engine.update_metadata_to_dict(properties)
+
             data_element["properties"] = properties
             if data_array is not None:
                 data_elements.append(data_element)
