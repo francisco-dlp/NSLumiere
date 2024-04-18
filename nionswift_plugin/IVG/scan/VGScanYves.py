@@ -140,7 +140,12 @@ class Device(scan_base.ScanDevice):
         self.__orsay_data_type = Orsay_Data()
 
         #Depending on the microscopes we use different input channels
-        input_channels = [0, 1] if bool(ORSAY_SCAN_IS_VG) else [3, 2]
+        if ORSAY_SCAN_IS_VG:
+            input_channels = [0, 1]
+        elif ORSAY_SCAN_IS_USTEM:
+            input_channels = [0, 1]
+        else:
+            input_channels = [3, 2]
         self.orsayscan.SetInputs(input_channels)
         self.spimscan.SetInputs(input_channels)
         if ORSAY_SCAN_IS_USTEM: #USTEM blanking should be properly set
