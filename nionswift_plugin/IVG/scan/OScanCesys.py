@@ -108,7 +108,6 @@ class ScanEngine:
         metadata['videoDelay'] = self.video_delay
         metadata['imageType'] = IMAGE_VIEW_MODES[self.imagedisplay]
 
-
     def set_frame_parameters(self, frame_parameters: scan_base.ScanFrameParameters):
         is_synchronized_scan = frame_parameters.get_parameter("external_clock_mode", 0)
         (y, x) = frame_parameters.as_dict()['pixel_size']

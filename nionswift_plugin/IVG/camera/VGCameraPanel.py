@@ -395,6 +395,9 @@ class CameraHandler:
         self.mode_item.on_value_changed = set_mode
         self.synchro_item.on_value_changed = set_synchro
 
+        #All the binding are done. You can set values here to force parameter initialization
+        #For ex: self.exposure_model.value = 10.0
+
         update_all_setup_widgets()
         update_binning()
         update_exposure()
