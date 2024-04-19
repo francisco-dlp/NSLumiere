@@ -10,7 +10,9 @@ from hyperspy._signals.signal1d import Signal1D
 DACX_BITDEPTH = 14
 DACY_BITDEPTH = 14
 FILTER_INTENSITY = 49
-NUMBER_OF_IMAGES = 100
+NUMBER_OF_IMAGES = 40
+INPAINTING = True
+INPAINTING_BIN = 2
 
 
 def rebin(arr, new_shape):
@@ -54,37 +56,49 @@ def script_main(api_broker):
     lissajous_ratio = metadata['scan']['scan_device_properties']['lissajous_ratio']
     lissajous_phase = metadata['scan']['scan_device_properties']['lissajous_phase']
     pixel_time = metadata['scan']['scan_device_parameters']['pixel_time_us'] / 1e6 * 1e8
+    if INPAINTING:
+        divider = INPAINTING_BIN
+    else:
+        divider = 0
 
     #Calculating the points
-    offset = numpy.pi * float(lissajous_phase)
-    nx = float(lissajous_nx)
-    ratio = float(lissajous_ratio)
-    freqx = int(xmax * ymax * pixel_time * 1e-8 * nx)
-    freqy = int(xmax * ymax * pixel_time * 1e-8 * nx * ratio)
+    freqx = int(xmax * ymax * pixel_time * 1e-8 * lissajous_nx)
+    freqy = int(xmax * ymax * pixel_time * 1e-8 * lissajous_nx * lissajous_ratio)
+    offset = numpy.pi * float(lissajous_phase) / (4 * freqx)
     for index in range(10):
         if is_coprime(freqx, freqy): break
         print(f"***Device Library***: Not co-primes. Trying again {index}...")
         freqy -= 1
     print(f"***Device Library***: Number of forward-backward in X and Y directions are {freqx} and {freqy}. They are coprimes: {is_coprime(freqx, freqy)}.")
-    x = numpy.linspace(offset, freqx * numpy.pi * 2 + offset, xmax * ymax)
-    y = numpy.linspace(0, freqy * numpy.pi * 2, ymax * ymax)
+    x = numpy.linspace(0, freqx * numpy.pi * 2, xmax * ymax)
+    y = numpy.linspace(offset, freqy * numpy.pi * 2 + offset, xmax * ymax)
     x_flatten = ((numpy.sin(x) / 2 + 0.5) * ((1 << DACX_BITDEPTH) - 1)).astype('uint64')
     y_flatten = ((numpy.sin(y) / 2 + 0.5) * ((1 << DACX_BITDEPTH) - 1)).astype('uint64')
 
     # Getting the correct array
     initial_point = 0
     step = int(xmax * ymax / NUMBER_OF_IMAGES)
-    FullCompleteImage_0 = numpy.zeros((NUMBER_OF_IMAGES, xmax, ymax) , dtype='float64')
-    FullCompleteImage_1 = numpy.zeros((int(NUMBER_OF_IMAGES / 4), xmax, ymax), dtype='float64')
-    FullCompleteImage_2 = numpy.zeros((int(NUMBER_OF_IMAGES / 10), xmax, ymax), dtype='float64')
+    FullCompleteImage_0 = numpy.zeros((NUMBER_OF_IMAGES, xmax>>divider, ymax>>divider) , dtype='float64')
+    FullCompleteImage_1 = numpy.zeros((int(NUMBER_OF_IMAGES / 4), xmax>>divider, ymax>>divider), dtype='float64')
+    FullCompleteImage_2 = numpy.zeros((int(NUMBER_OF_IMAGES / 10), xmax>>divider, ymax>>divider), dtype='float64')
     for index in range(NUMBER_OF_IMAGES):
         print(f"Current image is {index}.")
         orderedArrayRaw = (y_flatten * (1 << DACX_BITDEPTH) + x_flatten)[initial_point + step * index : step * (index + 1)]
         completeImage = numpy.zeros((1<<14)**2 , dtype='int32')
         completeImage[orderedArrayRaw] = data_item.data.ravel()[initial_point + step * index : step * (index + 1)]
         completeImage = rebin(numpy.reshape(completeImage, (1 << DACY_BITDEPTH, 1 << DACY_BITDEPTH)),
-                              ((ymax, xmax))).astype('float32')
-        completeImage = cv2.GaussianBlur(completeImage, (FILTER_INTENSITY, FILTER_INTENSITY), 0)
+                              (xmax>>divider, ymax>>divider)).astype('float32')
+
+        if INPAINTING:
+            zero_indexes = numpy.where(completeImage == 0)
+            print(len(zero_indexes[0]))
+            print(completeImage.shape)
+            mask = numpy.zeros((xmax>>divider, ymax>>divider), dtype='uint8')
+            mask[zero_indexes] = 1  # Should inpaint
+            completeImage = cv2.inpaint(completeImage, mask, inpaintRadius=9, flags=cv2.INPAINT_TELEA)
+        else:
+            completeImage = cv2.GaussianBlur(completeImage, (FILTER_INTENSITY, FILTER_INTENSITY), 0)
+
         FullCompleteImage_0[index, :, :] += completeImage
         FullCompleteImage_1[int(index / 4), :, :] += completeImage
         FullCompleteImage_2[int(index / 10), :, :] += completeImage
