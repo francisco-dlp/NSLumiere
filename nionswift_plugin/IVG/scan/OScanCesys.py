@@ -85,12 +85,9 @@ class ScanEngine:
             logging.warning(f'Could not found the library libudk3-1.5.1.so. You should probably use '
                             f'export LD_LIBRARY_PATH=' + getlibname())
 
-        self.__x = None
-        self.__y = None
-        self.__pixel_ratio = None
-
         # Settings
         self.argument_controller = ArgumentController()
+        self.__last_frame_parameters_dict = None
 
         for keys in self.argument_controller.keys():
             try:
@@ -130,26 +127,30 @@ class ScanEngine:
         frame_parameters.set_parameter('acquisitionCutoff', self.acquisition_cutoff)
         frame_parameters.set_parameter('acquisitionWindow', self.acquisition_window)
         frame_parameters.set_parameter('magboard_switches', self.magboard_switches)
+        frame_parameters.set_parameter('flyback_us', self.flyback_us)
+        if self.debug_io:
+            frame_parameters.set_parameter('videoDelay', self.video_delay)
 
-
-        self.device.change_scan_parameters(x, y, pixel_time, self.flyback_us, fov_nm, is_synchronized_scan,
-                                           SCAN_MODES[self.rastering_mode],
-                                           rotation_rad=rotation_rad,
-                                           lissajous_nx=self.lissajous_nx,
-                                           lissajous_ny=self.lissajous_ny,
-                                           lissajous_phase=self.lissajous_phase,
-                                           subimages=self.mini_scan,
-                                           adc_acquisition_mode=self.adc_acquisition_mode,
-                                           adc_acquisition_mode_name=ADC_READOUT_MODES[self.adc_acquisition_mode],
-                                           kernelMode=KERNEL_LIST[self.kernel_mode],
-                                           givenPixel=self.given_pixel,
-                                           dutyCycle=self.duty_cycle,
-                                           acquisitionCutoff=self.acquisition_cutoff,
-                                           acquisitionWindow=self.acquisition_window,
-                                           subscan_fractional_size=subscan_fractional_size,
-                                           subscan_fractional_center=subscan_fractional_center,
-                                           subscan_pixel_size=subscan_pixel_size
-                                           )
+        if frame_parameters.as_dict() != self.__last_frame_parameters_dict:
+            self.device.change_scan_parameters(x, y, pixel_time, self.flyback_us, fov_nm, is_synchronized_scan,
+                                               SCAN_MODES[self.rastering_mode],
+                                               rotation_rad=rotation_rad,
+                                               lissajous_nx=self.lissajous_nx,
+                                               lissajous_ny=self.lissajous_ny,
+                                               lissajous_phase=self.lissajous_phase,
+                                               subimages=self.mini_scan,
+                                               adc_acquisition_mode=self.adc_acquisition_mode,
+                                               adc_acquisition_mode_name=ADC_READOUT_MODES[self.adc_acquisition_mode],
+                                               kernelMode=KERNEL_LIST[self.kernel_mode],
+                                               givenPixel=self.given_pixel,
+                                               dutyCycle=self.duty_cycle,
+                                               acquisitionCutoff=self.acquisition_cutoff,
+                                               acquisitionWindow=self.acquisition_window,
+                                               subscan_fractional_size=subscan_fractional_size,
+                                               subscan_fractional_center=subscan_fractional_center,
+                                               subscan_pixel_size=subscan_pixel_size
+                                               )
+        self.__last_frame_parameters_dict = frame_parameters.as_dict()
 
     def set_probe_position(self, x, y):
         self.device.set_probe_position(x, y)
