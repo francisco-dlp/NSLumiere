@@ -22,54 +22,54 @@ class View():
         ui = Declarative.DeclarativeUI()
 
         # FIRST TAB (GENERAL_PARAMETERS)
-        self.imageshow_text = ui.create_label(name='imageshow_text', text="Image display: ")
-        self.imageshow_value = ui.create_combo_box(
+        imageshow_text = ui.create_label(name='imageshow_text', text="Image display: ")
+        imageshow_value = ui.create_combo_box(
             items=IMAGE_VIEW_MODES,
             current_index='@binding(scan.imagedisplay)',
             name='rastering_value', width='100')
-        self.image_filter_intensity_text = ui.create_label(name='image_filter_intensity_text', text='Filter intensity: ')
-        self.image_filter_intensity_value = ui.create_line_edit(name='image_filter_intensity_value', text='@binding(scan.imagedisplay_filter_intensity)')
-        self.imageshow_row = ui.create_row(self.imageshow_text, self.imageshow_value, ui.create_spacing(10),
-                                           self.image_filter_intensity_text, self.image_filter_intensity_value,
+        image_filter_intensity_text = ui.create_label(name='image_filter_intensity_text', text='Filter intensity: ')
+        image_filter_intensity_value = ui.create_line_edit(name='image_filter_intensity_value', text='@binding(scan.imagedisplay_filter_intensity)')
+        complete_image_offset_text = ui.create_label(name='image_filter_intensity_text',
+                                                           text='Image offset: ')
+        complete_image_offset = ui.create_line_edit(text='@binding(scan.complete_image_offset)')
+        imageshow_row = ui.create_row(imageshow_text, imageshow_value, ui.create_spacing(10),
+                                           image_filter_intensity_text, image_filter_intensity_value,
                                            ui.create_stretch())
+        complete_image_row = ui.create_row(complete_image_offset_text, complete_image_offset, ui.create_stretch())
 
-        self.acquisition_parameters_group = ui.create_group(title='Acquisition parameters', content=ui.create_column(
-            self.imageshow_row
+        acquisition_parameters_group = ui.create_group(title='Acquisition parameters', content=ui.create_column(
+            imageshow_row,
+            complete_image_row
         ))
 
         #Rastering parameters
-        self.flyback_text = ui.create_label(name='flyback_text', text="Flyback value (us): ")
-        self.flyback_value = ui.create_line_edit(name='flyback_value', text='@binding(scan.flyback_us)')
-        self.flyback_row = ui.create_row(self.flyback_text, self.flyback_value, ui.create_stretch())
+        flyback_text = ui.create_label(name='flyback_text', text="Flyback value (us): ")
+        flyback_value = ui.create_line_edit(name='flyback_value', text='@binding(scan.flyback_us)')
+        flyback_row = ui.create_row(flyback_text, flyback_value, ui.create_stretch())
 
-        self.external_trigger_text = ui.create_label(name='external_trigger_text', text="External Trigger: ")
-        self.external_trigger = ui.create_check_box(name='external_trigger', checked='@binding(scan.external_trigger)')
-        self.external_trigger_row = ui.create_row(self.external_trigger_text, self.external_trigger,
-                                                  ui.create_stretch())
-
-        self.rastering_text = ui.create_label(name='rastering_text', text="Rastering mode: ")
-        self.rastering_value = ui.create_combo_box(items=SCAN_MODES,
+        rastering_text = ui.create_label(name='rastering_text', text="Rastering mode: ")
+        rastering_value = ui.create_combo_box(items=SCAN_MODES,
                                                    current_index='@binding(scan.rastering_mode)',
                                                    name='rastering_value', width='100')
-        self.mini_scan_text = ui.create_label(name='mini_scan_text', text="Mini-scans: ")
-        self.mini_scan_value = ui.create_line_edit(name='mini_scan_value', text='@binding(scan.mini_scan)', width='100')
-        self.rastering_row = ui.create_row(self.rastering_text, self.rastering_value, ui.create_stretch(),
-                                           self.mini_scan_text, self.mini_scan_value)
+        mini_scan_text = ui.create_label(name='mini_scan_text', text="Mini-scans: ")
+        mini_scan_value = ui.create_line_edit(name='mini_scan_value', text='@binding(scan.mini_scan)', width='100')
+        rastering_row = ui.create_row(rastering_text, rastering_value, ui.create_stretch(),
+                                           mini_scan_text, mini_scan_value)
 
-        self.lissajous_nx_text = ui.create_label(name='lissajous_text', text="Liss. X (Hz): ")
-        self.lissajous_nx_value = ui.create_line_edit(name='lissajous_value: ', width=45, text='@binding(scan.lissajous_nx)')
-        self.lissajous_ny_text = ui.create_label(name='lissajous_text', text="Liss. Y: (Hz) ")
-        self.lissajous_ny_value = ui.create_line_edit(name='lissajous_value: ', width=45, text='@binding(scan.lissajous_ny)')
-        self.lissajous_phase_text = ui.create_label(name='lissajous_phase_text', text="Lissajous phase: ")
-        self.lissajous_phase_value = ui.create_line_edit(name='lissajous_phase_value: ', width=30,
+        lissajous_nx_text = ui.create_label(name='lissajous_text', text="Liss. X (Hz): ")
+        lissajous_nx_value = ui.create_line_edit(name='lissajous_value: ', width=55, text='@binding(scan.lissajous_nx)')
+        lissajous_ratio_text = ui.create_label(name='lissajous_text', text="Liss. ratio: ")
+        lissajous_ratio_value = ui.create_line_edit(name='lissajous_value: ', width=55, text='@binding(scan.lissajous_ratio)')
+        lissajous_phase_text = ui.create_label(name='lissajous_phase_text', text="Lissajous phase: ")
+        lissajous_phase_value = ui.create_line_edit(name='lissajous_phase_value: ', width=30,
                                                          text='@binding(scan.lissajous_phase)')
-        self.lissajous_row = ui.create_row(self.lissajous_nx_text, self.lissajous_nx_value, ui.create_spacing(5),
-                                           self.lissajous_ny_text, self.lissajous_ny_value, ui.create_spacing(5),
-                                           self.lissajous_phase_text, self.lissajous_phase_value,
+        lissajous_row = ui.create_row(lissajous_nx_text, lissajous_nx_value, ui.create_spacing(5),
+                                           lissajous_ratio_text, lissajous_ratio_value, ui.create_spacing(5),
+                                           lissajous_phase_text, lissajous_phase_value,
                                            ui.create_stretch())
 
         self.rastering_group = ui.create_group(title='Scanning parameters', content=ui.create_column(
-            self.flyback_row, self.rastering_row, self.lissajous_row
+            flyback_row, rastering_row, lissajous_row
         ))
         #ADC parameters
 
@@ -164,7 +164,7 @@ class View():
         ))
 
         self.first_tab = ui.create_tab(label="General Parameters", content=ui.create_column(
-            self.acquisition_parameters_group, self.rastering_group, self.adc_parameters_group,
+            acquisition_parameters_group, self.rastering_group, self.adc_parameters_group,
             self.hardware_settings_group))
 
         #SECOND TAB (Input multiplexing)

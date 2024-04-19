@@ -10,12 +10,26 @@ from hyperspy._signals.signal1d import Signal1D
 DACX_BITDEPTH = 14
 DACY_BITDEPTH = 14
 FILTER_INTENSITY = 49
-NUMBER_OF_IMAGES = 50
+NUMBER_OF_IMAGES = 100
 
 
 def rebin(arr, new_shape):
     shape = (new_shape[0], arr.shape[0] // new_shape[0], new_shape[1], arr.shape[1] // new_shape[1])
     return arr.reshape(shape).sum(-1).sum(1)
+
+
+# Define a function 'gcd' to calculate the greatest common divisor (GCD) of two positive integers.
+def gcd(p, q):
+    # Use Euclid's algorithm to find the GCD.
+    while q != 0:
+        p, q = q, p % q
+    return p
+
+
+# Define a function 'is_coprime' to check if two numbers are coprime (GCD is 1).
+def is_coprime(x, y):
+    # Check if the GCD of 'x' and 'y' is equal to 1.
+    return gcd(x, y) == 1
 
 def script_main(api_broker):
     interactive: Interactive.Interactive = api_broker.get_interactive(Interactive.version)
@@ -37,17 +51,21 @@ def script_main(api_broker):
     #Getting relevant metadata
     xmax, ymax = metadata['scan']['scan_size']
     lissajous_nx = metadata['scan']['scan_device_properties']['lissajous_nx']
-    lissajous_ny = metadata['scan']['scan_device_properties']['lissajous_ny']
+    lissajous_ratio = metadata['scan']['scan_device_properties']['lissajous_ratio']
     lissajous_phase = metadata['scan']['scan_device_properties']['lissajous_phase']
     pixel_time = metadata['scan']['scan_device_parameters']['pixel_time_us'] / 1e6 * 1e8
 
     #Calculating the points
     offset = numpy.pi * float(lissajous_phase)
     nx = float(lissajous_nx)
-    ny = float(lissajous_ny)
+    ratio = float(lissajous_ratio)
     freqx = int(xmax * ymax * pixel_time * 1e-8 * nx)
-    freqy = int(xmax * ymax * pixel_time * 1e-8 * ny)
-    print(f"Number of forward-backward in X and Y directions are {freqx} and {freqy}.")
+    freqy = int(xmax * ymax * pixel_time * 1e-8 * nx * ratio)
+    for index in range(10):
+        if is_coprime(freqx, freqy): break
+        print(f"***Device Library***: Not co-primes. Trying again {index}...")
+        freqy -= 1
+    print(f"***Device Library***: Number of forward-backward in X and Y directions are {freqx} and {freqy}. They are coprimes: {is_coprime(freqx, freqy)}.")
     x = numpy.linspace(offset, freqx * numpy.pi * 2 + offset, xmax * ymax)
     y = numpy.linspace(0, freqy * numpy.pi * 2, ymax * ymax)
     x_flatten = ((numpy.sin(x) / 2 + 0.5) * ((1 << DACX_BITDEPTH) - 1)).astype('uint64')
@@ -56,7 +74,9 @@ def script_main(api_broker):
     # Getting the correct array
     initial_point = 0
     step = int(xmax * ymax / NUMBER_OF_IMAGES)
-    FullCompleteImage = numpy.zeros((NUMBER_OF_IMAGES, xmax, ymax) , dtype='int32')
+    FullCompleteImage_0 = numpy.zeros((NUMBER_OF_IMAGES, xmax, ymax) , dtype='float64')
+    FullCompleteImage_1 = numpy.zeros((int(NUMBER_OF_IMAGES / 4), xmax, ymax), dtype='float64')
+    FullCompleteImage_2 = numpy.zeros((int(NUMBER_OF_IMAGES / 10), xmax, ymax), dtype='float64')
     for index in range(NUMBER_OF_IMAGES):
         print(f"Current image is {index}.")
         orderedArrayRaw = (y_flatten * (1 << DACX_BITDEPTH) + x_flatten)[initial_point + step * index : step * (index + 1)]
@@ -65,13 +85,25 @@ def script_main(api_broker):
         completeImage = rebin(numpy.reshape(completeImage, (1 << DACY_BITDEPTH, 1 << DACY_BITDEPTH)),
                               ((ymax, xmax))).astype('float32')
         completeImage = cv2.GaussianBlur(completeImage, (FILTER_INTENSITY, FILTER_INTENSITY), 0)
-        FullCompleteImage[index, :, :] = completeImage
+        FullCompleteImage_0[index, :, :] += completeImage
+        FullCompleteImage_1[int(index / 4), :, :] += completeImage
+        FullCompleteImage_2[int(index / 10), :, :] += completeImage
 
     data_descriptor = api.create_data_descriptor(is_sequence=True, collection_dimension_count=0,
                                                  datum_dimension_count=2)
-    xdata = api.create_data_and_metadata(FullCompleteImage, intensity_calibration=intensity_calibration,
+    xdata_0 = api.create_data_and_metadata(FullCompleteImage_0, intensity_calibration=intensity_calibration,
                                          dimensional_calibrations=dimensional_calibration,
                                          metadata=metadata, data_descriptor=data_descriptor)
-    api.library.create_data_item_from_data_and_metadata(xdata, "Processed_"+title)
+    api.library.create_data_item_from_data_and_metadata(xdata_0, "Processed_0_"+title)
+
+    xdata_1 = api.create_data_and_metadata(FullCompleteImage_1, intensity_calibration=intensity_calibration,
+                                         dimensional_calibrations=dimensional_calibration,
+                                         metadata=metadata, data_descriptor=data_descriptor)
+    api.library.create_data_item_from_data_and_metadata(xdata_1, "Processed_1_" + title)
+
+    xdata_2 = api.create_data_and_metadata(FullCompleteImage_2, intensity_calibration=intensity_calibration,
+                                         dimensional_calibrations=dimensional_calibration,
+                                         metadata=metadata, data_descriptor=data_descriptor)
+    api.library.create_data_item_from_data_and_metadata(xdata_2, "Processed_2_" + title)
 
 

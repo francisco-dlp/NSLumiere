@@ -116,7 +116,7 @@ class ScanEngine:
         subscan_pixel_size = frame_parameters.as_dict().get('subscan_pixel_size')
         frame_parameters.set_parameter('mode', SCAN_MODES[self.rastering_mode])
         frame_parameters.set_parameter('lissajous_nx', self.lissajous_nx)
-        frame_parameters.set_parameter('lissajous_ny', self.lissajous_ny)
+        frame_parameters.set_parameter('lissajous_ratio', self.lissajous_ratio)
         frame_parameters.set_parameter('lissajous_phase', self.lissajous_phase)
         frame_parameters.set_parameter('subimages', self.mini_scan)
         frame_parameters.set_parameter('adc_acquisition_mode', self.adc_acquisition_mode)
@@ -136,7 +136,7 @@ class ScanEngine:
                                                SCAN_MODES[self.rastering_mode],
                                                rotation_rad=rotation_rad,
                                                lissajous_nx=self.lissajous_nx,
-                                               lissajous_ny=self.lissajous_ny,
+                                               lissajous_ratio=self.lissajous_ratio,
                                                lissajous_phase=self.lissajous_phase,
                                                subimages=self.mini_scan,
                                                adc_acquisition_mode=self.adc_acquisition_mode,
@@ -173,6 +173,15 @@ class ScanEngine:
     @imagedisplay_filter_intensity.setter
     def imagedisplay_filter_intensity(self, value):
         self.argument_controller.update(imagedisplay_filter_intensity=int(value))
+
+    @property
+    def complete_image_offset(self):
+        return self.argument_controller.get('complete_image_offset', 0)
+
+    @complete_image_offset.setter
+    def complete_image_offset(self, value):
+        self.argument_controller.update(complete_image_offset=int(value))
+        self.device.set_complete_image_offset(int(value))
 
     @property
     def flyback_us(self):
@@ -264,12 +273,12 @@ class ScanEngine:
         self.argument_controller.update(lissajous_nx=float(value))
 
     @property
-    def lissajous_ny(self):
-        return self.argument_controller.get('lissajous_ny', 991)
+    def lissajous_ratio(self):
+        return self.argument_controller.get('lissajous_ratio', 1.0)
 
-    @lissajous_ny.setter
-    def lissajous_ny(self, value):
-        self.argument_controller.update(lissajous_ny=float(value))
+    @lissajous_ratio.setter
+    def lissajous_ratio(self, value):
+        self.argument_controller.update(lissajous_ratio=float(value))
 
     @property
     def lissajous_phase(self):
