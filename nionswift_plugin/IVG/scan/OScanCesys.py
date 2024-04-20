@@ -87,7 +87,7 @@ class ScanEngine:
 
         # Settings
         self.argument_controller = ArgumentController()
-        self.__last_frame_parameters_dict = None
+        self.__last_frame_parameters = None
 
         for keys in self.argument_controller.keys():
             try:
@@ -102,8 +102,10 @@ class ScanEngine:
         return image
 
     def update_metadata_to_dict(self, metadata: dict):
-        metadata['videoDelay'] = self.video_delay
-        metadata['imageType'] = IMAGE_VIEW_MODES[self.imagedisplay]
+        """"
+        Being sure that the frame parameters are updated during frame acquisition
+        """
+        metadata.update(self.argument_controller.argument_controller)
 
     def set_frame_parameters(self, frame_parameters: scan_base.ScanFrameParameters):
         is_synchronized_scan = frame_parameters.get_parameter("external_clock_mode", 0)
@@ -114,24 +116,11 @@ class ScanEngine:
         subscan_fractional_size = frame_parameters.as_dict().get('subscan_fractional_size')
         subscan_fractional_center = frame_parameters.as_dict().get('subscan_fractional_center')
         subscan_pixel_size = frame_parameters.as_dict().get('subscan_pixel_size')
-        frame_parameters.set_parameter('mode', SCAN_MODES[self.rastering_mode])
-        frame_parameters.set_parameter('lissajous_nx', self.lissajous_nx)
-        frame_parameters.set_parameter('lissajous_ratio', self.lissajous_ratio)
-        frame_parameters.set_parameter('lissajous_phase', self.lissajous_phase)
-        frame_parameters.set_parameter('subimages', self.mini_scan)
-        frame_parameters.set_parameter('adc_acquisition_mode', self.adc_acquisition_mode)
-        frame_parameters.set_parameter('adc_acquisition_mode_name', ADC_READOUT_MODES[self.adc_acquisition_mode])
-        frame_parameters.set_parameter('kernelMode', KERNEL_LIST[self.kernel_mode])
-        frame_parameters.set_parameter('givenPixel', self.given_pixel)
-        frame_parameters.set_parameter('dutyCycle', self.duty_cycle)
-        frame_parameters.set_parameter('acquisitionCutoff', self.acquisition_cutoff)
-        frame_parameters.set_parameter('acquisitionWindow', self.acquisition_window)
-        frame_parameters.set_parameter('magboard_switches', self.magboard_switches)
-        frame_parameters.set_parameter('flyback_us', self.flyback_us)
-        if self.debug_io:
-            frame_parameters.set_parameter('videoDelay', self.video_delay)
 
-        if frame_parameters.as_dict() != self.__last_frame_parameters_dict:
+        for (key, value) in self.argument_controller.argument_controller.items():
+            frame_parameters.set_parameter(key, value)
+
+        if self.__last_frame_parameters is None or frame_parameters.as_dict() != self.__last_frame_parameters.as_dict():
             self.device.change_scan_parameters(x, y, pixel_time, self.flyback_us, fov_nm, is_synchronized_scan,
                                                SCAN_MODES[self.rastering_mode],
                                                rotation_rad=rotation_rad,
@@ -150,7 +139,11 @@ class ScanEngine:
                                                subscan_fractional_center=subscan_fractional_center,
                                                subscan_pixel_size=subscan_pixel_size
                                                )
-        self.__last_frame_parameters_dict = frame_parameters.as_dict()
+        self.__last_frame_parameters = frame_parameters
+
+    def _update_frame_parameter(self):
+        updated_frame_parameter = copy.deepcopy(self.__last_frame_parameters)
+        self.set_frame_parameters(updated_frame_parameter)
 
     def set_probe_position(self, x, y):
         self.device.set_probe_position(x, y)
@@ -190,14 +183,7 @@ class ScanEngine:
     @flyback_us.setter
     def flyback_us(self, value):
         self.argument_controller.update(flyback_us=int(value))
-
-    @property
-    def external_trigger(self):
-        return self.argument_controller.get('external_trigger', 0)
-
-    @external_trigger.setter
-    def external_trigger(self, value):
-        self.argument_controller.update(external_trigger=int(value))
+        self._update_frame_parameter()
 
     @property
     def duty_cycle(self):
@@ -206,6 +192,7 @@ class ScanEngine:
     @duty_cycle.setter
     def duty_cycle(self, value):
         self.argument_controller.update(duty_cycle=int(value))
+        self._update_frame_parameter()
 
     @property
     def iir_filter(self):
@@ -224,6 +211,8 @@ class ScanEngine:
     def video_delay(self, value):
         self.argument_controller.update(video_delay=int(value))
         self.device.change_video_parameters(video_delay=self.argument_controller.get('video_delay'))
+        if self.debug_io:
+            self._update_frame_parameter()
         # If timepix3 is present, we should try to set the metadata of this value
         cam = HardwareSource.HardwareSourceManager() \
             .get_hardware_source_for_hardware_source_id("orsay_camera_timepix3")
@@ -255,6 +244,7 @@ class ScanEngine:
     @rastering_mode.setter
     def rastering_mode(self, value):
         self.argument_controller.update(rastering_mode=int(value))
+        self._update_frame_parameter()
 
     @property
     def mini_scan(self):
@@ -263,6 +253,7 @@ class ScanEngine:
     @mini_scan.setter
     def mini_scan(self, value):
         self.argument_controller.update(mini_scan=int(value))
+        self._update_frame_parameter()
 
     @property
     def lissajous_nx(self):
@@ -271,6 +262,7 @@ class ScanEngine:
     @lissajous_nx.setter
     def lissajous_nx(self, value):
         self.argument_controller.update(lissajous_nx=float(value))
+        self._update_frame_parameter()
 
     @property
     def lissajous_ratio(self):
@@ -279,6 +271,7 @@ class ScanEngine:
     @lissajous_ratio.setter
     def lissajous_ratio(self, value):
         self.argument_controller.update(lissajous_ratio=float(value))
+        self._update_frame_parameter()
 
     @property
     def lissajous_phase(self):
@@ -287,6 +280,7 @@ class ScanEngine:
     @lissajous_phase.setter
     def lissajous_phase(self, value):
         self.argument_controller.update(lissajous_phase=float(value))
+        self._update_frame_parameter()
 
     @property
     def kernel_mode(self):
@@ -301,6 +295,7 @@ class ScanEngine:
                                             givenPixel=self.given_pixel,
                                             acquisitionCutoff=self.acquisition_cutoff,
                                             acquisitionWindow=self.acquisition_window)
+        self._update_frame_parameter()
 
     @property
     def given_pixel(self):
