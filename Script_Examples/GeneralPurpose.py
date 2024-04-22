@@ -37,20 +37,31 @@ Main controller
 SUPERSCAN
 """
 #print(dir(superscan))
-print(superscan.get_current_frame_parameters().as_dict())
-new_frame = superscan.get_current_frame_parameters()
-new_frame.set_parameter("fov_nm", 500.0)
-print(new_frame.as_dict())
-superscan.set_current_frame_parameters(new_frame)
-superscan.start_playing()
+#print(superscan.get_current_frame_parameters().as_dict())
+#new_frame = superscan.get_current_frame_parameters()
+#new_frame.set_parameter("fov_nm", 500.0)
+#print(new_frame.as_dict())
+#superscan.set_current_frame_parameters(new_frame)
+#superscan.start_playing()
+
+"""
+Grabbing a desired controller
+"""
+main_controller = Registry.get_component("stem_controller")
+orsay_controller = HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
+orsay_controller_2 = HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller_2")
+print(main_controller.scan_controller.hardware_source_id)
+print(orsay_controller.scan_controller.hardware_source_id)
+print(orsay_controller_2.scan_controller.hardware_source_id)
+
 
 
 #for component in Registry.get_components_by_type("scan_hardware_source"):
 #    print(f'{component.hardware_source_id}: {component.scan_device.scan_device_is_secondary=}')
 
-for component in Registry.get_components_by_type("scan_hardware_source"):
-    print(component.hardware_source_id)
-    print(component.scan_device.scan_device_is_secondary)
+#for component in Registry.get_components_by_type("scan_hardware_source"):
+#    print(component.hardware_source_id)
+#    print(component.scan_device.scan_device_is_secondary)
 #            scan_hardware_source = typing.cast("scan_base.ScanHardwareSource", component)
             #if not scan_hardware_source.scan_device.scan_device_is_secondary:
 #                return scan_hardware_source

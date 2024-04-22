@@ -221,6 +221,8 @@ class TimePix3():
             logging.info('***TP3***: Timepix3 in simulation mode.')
 
     def get_controller(self):
+        #TODO: In chromaTEM, even with open scan this control will fail
+        #return HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
         return Registry.get_component("stem_controller")
 
     def set_hyperspec_output(self):
@@ -1212,6 +1214,12 @@ class TimePix3():
         total_frames = self.getAccumulateNumber()
         start = time.time()
         logging.info(f'***TPX3***: Number of frames to be acquired is {total_frames}.')
+
+        # If its a list scan, you should inform the value
+        if scanInstrument.hardware_source_id == "open_scan_device":
+            array_to_send = scanInstrument.scan_device.scan_engine.get_ordered_array().astype('uint32')
+            client.sendall(array_to_send)
+
         try:
             scanInstrument.set_sequence_buffer_size(total_frames)
             scanInstrument.start_sequence_mode(scanInstrument.get_current_frame_parameters(), total_frames)
@@ -1219,11 +1227,6 @@ class TimePix3():
             logging.info(f"***TPX3***: Could not set the buffer size on the scan device.")
             self.stopTimepix3Measurement()
             return
-
-        #If its a list scan, you should inform the value
-        if scanInstrument.hardware_source_id == "open_scan_device":
-            array_to_send = scanInstrument.scan_device.scan_engine.get_ordered_array().astype('uint32')
-            client.sendall(array_to_send)
 
         while True:
             try:

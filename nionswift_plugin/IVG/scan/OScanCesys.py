@@ -107,6 +107,18 @@ class ScanEngine:
         """
         metadata.update(self.argument_controller.argument_controller)
 
+    def get_ordered_array(self):
+        """
+        Get the last ordered array parsed as a list to the engine
+        """
+        return self.device.get_ordered_array()
+
+    def get_mask_array(self):
+        """
+        Get the last masked (decoded) array parsed as a list to the engine
+        """
+        return self.device.get_mask_array()
+
     def set_frame_parameters(self, frame_parameters: scan_base.ScanFrameParameters):
         is_synchronized_scan = frame_parameters.get_parameter("external_clock_mode", 0)
         (y, x) = frame_parameters.as_dict()['pixel_size']
@@ -153,7 +165,12 @@ class ScanEngine:
         self.set_frame_parameters(updated_frame_parameter)
 
     def set_probe_position(self, x, y):
+        """
+        Sets the probe position. TODO: This gots called twice many times so the condition on the last frame parameter
+        """
         self.device.set_probe_position(x, y)
+        #This will force the next frame to be taken place
+        self.__last_frame_parameters = None
 
     def get_mask_array(self):
         return self.device.get_mask_array()
