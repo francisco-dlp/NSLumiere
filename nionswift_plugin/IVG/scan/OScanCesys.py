@@ -117,6 +117,13 @@ class ScanEngine:
         subscan_fractional_center = frame_parameters.as_dict().get('subscan_fractional_center')
         subscan_pixel_size = frame_parameters.as_dict().get('subscan_pixel_size')
 
+        #Controlling the field of view if superscan is activated
+        superscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("superscan")
+        if superscan is not None:
+            ss_fp = superscan.get_current_frame_parameters()
+            ss_fp.set_parameter("fov_nm", fov_nm)
+            superscan.set_current_frame_parameters(ss_fp)
+
         for (key, value) in self.argument_controller.argument_controller.items():
             frame_parameters.set_parameter(key, value)
 

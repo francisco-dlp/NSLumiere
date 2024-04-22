@@ -19,21 +19,31 @@ main_controller = Registry.get_component("stem_controller")
 all = HardwareSource.HardwareSourceManager().get_all_instrument_ids()
 
 
-print(main_controller)
-print(main_controller.instrument_id)
-print(main_controller.scan_controller)
-print(main_controller.scan_controller.scan_device.current_frame_parameters.subscan_pixel_size)
-print(main_controller.scan_controller.scan_device.current_frame_parameters.as_dict())
-print(main_controller.scan_controller.scan_device.scan_device_id)
-#print(dir(main_controller.scan_controller.scan_device))
-#print(dir(main_controller.scan_controller))
-print(main_controller.scan_controller.scan_device.is_scanning)
-#
-# print("GETTING SUPERSCAN AND IT AS THE SCAN CONTROLLER OF THE AUTOSTEM OBJECT")
-# superscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("superscan")
-# main_controller.set_scan_controller(superscan)
-#
-# print("NOW EVERYTHING WORKS")
+"""
+Main controller
+"""
+# print(main_controller)
+# print(main_controller.instrument_id)
+# print(main_controller.scan_controller)
+# print(main_controller.scan_controller.scan_device.current_frame_parameters.subscan_pixel_size)
+# print(main_controller.scan_controller.scan_device.current_frame_parameters.as_dict())
+# print(main_controller.scan_controller.scan_device.scan_device_id)
+# print(dir(main_controller.scan_controller.scan_device))
+# print(dir(main_controller.scan_controller))
+# print(main_controller.scan_controller.scan_device.is_scanning)
+
+
+"""
+SUPERSCAN
+"""
+#print(dir(superscan))
+print(superscan.get_current_frame_parameters().as_dict())
+new_frame = superscan.get_current_frame_parameters()
+new_frame.set_parameter("fov_nm", 500.0)
+print(new_frame.as_dict())
+superscan.set_current_frame_parameters(new_frame)
+superscan.start_playing()
+
 
 #for component in Registry.get_components_by_type("scan_hardware_source"):
 #    print(f'{component.hardware_source_id}: {component.scan_device.scan_device_is_secondary=}')

@@ -1,6 +1,7 @@
 from nion.typeshed import API_1_0 as API
 from nion.typeshed import UI_1_0 as UI
 from nion.typeshed import Interactive_1_0 as Interactive
+from scipy import signal
 import numpy
 import cv2
 
@@ -11,8 +12,9 @@ DACX_BITDEPTH = 14
 DACY_BITDEPTH = 14
 FILTER_INTENSITY = 49
 NUMBER_OF_IMAGES = 40
-INPAINTING = True
+INPAINTING = False
 INPAINTING_BIN = 2
+SAWTOOTH = False
 
 
 def rebin(arr, new_shape):
@@ -72,8 +74,12 @@ def script_main(api_broker):
     print(f"***Device Library***: Number of forward-backward in X and Y directions are {freqx} and {freqy}. They are coprimes: {is_coprime(freqx, freqy)}.")
     x = numpy.linspace(0, freqx * numpy.pi * 2, xmax * ymax)
     y = numpy.linspace(offset, freqy * numpy.pi * 2 + offset, xmax * ymax)
-    x_flatten = ((numpy.sin(x) / 2 + 0.5) * ((1 << DACX_BITDEPTH) - 1)).astype('uint64')
-    y_flatten = ((numpy.sin(y) / 2 + 0.5) * ((1 << DACX_BITDEPTH) - 1)).astype('uint64')
+    if not SAWTOOTH:
+        x_flatten = ((numpy.sin(x) / 2 + 0.5) * ((1 << DACX_BITDEPTH) - 1)).astype('uint64')
+        y_flatten = ((numpy.sin(y) / 2 + 0.5) * ((1 << DACX_BITDEPTH) - 1)).astype('uint64')
+    else:
+        x_flatten = ((signal.sawtooth(x, 0.5) / 2 + 0.5) * ((1 << DACX_BITDEPTH) - 1)).astype('uint64')
+        y_flatten = ((signal.sawtooth(y, 0.5) / 2 + 0.5) * ((1 << DACX_BITDEPTH) - 1)).astype('uint64')
 
     # Getting the correct array
     initial_point = 0
@@ -84,7 +90,7 @@ def script_main(api_broker):
     for index in range(NUMBER_OF_IMAGES):
         print(f"Current image is {index}.")
         orderedArrayRaw = (y_flatten * (1 << DACX_BITDEPTH) + x_flatten)[initial_point + step * index : step * (index + 1)]
-        completeImage = numpy.zeros((1<<14)**2 , dtype='int32')
+        completeImage = (-4096) * numpy.ones((1<<14)**2 , dtype='int32')
         completeImage[orderedArrayRaw] = data_item.data.ravel()[initial_point + step * index : step * (index + 1)]
         completeImage = rebin(numpy.reshape(completeImage, (1 << DACY_BITDEPTH, 1 << DACY_BITDEPTH)),
                               (xmax>>divider, ymax>>divider)).astype('float32')
