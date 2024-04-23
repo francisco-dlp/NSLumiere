@@ -1,5 +1,5 @@
 # standard libraries
-import copy, math, gettext, numpy, typing, time, threading, logging, os, sys, json
+import copy, math, gettext, numpy, typing, time, threading, logging, os, sys, json, traceback
 
 # local libraries
 from nion.utils import Registry
@@ -87,7 +87,9 @@ class ScanEngine:
 
         # Settings
         self.argument_controller = ArgumentController()
-        self.__last_frame_parameters = None
+        self.__last_frame_parameters: scan_base.ScanFrameParameters = None
+        self.__last_frame_parameters_time = time.time()
+        self.__last_probe_position = (0.5, 0.5)
 
         for keys in self.argument_controller.keys():
             try:
@@ -158,6 +160,8 @@ class ScanEngine:
                                                subscan_fractional_center=subscan_fractional_center,
                                                subscan_pixel_size=subscan_pixel_size
                                                )
+
+        self.__last_frame_parameters_time = time.time()
         self.__last_frame_parameters = frame_parameters
 
     def _update_frame_parameter(self):
@@ -166,11 +170,14 @@ class ScanEngine:
 
     def set_probe_position(self, x, y):
         """
-        Sets the probe position. TODO: This gots called twice many times so the condition on the last frame parameter
+        Sets the probe position. This gots called multiple times so the condition of the last_frame_parameter_time.
         """
-        self.device.set_probe_position(x, y)
-        #This will force the next frame to be taken place
-        self.__last_frame_parameters = None
+        temp_time = time.time()
+        if temp_time - self.__last_frame_parameters_time > 0.1:
+            self.__last_probe_position = (x, y)
+            self.device.set_probe_position(x, y)
+            #This will force the next frame to be taken place
+            self.__last_frame_parameters = None
 
     def get_mask_array(self):
         return self.device.get_mask_array()
@@ -865,10 +872,7 @@ class Device(scan_base.ScanDevice):
         self.__frame = None
         self.__frame_number = 0
         self.__instrument = instrument
-        self.__sizez = 2
-        self.__probe_position = [0, 0]
-        self.__probe_position_pixels = [0, 0]
-        self.__rotation = 0.
+        self.__probe_position = Geometry.FloatPoint(0.5, 0.5)
         self.__is_scanning = False
         self.on_device_state_changed = None
         self.flyback_pixels = 2
@@ -886,6 +890,7 @@ class Device(scan_base.ScanDevice):
     def stop(self) -> None:
         """Stop acquiring."""
         if self.__is_scanning:
+            self.scan_engine.set_probe_position(self.__probe_position.x, self.__probe_position.y)
             self.__is_scanning = False
 
     def set_idle_position_by_percentage(self, x: float, y: float) -> None:
@@ -895,6 +900,7 @@ class Device(scan_base.ScanDevice):
     def cancel(self) -> None:
         """Cancel acquisition (immediate)."""
         if self.__is_scanning:
+            self.scan_engine.set_probe_position(self.__probe_position.x, self.__probe_position.y)
             self.__is_scanning = False
 
     def __get_channels(self) -> typing.List[Channel]:
