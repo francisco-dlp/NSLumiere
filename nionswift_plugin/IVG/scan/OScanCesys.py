@@ -122,6 +122,9 @@ class ScanEngine:
         return self.device.get_mask_array()
 
     def set_frame_parameters(self, frame_parameters: scan_base.ScanFrameParameters):
+        """
+        Sets the frame parameters of the scan. The frame_parameters must be different in order to this to be taken into account
+        """
         is_synchronized_scan = frame_parameters.get_parameter("external_clock_mode", 0)
         (y, x) = frame_parameters.as_dict()['pixel_size']
         pixel_time = frame_parameters.as_dict()['pixel_time_us']
@@ -131,18 +134,17 @@ class ScanEngine:
         subscan_fractional_center = frame_parameters.as_dict().get('subscan_fractional_center')
         subscan_pixel_size = frame_parameters.as_dict().get('subscan_pixel_size')
 
-        #Controlling the field of view if superscan is activated
-        superscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("superscan")
-        if superscan is not None:
-            ss_fp = superscan.get_current_frame_parameters()
-            ss_fp.set_parameter("fov_nm", fov_nm)
-            superscan.set_current_frame_parameters(ss_fp)
+        # Setting the field of view. This does not need to change the list
+        if self.__last_frame_parameters is None or fov_nm != self.__last_frame_parameters.as_dict()['fov_nm']:
+            self.set_field_of_view(fov_nm)
+            if self.__last_frame_parameters is not None: self.__last_frame_parameters.set_parameter('fov_nm', fov_nm)
 
+        # Setting the values in the frame parameters to be compared in the next step
         for (key, value) in self.argument_controller.argument_controller.items():
             frame_parameters.set_parameter(key, value)
 
         if self.__last_frame_parameters is None or frame_parameters.as_dict() != self.__last_frame_parameters.as_dict():
-            self.device.change_scan_parameters(x, y, pixel_time, self.flyback_us, fov_nm, is_synchronized_scan,
+            self.device.change_scan_parameters(x, y, pixel_time, self.flyback_us, is_synchronized_scan,
                                                SCAN_MODES[self.rastering_mode],
                                                rotation_rad=rotation_rad,
                                                lissajous_nx=self.lissajous_nx,
@@ -165,8 +167,23 @@ class ScanEngine:
         self.__last_frame_parameters = frame_parameters
 
     def _update_frame_parameter(self):
+        """
+        Try to updates the frame_parameter. The self.__last_frame_parameter is copied but its updated with all the values on ArgumentController.
+        If any of them change, they trigger a scan frame parameter change
+        """
         updated_frame_parameter = copy.deepcopy(self.__last_frame_parameters)
         self.set_frame_parameters(updated_frame_parameter)
+
+    def set_field_of_view(self, fov: float):
+        """
+        Sets the field of the view of the image
+        """
+        self.device.change_magnification_values(fov)
+        superscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("superscan")
+        if superscan is not None:
+            ss_fp = superscan.get_current_frame_parameters()
+            ss_fp.set_parameter("fov_nm", fov_nm)
+            superscan.set_current_frame_parameters(ss_fp)
 
     def set_probe_position(self, x, y):
         """
