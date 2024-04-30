@@ -20,7 +20,7 @@ set_file = read_data.FileManager('global_settings')
 OPEN_SCAN_IS_VG = set_file.settings["OrsayInstrument"]["open_scan"]["IS_VG"]
 OPEN_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["open_scan"]["EFM03"]
 OPEN_SCAN_BITSTREAM = set_file.settings["OrsayInstrument"]["open_scan"]["BITSTREAM_FILE"]
-FILENAME_JSON = 'opscan_persistent_data.json'
+FILENAME_JSON = 'opscan_persistent_data'
 DEBUG = False
 TIMEOUT_IS_SYNC = 2.0
 
@@ -37,13 +37,8 @@ class ArgumentController:
     ArgumentController stores all the arguments of the ScanDevice into a dictionary. Useful for persistent settings and control.
     """
     def __init__(self):
-        try:
-            with open(FILENAME_JSON) as f:
-                self.argument_controller = json.load(f)
-        except FileNotFoundError:
-            self.argument_controller = dict()
-            with open(FILENAME_JSON, 'w') as f:
-                json.dump(self.argument_controller, f)
+        self.__settings_manager = read_data.FileManager(FILENAME_JSON)
+        self.argument_controller = self.__settings_manager.settings
 
     def get(self, keyname: str, value=None):
         return self.argument_controller.get(keyname, value)
@@ -60,11 +55,7 @@ class ArgumentController:
         self._write_to_json()
 
     def _write_to_json(self):
-        with open(FILENAME_JSON) as f:
-            data = json.load(f)
-        data.update(self.argument_controller)
-        with open(FILENAME_JSON, 'w') as f:
-            json.dump(data, f)
+        self.__settings_manager.save_locally()
 
 
 class ScanEngine:
