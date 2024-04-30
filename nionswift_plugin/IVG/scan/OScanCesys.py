@@ -269,7 +269,7 @@ class ScanEngine:
 
     @property
     def adc_acquisition_mode(self):
-        return self.argument_controller.get('adc_acquisition_mode', 0)
+        return self.argument_controller.get('adc_acquisition_mode', 5)
 
     @adc_acquisition_mode.setter
     def adc_acquisition_mode(self, value):
@@ -684,7 +684,7 @@ class ScanEngine:
     """
     @property
     def mux_output_type(self):
-        return self.argument_controller.get('mux_output_type', [0] * 8)
+        return self.argument_controller.get('mux_output_type', [0, 1, 2, 3, 6, 0, 0, 0])
 
     @mux_output_type.setter
     def mux_output_type(self, value: list):
