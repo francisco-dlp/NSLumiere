@@ -1,5 +1,5 @@
 # standard libraries
-import copy, math, gettext, numpy, typing, time, threading, logging, os, sys, json
+import copy, math, gettext, numpy, typing, time, threading, logging, os, sys, json, traceback
 
 # local libraries
 from nion.utils import Registry
@@ -20,7 +20,7 @@ set_file = read_data.FileManager('global_settings')
 OPEN_SCAN_IS_VG = set_file.settings["OrsayInstrument"]["open_scan"]["IS_VG"]
 OPEN_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["open_scan"]["EFM03"]
 OPEN_SCAN_BITSTREAM = set_file.settings["OrsayInstrument"]["open_scan"]["BITSTREAM_FILE"]
-FILENAME_JSON = 'opscan_persistent_data.json'
+FILENAME_JSON = 'opscan_persistent_data'
 DEBUG = False
 TIMEOUT_IS_SYNC = 2.0
 
@@ -37,13 +37,8 @@ class ArgumentController:
     ArgumentController stores all the arguments of the ScanDevice into a dictionary. Useful for persistent settings and control.
     """
     def __init__(self):
-        try:
-            with open(FILENAME_JSON) as f:
-                self.argument_controller = json.load(f)
-        except FileNotFoundError:
-            self.argument_controller = dict()
-            with open(FILENAME_JSON, 'w') as f:
-                json.dump(self.argument_controller, f)
+        self.__settings_manager = read_data.FileManager(FILENAME_JSON)
+        self.argument_controller = self.__settings_manager.settings
 
     def get(self, keyname: str, value=None):
         return self.argument_controller.get(keyname, value)
@@ -60,11 +55,7 @@ class ArgumentController:
         self._write_to_json()
 
     def _write_to_json(self):
-        with open(FILENAME_JSON) as f:
-            data = json.load(f)
-        data.update(self.argument_controller)
-        with open(FILENAME_JSON, 'w') as f:
-            json.dump(data, f)
+        self.__settings_manager.save_locally()
 
 
 class ScanEngine:
@@ -87,7 +78,9 @@ class ScanEngine:
 
         # Settings
         self.argument_controller = ArgumentController()
-        self.__last_frame_parameters = None
+        self.__last_frame_parameters: scan_base.ScanFrameParameters = None
+        self.__last_frame_parameters_time = time.time()
+        self.__last_probe_position = (0.5, 0.5)
 
         for keys in self.argument_controller.keys():
             try:
@@ -120,6 +113,9 @@ class ScanEngine:
         return self.device.get_mask_array()
 
     def set_frame_parameters(self, frame_parameters: scan_base.ScanFrameParameters):
+        """
+        Sets the frame parameters of the scan. The frame_parameters must be different in order to this to be taken into account
+        """
         is_synchronized_scan = frame_parameters.get_parameter("external_clock_mode", 0)
         (y, x) = frame_parameters.as_dict()['pixel_size']
         pixel_time = frame_parameters.as_dict()['pixel_time_us']
@@ -129,18 +125,17 @@ class ScanEngine:
         subscan_fractional_center = frame_parameters.as_dict().get('subscan_fractional_center')
         subscan_pixel_size = frame_parameters.as_dict().get('subscan_pixel_size')
 
-        #Controlling the field of view if superscan is activated
-        superscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("superscan")
-        if superscan is not None:
-            ss_fp = superscan.get_current_frame_parameters()
-            ss_fp.set_parameter("fov_nm", fov_nm)
-            superscan.set_current_frame_parameters(ss_fp)
+        # Setting the field of view. This does not need to change the list
+        if self.__last_frame_parameters is None or fov_nm != self.__last_frame_parameters.as_dict()['fov_nm']:
+            self.set_field_of_view(fov_nm)
+            if self.__last_frame_parameters is not None: self.__last_frame_parameters.set_parameter('fov_nm', fov_nm)
 
+        # Setting the values in the frame parameters to be compared in the next step
         for (key, value) in self.argument_controller.argument_controller.items():
             frame_parameters.set_parameter(key, value)
 
         if self.__last_frame_parameters is None or frame_parameters.as_dict() != self.__last_frame_parameters.as_dict():
-            self.device.change_scan_parameters(x, y, pixel_time, self.flyback_us, fov_nm, is_synchronized_scan,
+            self.device.change_scan_parameters(x, y, pixel_time, self.flyback_us, is_synchronized_scan,
                                                SCAN_MODES[self.rastering_mode],
                                                rotation_rad=rotation_rad,
                                                lissajous_nx=self.lissajous_nx,
@@ -158,19 +153,39 @@ class ScanEngine:
                                                subscan_fractional_center=subscan_fractional_center,
                                                subscan_pixel_size=subscan_pixel_size
                                                )
+
+        self.__last_frame_parameters_time = time.time()
         self.__last_frame_parameters = frame_parameters
 
     def _update_frame_parameter(self):
+        """
+        Try to updates the frame_parameter. The self.__last_frame_parameter is copied but its updated with all the values on ArgumentController.
+        If any of them change, they trigger a scan frame parameter change
+        """
         updated_frame_parameter = copy.deepcopy(self.__last_frame_parameters)
         self.set_frame_parameters(updated_frame_parameter)
 
+    def set_field_of_view(self, fov: float):
+        """
+        Sets the field of the view of the image
+        """
+        self.device.change_magnification_values(fov)
+        superscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("superscan")
+        if superscan is not None:
+            ss_fp = superscan.get_current_frame_parameters()
+            ss_fp.set_parameter("fov_nm", fov_nm)
+            superscan.set_current_frame_parameters(ss_fp)
+
     def set_probe_position(self, x, y):
         """
-        Sets the probe position. TODO: This gots called twice many times so the condition on the last frame parameter
+        Sets the probe position. This gots called multiple times so the condition of the last_frame_parameter_time.
         """
-        self.device.set_probe_position(x, y)
-        #This will force the next frame to be taken place
-        self.__last_frame_parameters = None
+        temp_time = time.time()
+        if temp_time - self.__last_frame_parameters_time > 0.1:
+            self.__last_probe_position = (x, y)
+            self.device.set_probe_position(x, y)
+            #This will force the next frame to be taken place
+            self.__last_frame_parameters = None
 
     def get_mask_array(self):
         return self.device.get_mask_array()
@@ -254,7 +269,7 @@ class ScanEngine:
 
     @property
     def adc_acquisition_mode(self):
-        return self.argument_controller.get('adc_acquisition_mode', 0)
+        return self.argument_controller.get('adc_acquisition_mode', 5)
 
     @adc_acquisition_mode.setter
     def adc_acquisition_mode(self, value):
@@ -669,7 +684,7 @@ class ScanEngine:
     """
     @property
     def mux_output_type(self):
-        return self.argument_controller.get('mux_output_type', [0] * 8)
+        return self.argument_controller.get('mux_output_type', [0, 1, 2, 3, 6, 0, 0, 0])
 
     @mux_output_type.setter
     def mux_output_type(self, value: list):
@@ -865,10 +880,7 @@ class Device(scan_base.ScanDevice):
         self.__frame = None
         self.__frame_number = 0
         self.__instrument = instrument
-        self.__sizez = 2
-        self.__probe_position = [0, 0]
-        self.__probe_position_pixels = [0, 0]
-        self.__rotation = 0.
+        self.__probe_position = Geometry.FloatPoint(0.5, 0.5)
         self.__is_scanning = False
         self.on_device_state_changed = None
         self.flyback_pixels = 2
@@ -886,6 +898,7 @@ class Device(scan_base.ScanDevice):
     def stop(self) -> None:
         """Stop acquiring."""
         if self.__is_scanning:
+            self.scan_engine.set_probe_position(self.__probe_position.x, self.__probe_position.y)
             self.__is_scanning = False
 
     def set_idle_position_by_percentage(self, x: float, y: float) -> None:
@@ -895,6 +908,7 @@ class Device(scan_base.ScanDevice):
     def cancel(self) -> None:
         """Cancel acquisition (immediate)."""
         if self.__is_scanning:
+            self.scan_engine.set_probe_position(self.__probe_position.x, self.__probe_position.y)
             self.__is_scanning = False
 
     def __get_channels(self) -> typing.List[Channel]:

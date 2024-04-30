@@ -477,8 +477,9 @@ class ivgInstrument(stem_controller.STEMController):
             STAGE_REFERENCE_ANGLE = float(self.__set_file.settings["stage"]["REFERENCE_ANGLE"])
             angle = scan.scan_device.scan_rotation
             angle = angle - STAGE_REFERENCE_ANGLE
-            if scan.scan_device.scan_device_id == "open_scan_device":
-                dx = -dx
+            #This does not seem to be necessary anymore
+            #if scan.scan_device.scan_device_id == "open_scan_device":
+            #    dx = -dx
             new_dx = dx*numpy.cos(numpy.radians(angle)) - dy*numpy.sin(numpy.radians(angle))
             new_dy = dx*numpy.sin(numpy.radians(angle)) + dy*numpy.cos(numpy.radians(angle))
             self.__StageInstrument.x_pos_edit_f = float(self.__StageInstrument.x_pos_edit_f) + 1.0 * new_dx * 1e6
