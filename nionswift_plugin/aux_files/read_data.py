@@ -24,7 +24,7 @@ class FileManager:
                 self.settings = settings
         except FileNotFoundError:
             temp_dict = dict()
-            with open(abs_path, 'w') as f:
+            with open(self.abs_path, 'w') as f:
                 json.dump(temp_dict, f)
             logging.info(f"***READ DATA***: Creating an empty dict at {self.abs_path} for {self.filename}.")
             with open(self.abs_path) as savfile:

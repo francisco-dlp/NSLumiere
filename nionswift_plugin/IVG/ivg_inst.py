@@ -471,7 +471,10 @@ class ivgInstrument(stem_controller.STEMController):
 
     def change_stage_position(self, *, dy: int = None, dx: int = None):
         if self.__isChromaTEM:
-            self.__instrument.change_stage_position(dy=dy, dx=dx)
+            angle = 180
+            new_dx = dx * numpy.cos(numpy.radians(angle)) - dy * numpy.sin(numpy.radians(angle))
+            new_dy = dx * numpy.sin(numpy.radians(angle)) + dy * numpy.cos(numpy.radians(angle))
+            self.__instrument.change_stage_position(dy=new_dy, dx=new_dx)
         else:
             scan = self.scan_controller
             STAGE_REFERENCE_ANGLE = float(self.__set_file.settings["stage"]["REFERENCE_ANGLE"])

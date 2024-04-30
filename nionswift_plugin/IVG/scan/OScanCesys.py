@@ -173,7 +173,7 @@ class ScanEngine:
         superscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id("superscan")
         if superscan is not None:
             ss_fp = superscan.get_current_frame_parameters()
-            ss_fp.set_parameter("fov_nm", fov_nm)
+            ss_fp.set_parameter("fov_nm", fov)
             superscan.set_current_frame_parameters(ss_fp)
 
     def set_probe_position(self, x, y):

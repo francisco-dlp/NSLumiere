@@ -6,12 +6,9 @@ from scipy.interpolate import griddata
 import numpy
 import cv2
 
-#Hyperspy import for Typing
-from hyperspy._signals.signal1d import Signal1D
-
 DACX_BITDEPTH = 14
 DACY_BITDEPTH = 14
-NUMBER_OF_IMAGES = 10
+NUMBER_OF_IMAGES = 1
 SAWTOOTH = False
 
 
@@ -55,7 +52,9 @@ def script_main(api_broker):
     lissajous_nx = metadata['scan']['scan_device_properties']['lissajous_nx']
     lissajous_ratio = metadata['scan']['scan_device_properties']['lissajous_ratio']
     lissajous_phase = metadata['scan']['scan_device_properties']['lissajous_phase']
-    pixel_time = metadata['scan']['scan_device_parameters']['pixel_time_us'] / 1e6 * 1e8
+    pixel_time = metadata['scan']['scan_device_parameters']['pixel_time_us']
+    pixel_time = int(pixel_time / 0.01) - int(int(pixel_time / 0.01) % 4)
+
     divider = 2
 
     #Calculating the points
