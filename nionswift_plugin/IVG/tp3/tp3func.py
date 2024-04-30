@@ -232,8 +232,10 @@ class TimePix3():
         try:
             if has_superscan:
                 scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy Superscan input line.
+                scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 14)  # Laser trigger
             else:
                 scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start.
+                scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 14)  # Laser trigger
         except:
             logging.info("***TPX3***: Could not set the correct hyperspec output")
 
@@ -512,10 +514,7 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period = 0.001, on_time=0.000001)  # 1 ms internal generator
-            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 13)  # Copy Line 05
-            #scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 7)  # start Line
-            # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 14)  # Laser trigger
         except AttributeError:
             logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
         port = 8088
@@ -558,9 +557,7 @@ class TimePix3():
             scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
             scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure, on_time=0.0000001)
-            #scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure, on_time=0.0000001)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 8 + 6)  # Top2 bottom blanker
-            # scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045) # Copy Line 05
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 14)  # Laser trigger
         except AttributeError:
             logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
         port = 8088
