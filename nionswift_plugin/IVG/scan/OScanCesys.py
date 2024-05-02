@@ -249,7 +249,8 @@ class ScanEngine:
     @video_delay.setter
     def video_delay(self, value):
         self.argument_controller.update(video_delay=int(value))
-        self.device.change_video_parameters(video_delay=self.argument_controller.get('video_delay'))
+        self.device.change_video_parameters(lissajous_nx=self.lissajous_nx,
+                                            video_delay=self.argument_controller.get('video_delay'))
         if self.debug_io:
             self._update_frame_parameter()
         # If timepix3 is present, we should try to set the metadata of this value
