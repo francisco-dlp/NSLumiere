@@ -216,6 +216,15 @@ class ScanEngine:
         self.device.set_complete_image_offset(int(value))
 
     @property
+    def image_cumul(self):
+        return self.argument_controller.get('image_cumul', 1)
+
+    @image_cumul.setter
+    def image_cumul(self, value):
+        self.argument_controller.update(image_cumul=int(value))
+        self.device.set_image_cumul(int(value))
+
+    @property
     def flyback_us(self):
         return self.argument_controller.get('flyback_us', 0)
 
@@ -249,8 +258,8 @@ class ScanEngine:
     @video_delay.setter
     def video_delay(self, value):
         self.argument_controller.update(video_delay=int(value))
-        self.device.change_video_parameters(lissajous_nx=self.lissajous_nx,
-                                            video_delay=self.argument_controller.get('video_delay'))
+        self.device.change_video_parameters(video_delay=self.video_delay)
+        self.property_changed_event.fire("video_phase")
         if self.debug_io:
             self._update_frame_parameter()
         # If timepix3 is present, we should try to set the metadata of this value
@@ -258,6 +267,17 @@ class ScanEngine:
             .get_hardware_source_for_hardware_source_id("orsay_camera_timepix3")
         if cam is not None:
             cam.camera.camera.set_video_delay(value)
+
+    @property
+    def video_phase(self):
+        phase = round((self.video_delay / (1.0 / self.lissajous_nx * 1e8)) * 360, 3)
+        return phase
+
+    @video_phase.setter
+    def video_phase(self, value):
+        video_delay = float(value) / 360.0 * (1.0 / self.lissajous_nx * 1e8)
+        self.video_delay = video_delay
+        self.property_changed_event.fire("video_delay")
 
     @property
     def pause_sampling(self):

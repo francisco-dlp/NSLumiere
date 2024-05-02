@@ -28,14 +28,16 @@ class View():
             current_index='@binding(scan.imagedisplay)',
             name='rastering_value', width='100')
         image_filter_intensity_text = ui.create_label(name='image_filter_intensity_text', text='Filter intensity: ')
-        image_filter_intensity_value = ui.create_line_edit(name='image_filter_intensity_value', text='@binding(scan.imagedisplay_filter_intensity)')
-        complete_image_offset_text = ui.create_label(name='image_filter_intensity_text',
-                                                           text='Image offset: ')
+        image_filter_intensity_value = ui.create_line_edit(text='@binding(scan.imagedisplay_filter_intensity)')
+        complete_image_offset_text = ui.create_label(text='Image offset: ')
         complete_image_offset = ui.create_line_edit(text='@binding(scan.complete_image_offset)')
+        image_cumul_text = ui.create_label(text='Image cumul: ')
+        image_cumul_value = ui.create_line_edit(text='@binding(scan.image_cumul)')
         imageshow_row = ui.create_row(imageshow_text, imageshow_value, ui.create_spacing(10),
                                            image_filter_intensity_text, image_filter_intensity_value,
                                            ui.create_stretch())
-        complete_image_row = ui.create_row(complete_image_offset_text, complete_image_offset, ui.create_stretch())
+        complete_image_row = ui.create_row(complete_image_offset_text, complete_image_offset, ui.create_stretch(),
+                                           image_cumul_text, image_cumul_value)
 
         acquisition_parameters_group = ui.create_group(title='Acquisition parameters', content=ui.create_column(
             imageshow_row,
@@ -92,8 +94,12 @@ class View():
         self.video_delay_text = ui.create_label(name='video_delay_text', text="Video delay: ")
         self.video_delay_value = ui.create_line_edit(text='@binding(scan.video_delay)',
                                                 name='video_delay_value', width='100')
+        video_phase_text = ui.create_label(text="Video phase: ")
+        video_phase_value = ui.create_line_edit(text='@binding(scan.video_phase)', width='100')
         self.enable_pause_sampling = ui.create_check_box(name='enable_pause_sampling', text="Pause Sampling", checked='@binding(scan.pause_sampling)')
-        self.video_delay_row = ui.create_row(self.video_delay_text, self.video_delay_value, ui.create_stretch(), self.enable_pause_sampling)
+        self.video_delay_row = ui.create_row(self.video_delay_text, self.video_delay_value,
+                                             video_phase_text, video_phase_value,
+                                             ui.create_stretch(), self.enable_pause_sampling)
 
         self.acqusition_adc_text = ui.create_label(name='acqusition_adc_text', text="ADC type: ")
         self.acquisition_adc_value = ui.create_combo_box(items=ADC_READOUT_MODES,
