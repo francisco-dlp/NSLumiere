@@ -525,9 +525,9 @@ class ScanEngine:
     @mag_multiblock0.setter
     def mag_multiblock0(self, value):
         self.argument_controller.update(mag_multiblock0=float(value))
-        variables = [self.argument_controller.get('mag_multiblock0'), self.argument_controller.get('mag_multiblock1'),
-                     self.argument_controller.get('mag_multiblock2'), self.argument_controller.get('mag_multiblock3'),
-                     self.argument_controller.get('mag_multiblock4'), self.argument_controller.get('mag_multiblock5')]
+        variables = [self.mag_multiblock0, self.mag_multiblock1,
+                     self.mag_multiblock2, self.mag_multiblock3,
+                     self.mag_multiblock4, self.mag_multiblock5]
         if not any(x is None for x in variables):
             self.device.change_magnification_calibration(variables)
 
@@ -538,9 +538,9 @@ class ScanEngine:
     @mag_multiblock1.setter
     def mag_multiblock1(self, value):
         self.argument_controller.update(mag_multiblock1=float(value))
-        variables = [self.argument_controller.get('mag_multiblock0'), self.argument_controller.get('mag_multiblock1'),
-                     self.argument_controller.get('mag_multiblock2'), self.argument_controller.get('mag_multiblock3'),
-                     self.argument_controller.get('mag_multiblock4'), self.argument_controller.get('mag_multiblock5')]
+        variables = [self.mag_multiblock0, self.mag_multiblock1,
+                     self.mag_multiblock2, self.mag_multiblock3,
+                     self.mag_multiblock4, self.mag_multiblock5]
         if not any(x is None for x in variables):
             self.device.change_magnification_calibration(variables)
 
@@ -551,9 +551,9 @@ class ScanEngine:
     @mag_multiblock2.setter
     def mag_multiblock2(self, value):
         self.argument_controller.update(mag_multiblock2=float(value))
-        variables = [self.argument_controller.get('mag_multiblock0'), self.argument_controller.get('mag_multiblock1'),
-                     self.argument_controller.get('mag_multiblock2'), self.argument_controller.get('mag_multiblock3'),
-                     self.argument_controller.get('mag_multiblock4'), self.argument_controller.get('mag_multiblock5')]
+        variables = [self.mag_multiblock0, self.mag_multiblock1,
+                     self.mag_multiblock2, self.mag_multiblock3,
+                     self.mag_multiblock4, self.mag_multiblock5]
         if not any(x is None for x in variables):
             self.device.change_magnification_calibration(variables)
 
@@ -564,9 +564,9 @@ class ScanEngine:
     @mag_multiblock3.setter
     def mag_multiblock3(self, value):
         self.argument_controller.update(mag_multiblock3=float(value))
-        variables = [self.argument_controller.get('mag_multiblock0'), self.argument_controller.get('mag_multiblock1'),
-                     self.argument_controller.get('mag_multiblock2'), self.argument_controller.get('mag_multiblock3'),
-                     self.argument_controller.get('mag_multiblock4'), self.argument_controller.get('mag_multiblock5')]
+        variables = [self.mag_multiblock0, self.mag_multiblock1,
+                     self.mag_multiblock2, self.mag_multiblock3,
+                     self.mag_multiblock4, self.mag_multiblock5]
         if not any(x is None for x in variables):
             self.device.change_magnification_calibration(variables)
 
@@ -577,9 +577,9 @@ class ScanEngine:
     @mag_multiblock4.setter
     def mag_multiblock4(self, value):
         self.argument_controller.update(mag_multiblock4=float(value))
-        variables = [self.argument_controller.get('mag_multiblock0'), self.argument_controller.get('mag_multiblock1'),
-                     self.argument_controller.get('mag_multiblock2'), self.argument_controller.get('mag_multiblock3'),
-                     self.argument_controller.get('mag_multiblock4'), self.argument_controller.get('mag_multiblock5')]
+        variables = [self.mag_multiblock0, self.mag_multiblock1,
+                     self.mag_multiblock2, self.mag_multiblock3,
+                     self.mag_multiblock4, self.mag_multiblock5]
         if not any(x is None for x in variables):
             self.device.change_magnification_calibration(variables)
 
@@ -590,9 +590,9 @@ class ScanEngine:
     @mag_multiblock5.setter
     def mag_multiblock5(self, value):
         self.argument_controller.update(mag_multiblock5=float(value))
-        variables = [self.argument_controller.get('mag_multiblock0'), self.argument_controller.get('mag_multiblock1'),
-                     self.argument_controller.get('mag_multiblock2'), self.argument_controller.get('mag_multiblock3'),
-                     self.argument_controller.get('mag_multiblock4'), self.argument_controller.get('mag_multiblock5')]
+        variables = [self.mag_multiblock0, self.mag_multiblock1,
+                     self.mag_multiblock2, self.mag_multiblock3,
+                     self.mag_multiblock4, self.mag_multiblock5]
         if not any(x is None for x in variables):
             self.device.change_magnification_calibration(variables)
 
@@ -623,9 +623,9 @@ class ScanEngine:
     @routex_mux.setter
     def routex_mux(self, value):
         self.argument_controller.update(routex_mux=int(value))
-        variables = [0, self.argument_controller.get('routex_mux'),
-                     self.argument_controller.get('routex_mux_intensity'),
-                     self.argument_controller.get('routex_mux_averages')]
+        variables = [0, self.routex_mux,
+                     self.routex_mux_intensity,
+                     self.routex_mux_averages]
         if not any(x is None for x in variables):
             self.device.set_route_mux(*variables)
         self.property_changed_event.fire("routex_mux")
@@ -637,9 +637,9 @@ class ScanEngine:
     @routex_mux_intensity.setter
     def routex_mux_intensity(self, value):
         self.argument_controller.update(routex_mux_intensity=int(value))
-        variables = [0, self.argument_controller.get('routex_mux'),
-                     self.argument_controller.get('routex_mux_intensity'),
-                     self.argument_controller.get('routex_mux_averages')]
+        variables = [0, self.routex_mux,
+                     self.routex_mux_intensity,
+                     self.routex_mux_averages]
         if not any(x is None for x in variables):
             self.device.set_route_mux(*variables)
         self.property_changed_event.fire("routex_mux_intensity")
@@ -651,9 +651,9 @@ class ScanEngine:
     @routex_mux_averages.setter
     def routex_mux_averages(self, value):
         self.argument_controller.update(routex_mux_averages=int(value))
-        variables = [0, self.argument_controller.get('routex_mux'),
-                     self.argument_controller.get('routex_mux_intensity'),
-                     self.argument_controller.get('routex_mux_averages')]
+        variables = [0, self.routex_mux,
+                     self.routex_mux_intensity,
+                     self.routex_mux_averages]
         if not any(x is None for x in variables):
             self.device.set_route_mux(*variables)
         self.property_changed_event.fire("routex_mux_averages")
@@ -665,9 +665,9 @@ class ScanEngine:
     @routey_mux.setter
     def routey_mux(self, value):
         self.argument_controller.update(routey_mux=int(value))
-        variables = [1, self.argument_controller.get('routey_mux'),
-                     self.argument_controller.get('routey_mux_intensity'),
-                     self.argument_controller.get('routey_mux_averages')]
+        variables = [1, self.routey_mux,
+                     self.routey_mux_intensity,
+                     self.routey_mux_averages]
         if not any(x is None for x in variables):
             self.device.set_route_mux(*variables)
         self.property_changed_event.fire("routey_mux")
@@ -679,9 +679,9 @@ class ScanEngine:
     @routey_mux_intensity.setter
     def routey_mux_intensity(self, value):
         self.argument_controller.update(routey_mux_intensity=int(value))
-        variables = [1, self.argument_controller.get('routey_mux'),
-                     self.argument_controller.get('routey_mux_intensity'),
-                     self.argument_controller.get('routey_mux_averages')]
+        variables = [1, self.routey_mux,
+                     self.routey_mux_intensity,
+                     self.routey_mux_averages]
         if not any(x is None for x in variables):
             self.device.set_route_mux(*variables)
         self.property_changed_event.fire("routey_mux_intensity")
@@ -693,9 +693,9 @@ class ScanEngine:
     @routey_mux_averages.setter
     def routey_mux_averages(self, value):
         self.argument_controller.update(routey_mux_averages=int(value))
-        variables = [1, self.argument_controller.get('routey_mux'),
-                     self.argument_controller.get('routey_mux_intensity'),
-                     self.argument_controller.get('routey_mux_averages')]
+        variables = [1, self.routey_mux,
+                     self.routey_mux_intensity,
+                     self.routey_mux_averages]
         if not any(x is None for x in variables):
             self.device.set_route_mux(*variables)
         self.property_changed_event.fire("routey_mux_averages")
