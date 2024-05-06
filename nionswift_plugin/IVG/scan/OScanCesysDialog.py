@@ -73,6 +73,27 @@ class View():
         self.rastering_group = ui.create_group(title='Scanning parameters', content=ui.create_column(
             flyback_row, rastering_row, lissajous_row
         ))
+        #DAC parameters
+        enable_x_delay = ui.create_check_box(text="X delay", checked='@binding(scan.enable_x_delay)')
+        enable_y_delay = ui.create_check_box(text="Y delay", checked='@binding(scan.enable_y_delay)')
+
+        video_delay_x_text = ui.create_label(text="Video delay X: ")
+        video_delay_x_value = ui.create_line_edit(text='@binding(scan.video_delay_x)', width='100')
+
+        video_delay_y_text = ui.create_label(text="Video delay Y: ")
+        video_delay_y_value = ui.create_line_edit(text='@binding(scan.video_delay_y)', width='100')
+
+        video_delay_dac_x_row = ui.create_row(video_delay_x_text, video_delay_x_value, ui.create_stretch(),
+                                              enable_x_delay)
+        video_delay_dac_y_row = ui.create_row(video_delay_y_text, video_delay_y_value, ui.create_stretch(),
+                                              enable_y_delay)
+
+        dac_parameters_group = ui.create_group(title='DAC parameters', content=ui.create_column(
+            video_delay_dac_x_row, video_delay_dac_y_row
+        ))
+
+
+
         #ADC parameters
 
         self.kernel_mode_text = ui.create_label(name='kernel_mode_text', text="DSP Kernel: ")
@@ -170,7 +191,7 @@ class View():
         ))
 
         self.first_tab = ui.create_tab(label="General Parameters", content=ui.create_column(
-            acquisition_parameters_group, self.rastering_group, self.adc_parameters_group,
+            acquisition_parameters_group, self.rastering_group, dac_parameters_group, self.adc_parameters_group,
             self.hardware_settings_group))
 
         #SECOND TAB (Input multiplexing)

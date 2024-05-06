@@ -93,6 +93,10 @@ class ScanEngine:
         self.adc_acquisition_mode = 5 #Taped FIR
         self.imagedisplay = 0 #Normal display
         self.rastering_mode = 0 #Normal mode
+        self.image_cumul = 1 #No accumulation
+        self.flyback_us = 10 #10 us flyback
+        self.enable_x_delay = False #No delay on X coil
+        self.enable_y_delay = False #No delay on Y coil
 
 
     def receive_total_frame(self, channel: int):
@@ -122,7 +126,6 @@ class ScanEngine:
         """
         Sets the frame parameters of the scan. The frame_parameters must be different in order to this to be taken into account.
         """
-        if frame_parameters is None: return
         is_synchronized_scan = frame_parameters.get_parameter("external_clock_mode", 0)
         (y, x) = frame_parameters.as_dict()['pixel_size']
         pixel_time = frame_parameters.as_dict()['pixel_time_us']
@@ -170,7 +173,8 @@ class ScanEngine:
         If any of them change, they trigger a scan frame parameter change
         """
         updated_frame_parameter = copy.deepcopy(self.__last_frame_parameters)
-        self.set_frame_parameters(updated_frame_parameter)
+        if self.__last_frame_parameters is not None:
+            self.set_frame_parameters(updated_frame_parameter)
 
     def set_field_of_view(self, fov: float):
         """
@@ -348,6 +352,42 @@ class ScanEngine:
     def lissajous_phase(self, value):
         self.argument_controller.update(lissajous_phase=float(value))
         self._update_frame_parameter()
+
+    @property
+    def enable_x_delay(self):
+        return self.argument_controller.get('enable_x_delay', int(False))
+
+    @enable_x_delay.setter
+    def enable_x_delay(self, value: bool):
+        self.argument_controller.update(enable_x_delay=int(value))
+        self.device.enable_coil_delay(0, int(value))
+
+    @property
+    def video_delay_x(self):
+        return self.argument_controller.get('video_delay_x', 0)
+
+    @video_delay_x.setter
+    def video_delay_x(self, value: int):
+        self.argument_controller.update(video_delay_x=int(value))
+        self.device.set_coil_delay(0, int(value))
+
+    @property
+    def enable_y_delay(self):
+        return self.argument_controller.get('enable_y_delay', int(False))
+
+    @enable_y_delay.setter
+    def enable_y_delay(self, value: bool):
+        self.argument_controller.update(enable_y_delay=int(value))
+        self.device.enable_coil_delay(1, int(value))
+
+    @property
+    def video_delay_y(self):
+        return self.argument_controller.get('video_delay_y', 0)
+
+    @video_delay_y.setter
+    def video_delay_y(self, value: int):
+        self.argument_controller.update(video_delay_y=int(value))
+        self.device.set_coil_delay(1, int(value))
 
     @property
     def kernel_mode(self):
