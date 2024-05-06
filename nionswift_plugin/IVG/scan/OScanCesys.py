@@ -82,11 +82,17 @@ class ScanEngine:
         self.__last_frame_parameters_time = time.time()
         self.__last_probe_position = (0.5, 0.5)
 
+        # Initializating values from the json file, if exists
         for keys in self.argument_controller.keys():
             try:
                 setattr(self, keys, getattr(self, keys))
             except AttributeError:
                 logging.info(f"Could not set key {keys} in the scan engine.")
+
+        # Set of settings that gets overwritten. It makes sure the initial state is user-friendly
+        self.adc_acquisition_mode = 5 #Taped FIR
+        self.imagedisplay = 0 #Normal display
+        self.rastering_mode = 0 #Normal mode
 
 
     def receive_total_frame(self, channel: int):
@@ -114,8 +120,9 @@ class ScanEngine:
 
     def set_frame_parameters(self, frame_parameters: scan_base.ScanFrameParameters):
         """
-        Sets the frame parameters of the scan. The frame_parameters must be different in order to this to be taken into account
+        Sets the frame parameters of the scan. The frame_parameters must be different in order to this to be taken into account.
         """
+        if frame_parameters is None: return
         is_synchronized_scan = frame_parameters.get_parameter("external_clock_mode", 0)
         (y, x) = frame_parameters.as_dict()['pixel_size']
         pixel_time = frame_parameters.as_dict()['pixel_time_us']
