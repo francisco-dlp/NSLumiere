@@ -109,7 +109,7 @@ class CameraHandler:
         self.tab_v_binning = Model.PropertyModel(0)
         self.status_text = Model.PropertyModel("Stopped")
         correction_enum = 0
-        if self.camera_device.isMedipix:
+        if self.camera_device.isMedipix or self.camera_device.isTimepix:
             self.correction_items = [_("No gaps"), _("Gaps zero"), _("Gaps filled")]
         else:
             self.correction_items = [_("None"), _("Readout"), _("Gain"), _("Both")]
@@ -260,6 +260,11 @@ class CameraHandler:
                 frame_parameters["area"] = tuple(area)
                 self.camera_settings.set_current_frame_parameters(frame_parameters)
 
+        def set_gaps(value):
+            frame_parameters = self.camera_settings.get_current_frame_parameters()
+            frame_parameters["gaps_mode"] = value
+            self.camera_settings.set_current_frame_parameters(frame_parameters)
+
         def set_gain(value):
             # print(f"Panel: set_gain {value}")
             frame_parameters = self.camera_settings.get_current_frame_parameters()
@@ -375,6 +380,7 @@ class CameraHandler:
         self.port_item.on_value_changed = set_port
         self.speed_item.on_value_changed = set_speed
         self.chips_item.on_value_changed = set_chips
+        self.correction_item.on_value_changed = set_gaps
         self.gain_item.on_value_changed = set_gain
         self.multiplication_model.on_value_changed = set_multiplier
         self.threshold_model.value = 0

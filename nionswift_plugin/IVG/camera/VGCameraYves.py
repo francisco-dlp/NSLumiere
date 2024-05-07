@@ -444,7 +444,7 @@ class CameraDevice(camera_base.CameraDevice):
                 self.__hardware_settings['chips_config'] = dict_frame_parameters['chips_config']
                 self.camera.chips_config = self.__hardware_settings['chips_config']
 
-        if self.isMedipix and "gaps_mode" in dict_frame_parameters:
+        if (self.isMedipix or self.isTimepix) and "gaps_mode" in dict_frame_parameters:
             if self.__hardware_settings['gaps_mode'] != dict_frame_parameters['gaps_mode']:
                 self.__hardware_settings['gaps_mode'] = dict_frame_parameters['gaps_mode']
                 self.camera.gaps_mode = self.__hardware_settings['gaps_mode']

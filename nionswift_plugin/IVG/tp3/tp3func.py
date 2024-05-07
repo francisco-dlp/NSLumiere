@@ -189,6 +189,7 @@ class TimePix3():
         self.__delay = 0.
         self.__width = 0.
         self.__subMode = 0.
+        self.__gapsMode = 0
         self.__simul = simul
         self.__isReady = threading.Event()
         self.__binning = [1, 1]
@@ -816,7 +817,7 @@ class TimePix3():
         pass
 
     def getGain(self, cameraport):
-        return 999
+        return 0
 
     def getGainName(self, cameraport, gain):
         pass
@@ -925,6 +926,14 @@ class TimePix3():
 
     def getTp3Modes(self):
         return ['Standard', 'Coincidence', 'Raw 4D Image']
+
+    @property
+    def gaps_mode(self)-> int:
+        return self.__gapsMode
+
+    @gaps_mode.setter
+    def gaps_mode(self, value: int):
+        self.__gapsMode = value
 
     def start_listening(self, port=8088, message=1):
         """
@@ -1047,13 +1056,6 @@ class TimePix3():
         dt = self.__detector_config.get_data_receive_type()
         self.__data = self.__data_manager.get_data(self.__detector_config)
         self.__frame = 0
-
-        #Frame_based spectral image
-        #if message == 2:
-        #    self.__frame = 0
-        #    spim_array_size = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey * SPEC_SIZE
-        #    number_of_spec = self.__detector_config.scan_sizex * self.__detector_config.scan_sizey
-        #    self.__spimData = numpy.zeros(spim_array_size, dtype=numpy.uint32)
 
         client.send(config_bytes)
 
