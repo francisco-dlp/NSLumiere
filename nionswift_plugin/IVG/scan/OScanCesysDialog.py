@@ -6,6 +6,7 @@ ACQUISITION_WINDOW = ['boxcar', 'triang', 'blackman', 'hamming', 'hann']
 KERNEL_LIST = ['None', 'Square', 'Triangular', 'Gaussian', 'Blackman', 'Custom', 'First pixel', 'Last pixel', 'Given pixel']
 SCAN_MODES = ['Normal', 'Serpentine', 'Random', 'Mini-scans', 'MikesPath', 'Lissajous', 'Sawtooth Lissajous']
 IMAGE_VIEW_MODES = ['Normal', 'Ordered', 'DAC-based', 'Low-pass filter', 'Inpainting', 'Interpolation']
+PRE_SETTINGS = ['Standard', 'PS1', 'PS2', 'PS3', 'PS4', 'PS5', 'PS6', 'PS7', 'PS8', 'PS9', 'PS10']
 ADC_READOUT_MODES = ['FIR', 'Pixel counter', 'IIR', 'Multip.', 'Kernel', 'Fixed TAP']
 OUTPUT_TYPES_MUX = ['Pixel logic', 'Paused logic', 'New frame logic', 'Pulse out', 'I1TTL', 'I2TTL', 'I3TTL',
                     'Clock divider', 'Input divider', 'OFF']
@@ -21,7 +22,14 @@ class View():
     def __init__(self):
         ui = Declarative.DeclarativeUI()
 
-        # FIRST TAB (GENERAL_PARAMETERS)
+        # PRE SETTINGS
+        presettings_text = ui.create_label(text="Pre-setting: ")
+        presettings_value = ui.create_combo_box(items=PRE_SETTINGS,
+                                                current_index='@binding(scan.pre_settings)', width='100')
+        presetting_row = ui.create_row(presettings_text, presettings_value, ui.create_stretch())
+        presetting_group = ui.create_group(title='Pre-setting', content=ui.create_column(presetting_row))
+
+        # GENERAL_PARAMETERS
         imageshow_text = ui.create_label(name='imageshow_text', text="Image display: ")
         imageshow_value = ui.create_combo_box(
             items=IMAGE_VIEW_MODES,
@@ -191,6 +199,7 @@ class View():
         ))
 
         self.first_tab = ui.create_tab(label="General Parameters", content=ui.create_column(
+            presetting_group,
             acquisition_parameters_group, self.rastering_group, dac_parameters_group, self.adc_parameters_group,
             self.hardware_settings_group))
 

@@ -20,7 +20,6 @@ set_file = read_data.FileManager('global_settings')
 OPEN_SCAN_IS_VG = set_file.settings["OrsayInstrument"]["open_scan"]["IS_VG"]
 OPEN_SCAN_EFM03 = set_file.settings["OrsayInstrument"]["open_scan"]["EFM03"]
 OPEN_SCAN_BITSTREAM = set_file.settings["OrsayInstrument"]["open_scan"]["BITSTREAM_FILE"]
-FILENAME_JSON = 'opscan_persistent_data'
 DEBUG = False
 TIMEOUT_IS_SYNC = 2.0
 
@@ -36,11 +35,14 @@ class ArgumentController:
     """
     ArgumentController stores all the arguments of the ScanDevice into a dictionary. Useful for persistent settings and control.
     """
-    def __init__(self):
-        self.__settings_manager = read_data.FileManager(FILENAME_JSON)
+    def __init__(self, filename: str):
+        self.__settings_manager = read_data.FileManager(filename)
         self.argument_controller = self.__settings_manager.settings
 
     def get(self, keyname: str, value=None):
+        #If the keyname does not exists and the value is not None, we set the value to populate the dictionary
+        if keyname not in self.argument_controller and value is not None:
+            self.set(keyname, value)
         return self.argument_controller.get(keyname, value)
 
     def set(self, keyname: str, value):
@@ -77,17 +79,18 @@ class ScanEngine:
                             f'export LD_LIBRARY_PATH=' + getlibname())
 
         # Settings
-        self.argument_controller = ArgumentController()
+        self.__presetting = 0
         self.__last_frame_parameters: scan_base.ScanFrameParameters = None
         self.__last_frame_parameters_time = time.time()
         self.__last_probe_position = (0.5, 0.5)
+        self.argument_controller = ArgumentController('opscan_persistent_data_' + str(self.__presetting))
 
         # Initializating values from the json file, if exists
         for keys in self.argument_controller.keys():
             try:
                 setattr(self, keys, getattr(self, keys))
             except AttributeError:
-                logging.info(f"Could not set key {keys} in the scan engine.")
+                logging.info(f"***OScan***: Could not set key {keys} in the scan engine.")
 
         # Set of settings that gets overwritten. It makes sure the initial state is user-friendly
         self.adc_acquisition_mode = 5 #Taped FIR
@@ -200,6 +203,43 @@ class ScanEngine:
 
     def get_mask_array(self):
         return self.device.get_mask_array()
+
+    @property
+    def pre_settings(self):
+        return self.__presetting
+
+    @pre_settings.setter
+    def pre_settings(self, value):
+        """
+        This changes the argument controller file in order to have different presettings. This is difficult to control
+        properly and very efficiently.
+
+        If the key does not exists in the new presetting, a copy from the previous values are created. If the key exists
+        and the value differs, we set the property in order to take place. Some of these properties need the
+        frame_parameters, while others do not. This risks to call set_frame_parameters more than once.
+
+        The self.__last_frame_parameters = None means that for these internal functions wont be called so you need to
+        restart the scan in order to the effects to take place. The other parameters are correctly set.
+        """
+        self.__presetting = value
+
+        old_argument_controller = self.argument_controller
+        self.argument_controller = ArgumentController('opscan_persistent_data_' + str(self.__presetting))
+
+        for (key, values) in old_argument_controller.argument_controller.items():
+            if key not in self.argument_controller.argument_controller:
+                self.argument_controller.set(key, values)
+            else:
+                new_value = self.argument_controller.get(key)
+                if new_value != values:
+                    self.__last_frame_parameters = None
+                    setattr(self, key, new_value)
+                    print(f"***OScan***: The new argument controller has a different {key} with value {new_value}.")
+
+        # All the values that are registered in the new pre-setting will be updated
+        for (key, _) in self.argument_controller.argument_controller.items():
+            self.property_changed_event.fire(key)
+
 
     @property
     def imagedisplay(self):
