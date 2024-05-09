@@ -184,6 +184,7 @@ class TimePix3():
 
         self.__frame_based = False
         self.__isPlaying = False
+        self.__stem_controller = None
         self.__accumulation = 0.
         self.__expTime = 1.0
         self.__delay = 0.
@@ -223,22 +224,56 @@ class TimePix3():
 
     def get_controller(self):
         #TODO: In chromaTEM, even with open scan this control will fail
-        #return HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
-        return Registry.get_component("stem_controller")
+        return HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
+        if self.__stem_controller is None:
+            return Registry.get_component("stem_controller")
+        else:
+            return self.__stem_controller
+
+    def set_controller(self, controller):
+        self.__stem_controller = controller
+
+    def set_spec_output(self, exposure):
+        scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "orsay_scan_device")
+        openscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "open_scan_device")
+
+        if openscan is not None:
+            openscan.scan_device.scan_engine.output1_mux_freq = 1000
+            openscan.scan_device.scan_engine.output1_mux_type = 7
+            openscan.scan_device.scan_engine.output1_mux_freq_duty = 50
+        else:
+            logging.info("***TP3***: Cannot find openscan hardware. Tdc is not properly setted.")
+        if scanInstrument is not None:
+            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure,)
+            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 14)  # Laser trigger
+        else:
+            logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
+
 
     def set_hyperspec_output(self):
-        has_superscan = self.get_controller().scan_controller.hardware_source_id == "superscan"
+        has_superscan = (HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "superscan") is not None)
         scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
                 "orsay_scan_device")
-        try:
+        openscan = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "open_scan_device")
+
+        if openscan is not None:
+            openscan.scan_device.scan_engine.output1_mux_type = 3
+        else:
+            logging.info("***TPX3***: Could not set the correct hyperspec output for openscan.")
+
+        if scanInstrument is not None:
             if has_superscan:
                 scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 2)  # Copy Superscan input line.
                 scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 14)  # Laser trigger
             else:
                 scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start.
                 scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 14)  # Laser trigger
-        except:
-            logging.info("***TPX3***: Could not set the correct hyperspec output")
+        else:
+            logging.info("***TPX3***: Could not set the correct hyperspec output for orsayscan.")
 
     def request_get(self, url):
         if not self.__simul:
@@ -511,13 +546,7 @@ class TimePix3():
         Message=1 because it is the normal data_locker.
         """
         self.set_exposure_time(exposure)
-        try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 14)  # Laser trigger
-        except AttributeError:
-            logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
+        self.set_spec_output(exposure)
         port = 8088
 
         #Setting the configurations
@@ -553,14 +582,7 @@ class TimePix3():
         accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
         Message=1 because it is the normal data_locker.
         """
-        #if not self.__simul:
-        try:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure, on_time=0.0000001)
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 14)  # Laser trigger
-        except AttributeError:
-            logging.info("***TP3***: Cannot find orsay scan hardware. Tdc is not properly setted.")
+        self.set_spec_output(exposure),
         port = 8088
 
         # Setting the configurations
@@ -755,38 +777,6 @@ class TimePix3():
 
     def setupBinning(self):
         pass
-
-    """
-    def setTdc01(self, index, **kargs):
-        if self.__simul: return
-        if index == 0:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 0, 0)
-        if index == 1:  # Internal Generator
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 7, 0, period=exposure)
-        if index == 2:  # Start of Line
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(1, 2, 7)  # Copy Line Start
-
-    def setTdc02(self, index, **kargs):
-        if self.__simul: return
-        if index == 0:
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 0, 0)
-        if index == 1:  # Laser Line. Copying an output.
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 7, 0, period=exposure)
-        if index == 2:  # High Tension. Copying an input.
-            scanInstrument = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-                "orsay_scan_device")
-            scanInstrument.scan_device.orsayscan.SetTdcLine(0, 2, 3, period=0.000050, on_time=0.000045)
-    """
 
     def setExposureTime(self, exposure):
         """
@@ -1215,6 +1205,7 @@ class TimePix3():
         logging.info(f'***TPX3***: Number of frames to be acquired is {total_frames}.')
 
         # If its a list scan, you should inform the value
+        # TODO: random scan does not work here because we change the list after starting the sequence below.
         if scanInstrument.hardware_source_id == "open_scan_device":
             array_to_send = scanInstrument.scan_device.scan_engine.get_ordered_array().astype('uint32')
             client.sendall(array_to_send)

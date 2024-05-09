@@ -94,10 +94,10 @@ class ScanEngine:
 
         # Set of settings that gets overwritten. It makes sure the initial state is user-friendly
         self.adc_acquisition_mode = 5 #Taped FIR
-        self.imagedisplay = 0 #Normal display
+        self.imagedisplay = 1 #Normal display
         self.rastering_mode = 0 #Normal mode
         self.image_cumul = 1 #No accumulation
-        self.flyback_us = 10 #10 us flyback
+        self.flyback_us = 30 #10 us flyback
         self.enable_x_delay = False #No delay on X coil
         self.enable_y_delay = False #No delay on Y coil
 
@@ -1278,13 +1278,13 @@ class ScanModule(scan_base.ScanModule):
         scan_modes = (
             scan_base.ScanSettingsMode(_("Fast"), "fast",
                                        scan_base.ScanFrameParameters(pixel_size=(128, 128), pixel_time_us=1,
-                                                                     fov_nm=4000)),
+                                                                     fov_nm=2000)),
             scan_base.ScanSettingsMode(_("Slow"), "slow",
                                        scan_base.ScanFrameParameters(pixel_size=(512, 512), pixel_time_us=1,
-                                                                     fov_nm=4000)),
+                                                                     fov_nm=2000)),
             scan_base.ScanSettingsMode(_("Record"), "record",
                                        scan_base.ScanFrameParameters(pixel_size=(1024, 1024), pixel_time_us=1,
-                                                                     fov_nm=4000))
+                                                                     fov_nm=2000))
         )
         self.settings = ScanSettings(scan_modes, lambda d: scan_base.ScanFrameParameters(d), 0, 2,
                                      open_configuration_dialog_fn=show_configuration_dialog)
