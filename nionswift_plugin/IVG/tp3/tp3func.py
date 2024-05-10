@@ -261,8 +261,10 @@ class TimePix3():
             "open_scan_device")
 
         if openscan is not None:
-            openscan.scan_device.scan_engine.output1_mux_type = 3
-            openscan.scan_device.scan_engine.output1_mux_pol = True
+            openscan.scan_device.scan_engine.output1_mux_type = 1
+            openscan.scan_device.scan_engine.output1_mux_pol = False
+            #openscan.scan_device.scan_engine.output1_mux_type = 3
+            #openscan.scan_device.scan_engine.output1_mux_pol = True
         else:
             logging.info("***TPX3***: Could not set the correct hyperspec output for openscan.")
 
