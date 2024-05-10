@@ -224,7 +224,10 @@ class TimePix3():
 
     def get_controller(self):
         #TODO: In chromaTEM, even with open scan this control will fail
-        return HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
+        has_open_scan = (HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+            "open_scan_device") is not None)
+        if has_open_scan:
+            return HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
         if self.__stem_controller is None:
             return Registry.get_component("stem_controller")
         else:
