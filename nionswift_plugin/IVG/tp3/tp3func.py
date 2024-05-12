@@ -161,6 +161,26 @@ class Timepix3DataManager:
         logging.info(f"***TP3_CONFIG***: Returning data for acquisition with shape {self.data.shape}.")
         return self.data
 
+    def correct_data_or_not(self, gapsMode: int, config: Timepix3Configurations):
+        if gapsMode == 1:
+            if config.mode == FRAME or config.mode == FRAME_BASED:
+                if config.bin:
+                    for start_index in [255, 511, 767]:
+                        self.data[start_index] = (2 * self.data[start_index - 1] + self.data[start_index + 2]) / 3.0
+                        self.data[start_index + 1] = (2 * self.data[start_index + 2] + self.data[start_index - 1]) / 3.0
+                else:
+                    for start_index in [255, 511, 767]:
+                        self.data[start_index::SPEC_SIZE] = (2 * self.data[start_index - 1::SPEC_SIZE] + self.data[start_index + 2::SPEC_SIZE]) / 3.0
+                        self.data[start_index + 1::SPEC_SIZE] = (2 * self.data[start_index + 2::SPEC_SIZE] + self.data[start_index - 1::SPEC_SIZE]) / 3.0
+            elif config.mode == COINC_CHRONO:
+                for start_index in [255, 511, 767]:
+                    self.data[start_index::SPEC_SIZE] = (2 * self.data[start_index - 1::SPEC_SIZE] + self.data[
+                                                                                                     start_index + 2::SPEC_SIZE]) / 3.0
+                    self.data[start_index + 1::SPEC_SIZE] = (2 * self.data[start_index + 2::SPEC_SIZE] + self.data[
+                                                                                                         start_index - 1::SPEC_SIZE]) / 3.0
+            else:
+                logging.info("***TPX3***: No gap correction has been set for this mode.")
+
     def create_reshaped_array(self, config: Timepix3Configurations):
         shape = config.get_array_shape()
         return self.data.reshape(shape)
@@ -1368,6 +1388,7 @@ class TimePix3():
         return cur_pa
 
     def create_specimage(self):
+        self.__data_manager.correct_data_or_not(self.__gapsMode, self.__detector_config)
         return self.__data_manager.create_reshaped_array(self.__detector_config)
 
     def create_spimimage(self):
