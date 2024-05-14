@@ -797,11 +797,8 @@ class ScanEngine:
     @mux_output_type.setter
     def mux_output_type(self, value: list):
         self.argument_controller.update(mux_output_type=value)
-        self.output1_mux_type = value[0]
-        self.output2_mux_type = value[1]
-        self.output3_mux_type = value[2]
-        self.output4_mux_type = value[3]
-        self.output5_mux_type = value[4]
+        for channel in range(5):
+            setattr(self, 'mux_output_type'+str(channel+1), value[channel])
 
     @property
     def mux_output_freq(self):
@@ -810,11 +807,8 @@ class ScanEngine:
     @mux_output_freq.setter
     def mux_output_freq(self, value: list):
         self.argument_controller.update(mux_output_freq=value)
-        self.output1_mux_freq = value[0]
-        self.output2_mux_freq = value[1]
-        self.output3_mux_freq = value[2]
-        self.output4_mux_freq = value[3]
-        self.output5_mux_freq = value[4]
+        for channel in range(5):
+            setattr(self, 'mux_output_freq'+str(channel+1), value[channel])
 
     @property
     def mux_output_freq_duty(self):
@@ -823,11 +817,8 @@ class ScanEngine:
     @mux_output_freq_duty.setter
     def mux_output_freq_duty(self, value: list):
         self.argument_controller.update(mux_output_freq_duty=value)
-        self.output1_mux_freq_duty = value[0]
-        self.output2_mux_freq_duty = value[1]
-        self.output3_mux_freq_duty = value[2]
-        self.output4_mux_freq_duty = value[3]
-        self.output5_mux_freq_duty = value[4]
+        for channel in range(5):
+            setattr(self, 'mux_output_freq_duty'+str(channel+1), value[channel])
 
     @property
     def mux_output_input(self):
@@ -836,11 +827,8 @@ class ScanEngine:
     @mux_output_input.setter
     def mux_output_input(self, value: list):
         self.argument_controller.update(mux_output_input=value)
-        self.output1_mux_input = value[0]
-        self.output2_mux_input = value[1]
-        self.output3_mux_input = value[2]
-        self.output4_mux_input = value[3]
-        self.output5_mux_input = value[4]
+        for channel in range(5):
+            setattr(self, 'mux_output_input'+str(channel+1), value[channel])
 
     @property
     def mux_output_input_div(self):
@@ -849,11 +837,8 @@ class ScanEngine:
     @mux_output_input_div.setter
     def mux_output_input_div(self, value: list):
         self.argument_controller.update(mux_output_input_div=value)
-        self.output1_mux_input_div = value[0]
-        self.output2_mux_input_div = value[1]
-        self.output3_mux_input_div = value[2]
-        self.output4_mux_input_div = value[3]
-        self.output5_mux_input_div = value[4]
+        for channel in range(5):
+            setattr(self, 'mux_output_input_div'+str(channel+1), value[channel])
 
     @property
     def mux_output_delay(self):
@@ -862,11 +847,8 @@ class ScanEngine:
     @mux_output_delay.setter
     def mux_output_delay(self, value: list):
         self.argument_controller.update(mux_output_delay=value)
-        self.output1_mux_delay = value[0]
-        self.output2_mux_delay = value[1]
-        self.output3_mux_delay = value[2]
-        self.output4_mux_delay = value[3]
-        self.output5_mux_delay = value[4]
+        for channel in range(5):
+            setattr(self, 'mux_output_delay'+str(channel+1), value[channel])
 
     @property
     def mux_output_pol(self):
@@ -875,11 +857,8 @@ class ScanEngine:
     @mux_output_pol.setter
     def mux_output_pol(self, value: list):
         self.argument_controller.update(mux_output_pol=value)
-        self.output1_mux_pol = value[0]
-        self.output2_mux_pol = value[1]
-        self.output3_mux_pol = value[2]
-        self.output4_mux_pol = value[3]
-        self.output5_mux_pol = value[4]
+        for channel in range(5):
+            setattr(self, 'mux_output_pol'+str(channel+1), value[channel])
 
     """
     Creating the functions for the output multiplexer. I have used the property function for efficiency
@@ -912,52 +891,53 @@ class ScanEngine:
             variables = self._get_variables(channel)
             self.device.set_output_mux(*variables)
             self.argument_controller.set(identifier, temp_list)
+            self.property_changed_event.fire(identifier+str(channel))
         return wrapper
 
-    output1_mux_type = property(_create_get_func(0, 'mux_output_type'), _create_set_func(0, 'mux_output_type'))
-    output1_mux_freq = property(_create_get_func(0, 'mux_output_freq'), _create_set_func(0, 'mux_output_freq'))
-    output1_mux_freq_duty = property(_create_get_func(0, 'mux_output_freq_duty'),
+    mux_output_type1 = property(_create_get_func(0, 'mux_output_type'), _create_set_func(0, 'mux_output_type'))
+    mux_output_freq1 = property(_create_get_func(0, 'mux_output_freq'), _create_set_func(0, 'mux_output_freq'))
+    mux_output_freq_duty1 = property(_create_get_func(0, 'mux_output_freq_duty'),
                                      _create_set_func(0, 'mux_output_freq_duty'))
-    output1_mux_input = property(_create_get_func(0, 'mux_output_input'), _create_set_func(0, 'mux_output_input'))
-    output1_mux_input_div = property(_create_get_func(0, 'mux_output_input_div'), _create_set_func(0, 'mux_output_input_div'))
-    output1_mux_delay = property(_create_get_func(0, 'mux_output_delay'), _create_set_func(0, 'mux_output_delay'))
-    output1_mux_pol = property(_create_get_func(0, 'mux_output_pol'), _create_set_func(0, 'mux_output_pol'))
+    mux_output_input1 = property(_create_get_func(0, 'mux_output_input'), _create_set_func(0, 'mux_output_input'))
+    mux_output_input_div1 = property(_create_get_func(0, 'mux_output_input_div'), _create_set_func(0, 'mux_output_input_div'))
+    mux_output_delay1 = property(_create_get_func(0, 'mux_output_delay'), _create_set_func(0, 'mux_output_delay'))
+    mux_output_pol1 = property(_create_get_func(0, 'mux_output_pol'), _create_set_func(0, 'mux_output_pol'))
 
-    output2_mux_type = property(_create_get_func(1, 'mux_output_type'), _create_set_func(1, 'mux_output_type'))
-    output2_mux_freq = property(_create_get_func(1, 'mux_output_freq'), _create_set_func(1, 'mux_output_freq'))
-    output2_mux_freq_duty = property(_create_get_func(1, 'mux_output_freq_duty'),
+    mux_output_type2 = property(_create_get_func(1, 'mux_output_type'), _create_set_func(1, 'mux_output_type'))
+    mux_output_freq2 = property(_create_get_func(1, 'mux_output_freq'), _create_set_func(1, 'mux_output_freq'))
+    mux_output_freq_duty2 = property(_create_get_func(1, 'mux_output_freq_duty'),
                                      _create_set_func(1, 'mux_output_freq_duty'))
-    output2_mux_input = property(_create_get_func(1, 'mux_output_input'), _create_set_func(1, 'mux_output_input'))
-    output2_mux_input_div = property(_create_get_func(1, 'mux_output_input_div'), _create_set_func(1, 'mux_output_input_div'))
-    output2_mux_delay = property(_create_get_func(1, 'mux_output_delay'), _create_set_func(1, 'mux_output_delay'))
-    output2_mux_pol = property(_create_get_func(1, 'mux_output_pol'), _create_set_func(1, 'mux_output_pol'))
+    mux_output_input2 = property(_create_get_func(1, 'mux_output_input'), _create_set_func(1, 'mux_output_input'))
+    mux_output_input_div2 = property(_create_get_func(1, 'mux_output_input_div'), _create_set_func(1, 'mux_output_input_div'))
+    mux_output_delay2 = property(_create_get_func(1, 'mux_output_delay'), _create_set_func(1, 'mux_output_delay'))
+    mux_output_pol2 = property(_create_get_func(1, 'mux_output_pol'), _create_set_func(1, 'mux_output_pol'))
 
-    output3_mux_type = property(_create_get_func(2, 'mux_output_type'), _create_set_func(2, 'mux_output_type'))
-    output3_mux_freq = property(_create_get_func(2, 'mux_output_freq'), _create_set_func(2, 'mux_output_freq'))
-    output3_mux_freq_duty = property(_create_get_func(2, 'mux_output_freq_duty'),
+    mux_output_type3 = property(_create_get_func(2, 'mux_output_type'), _create_set_func(2, 'mux_output_type'))
+    mux_output_freq3 = property(_create_get_func(2, 'mux_output_freq'), _create_set_func(2, 'mux_output_freq'))
+    mux_output_freq_duty3 = property(_create_get_func(2, 'mux_output_freq_duty'),
                                      _create_set_func(2, 'mux_output_freq_duty'))
-    output3_mux_input = property(_create_get_func(2, 'mux_output_input'), _create_set_func(2, 'mux_output_input'))
-    output3_mux_input_div = property(_create_get_func(2, 'mux_output_input_div'), _create_set_func(2, 'mux_output_input_div'))
-    output3_mux_delay = property(_create_get_func(2, 'mux_output_delay'), _create_set_func(2, 'mux_output_delay'))
-    output3_mux_pol = property(_create_get_func(2, 'mux_output_pol'), _create_set_func(2, 'mux_output_pol'))
+    mux_output_input3 = property(_create_get_func(2, 'mux_output_input'), _create_set_func(2, 'mux_output_input'))
+    mux_output_input_div3 = property(_create_get_func(2, 'mux_output_input_div'), _create_set_func(2, 'mux_output_input_div'))
+    mux_output_delay3 = property(_create_get_func(2, 'mux_output_delay'), _create_set_func(2, 'mux_output_delay'))
+    mux_output_pol3 = property(_create_get_func(2, 'mux_output_pol'), _create_set_func(2, 'mux_output_pol'))
 
-    output4_mux_type = property(_create_get_func(3, 'mux_output_type'), _create_set_func(3, 'mux_output_type'))
-    output4_mux_freq = property(_create_get_func(3, 'mux_output_freq'), _create_set_func(3, 'mux_output_freq'))
-    output4_mux_freq_duty = property(_create_get_func(3, 'mux_output_freq_duty'),
+    mux_output_type4 = property(_create_get_func(3, 'mux_output_type'), _create_set_func(3, 'mux_output_type'))
+    mux_output_freq4 = property(_create_get_func(3, 'mux_output_freq'), _create_set_func(3, 'mux_output_freq'))
+    mux_output_freq_duty4 = property(_create_get_func(3, 'mux_output_freq_duty'),
                                      _create_set_func(3, 'mux_output_freq_duty'))
-    output4_mux_input = property(_create_get_func(3, 'mux_output_input'), _create_set_func(3, 'mux_output_input'))
-    output4_mux_input_div = property(_create_get_func(3, 'mux_output_input_div'), _create_set_func(3, 'mux_output_input_div'))
-    output4_mux_delay = property(_create_get_func(3, 'mux_output_delay'), _create_set_func(3, 'mux_output_delay'))
-    output4_mux_pol = property(_create_get_func(3, 'mux_output_pol'), _create_set_func(3, 'mux_output_pol'))
+    mux_output_input4 = property(_create_get_func(3, 'mux_output_input'), _create_set_func(3, 'mux_output_input'))
+    mux_output_input_div4 = property(_create_get_func(3, 'mux_output_input_div'), _create_set_func(3, 'mux_output_input_div'))
+    mux_output_delay4 = property(_create_get_func(3, 'mux_output_delay'), _create_set_func(3, 'mux_output_delay'))
+    mux_output_pol4 = property(_create_get_func(3, 'mux_output_pol'), _create_set_func(3, 'mux_output_pol'))
 
-    output5_mux_type = property(_create_get_func(4, 'mux_output_type'), _create_set_func(4, 'mux_output_type'))
-    output5_mux_freq = property(_create_get_func(4, 'mux_output_freq'), _create_set_func(4, 'mux_output_freq'))
-    output5_mux_freq_duty = property(_create_get_func(4, 'mux_output_freq_duty'),
+    mux_output_type5 = property(_create_get_func(4, 'mux_output_type'), _create_set_func(4, 'mux_output_type'))
+    mux_output_freq5 = property(_create_get_func(4, 'mux_output_freq'), _create_set_func(4, 'mux_output_freq'))
+    mux_output_freq_duty5 = property(_create_get_func(4, 'mux_output_freq_duty'),
                                      _create_set_func(4, 'mux_output_freq_duty'))
-    output5_mux_input = property(_create_get_func(4, 'mux_output_input'), _create_set_func(4, 'mux_output_input'))
-    output5_mux_input_div = property(_create_get_func(4, 'mux_output_input_div'), _create_set_func(4, 'mux_output_input_div'))
-    output5_mux_delay = property(_create_get_func(4, 'mux_output_delay'), _create_set_func(4, 'mux_output_delay'))
-    output5_mux_pol = property(_create_get_func(4, 'mux_output_pol'), _create_set_func(4, 'mux_output_pol'))
+    mux_output_input5 = property(_create_get_func(4, 'mux_output_input'), _create_set_func(4, 'mux_output_input'))
+    mux_output_input_div5 = property(_create_get_func(4, 'mux_output_input_div'), _create_set_func(4, 'mux_output_input_div'))
+    mux_output_delay5 = property(_create_get_func(4, 'mux_output_delay'), _create_set_func(4, 'mux_output_delay'))
+    mux_output_pol5 = property(_create_get_func(4, 'mux_output_pol'), _create_set_func(4, 'mux_output_pol'))
 
 
 class Channel:

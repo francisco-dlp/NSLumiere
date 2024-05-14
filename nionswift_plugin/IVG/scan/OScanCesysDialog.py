@@ -277,15 +277,15 @@ class View():
         def create_output_mux(name: str, channel: str):
             output_label = ui.create_label(text=name)
             output_type = ui.create_combo_box(name='output'+channel+'_type', items=OUTPUT_TYPES_MUX,
-                                               current_index='@binding(scan.output'+channel+'_mux_type)', width=100)
-            output_freq = ui.create_line_edit(name='output1_freq', text='@binding(scan.output'+channel+'_mux_freq)', width = 75)
-            output_freq_duty = ui.create_line_edit(name='output1_freq_duty', text='@binding(scan.output'+channel+'_mux_freq_duty)', width=75)
+                                               current_index='@binding(scan.mux_output_type'+channel+')', width=100)
+            output_freq = ui.create_line_edit(name='output1_freq', text='@binding(scan.mux_output_freq'+channel+')', width = 75)
+            output_freq_duty = ui.create_line_edit(name='output1_freq_duty', text='@binding(scan.mux_output_freq_duty'+channel+')', width=75)
             output_input = ui.create_combo_box(name='output'+channel+'_input', items=OUTPUT_INPUT_TO_DIVIDE,
-                                                current_index='@binding(scan.output'+channel+'_mux_input)')
+                                                current_index='@binding(scan.mux_output_input'+channel+')')
             output_input_div = ui.create_combo_box(name='output'+channel+'_input', items=['2', '4', '8', '16', '32'],
-                                                     current_index='@binding(scan.output'+channel+'_mux_input_div)')
-            output_delay = ui.create_line_edit(name='output1_delay', text='@binding(scan.output' + channel + '_mux_delay)', width=50)
-            output_polarity = ui.create_check_box(name='output_polarity', checked='@binding(scan.output' + channel + '_mux_pol)')
+                                                     current_index='@binding(scan.mux_output_input_div'+channel+')')
+            output_delay = ui.create_line_edit(name='output1_delay', text='@binding(scan.mux_output_delay' + channel + ')', width=50)
+            output_polarity = ui.create_check_box(name='output_polarity', checked='@binding(scan.mux_output_pol' + channel + ')')
 
             output_row=ui.create_row(output_label, output_type, output_freq, output_freq_duty,
                                            output_input, output_input_div, output_delay, output_polarity, ui.create_stretch())
