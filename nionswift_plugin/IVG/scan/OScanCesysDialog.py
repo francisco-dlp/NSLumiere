@@ -4,7 +4,7 @@ from nion.swift.model import HardwareSource
 
 ACQUISITION_WINDOW = ['boxcar', 'triang', 'blackman', 'hamming', 'hann']
 KERNEL_LIST = ['None', 'Square', 'Triangular', 'Gaussian', 'Blackman', 'Custom', 'First pixel', 'Last pixel', 'Given pixel']
-SCAN_MODES = ['Normal', 'Serpentine', 'Random', 'Mini-scans', 'MikesPath', 'Lissajous', 'Sawtooth Lissajous']
+SCAN_MODES = ['Normal', 'Serpentine', 'Random', 'Mini-scans', 'Net scan', 'Lissajous', 'Sawtooth Lissajous', 'Custom']
 IMAGE_VIEW_MODES = ['Normal', 'Ordered', 'DAC-based', 'Low-pass filter', 'Inpainting', 'Interpolation']
 PRE_SETTINGS = ['Standard', 'PS1', 'PS2', 'PS3', 'PS4', 'PS5', 'PS6', 'PS7', 'PS8', 'PS9', 'PS10']
 ADC_READOUT_MODES = ['FIR', 'Pixel counter', 'IIR', 'Multip.', 'Kernel', 'Fixed TAP']
