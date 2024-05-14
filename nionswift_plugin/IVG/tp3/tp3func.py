@@ -263,9 +263,9 @@ class TimePix3():
             "open_scan_device")
 
         if openscan is not None:
-            openscan.scan_device.scan_engine.output1_mux_freq = 1000
-            openscan.scan_device.scan_engine.output1_mux_type = 7
-            openscan.scan_device.scan_engine.output1_mux_freq_duty = 50
+            openscan.scan_device.scan_engine.mux_output_freq1 = 1000
+            openscan.scan_device.scan_engine.mux_output_type1 = 7
+            openscan.scan_device.scan_engine.mux_output_freq_duty1 = 50
         else:
             logging.info("***TP3***: Cannot find openscan hardware. Tdc is not properly setted.")
         if scanInstrument is not None:
@@ -284,10 +284,11 @@ class TimePix3():
             "open_scan_device")
 
         if openscan is not None:
-            openscan.scan_device.scan_engine.output1_mux_type = 1
-            openscan.scan_device.scan_engine.output1_mux_pol = False
-            #openscan.scan_device.scan_engine.output1_mux_type = 3
-            #openscan.scan_device.scan_engine.output1_mux_pol = True
+            openscan.scan_device.scan_engine.mux_output_type1 = 1
+            openscan.scan_device.scan_engine.mux_output_pol1 = False
+            openscan.scan_device.scan_engine.flyback_us = 0
+            #openscan.scan_device.scan_engine.mux_output_type1 = 3
+            #openscan.scan_device.scan_engine.mux_output_pol1 = True
         else:
             logging.info("***TPX3***: Could not set the correct hyperspec output for openscan.")
 
