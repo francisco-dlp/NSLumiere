@@ -1202,13 +1202,6 @@ class Device(scan_base.ScanDevice):
     def probe_pos(self, value):
         self.__probe_position = value
         self.scan_engine.set_probe_position(value.x, value.y)
-        # This is a very strange behavior of geometry class. Very misleading. Value is a tuple like
-        # (x=0.1, y=0.3) but value[0] gives y value while value[1] gives x value. You can check here
-        # print(f'value is {value} and first is {value[0]}. Second is {value[1]}')
-        # If you using this func, please call it with (y, x)
-        # px, py = round(self.__probe_position[1] * self.__scan_area[1]), round(
-        #    self.__probe_position[0] * self.__scan_area[0])
-        # self.__probe_position_pixels = [px, py]
 
     @property
     def current_frame_parameters(self) -> scan_base.ScanFrameParameters:
@@ -1225,18 +1218,6 @@ class Device(scan_base.ScanDevice):
     @property
     def channels_enabled(self) -> typing.Tuple[bool, ...]:
         return tuple(channel.enabled for channel in self.__channels)
-
-    def show_configuration_dialog(self, api_broker) -> None:
-        """Open settings dialog, if any."""
-        # api = api_broker.get_api(version="1", ui_version="1")
-        # document_controller = api.application.document_controllers[0]._document_controller
-        # myConfig = ConfigDialog(document_controller)
-
-
-# def run(instrument: ivg_inst.ivgInstrument):
-#    scan_device = Device(instrument)
-#    component_types = {"scan_device"}  # the set of component types that this component represents
-#    Registry.register_component(scan_device, component_types)
 
 class ScanSettings(scan_base.ScanSettings):
 
@@ -1255,17 +1236,7 @@ class ScanModule(scan_base.ScanModule):
         self.stem_controller_id = instrument.instrument_id
         self.device = Device(instrument)
         setattr(self.device, "priority", 20)
-        scan_modes = (
-            scan_base.ScanSettingsMode(_("Fast"), "fast",
-                                       scan_base.ScanFrameParameters(pixel_size=(128, 128), pixel_time_us=1,
-                                                                     fov_nm=2000)),
-            scan_base.ScanSettingsMode(_("Slow"), "slow",
-                                       scan_base.ScanFrameParameters(pixel_size=(512, 512), pixel_time_us=1,
-                                                                     fov_nm=2000)),
-            scan_base.ScanSettingsMode(_("Record"), "record",
-                                       scan_base.ScanFrameParameters(pixel_size=(1024, 1024), pixel_time_us=1,
-                                                                     fov_nm=2000))
-        )
+        scan_modes = generate_initial_scan_profiles()
         self.settings = ScanSettings(scan_modes, lambda d: scan_base.ScanFrameParameters(d), 0, 2,
                                      open_configuration_dialog_fn=show_configuration_dialog)
 
@@ -1279,6 +1250,19 @@ def show_configuration_dialog(api_broker) -> None:
 
 def run(instrument) -> None:
     Registry.register_component(ScanModule(instrument), {"scan_module"})
+
+
+def generate_initial_scan_profiles():
+    return (scan_base.ScanSettingsMode(_("Fast"), "fast",
+                                       scan_base.ScanFrameParameters(pixel_size=(128, 128), pixel_time_us=1,
+                                                                 fov_nm=1000)),
+        scan_base.ScanSettingsMode(_("Slow"), "slow",
+                                   scan_base.ScanFrameParameters(pixel_size=(512, 512), pixel_time_us=1,
+                                                                 fov_nm=1000)),
+        scan_base.ScanSettingsMode(_("Record"), "record",
+                                   scan_base.ScanFrameParameters(pixel_size=(1024, 1024), pixel_time_us=1,
+                                                                 fov_nm=1000))
+            )
 
 
 def stop() -> None:

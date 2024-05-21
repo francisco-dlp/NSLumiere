@@ -14,6 +14,7 @@ from ctypes import c_uint64, c_int32
 # local libraries
 from nion.swift.model import HardwareSource
 from nion.utils import Registry
+from nion.utils import Event
 from nion.instrumentation import camera_base
 from nion.data import DataAndMetadata
 from nion.instrumentation.camera_base import CameraFrameParameters
@@ -573,23 +574,16 @@ class CameraDevice(camera_base.CameraDevice):
         self.sizex, self.sizey = self.camera.getImageSize()
         if self.current_camera_settings.as_dict()['soft_binning']:
             self.sizey = 1
-        # logging.info(f"***CAMERA***: Start live, Image size: {self.sizex} x {self.sizey}"
-        #              f"  soft_binning: {self.current_camera_settings.soft_binning}"
-        #              f"    mode: {self.current_camera_settings.acquisition_mode}"
-        #              f"    nb spectra {self.current_camera_settings.spectra_count}")
-        # self.camera.setAccumulationNumber(self.current_camera_settings.spectra_count)
-        hardware_source = HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            self.camera_id)
 
         if "Chrono" in self.current_camera_settings.as_dict()['acquisition_mode']:
             if self.current_camera_settings.as_dict()['acquisition_mode'] == '2D-Chrono':
                 self.sizez = self.current_camera_settings.spectra_count
-                self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype=numpy.float32)
+                if not self.isTimepix: self.spimimagedata = numpy.zeros((self.sizez, self.sizey, self.sizex), dtype=numpy.float32)
             else:
                 self.sizey = self.current_camera_settings.as_dict()['spectra_count']
                 self.sizez = 1
-                self.spimimagedata = numpy.zeros((self.sizey, self.sizex), dtype=numpy.float32)
-            self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
+                if not self.isTimepix: self.spimimagedata = numpy.zeros((self.sizey, self.sizex), dtype=numpy.float32)
+            if not self.isTimepix: self.spimimagedata_ptr = self.spimimagedata.ctypes.data_as(ctypes.c_void_p)
             self.camera.stopFocus()
             if self.isTimepix:
                 sb = "1d" if self.current_camera_settings.as_dict()['soft_binning'] else "2d"
@@ -599,6 +593,8 @@ class CameraDevice(camera_base.CameraDevice):
                     acqmode = 0  # Normal Chrono
                 self.__acqon = self.camera.startChrono(self.current_camera_settings.as_dict()['exposure_ms'] / 1000, sb,
                                                        acqmode)
+                self.camera._TimePix3__isReady.wait(5.0)
+                self.spimimagedata = self.camera.create_specimage()
             else:
                 self.camera.startSpim(self.current_camera_settings.as_dict()['spectra_count'], 1,
                                       self.current_camera_settings.as_dict()['exposure_ms'] / 1000.,
@@ -622,10 +618,14 @@ class CameraDevice(camera_base.CameraDevice):
             if self.current_camera_settings.as_dict()['acquisition_mode'] == "Cumul":
                 acqmode = 1
                 self.__cumul_on = True
-            self.imagedata = numpy.zeros((self.sizey, self.sizex), dtype=numpy.float32)
-            self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
+            if not self.isTimepix:
+                self.imagedata = numpy.zeros((self.sizey, self.sizex), dtype=numpy.float32)
+                self.imagedata_ptr = self.imagedata.ctypes.data_as(ctypes.c_void_p)
             self.__acqon = self.camera.startFocus(self.current_camera_settings.as_dict()['exposure_ms'] / 1000, sb,
                                                   acqmode)
+            if self.isTimepix:
+                self.camera._TimePix3__isReady.wait(5.0)
+                self.imagedata = self.camera.create_specimage()
 
         self._last_time = time.time()
 
@@ -656,7 +656,6 @@ class CameraDevice(camera_base.CameraDevice):
 
         elif "Event Hyperspec" in acquisition_mode:
             self.acquire_data = self.spimimagedata
-            #print(self.acquire_data.__array_interface__['data'])
             collection_dimensions = 2
             datum_dimensions = 1
 
@@ -711,7 +710,6 @@ class CameraDevice(camera_base.CameraDevice):
         return camera_base.PartialData(self.__camera_task.xdata, is_complete, is_canceled, valid_count)
 
     def acquire_synchronized_end(self, **kwargs: typing.Any) -> None:
-        #print("synchronous acquisition terminated")
         self.camera.stopSpim(True)
         self.__camera_task = None
 
@@ -852,96 +850,19 @@ class CameraDevice(camera_base.CameraDevice):
         """
 
         def sendMessage(message):
+            self.frame_number = self.camera.get_frame()
             if message == 1:
-                self.frame_number += 1
-                self.imagedata = self.camera.create_specimage()
-                self.current_event.fire(
-                    format(self.camera.get_current(self.imagedata, self.frame_number), ".5f")
-                )
+                self.current_event.fire(format(self.camera.get_current(self.imagedata, self.frame_number), ".5f"))
                 self.has_data_event.set()
-
             elif message == 2:
-                self.frame_number, self.spimimagedata[:] = self.camera.create_spimimage_frame()
+                self.spimimagedata[:] = self.camera.create_spimimage_frame()
                 self.has_spim_data_event.set()
-
             elif message == 3:
-                self.frame_number += 1
-                self.spimimagedata = self.camera.create_specimage()
                 self.has_data_event.set()
-
         return sendMessage
 
 
-# class CameraFrameParameters(dict):
-#
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.__dict__ = self
-#         self.exposure_ms = self.get("exposure_ms", 15)  # milliseconds
-#         self.h_binning = self.get("h_binning", 1)
-#         self.v_binning = self.get("v_binning", 1)
-#         self.soft_binning = self.get("soft_binning", True)  # 1d, 2d
-#         self.acquisition_mode = self.get("acquisition_mode",
-#                                          "Focus")  # Focus, Cumul, 1D-Chrono, 1D-Chrono-Live, 2D-Chrono
-#         self.spectra_count = self.get("spectra_count", 1)
-#         self.speed = self.get("speed", 1)
-#         self.gain = self.get("gain", 0)
-#         self.multiplication = self.get("multiplication", 1)
-#         self.port = self.get("port", 0)
-#         self.area = self.get("area", (0, 0, 2048, 2048))  # a tuple: top, left, bottom, right
-#         self.turbo_mode_enabled = self.get("turbo_mode_enabled", False)
-#         self.video_threshold = self.get("video_threshold", 0)
-#         self.fan_enabled = self.get("fan_enabled", False)
-#         self.flipped = self.get("flipped", False)
-#         self.timeDelay = self.get("timeDelay", 0)
-#         self.timeWidth = self.get("timeWidth", 0)
-#         self.tp3mode = self.get("tp3mode", 0)
-#         self.integration_count = 1  # required
-#
-#     def __copy__(self):
-#         return self.__class__(copy.copy(dict(self)))
-#
-#     def __deepcopy__(self, memo):
-#         deepcopy = self.__class__(copy.deepcopy(dict(self)))
-#         memo[id(self)] = deepcopy
-#         return deepcopy
-#
-#     @property
-#     def binning(self):
-#         return self.h_binning
-#
-#     @binning.setter
-#     def binning(self, value):
-#         self.h_binning = value
-#
-#     def as_dict(self):
-#         return {
-#             "exposure_ms": self.exposure_ms,
-#             "h_binning": self.h_binning,
-#             "v_binning": self.v_binning,
-#             "soft_binning": self.soft_binning,
-#             "acquisition_mode": self.acquisition_mode,
-#             "spectra_count": self.spectra_count,
-#             "speed": self.speed,
-#             "gain": self.gain,
-#             "multiplication": self.multiplication,
-#             "port": self.port,
-#             "area": self.area,
-#             "turbo_mode_enabled": self.turbo_mode_enabled,
-#             "video_threshold": self.video_threshold,
-#             "fan_enabled": self.fan_enabled,
-#             "flipped": self.flipped,
-#             "timeDelay": self.timeDelay,
-#             "timeWidth": self.timeWidth,
-#             "tp3mode": self.tp3mode,
-#         }
-
-
-from nion.utils import Event
-
-
 class CameraSettings():
-
     def __init__(self, camera_device: CameraDevice):
         # these events must be defined
         self.current_frame_parameters_changed_event = Event.Event()

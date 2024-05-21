@@ -46,6 +46,9 @@ HYPERSPEC_FRAME_BASED = 11
 #Modes involving Isibox
 ISIBOX_SAVEALL = 8
 
+#TCP properties
+PORT = 8088
+
 
 @jit(nopython=True)
 def update_spim_numba(array, event_list):
@@ -217,6 +220,7 @@ class TimePix3():
         self.sendmessage = message
 
         self.__port = 0
+        self.__dt = None
         self.__threshold = 0
         self.__pixelmask = 0
 
@@ -247,7 +251,9 @@ class TimePix3():
         has_open_scan = (HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
             "open_scan_device") is not None)
         if has_open_scan:
-            return HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
+            controller = HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
+            assert controller.scan_controller.scan_device.scan_device_id == "open_scan_device"
+            return controller
         if self.__stem_controller is None:
             return Registry.get_component("stem_controller")
         else:
@@ -572,9 +578,9 @@ class TimePix3():
         accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
         Message=1 because it is the normal data_locker.
         """
+        self.__isReady.clear()  # Clearing the Event so synchronization can occur properly later on
         self.set_exposure_time(exposure)
         self.set_spec_output(exposure)
-        port = 8088
 
         #Setting the configurations
         self.__detector_config.bin = True if displaymode == '1d' else False
@@ -598,7 +604,7 @@ class TimePix3():
         if self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_listening(port, message=message)
+            self.start_listening(message=message)
             return True
         else:
             logging.info('***TP3***: Check if experiment type matches mode selection.')
@@ -609,8 +615,8 @@ class TimePix3():
         accumulate is 1 if Cumul and 0 if Focus. You use it to chose to which port the client will be listening on.
         Message=1 because it is the normal data_locker.
         """
+        self.__isReady.clear()  # Clearing the Event so synchronization can occur properly later on
         self.set_spec_output(exposure),
-        port = 8088
 
         # Setting the configurations
         self.__detector_config.bin = True if displaymode == '1d' else False
@@ -634,7 +640,7 @@ class TimePix3():
         if self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_listening(port, message=message)
+            self.start_listening(message=message)
             return True
         else:
             logging.info('***TP3***: Check if experiment type matches mode selection.')
@@ -643,9 +649,9 @@ class TimePix3():
         """
         Similar to startFocus. Just to be consistent with VGCameraYves. Message=02 because of spim.
         """
+        self.__isReady.clear()  # Clearing the Event so synchronization can occur properly later on
         self.__frame_based = True
         self.set_exposure_time(dwelltime)
-        port = 8088
 
         # Setting the configurations
         self.__detector_config.bin = not is2D
@@ -672,7 +678,7 @@ class TimePix3():
         if self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_listening(port, message=message)
+            self.start_listening(message=message)
             return True
         else:
             logging.info('***TP3***: Check if experiment type matches mode selection.')
@@ -687,7 +693,6 @@ class TimePix3():
         frame_parameters = self.get_scan_frame_parameters_and_abort()
         scanInstrument = self.get_controller().scan_controller
         self.set_hyperspec_output()
-        port = 8088
 
         # Setting the configurations
         if self.__port > 1: #This ensures we are streaming data and not saving locally
@@ -726,7 +731,7 @@ class TimePix3():
         elif self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_listening_from_scan(port, message=message)
+            self.start_listening_from_scan(message=message)
             return True
 
     def Start4DFromScan(self):
@@ -737,7 +742,6 @@ class TimePix3():
         frame_parameters = self.get_scan_frame_parameters_and_abort()
         scanInstrument = self.get_controller().scan_controller
         self.set_hyperspec_output()
-        port = 8088
 
         # Setting the configurations
         if self.__port > 1: #This ensures we are streaming data and not saving locally
@@ -765,7 +769,7 @@ class TimePix3():
         elif self.getCCDStatus() == "DA_IDLE":
             resp = self.request_get(url=self.__serverURL + '/measurement/start')
             data = resp.text
-            self.start_4dlistening_from_scan(port)
+            self.start_4dlistening_from_scan()
             return True
 
     def stopTimepix3Measurement(self):
@@ -952,28 +956,28 @@ class TimePix3():
     def gaps_mode(self, value: int):
         self.__gapsMode = value
 
-    def start_listening(self, port=8088, message=1):
+    def start_listening(self, message=1):
         """
         Starts the client Thread and sets isPlaying to True.
         """
         self.__isPlaying = True
-        self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(port, message,))
+        self.__clientThread = threading.Thread(target=self.acquire_streamed_frame, args=(message,))
         self.__clientThread.start()
 
-    def start_listening_from_scan(self, port=8088, message=1):
+    def start_listening_from_scan(self, message=1):
         """
         Starts the client Thread and sets isPlaying to True.
         """
         self.__isPlaying = True
-        self.__clientThread = threading.Thread(target=self.acquire_streamed_frame_from_scan, args=(port,))
+        self.__clientThread = threading.Thread(target=self.acquire_streamed_frame_from_scan)
         self.__clientThread.start()
 
-    def start_4dlistening_from_scan(self, port=8088):
+    def start_4dlistening_from_scan(self):
         """
         Starts the client Thread and sets isPlaying to True.
         """
         self.__isPlaying = True
-        self.__clientThread = threading.Thread(target=self.acquire_4dstreamed_frame_from_scan_frame, args=(port,))
+        self.__clientThread = threading.Thread(target=self.acquire_4dstreamed_frame_from_scan_frame)
         self.__clientThread.start()
 
 
@@ -1016,7 +1020,12 @@ class TimePix3():
         return x_size, y_size
 
     def get_scan_pixel_time(self) -> int:
-        return int(self.get_controller().scan_controller.scan_device.current_frame_parameters.pixel_time_us * 1000 / 1.5625)
+        try:
+            return int(
+                self.get_controller().scan_controller.scan_device.current_frame_parameters.pixel_time_us * 1000 / 1.5625)
+        except AttributeError:
+            logging.info("***TPX3***: Could not retrieve the scan pixel time. Returning 0 instead.")
+            return 0
 
     def get_detector_eels_dispersion(self) -> float:
         return float(self.get_controller().TryGetVal("EELS_TV_eVperpixel")[1])
@@ -1024,20 +1033,7 @@ class TimePix3():
     def get_detector_eels_offset(self) -> float:
         return float(self.get_controller().TryGetVal("KURO_EELS_eVOffset")[1])
 
-    def acquire_streamed_frame(self, port, message):
-        """
-        Main client function. Main loop is explained below.
-
-        Client is a socket connected to camera in host computer 129.175.108.52. Port depends on which kind of data you
-        are listening on. After connection, timeout is set to 5 ms, which is camera current dead time. cam_properties
-        is a dict containing all info camera sends through tcp (the header); frame_data is the frame; buffer_size is how
-        many bytes we collect within each loop interaction; frame_number is the frame counter and frame_time is when the
-        whole frame began.
-
-        check string value is a convenient function to detect the values using the header standard format for jsonimage.
-        """
-
-        #Important parameters to configure Timepix3.
+    def _prepare_for_acquisition(self):
         if self.__port==2:
             self.save_locally_routine()
             return
@@ -1046,7 +1042,7 @@ class TimePix3():
 
         config_bytes = self.__detector_config.create_configuration_bytes()
 
-        #Connecting the socket.
+        # Connecting the socket.
         inputs = list()
         outputs = list()
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -1059,22 +1055,40 @@ class TimePix3():
         129.175.108.52 -> CheeTah
         """
         ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname(self.__camIP)
-        address = (ip, port)
+        address = (ip, PORT)
         try:
             client.connect(address)
-            logging.info(f'***TP3***: Both clients connected over {ip}:{port}. Acquiring streamed frame.')
+            logging.info(f'***TP3***: Both clients connected over {ip}:{PORT}. Acquiring streamed frame.')
             inputs.append(client)
         except ConnectionRefusedError:
+            self.stopTimepix3Measurement()
             return False
 
-        #Setting few properties and sending the configuration bytes to the detector
-        cam_properties = dict()
-
-        dt = self.__detector_config.get_data_receive_type()
+        self.__dt = self.__detector_config.get_data_receive_type()
         self.__data = self.__data_manager.get_data(self.__detector_config)
-        self.__frame = 0
-
         client.send(config_bytes)
+
+        logging.info(f"Creating data type as {self.__dt} and array shape with {self.__data.shape} for the acquisition.")
+
+        self.__isReady.set()  # This waits until spimData is created so scan can have access to it.
+
+        return inputs, outputs
+
+    def acquire_streamed_frame(self, message):
+        """
+        Main client function. Main loop is explained below.
+
+        Client is a socket connected to camera in host computer 129.175.108.52. Port depends on which kind of data you
+        are listening on. After connection, timeout is set to 5 ms, which is camera current dead time. cam_properties
+        is a dict containing all info camera sends through tcp (the header); frame_data is the frame; buffer_size is how
+        many bytes we collect within each loop interaction; frame_number is the frame counter and frame_time is when the
+        whole frame began.
+
+        check string value is a convenient function to detect the values using the header standard format for jsonimage.
+        """
+
+        cam_properties = dict()
+        inputs, outputs = self._prepare_for_acquisition()
 
         def check_string_value(header, prop):
             """
@@ -1119,6 +1133,7 @@ class TimePix3():
                         packet_data = s.recv(128)
                         if packet_data == b'':
                             logging.info("***TP3***: No data received. Closing connection.")
+                            self.stopTimepix3Measurement()
                             return
                         while (packet_data.find(b'{"time') == -1) or (packet_data.find(b'}\n') == -1):
                             temp = s.recv(BUFFER_SIZE)
@@ -1149,9 +1164,10 @@ class TimePix3():
 
                         frame_data = packet_data[end_header + 2:end_header + 2 + data_size]
 
-                        event_list = numpy.frombuffer(frame_data, dtype=dt)
+                        event_list = numpy.frombuffer(frame_data, dtype=self.__dt)
                         if message == 1 or message == 3:
                             self.__data[:] = event_list[:]
+                            self.__frame = cam_properties['frameNumber']
                             check_data_and_send_message(cam_properties, frame_data)
                         if message == 2:
                             start_channel = int(cam_properties['frameNumber']) * SPEC_SIZE #Spatial pixel * number of energy channels
@@ -1176,7 +1192,7 @@ class TimePix3():
                 return
         return
 
-    def acquire_streamed_frame_from_scan(self, port):
+    def acquire_streamed_frame_from_scan(self):
         """
         Main client function. Main loop is explained below.
 
@@ -1189,43 +1205,7 @@ class TimePix3():
         check string value is a convenient function to detect the values using the header standard format for jsonimage.
         """
 
-        # Important parameters to configure Timepix3.
-        if self.__port == 2:
-            self.save_locally_routine()
-            return
-        elif self.__port == 3:
-            self.save_locally_routine()
-
-        config_bytes = self.__detector_config.create_configuration_bytes()
-
-        inputs = list()
-        outputs = list()
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        """
-        127.0.0.1 -> LocalHost;
-        129.175.108.58 -> Patrick;
-        129.175.81.162 -> My personal Dell PC;
-        192.0.0.11 -> My old personal (outside lps.intra);
-        192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
-        129.175.108.52 -> CheeTah
-        """
-        ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname(self.__camIP)
-        address = (ip, port)
-        try:
-            client.connect(address)
-            logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
-            inputs.append(client)
-        except ConnectionRefusedError:
-            self.stopTimepix3Measurement()
-            return False
-
-        dt = self.__detector_config.get_data_receive_type()
-        self.__data = self.__data_manager.get_data(self.__detector_config)
-        client.send(config_bytes)
-
-        logging.info(f"Creating data type as {dt} and array shape with {self.__data.shape} for the acquisition.")
-
-        self.__isReady.set() #This waits until spimData is created so scan can have access to it.
+        inputs, outputs = self._prepare_for_acquisition()
         scanInstrument = self.get_controller().scan_controller
         total_frames = self.getAccumulateNumber()
         start = time.time()
@@ -1235,7 +1215,7 @@ class TimePix3():
         # TODO: random scan does not work here because we change the list after starting the sequence below.
         if scanInstrument.hardware_source_id == "open_scan_device":
             array_to_send = scanInstrument.scan_device.scan_engine.get_ordered_array().astype('uint32')
-            client.sendall(array_to_send)
+            inputs[0].sendall(array_to_send)
 
         try:
             scanInstrument.set_sequence_buffer_size(total_frames)
@@ -1261,13 +1241,8 @@ class TimePix3():
                         packet_data += s.recv(8 - q)
 
                     try:
-                        event_list = numpy.frombuffer(packet_data, dtype=dt)
+                        event_list = numpy.frombuffer(packet_data, dtype=self.__dt)
                         update_spim_numba(self.__data, event_list)
-                        #self.update_spim(event_list)
-                        #if len(event_list) > 0:
-                            #for val in event_list:
-                            #    self.__spimData[val] += 1
-                            #self.update_spim(event_list)
                     except ValueError:
                         logging.info(f'***TP3***: Value error.')
                     except IndexError:
@@ -1293,7 +1268,7 @@ class TimePix3():
                 return
         return
 
-    def acquire_4dstreamed_frame_from_scan_frame(self, port):
+    def acquire_4dstreamed_frame_from_scan_frame(self):
         """
         Main client function. Main loop is explained below.
 
@@ -1305,38 +1280,26 @@ class TimePix3():
 
         check string value is a convenient function to detect the values using the header standard format for jsonimage.
         """
-        config_bytes = self.__detector_config.create_configuration_bytes()
 
-        inputs = list()
-        outputs = list()
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        """
-        127.0.0.1 -> LocalHost;
-        129.175.108.58 -> Patrick;
-        129.175.81.162 -> My personal Dell PC;
-        192.0.0.11 -> My old personal (outside lps.intra);
-        192.168.199.11 -> Cheetah (to VG Lum. Outisde lps.intra);
-        129.175.108.52 -> CheeTah
-        """
-        ip = socket.gethostbyname('127.0.0.1') if self.__simul else socket.gethostbyname(self.__camIP)
-        address = (ip, port)
-        try:
-            client.connect(address)
-            logging.info(f'***TP3***: Both clients connected over {ip}:{port}.')
-            inputs.append(client)
-        except ConnectionRefusedError:
-            return False
-
-        dt = self.__detector_config.get_data_receive_type()
-        self.__data = self.__data_manager.get_data(self.__detector_config)
-        client.send(config_bytes)
-
-        self.__isReady.set() #This waits until spimData is created so scan can have access to it.
+        inputs, outputs = self._prepare_for_acquisition()
         scanInstrument = self.get_controller().scan_controller
         total_frames = self.getAccumulateNumber()
+        start = time.time()
         logging.info(f'***TPX3***: Number of frames to be acquired is {total_frames}.')
-        scanInstrument.set_sequence_buffer_size(total_frames)
-        scanInstrument.start_sequence_mode(scanInstrument.get_current_frame_parameters(), total_frames)
+
+        # If its a list scan, you should inform the value
+        # TODO: random scan does not work here because we change the list after starting the sequence below.
+        if scanInstrument.hardware_source_id == "open_scan_device":
+            array_to_send = scanInstrument.scan_device.scan_engine.get_ordered_array().astype('uint32')
+            inputs[0].sendall(array_to_send)
+
+        try:
+            scanInstrument.set_sequence_buffer_size(total_frames)
+            scanInstrument.start_sequence_mode(scanInstrument.get_current_frame_parameters(), total_frames)
+        except AssertionError:
+            logging.info(f"***TPX3***: Could not set the buffer size on the scan device.")
+            self.stopTimepix3Measurement()
+            return
 
         while True:
             try:
@@ -1395,8 +1358,11 @@ class TimePix3():
     def create_spimimage(self):
         return self.__data_manager.create_reshaped_array(self.__detector_config)
 
+    def get_frame(self):
+        return self.__frame
+
     def create_spimimage_frame(self):
-        return (self.__frame, self.__data.reshape((self.__detector_config.yscan_size, self.__detector_config.xscan_size, SPEC_SIZE)))
+        return self.__data.reshape((self.__detector_config.yscan_size, self.__detector_config.xscan_size, SPEC_SIZE))
 
     def create_4dimage(self):
         return self.__data_manager.create_reshaped_array(self.__detector_config)
