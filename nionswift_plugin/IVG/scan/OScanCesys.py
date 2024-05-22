@@ -704,6 +704,16 @@ class ScanEngine:
         self.property_changed_event.fire("input2_mux")
 
     @property
+    def input_mux_pwm(self):
+        return self.argument_controller.get('input_mux_pwm', 0)
+
+    @input_mux_pwm.setter
+    def input_mux_pwm(self, value):
+        self.argument_controller.update(input_mux_pwm=int(value))
+        self.device.set_input_pwm(int(value))
+        self.property_changed_event.fire("input_mux_pwm")
+
+    @property
     def routex_mux(self):
         return self.argument_controller.get('routex_mux', 0)
 

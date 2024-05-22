@@ -9,7 +9,7 @@ IMAGE_VIEW_MODES = ['Normal', 'Ordered', 'DAC-based', 'Low-pass filter', 'Inpain
 PRE_SETTINGS = ['Standard', 'PS1', 'PS2', 'PS3', 'PS4', 'PS5', 'PS6', 'PS7', 'PS8', 'PS9', 'PS10']
 ADC_READOUT_MODES = ['FIR', 'Pixel counter', 'IIR', 'Multip.', 'Kernel', 'Fixed TAP']
 OUTPUT_TYPES_MUX = ['Pixel logic', 'Paused logic', 'New frame logic', 'Pulse out', 'I1TTL', 'I2TTL', 'I3TTL',
-                    'Clock divider', 'Input divider', 'OFF']
+                    'Clock divider', 'Input divider', 'PWM', 'OFF']
 OUTPUT_INPUT_TO_DIVIDE = ['I1TTL', 'I2TTL', 'I3TTL']
 
 class Handler:
@@ -228,6 +228,16 @@ class View():
                                         self.input24_value, self.input25_value, self.input26_value,
                                       self.input27_value, ui.create_stretch())
 
+        input_pwm_label = ui.create_label(text='Input PWM: ')
+        input_pwm1_value = ui.create_radio_button(text='ADC1', value=0, group_value='@binding(scan.input_mux_pwm)')
+        input_pwm2_value = ui.create_radio_button(text='ADC2', value=1, group_value='@binding(scan.input_mux_pwm)')
+        input_pwm3_value = ui.create_radio_button(text='ADC3', value=2, group_value='@binding(scan.input_mux_pwm)')
+        input_pwm4_value = ui.create_radio_button(text='ADC4', value=3, group_value='@binding(scan.input_mux_pwm)')
+        input_pwm5_value = ui.create_radio_button(text='ADC5', value=4, group_value='@binding(scan.input_mux_pwm)')
+        input_pwm6_value = ui.create_radio_button(text='ADC6', value=5, group_value='@binding(scan.input_mux_pwm)')
+        input_pwm_row = ui.create_row(input_pwm_label, input_pwm1_value, input_pwm2_value, input_pwm3_value,
+                                      input_pwm4_value, input_pwm5_value, input_pwm6_value, ui.create_stretch())
+
         self.inputx_label = ui.create_label(text='Route to X: ')
         self.inputx0_value = ui.create_radio_button(text='None', value=0, group_value='@binding(scan.routex_mux)')
         self.inputx1_value = ui.create_radio_button(text='ADC1', value=1, group_value='@binding(scan.routex_mux)')
@@ -270,7 +280,7 @@ class View():
         self.inputy_group = ui.create_group(name='Route Y', content=ui.create_column(self.inputy_row, self.inputy_intensity_row, self.inputy_avg_row))
 
         self.second_tab = ui.create_tab(label='Input MUX', content=ui.create_column(
-            self.input1_row, self.input2_row, self.inputx_group, self.inputy_group, ui.create_stretch()))
+            self.input1_row, self.input2_row, input_pwm_row, self.inputx_group, self.inputy_group, ui.create_stretch()))
 
         #THIRD TAB (Output multiplexing)
         colum_header = ui.create_label(text="    |         Output         |     Freq (Hz)     |     DC (%)     |  Input  | Div | Delay | Pol |")
