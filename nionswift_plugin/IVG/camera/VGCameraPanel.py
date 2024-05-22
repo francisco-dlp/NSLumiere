@@ -136,6 +136,7 @@ class CameraHandler:
         else:
             self.tp3mode_items = list(['None'])
 
+        self.tp3_bias_voltage = Model.PropertyModel(frame_parameters["bias_V"])
         #def frame_parameter_changed(name, *args, **kwargs):
         #    if name == "acquisition_mode":
         #        md = self.camera_settings.get_current_frame_parameters()["acquisition_mode"]
@@ -376,6 +377,11 @@ class CameraHandler:
             frame_parameters["tp3mode"] = value
             self.camera_settings.set_current_frame_parameters(frame_parameters)
 
+        def set_tp3_bias(value):
+            frame_parameters = self.camera_settings.get_current_frame_parameters()
+            frame_parameters["bias_V"] = value
+            self.camera_settings.set_current_frame_parameters(frame_parameters)
+
         self.roi_item.on_value_changed = set_roi
         self.port_item.on_value_changed = set_port
         self.speed_item.on_value_changed = set_speed
@@ -394,9 +400,11 @@ class CameraHandler:
         self.nbspectra_model.on_value_changed = set_nbspectra
         self.soft_binning_model.on_value_changed = set_soft_binning
         self.flip_model.on_value_changed=set_flip
-        self.delay_value.on_value_changed=set_tp3_delay
-        self.width_value.on_value_changed=set_tp3_width
-        self.tp3mode_item.on_value_changed = set_tp3mode
+        if self.camera_device.isTimepix:
+            self.delay_value.on_value_changed=set_tp3_delay
+            self.width_value.on_value_changed=set_tp3_width
+            self.tp3mode_item.on_value_changed = set_tp3mode
+            self.tp3_bias_voltage.on_value_changed = set_tp3_bias
 
         self.mode_item.on_value_changed = set_mode
         self.synchro_item.on_value_changed = set_synchro
@@ -522,7 +530,11 @@ class CameraPanelFactory:
         width_row = ui.create_row(width_label, width_value, ui.create_stretch())
 
         tp3mode = ui.create_row(ui.create_label(text=_("Tp3 Mode: ")),
-                              ui.create_combo_box(items_ref="@binding(tp3mode_items)",  current_index="@binding(tp3mode_item.value)"), ui.create_stretch())
+                              ui.create_combo_box(items_ref="@binding(tp3mode_items)",
+                                                  current_index="@binding(tp3mode_item.value)", width=100), ui.create_stretch(),
+                                ui.create_label(text=_("Tp3 Bias (V): ")),
+                                ui.create_line_edit(text="@binding(tp3_bias_voltage.value)", width=75),
+                                )
 
         tp3_column = ui.create_column(current_column, delay_row, width_row, tp3mode, spacing=2)
         tp3_group = ui.create_group(tp3_column, title=_("TimePix3"))

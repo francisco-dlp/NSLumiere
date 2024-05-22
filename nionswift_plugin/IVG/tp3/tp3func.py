@@ -945,6 +945,21 @@ class TimePix3():
     def setTp3Mode(self, value):
         self.__subMode = value
 
+    def setTp3BiasVoltage(self, value):
+        """
+        Setting the bias voltage of the detector.
+        """
+        if float(value) < 200.0:
+            self.__detector_config.bias_voltage = float(value)
+            detector_config = self.get_config()
+            detector_config["BiasVoltage"] = float(value)
+            resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
+            data = resp.text
+            logging.info('***TPX3***: Response of updating Detector Configuration (bias voltage only): ' + data)
+        else:
+            logging.info("***TPX3***: Bias voltage must be below 200.0 V.")
+
+
     def getTp3Modes(self):
         return ['Standard', 'Coincidence', 'Raw 4D Image']
 
