@@ -247,13 +247,13 @@ class TimePix3():
             logging.info('***TP3***: Timepix3 in simulation mode.')
 
     def get_controller(self):
-        #TODO: In chromaTEM, even with open scan this control will fail
-        has_open_scan = (HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
-            "open_scan_device") is not None)
-        if has_open_scan:
-            controller = HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
-            assert controller.scan_controller.scan_device.scan_device_id == "open_scan_device"
-            return controller
+        # #TODO: In chromaTEM, even with open scan this control will fail
+        # has_open_scan = (HardwareSource.HardwareSourceManager().get_hardware_source_for_hardware_source_id(
+        #     "open_scan_device") is not None)
+        # if has_open_scan:
+        #     controller = HardwareSource.HardwareSourceManager().get_instrument_by_id("orsay_controller")
+        #     assert controller.scan_controller.scan_device.scan_device_id == "open_scan_device"
+        #     return controller
         if self.__stem_controller is None:
             return Registry.get_component("stem_controller")
         else:
@@ -269,7 +269,11 @@ class TimePix3():
             "open_scan_device")
 
         if openscan is not None:
-            openscan.scan_device.scan_engine.mux_output_freq1 = 1000
+            try:
+                openscan.scan_device.scan_engine.mux_output_freq1 = 1.0 / exposure
+            except AssertionError:
+                logging.info("***TPX3***: Could not set the clock frequency. Setting it at 6 Hz (~166 ms) instead.")
+                openscan.scan_device.scan_engine.mux_output_freq1 = 6.0
             openscan.scan_device.scan_engine.mux_output_type1 = 7
             openscan.scan_device.scan_engine.mux_output_freq_duty1 = 50
         else:
@@ -290,9 +294,13 @@ class TimePix3():
             "open_scan_device")
 
         if openscan is not None:
-            openscan.scan_device.scan_engine.mux_output_type1 = 1
-            openscan.scan_device.scan_engine.mux_output_pol1 = False
-            openscan.scan_device.scan_engine.flyback_us = 0
+            if has_superscan:
+                openscan.scan_device.scan_engine.mux_output_type1 = 4
+                openscan.scan_device.scan_engine.mux_output_pol1 = False
+            else:
+                openscan.scan_device.scan_engine.mux_output_type1 = 1
+                openscan.scan_device.scan_engine.mux_output_pol1 = False
+                openscan.scan_device.scan_engine.flyback_us = 0
             #openscan.scan_device.scan_engine.mux_output_type1 = 3
             #openscan.scan_device.scan_engine.mux_output_pol1 = True
         else:
@@ -950,7 +958,7 @@ class TimePix3():
         Setting the bias voltage of the detector.
         """
         if float(value) < 200.0:
-            self.__detector_config.bias_voltage = float(value)
+            self.__detector_config.bias_voltage = int(value)
             detector_config = self.get_config()
             detector_config["BiasVoltage"] = float(value)
             resp = self.request_put(url=self.__serverURL + '/detector/config', data=json.dumps(detector_config))
