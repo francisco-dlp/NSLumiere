@@ -9,15 +9,21 @@ from ...aux_files import read_data
 def SENDMYMESSAGEFUNC(sendmessagefunc):
     return sendmessagefunc
 
+#def create_global_settings(architecture: str):
+#    global SPIM_SIZE, RAW4D_PIXELS_X, RAW4D_PIXELS_Y
+#    if architecture == "orsay":
+#        SPIM_SIZE = 1025
+
+
 SPIM_SIZE = 1025
-RAW4D_PIXELS_X = 256
-RAW4D_PIXELS_Y = 256
-SPEC_SIZE = 1025
+RAW4D_PIXELS_X = 512
+RAW4D_PIXELS_Y = 512
+SPEC_SIZE = 512
 SPEC_SIZE_ISI = 1025 + 200
-SPEC_SIZE_Y = 256
+SPEC_SIZE_Y = 512
 
 BIAS_VOLTAGE = 140
-SAVE_PATH = "file:/media/asi/Data21/TP3_Data"
+SAVE_PATH = "file:/data"
 SAVE_PATH_TIFF = "file:/data"
 PIXEL_MASK_PATH = '/home/asi/load_files/bpcs/'
 PIXEL_THRESHOLD_PATH = '/home/asi/load_files/dacs/'
